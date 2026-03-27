@@ -1,0 +1,13 @@
+version = 1
+mode = "requirements"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Exploration", "Risk", "ReleaseReadiness"]
+artifacts = [
+    "problem-statement.md",
+    "constraints.md",
+    "options.md",
+    "tradeoffs.md",
+    "scope-cuts.md",
+    "decision-checklist.md",
+]

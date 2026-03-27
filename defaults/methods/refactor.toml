@@ -1,0 +1,12 @@
+version = 1
+mode = "refactor"
+emphasis = "execution-heavy"
+implementation_depth = "contract-only"
+gate_profile = ["Exploration", "BrownfieldPreservation", "Risk", "ReleaseReadiness"]
+artifacts = [
+    "equivalence-criteria.md",
+    "preserved-surface.md",
+    "untangling-plan.md",
+    "rollback-notes.md",
+    "validation-strategy.md",
+]

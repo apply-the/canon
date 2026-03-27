@@ -1,0 +1,13 @@
+version = 1
+mode = "migration"
+emphasis = "analysis-heavy"
+implementation_depth = "skeleton"
+gate_profile = ["Exploration", "Architecture", "MigrationSafety", "Risk", "ReleaseReadiness"]
+artifacts = [
+    "source-target-map.md",
+    "compatibility-matrix.md",
+    "sequencing-plan.md",
+    "fallback-plan.md",
+    "migration-verification-report.md",
+    "decision-record.md",
+]

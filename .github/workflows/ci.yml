@@ -1,0 +1,95 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt-clippy:
+    name: fmt-clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.0
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.0
+      - run: cargo test --locked
+      - run: cargo install cargo-nextest --locked
+      - run: cargo nextest run --locked
+
+  msrv:
+    name: msrv
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.0
+      - run: cargo +1.94.0 test --locked --all-targets --all-features
+
+  deny:
+    name: deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.0
+      - run: cargo install cargo-deny --locked
+      - run: cargo deny check licenses advisories bans sources
+
+  cross-platform-build:
+    name: cross-platform-build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux-gnu
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            install-musl: false
+          - label: linux-musl
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            install-musl: true
+          - label: macos-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            install-musl: false
+          - label: macos-x86_64
+            os: macos-latest
+            target: x86_64-apple-darwin
+            install-musl: false
+          - label: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            install-musl: false
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.install-musl
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.0
+          targets: ${{ matrix.target }}
+      - run: cargo build --locked -p canon-cli --bin canon --target ${{ matrix.target }}

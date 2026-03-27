@@ -1,0 +1,12 @@
+version = 1
+mode = "review"
+emphasis = "review-heavy"
+implementation_depth = "contract-only"
+gate_profile = ["Risk", "Architecture", "ReviewDisposition", "ReleaseReadiness"]
+artifacts = [
+    "review-brief.md",
+    "boundary-assessment.md",
+    "missing-evidence.md",
+    "decision-impact.md",
+    "review-disposition.md",
+]

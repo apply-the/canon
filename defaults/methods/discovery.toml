@@ -1,0 +1,12 @@
+version = 1
+mode = "discovery"
+emphasis = "analysis-heavy"
+implementation_depth = "contract-only"
+gate_profile = ["Exploration", "Risk", "ReleaseReadiness"]
+artifacts = [
+    "discovery-brief.md",
+    "assumptions-register.md",
+    "evidence-log.md",
+    "unknowns-register.md",
+    "discovery-summary.md",
+]

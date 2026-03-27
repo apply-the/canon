@@ -1,0 +1,24 @@
+version = 1
+
+[[class]]
+name = "LowImpact"
+requires_owner = false
+mutable_execution = true
+verification_layers = ["SelfCritique"]
+
+[[class]]
+name = "BoundedImpact"
+requires_owner = true
+mutable_execution = true
+verification_layers = ["SelfCritique", "AdversarialCritique", "PeerReview"]
+
+[[class]]
+name = "SystemicImpact"
+requires_owner = true
+mutable_execution = false
+verification_layers = [
+    "SelfCritique",
+    "AdversarialCritique",
+    "PeerReview",
+    "ArchitecturalReview",
+]
