@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+cd "$repo_root"
+
+printf '%s\n' '[pre-commit] cargo fmt --check'
+cargo fmt --check
+printf '%s\n' '[pre-commit] cargo clippy --all-targets --all-features -- -D warnings'
+cargo clippy --all-targets --all-features -- -D warnings
+printf '%s\n' '[pre-commit] cargo test'
+cargo test

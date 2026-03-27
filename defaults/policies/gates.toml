@@ -1,0 +1,13 @@
+version = 1
+
+mandatory_gates = [
+    "Exploration",
+    "BrownfieldPreservation",
+    "Architecture",
+    "Risk",
+    "ReviewDisposition",
+    "ReleaseReadiness",
+    "ImplementationReadiness",
+    "IncidentContainment",
+    "MigrationSafety",
+]

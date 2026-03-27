@@ -1,0 +1,86 @@
+version = 1
+required_verification_layers = [
+    "SelfCritique",
+    "AdversarialCritique",
+    "PeerReview",
+]
+
+[[artifact_requirements]]
+file_name = "problem-statement.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Problem",
+    "Boundary",
+    "Success Signal",
+]
+gates = [
+    "Exploration",
+    "Risk",
+]
+
+[[artifact_requirements]]
+file_name = "constraints.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Constraints",
+    "Non-Negotiables",
+]
+gates = [
+    "Exploration",
+    "Risk",
+    "Architecture",
+]
+
+[[artifact_requirements]]
+file_name = "options.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Options",
+    "Recommended Path",
+]
+gates = [
+    "Exploration",
+    "Architecture",
+]
+
+[[artifact_requirements]]
+file_name = "tradeoffs.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Tradeoffs",
+    "Consequences",
+]
+gates = [
+    "Architecture",
+    "ReleaseReadiness",
+]
+
+[[artifact_requirements]]
+file_name = "scope-cuts.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Scope Cuts",
+    "Deferred Work",
+]
+gates = [
+    "Exploration",
+    "ReleaseReadiness",
+]
+
+[[artifact_requirements]]
+file_name = "decision-checklist.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Decision Checklist",
+    "Open Questions",
+]
+gates = [
+    "Risk",
+    "ReleaseReadiness",
+]

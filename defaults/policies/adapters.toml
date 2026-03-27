@@ -1,0 +1,10 @@
+version = 1
+
+[capabilities]
+Filesystem = ["ReadRepository", "WriteArtifact"]
+Shell = ["ExecReadOnlyCommand", "ExecMutatingCommand"]
+CopilotCli = ["InvokeAiGeneration", "InvokeAiCritique"]
+McpStdio = ["InvokeStructuredTool"]
+
+[rules]
+block_mutation_for_red_or_systemic = true

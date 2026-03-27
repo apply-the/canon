@@ -1,0 +1,17 @@
+[package]
+name = "canon-engine"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+canon-adapters = { path = "../canon-adapters" }
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+time.workspace = true
+toml.workspace = true
+tracing.workspace = true
+uuid.workspace = true

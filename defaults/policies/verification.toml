@@ -1,0 +1,11 @@
+version = 1
+
+[layers]
+low = ["SelfCritique"]
+bounded = ["SelfCritique", "AdversarialCritique", "PeerReview"]
+systemic = [
+    "SelfCritique",
+    "AdversarialCritique",
+    "PeerReview",
+    "ArchitecturalReview",
+]

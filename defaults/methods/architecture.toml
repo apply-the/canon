@@ -1,0 +1,13 @@
+version = 1
+mode = "architecture"
+emphasis = "analysis-heavy"
+implementation_depth = "contract-only"
+gate_profile = ["Exploration", "Architecture", "Risk", "ReleaseReadiness"]
+artifacts = [
+    "invariants.md",
+    "boundary-map.md",
+    "architecture-options.md",
+    "tradeoffs.md",
+    "decision-record.md",
+    "risk-memo.md",
+]

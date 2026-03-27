@@ -1,0 +1,12 @@
+pub mod architecture;
+pub mod brownfield_change;
+pub mod discovery;
+pub mod greenfield;
+pub mod implementation;
+pub mod incident;
+pub mod migration;
+pub mod pr_review;
+pub mod refactor;
+pub mod requirements;
+pub mod review;
+pub mod verification;

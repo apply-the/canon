@@ -1,0 +1,13 @@
+version = 1
+
+[[zone]]
+name = "Green"
+mutable_execution = true
+
+[[zone]]
+name = "Yellow"
+mutable_execution = true
+
+[[zone]]
+name = "Red"
+mutable_execution = false

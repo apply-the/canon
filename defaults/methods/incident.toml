@@ -1,0 +1,13 @@
+version = 1
+mode = "incident"
+emphasis = "analysis-heavy"
+implementation_depth = "skeleton"
+gate_profile = ["Risk", "IncidentContainment", "Architecture", "ReleaseReadiness"]
+artifacts = [
+    "incident-frame.md",
+    "hypothesis-log.md",
+    "blast-radius-map.md",
+    "containment-plan.md",
+    "incident-decision-record.md",
+    "follow-up-verification.md",
+]

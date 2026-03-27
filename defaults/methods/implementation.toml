@@ -1,0 +1,13 @@
+version = 1
+mode = "implementation"
+emphasis = "execution-heavy"
+implementation_depth = "skeleton"
+gate_profile = ["Risk", "ImplementationReadiness", "ReleaseReadiness"]
+artifacts = [
+    "execution-brief.md",
+    "task-bundle.md",
+    "contract-checklist.md",
+    "change-log.md",
+    "verification-hooks.md",
+    "completion-record.md",
+]

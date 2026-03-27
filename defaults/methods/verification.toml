@@ -1,0 +1,12 @@
+version = 1
+mode = "verification"
+emphasis = "review-heavy"
+implementation_depth = "contract-only"
+gate_profile = ["Risk", "ReleaseReadiness"]
+artifacts = [
+    "invariants-checklist.md",
+    "contract-matrix.md",
+    "adversarial-review.md",
+    "verification-report.md",
+    "unresolved-findings.md",
+]
