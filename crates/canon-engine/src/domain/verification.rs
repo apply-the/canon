@@ -15,4 +15,7 @@ pub struct VerificationRecord {
     pub target_paths: Vec<String>,
     pub disposition: String,
     pub recorded_at: OffsetDateTime,
+    pub request_ids: Vec<String>,
+    pub validation_path_id: Option<String>,
+    pub evidence_bundle: Option<String>,
 }

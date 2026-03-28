@@ -10,6 +10,8 @@ pub struct LinkManifest {
     pub artifacts: Vec<String>,
     pub decisions: Vec<String>,
     pub traces: Vec<String>,
+    pub invocations: Vec<String>,
+    pub evidence: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,9 +1,11 @@
+use canon_adapters::AdapterKind;
 use canon_adapters::dispatcher::DispatchDisposition;
 use canon_adapters::shell::ShellAdapter;
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{
-    GatePolicy, PolicySet, RiskClass, RiskPolicyClass, UsageZone, ZonePolicy,
+    AdapterPolicyMatrix, GatePolicy, PolicySet, RiskClass, RiskPolicyClass, UsageZone, ZonePolicy,
 };
+use canon_engine::domain::policy::{InvocationConstraintProfile, ValidationIndependencePolicy};
 use canon_engine::domain::verification::VerificationLayer;
 use canon_engine::orchestrator::classifier::{MutationPolicy, mutation_policy_for_mode};
 
@@ -38,6 +40,46 @@ fn sample_policy_set() -> PolicySet {
             ZonePolicy { name: UsageZone::Red, mutable_execution: false },
         ],
         gate_policy: GatePolicy { mandatory_gates: Vec::new() },
+        adapter_matrix: vec![
+            AdapterPolicyMatrix {
+                adapter: AdapterKind::Filesystem,
+                capabilities: vec![
+                    canon_adapters::CapabilityKind::ReadRepository,
+                    canon_adapters::CapabilityKind::ReadArtifact,
+                    canon_adapters::CapabilityKind::EmitArtifact,
+                ],
+            },
+            AdapterPolicyMatrix {
+                adapter: AdapterKind::Shell,
+                capabilities: vec![
+                    canon_adapters::CapabilityKind::RunCommand,
+                    canon_adapters::CapabilityKind::ValidateWithTool,
+                    canon_adapters::CapabilityKind::ExecuteBoundedTransformation,
+                ],
+            },
+            AdapterPolicyMatrix {
+                adapter: AdapterKind::CopilotCli,
+                capabilities: vec![
+                    canon_adapters::CapabilityKind::GenerateContent,
+                    canon_adapters::CapabilityKind::CritiqueContent,
+                    canon_adapters::CapabilityKind::ProposeWorkspaceEdit,
+                ],
+            },
+        ],
+        constraint_profiles: vec![InvocationConstraintProfile {
+            id: "requirements-generation".to_string(),
+            payload_retention:
+                canon_engine::domain::execution::PayloadRetentionLevel::SummaryWithDigest,
+            max_payload_bytes: Some(16 * 1024),
+            command_profile: Some("requirements-generation".to_string()),
+            recommendation_only: false,
+            patch_disabled: true,
+        }],
+        runtime_disabled_adapters: vec![AdapterKind::McpStdio],
+        validation_independence: ValidationIndependencePolicy {
+            ai_generation_requires_distinct_validation: true,
+            human_review_counts_independent: true,
+        },
         block_mutation_for_red_or_systemic: true,
     }
 }
@@ -47,11 +89,11 @@ fn shell_adapter_separates_read_only_and_mutating_capabilities() {
     let shell = ShellAdapter;
 
     let read_only = shell.read_only_request("inspect diff");
-    assert_eq!(read_only.capability, canon_adapters::CapabilityKind::ExecReadOnlyCommand);
+    assert_eq!(read_only.capability, canon_adapters::CapabilityKind::RunCommand);
     assert_eq!(read_only.side_effect, canon_adapters::SideEffectClass::ReadOnly);
 
     let mutating = shell.mutating_request("apply patch");
-    assert_eq!(mutating.capability, canon_adapters::CapabilityKind::ExecMutatingCommand);
+    assert_eq!(mutating.capability, canon_adapters::CapabilityKind::ExecuteBoundedTransformation);
     assert_eq!(mutating.side_effect, canon_adapters::SideEffectClass::WorkspaceMutation);
 
     assert_eq!(

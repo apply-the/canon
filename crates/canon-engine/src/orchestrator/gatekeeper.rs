@@ -1,26 +1,53 @@
 use time::OffsetDateTime;
 
 use crate::artifacts::contract::validate_release_bundle;
-use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
+use crate::domain::approval::ApprovalRecord;
 use crate::domain::artifact::ArtifactContract;
+use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
+
+pub struct BrownfieldGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
+pub struct PrReviewGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub denied_invocations: &'a [DeniedInvocation],
+    pub evidence_complete: bool,
+}
 
 pub fn evaluate_requirements_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
     owner: &str,
+    denied_invocations: &[DeniedInvocation],
+    evidence_complete: bool,
 ) -> Vec<GateEvaluation> {
-    vec![exploration_gate(artifacts), risk_gate(owner), release_readiness_gate(contract, artifacts)]
+    vec![
+        exploration_gate(artifacts),
+        risk_gate(owner),
+        requirements_release_readiness_gate(
+            contract,
+            artifacts,
+            denied_invocations,
+            evidence_complete,
+        ),
+    ]
 }
 
 pub fn evaluate_brownfield_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
-    owner: &str,
-    risk: RiskClass,
-    zone: UsageZone,
-    approvals: &[ApprovalRecord],
+    context: BrownfieldGateContext<'_>,
 ) -> Vec<GateEvaluation> {
     vec![
         named_artifact_gate(
@@ -44,35 +71,42 @@ pub fn evaluate_brownfield_gates(
             &["implementation-plan.md", "decision-record.md"],
             "brownfield architecture review requires an implementation plan and decision record",
         ),
-        brownfield_risk_gate(owner, risk, zone, approvals),
-        release_readiness_gate(contract, artifacts),
+        brownfield_risk_gate(context.owner, context.risk, context.zone, context.approvals),
+        brownfield_release_readiness_gate(
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+        ),
     ]
 }
 
 pub fn evaluate_pr_review_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
-    owner: &str,
-    risk: RiskClass,
-    zone: UsageZone,
-    approvals: &[ApprovalRecord],
+    context: PrReviewGateContext<'_>,
 ) -> Vec<GateEvaluation> {
-    let disposition_approved = approvals.iter().any(|approval| {
-        approval.gate == GateKind::ReviewDisposition
-            && matches!(approval.decision, ApprovalDecision::Approve)
+    let disposition_approved = context.approvals.iter().any(|approval| {
+        approval.matches_gate(GateKind::ReviewDisposition) && approval.is_approved()
     });
 
     vec![
         approval_aware_risk_gate(
-            owner,
-            risk,
-            zone,
-            approvals,
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
             "systemic-impact or red-zone review work requires explicit approval before it can proceed",
         ),
         pr_review_architecture_gate(contract, artifacts),
         review_disposition_gate(contract, artifacts, disposition_approved),
-        pr_review_release_readiness_gate(contract, artifacts, disposition_approved),
+        pr_review_release_readiness_gate(
+            contract,
+            artifacts,
+            disposition_approved,
+            context.denied_invocations,
+            context.evidence_complete,
+        ),
     ]
 }
 
@@ -107,19 +141,117 @@ fn risk_gate(owner: &str) -> GateEvaluation {
     }
 }
 
+fn requirements_release_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    denied_invocations: &[DeniedInvocation],
+    evidence_complete: bool,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "requirements release readiness needs explicit generation and validation evidence"
+                .to_string(),
+        );
+    }
+
+    if denied_invocations
+        .iter()
+        .any(|denied| denied.rationale.contains("disabled for runtime execution"))
+    {
+        blockers.push(
+            "runtime-disabled invocation attempts must be resolved before release readiness can pass"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
 fn brownfield_risk_gate(
     owner: &str,
     risk: RiskClass,
     zone: UsageZone,
     approvals: &[ApprovalRecord],
 ) -> GateEvaluation {
-    approval_aware_risk_gate(
-        owner,
-        risk,
-        zone,
-        approvals,
-        "systemic-impact or red-zone brownfield work requires explicit approval before it can proceed",
-    )
+    let owner_blockers = if owner.trim().is_empty() {
+        vec!["human ownership is required before risk classification can pass".to_string()]
+    } else {
+        Vec::new()
+    };
+
+    if !owner_blockers.is_empty() {
+        return GateEvaluation {
+            gate: GateKind::Risk,
+            status: GateStatus::Blocked,
+            blockers: owner_blockers,
+            evaluated_at: OffsetDateTime::now_utc(),
+        };
+    }
+
+    let approval_required =
+        matches!(risk, RiskClass::SystemicImpact) || matches!(zone, UsageZone::Red);
+    let gate_approved = approvals
+        .iter()
+        .any(|approval| approval.matches_gate(GateKind::Risk) && approval.is_approved());
+    let invocation_approved = approvals
+        .iter()
+        .any(|approval| approval.invocation_request_id.is_some() && approval.is_approved());
+
+    let (status, blockers) = if approval_required && !(gate_approved || invocation_approved) {
+        (
+            GateStatus::NeedsApproval,
+            vec![
+                "systemic-impact or red-zone brownfield work requires explicit approval before it can proceed"
+                    .to_string(),
+            ],
+        )
+    } else if gate_approved || invocation_approved {
+        (GateStatus::Overridden, Vec::new())
+    } else {
+        (GateStatus::Passed, Vec::new())
+    };
+
+    GateEvaluation {
+        gate: GateKind::Risk,
+        status,
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn brownfield_release_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    validation_independence_satisfied: bool,
+    evidence_complete: bool,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "brownfield readiness needs explicit generation and validation evidence".to_string(),
+        );
+    }
+
+    if !validation_independence_satisfied {
+        blockers.push(
+            "brownfield readiness requires an independently recorded validation path".to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
 }
 
 fn approval_aware_risk_gate(
@@ -146,9 +278,9 @@ fn approval_aware_risk_gate(
 
     let approval_required =
         matches!(risk, RiskClass::SystemicImpact) || matches!(zone, UsageZone::Red);
-    let approved = approvals.iter().any(|approval| {
-        approval.gate == GateKind::Risk && matches!(approval.decision, ApprovalDecision::Approve)
-    });
+    let approved = approvals
+        .iter()
+        .any(|approval| approval.matches_gate(GateKind::Risk) && approval.is_approved());
 
     let (status, blockers) = if approval_required && !approved {
         (GateStatus::NeedsApproval, vec![approval_message.to_string()])
@@ -262,26 +394,21 @@ fn review_disposition_gate(
     }
 }
 
-fn release_readiness_gate(
-    contract: &ArtifactContract,
-    artifacts: &[(String, String)],
-) -> GateEvaluation {
-    let blockers = validate_release_bundle(contract, artifacts);
-
-    GateEvaluation {
-        gate: GateKind::ReleaseReadiness,
-        status: gate_status_from_blockers(&blockers),
-        blockers,
-        evaluated_at: OffsetDateTime::now_utc(),
-    }
-}
-
 fn pr_review_release_readiness_gate(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
     disposition_approved: bool,
+    denied_invocations: &[DeniedInvocation],
+    evidence_complete: bool,
 ) -> GateEvaluation {
     let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "pr-review readiness requires persisted diff inspection and critique evidence"
+                .to_string(),
+        );
+    }
 
     let summary = artifacts
         .iter()
@@ -292,6 +419,16 @@ fn pr_review_release_readiness_gate(
     if summary.contains("Status: awaiting-disposition") && !disposition_approved {
         blockers.push(
             "review-summary.md still records unresolved must-fix findings without disposition"
+                .to_string(),
+        );
+    }
+
+    if denied_invocations
+        .iter()
+        .any(|denied| denied.rationale.contains("disabled for runtime execution"))
+    {
+        blockers.push(
+            "runtime-disabled pr-review invocation attempts must be resolved before readiness can pass"
                 .to_string(),
         );
     }

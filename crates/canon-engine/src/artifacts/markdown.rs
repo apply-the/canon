@@ -29,6 +29,36 @@ pub fn render_requirements_artifact(file_name: &str, idea_summary: &str) -> Stri
     }
 }
 
+pub fn render_requirements_artifact_from_evidence(
+    file_name: &str,
+    idea_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    denied_summary: &str,
+) -> String {
+    match file_name {
+        "problem-statement.md" => format!(
+            "# Problem Statement\n\n## Summary\n\n{idea_summary}\n\n## Problem\n\n{generation_summary}\n\n## Boundary\n\nThe governed execution path stays in requirements mode and does not mutate the workspace.\n\n## Success Signal\n\nThe next step can proceed using bounded problem framing backed by recorded invocation evidence.\n"
+        ),
+        "constraints.md" => format!(
+            "# Constraints\n\n## Summary\n\n{idea_summary}\n\n## Constraints\n\n- Govern execution before generation.\n- Preserve durable evidence under `.canon/`.\n- Keep validation challenge separate from generation.\n\n## Non-Negotiables\n\n- {critique_summary}\n"
+        ),
+        "options.md" => format!(
+            "# Options\n\n## Summary\n\n{idea_summary}\n\n## Options\n\n1. Continue with a bounded governed change plan.\n2. Reframe the problem if critique evidence shows scope drift.\n\n## Recommended Path\n\nUse the generated framing plus critique evidence to choose the smallest governed next move.\n"
+        ),
+        "tradeoffs.md" => format!(
+            "# Tradeoffs\n\n## Summary\n\n{idea_summary}\n\n## Tradeoffs\n\n- Governed execution adds structure before speed.\n- Evidence-first runs are heavier than freeform prompting.\n- Denied mutation requests keep requirements mode bounded.\n\n## Consequences\n\n- {denied_summary}\n"
+        ),
+        "scope-cuts.md" => format!(
+            "# Scope Cuts\n\n## Summary\n\n{idea_summary}\n\n## Scope Cuts\n\n- No workspace mutation in requirements mode.\n- No runtime MCP execution in this tranche.\n- No code edits are authorized from this run.\n\n## Deferred Work\n\nMove from framing to execution only after the next mode is chosen explicitly.\n"
+        ),
+        "decision-checklist.md" => format!(
+            "# Decision Checklist\n\n## Summary\n\n{idea_summary}\n\n## Decision Checklist\n\n- [x] Governed context capture ran before generation.\n- [x] Generation and critique were recorded as separate invocations.\n- [x] Denied mutation attempts remain visible as evidence.\n- [x] The artifact bundle links back to execution evidence.\n\n## Open Questions\n\n- Which downstream mode should consume this evidence bundle?\n- Does the current critique require a narrower scope before planning continues?\n"
+        ),
+        other => render_requirements_artifact(other, idea_summary),
+    }
+}
+
 pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> String {
     let normalized = brief_summary.to_lowercase();
     let system_slice = extract_marker(brief_summary, &normalized, "system slice")
@@ -90,7 +120,7 @@ pub fn render_pr_review_artifact(
 ) -> String {
     match file_name {
         "pr-analysis.md" => format!(
-            "# PR Analysis\n\n## Summary\n\nReviewing `{}` against `{}` across {} changed surface(s).\n\n## Scope Summary\n\n- Base ref: `{}`\n- Head ref: `{}`\n- Changed surface count: {}\n\n## Changed Modules\n\n{}\n\n## Inferred Intent\n\n{}\n\n## Surprising Surface Area\n\n{}\n",
+            "# PR Analysis\n\n## Summary\n\nReviewing `{}` against `{}` across {} changed surface(s).\n\n## Evidence Posture\n\n- Review packet derived from governed diff inspection and critique evidence.\n- Artifact provenance remains linked from the run evidence bundle.\n\n## Scope Summary\n\n- Base ref: `{}`\n- Head ref: `{}`\n- Changed surface count: {}\n\n## Changed Modules\n\n{}\n\n## Inferred Intent\n\n{}\n\n## Surprising Surface Area\n\n{}\n",
             packet.head_ref,
             packet.base_ref,
             packet.changed_surfaces.len(),
@@ -188,7 +218,7 @@ pub fn render_pr_review_artifact(
             },
         ),
         "review-summary.md" => format!(
-            "# Review Summary\n\n## Summary\n\nStructured review completed for `{}` against `{}`.\n\n## Severity\n\n- Overall severity: {}\n- Must-fix findings: {}\n- Review notes: {}\n\n## Must-Fix Findings\n\n{}\n\n## Accepted Risks\n\n{}\n\n## Final Disposition\n\nStatus: {}\n\nRationale: {}\n",
+            "# Review Summary\n\n## Summary\n\nStructured review completed for `{}` against `{}`.\n\n## Evidence\n\n- Governed diff inspection and critique were both recorded before disposition.\n- Review artifacts remain derived from the persisted evidence bundle.\n\n## Severity\n\n- Overall severity: {}\n- Must-fix findings: {}\n- Review notes: {}\n\n## Must-Fix Findings\n\n{}\n\n## Accepted Risks\n\n{}\n\n## Final Disposition\n\nStatus: {}\n\nRationale: {}\n",
             packet.head_ref,
             packet.base_ref,
             summary_severity_label(packet),

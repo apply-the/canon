@@ -4,9 +4,13 @@ pub const MODE_FILE: &str = "brownfield-change.toml";
 pub const STEP_SEQUENCE: &[&str] = &[
     "capture-context",
     "classify-risk",
+    "govern-repository-context",
     "map-system-slice",
     "freeze-legacy-invariants",
+    "govern-change-framing",
     "bound-change-surface",
+    "record-validation-evidence",
+    "record-recommendation-only-mutation",
     "define-validation-strategy",
     "evaluate-gates",
 ];

@@ -58,6 +58,18 @@ impl ProjectLayout {
         self.run_dir(run_id).join("verification")
     }
 
+    pub fn run_invocations_dir(&self, run_id: &str) -> PathBuf {
+        self.run_dir(run_id).join("invocations")
+    }
+
+    pub fn run_invocation_dir(&self, run_id: &str, request_id: &str) -> PathBuf {
+        self.run_invocations_dir(run_id).join(request_id)
+    }
+
+    pub fn run_evidence_path(&self, run_id: &str) -> PathBuf {
+        self.run_dir(run_id).join("evidence.toml")
+    }
+
     pub fn run_artifact_dir(&self, run_id: &str, mode: Mode) -> PathBuf {
         self.artifacts_dir().join(run_id).join(mode.as_str())
     }

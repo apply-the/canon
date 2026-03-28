@@ -48,4 +48,6 @@ pub struct Run {
     pub state: RunState,
     pub created_at: OffsetDateTime,
     pub artifact_contract: Option<ArtifactContract>,
+    pub evidence_bundle_ref: Option<String>,
+    pub pending_invocation_ids: Vec<String>,
 }

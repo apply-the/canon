@@ -60,6 +60,15 @@ impl ReviewSummary {
 
         Self { disposition, rationale, must_fix_findings, accepted_risks }
     }
+
+    pub fn from_evidence(packet: &ReviewPacket, approval_recorded: bool) -> Self {
+        let mut summary = Self::from_packet(packet, approval_recorded);
+        summary.rationale = format!(
+            "{} Governed diff inspection and critique evidence remain linked from the review bundle.",
+            summary.rationale
+        );
+        summary
+    }
 }
 
 pub fn summary_severity_label(packet: &ReviewPacket) -> &'static str {

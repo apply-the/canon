@@ -11,6 +11,9 @@ pub fn requirements_verification_records(target_paths: &[String]) -> Vec<Verific
             target_paths: target_paths.to_vec(),
             disposition: note.summary,
             recorded_at: OffsetDateTime::now_utc(),
+            request_ids: Vec::new(),
+            validation_path_id: None,
+            evidence_bundle: None,
         })
         .collect()
 }
@@ -45,6 +48,9 @@ pub fn brownfield_verification_records(
                 layer_summary(layer)
             ),
             recorded_at: OffsetDateTime::now_utc(),
+            request_ids: Vec::new(),
+            validation_path_id: None,
+            evidence_bundle: None,
         })
         .collect()
 }
@@ -64,6 +70,9 @@ pub fn pr_review_verification_records(
                 layer_summary(layer)
             ),
             recorded_at: OffsetDateTime::now_utc(),
+            request_ids: Vec::new(),
+            validation_path_id: None,
+            evidence_bundle: None,
         })
         .collect()
 }

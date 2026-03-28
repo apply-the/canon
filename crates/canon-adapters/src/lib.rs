@@ -8,7 +8,9 @@ pub mod mcp_stdio;
 pub mod shell;
 
 pub use capability::{
-    AdapterInvocation, AdapterKind, AdapterRequest, CapabilityKind, SideEffectClass,
+    AdapterCapability, AdapterInvocation, AdapterKind, AdapterRequest, CapabilityKind,
+    InvocationOrientation, LineageClass, MutabilityClass, SideEffectClass, TrustBoundaryKind,
+    classify_capability,
 };
 
 use thiserror::Error;

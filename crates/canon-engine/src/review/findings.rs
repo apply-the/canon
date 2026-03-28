@@ -156,6 +156,25 @@ impl ReviewPacket {
         }
     }
 
+    pub fn from_evidence(
+        base_ref: &str,
+        head_ref: &str,
+        changed_surfaces: Vec<String>,
+        patch: &str,
+        critique_summary: &str,
+    ) -> Self {
+        let mut packet = Self::from_diff(base_ref, head_ref, changed_surfaces, patch);
+
+        if !critique_summary.trim().is_empty() {
+            packet.inferred_intent = format!(
+                "{}\n\nGoverned critique evidence: {}",
+                packet.inferred_intent, critique_summary
+            );
+        }
+
+        packet
+    }
+
     pub fn findings_for(&self, category: FindingCategory) -> Vec<&ReviewFinding> {
         self.findings.iter().filter(|finding| finding.category == category).collect()
     }

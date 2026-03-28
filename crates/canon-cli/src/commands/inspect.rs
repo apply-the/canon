@@ -14,9 +14,15 @@ pub fn execute(
         InspectCommand::Artifacts { run, output } => {
             (InspectTarget::Artifacts { run_id: run }, output)
         }
+        InspectCommand::Invocations { run, output } => {
+            (InspectTarget::Invocations { run_id: run }, output)
+        }
+        InspectCommand::Evidence { run, output } => {
+            (InspectTarget::Evidence { run_id: run }, output)
+        }
     };
 
     let response = service.inspect(target)?;
-    output::print_value(&response, format)?;
+    output::print_inspect(&response, format)?;
     Ok(0)
 }

@@ -9,6 +9,15 @@ use crate::{AdapterError, AdapterInvocation, AdapterKind, CapabilityKind, SideEf
 pub struct FilesystemAdapter;
 
 impl FilesystemAdapter {
+    pub fn read_to_string_traced(
+        &self,
+        path: &Path,
+        purpose: &str,
+    ) -> Result<(String, AdapterInvocation), AdapterError> {
+        let contents = fs::read_to_string(path)?;
+        Ok((contents, self.read_invocation(path, purpose)))
+    }
+
     pub fn create_dir_all(&self, path: &Path) -> Result<(), AdapterError> {
         fs::create_dir_all(path)?;
         Ok(())
@@ -32,10 +41,21 @@ impl FilesystemAdapter {
         self.invocation(path, purpose)
     }
 
+    fn read_invocation(&self, path: &Path, purpose: &str) -> AdapterInvocation {
+        AdapterInvocation {
+            adapter: AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
+            purpose: format!("{purpose}: {}", path.display()),
+            side_effect: SideEffectClass::ReadOnly,
+            allowed: true,
+            occurred_at: OffsetDateTime::now_utc(),
+        }
+    }
+
     fn invocation(&self, path: &Path, purpose: &str) -> AdapterInvocation {
         AdapterInvocation {
             adapter: AdapterKind::Filesystem,
-            capability: CapabilityKind::WriteArtifact,
+            capability: CapabilityKind::EmitArtifact,
             purpose: format!("{purpose}: {}", path.display()),
             side_effect: SideEffectClass::ArtifactWrite,
             allowed: true,
