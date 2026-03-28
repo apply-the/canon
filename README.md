@@ -1,91 +1,100 @@
 # Canon
 
-Canon is a local-first CLI for governed AI-assisted software engineering. It
-does not try to replace your editor, shell, test runner, or coding assistant.
-It sits above them and forces work through explicit modes, risk
-classification, artifact contracts, gates, approvals, and durable run memory.
+**Canon is a CLI you run inside a repository to govern engineering work with AI and external tools, then leave durable evidence under `.canon/`.**
 
-It is not a generic agent framework, not a prompt library, and not a Copilot
-replacement.
+You give Canon a mode, risk class, usage zone, owner, and inputs. Canon decides what is allowed to run before anything runs, records what was attempted, what was denied, what needed approval, and what evidence supports the result. It is local-first, inspectable, and built for people who would rather read files on disk than trust an opaque agent loop.
+
+Canon is not a generic agent framework. It is not a prompt library. It is not a Copilot/Claude replacement. It is a disciplined terminal tool for governed execution.
+
+## What Canon Is
+
+- A local CLI for governed engineering runs.
+- A runtime that sits above shell actions, repository inspection, and AI-assisted generation or critique.
+- A tool with explicit modes, risk classes, usage zones, invocation policy, gates, approvals, and decision memory.
+- A system where artifacts are evidence of governed work, not the whole product.
+
+## Why You Would Use It
+
+Because the hard part is not getting output. The hard part is knowing:
+
+- what was allowed to run
+- what was denied
+- what required approval
+- what challenged generated output
+- what evidence exists after the run is over
+
+If you are skeptical of AI wrappers, that is the point of Canon. It turns a run into something you can inspect, audit, resume, and review instead of something you are asked to trust.
 
 ## Install
 
-### Prerequisites
+Today, Canon installs from source.
+
+Requirements:
 
 - Rust `1.94.0`
 - Git
-- a local repository or folder where you want Canon to write `.canon/`
+- a repository or working directory where Canon can create `.canon/`
 
-### Install the CLI
-
-Clone the repository, then install the `canon` binary from source:
+Install the binary:
 
 ```bash
 git clone https://github.com/apply-the/canon.git
 cd canon
 cargo +1.94.0 install --path crates/canon-cli --bin canon
+canon --help
 ```
 
-That installs `canon` into Cargo's bin directory, usually `~/.cargo/bin`.
-Make sure that directory is on your `PATH`.
+That is the supported install path today. Prebuilt releases, Homebrew, and Windows package-manager distribution are planned but not wired yet.
 
-If you do not want to install the binary yet, you can run Canon directly from
-the source tree instead:
+## Quickstart
 
-```bash
-cargo +1.94.0 run -p canon-cli -- --help
-```
-
-### Distribution Status
-
-Today, Canon is installed from source with Cargo.
-
-The right no-Cargo distribution path for a future release pipeline is:
-
-- GitHub Releases with prebuilt binaries and installer scripts
-- Homebrew for macOS and Linux
-- winget, and optionally Scoop, for Windows
-- Debian packages later, once there is a real apt repository to publish to
-
-That packaging pipeline is not wired yet, so this README documents the install
-path that works today.
-
-## First Use
-
-Canon is meant to be used inside a target project, not only inside the Canon
-source repository.
-
-Create or enter the project where you want to run it:
+Try Canon in a throwaway repo:
 
 ```bash
 mkdir -p ~/tmp/canon-demo
 cd ~/tmp/canon-demo
 git init
-```
 
-Create a small input file:
-
-```bash
 cat > idea.md <<'EOF'
 # Idea
 
-Define requirements for a new internal CLI tool without letting scope drift.
+Define requirements for a bounded internal CLI without letting scope drift.
 EOF
+
+canon init
+
+canon run \
+  --mode requirements \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner product-lead \
+  --input idea.md \
+  --output json
 ```
 
-Initialize Canon's runtime state:
+Take the `run_id` from the JSON output, then inspect what Canon actually did:
 
 ```bash
-canon init --output json
+canon status --run <RUN_ID> --output json
+canon inspect invocations --run <RUN_ID> --output json
+canon inspect evidence --run <RUN_ID> --output json
+canon inspect artifacts --run <RUN_ID> --output json
 ```
 
-Expected result:
+What you get:
 
-- `.canon/` is created in the current directory
-- built-in methods are written under `.canon/methods/`
-- built-in policies are written under `.canon/policies/`
+- a governed run under `.canon/runs/<RUN_ID>/`
+- emitted artifacts under `.canon/artifacts/<RUN_ID>/requirements/`
+- per-invocation request, policy decision, and attempt records
+- an `evidence.toml` that links generation paths, validation paths, artifacts, and decisions
 
-Run the working `requirements` flow:
+That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
+
+## Example Workflows
+
+### `requirements`
+
+Use this when you need bounded framing before code or architecture drift starts.
 
 ```bash
 canon run \
@@ -97,37 +106,16 @@ canon run \
   --output json
 ```
 
-Expected result:
+Canon will:
 
-- Canon prints a JSON object containing a `run_id`
-- the run is persisted under `.canon/runs/<run-id>/`
-- the requirements artifact bundle is written under
-  `.canon/artifacts/<run-id>/requirements/`
+- capture context as a governed run
+- govern generation and critique requests before execution
+- deny mutation in this mode
+- emit a requirements artifact set backed by invocation evidence
 
-Check the run state:
+### `brownfield-change`
 
-```bash
-canon status --run <run-id> --output json
-```
-
-Inspect the generated artifact bundle:
-
-```bash
-canon inspect artifacts --run <run-id> --output json
-```
-
-For a successful requirements run, you should see:
-
-- `problem-statement.md`
-- `constraints.md`
-- `options.md`
-- `tradeoffs.md`
-- `scope-cuts.md`
-- `decision-checklist.md`
-
-## Other Working Flows
-
-### Brownfield Change
+Use this for changes in a live codebase where preserved behavior matters.
 
 ```bash
 canon run \
@@ -139,14 +127,29 @@ canon run \
   --output json
 ```
 
-What it does:
+Canon will:
 
-- emits the brownfield artifact bundle under
-  `.canon/artifacts/<run-id>/brownfield-change/`
-- blocks the run if preserved behavior is underspecified
-- moves systemic-impact or red-zone work into `AwaitingApproval`
+- capture repository context through governed inspection requests
+- separate generation-oriented and validation-oriented work
+- keep consequential mutation recommendation-only in the current release
+- block readiness if invariants or independent challenge are missing
 
-### PR Review
+If a consequential request is gated, approval is explicit and local:
+
+```bash
+canon approve \
+  --run <RUN_ID> \
+  --target invocation:<REQUEST_ID> \
+  --by principal-engineer \
+  --decision approve \
+  --rationale "Allow bounded systemic brownfield generation with named ownership."
+
+canon resume --run <RUN_ID>
+```
+
+### `pr-review`
+
+Use this on a real diff when you want review output backed by governed inspection rather than a loose generated summary.
 
 ```bash
 canon run \
@@ -159,44 +162,27 @@ canon run \
   --output json
 ```
 
-What it does:
+Canon will:
 
-- collects changed surfaces from a git diff
-- emits the review packet under `.canon/artifacts/<run-id>/pr-review/`
-- keeps high-impact findings explicit in `review-summary.md`
-- requires explicit disposition for unresolved must-fix review findings
+- inspect the diff through governed shell-based requests
+- retain bounded payload refs when policy allows it
+- run critique as a separate governed path
+- emit a review packet under `.canon/artifacts/<RUN_ID>/pr-review/`
 
-### Approve a Gated Run
+If the review leaves must-fix findings unresolved, that disposition stays explicit:
 
 ```bash
 canon approve \
-  --run <run-id> \
-  --gate review-disposition \
+  --run <RUN_ID> \
+  --target gate:review-disposition \
   --by principal-engineer \
   --decision approve \
-  --rationale "Accept the bounded review risk with named ownership."
+  --rationale "Accept the remaining review risk with explicit ownership."
 ```
 
-What it does:
+## What Canon Persists Locally
 
-- persists an approval record under `.canon/runs/<run-id>/approvals/`
-- re-evaluates the run against its current gates
-
-### Resume a Blocked Run
-
-```bash
-canon resume --run <run-id>
-```
-
-What it does:
-
-- reloads persisted artifacts and gate state
-- refuses to continue silently if the input context changed
-- allows repaired blocked runs to move to `Completed`
-
-## What Canon Writes
-
-Canon stores its durable runtime state under `.canon/`:
+Canon writes local runtime state under `.canon/` in the current repo:
 
 ```text
 .canon/
@@ -205,69 +191,133 @@ Canon stores its durable runtime state under `.canon/`:
 ├── methods/
 ├── policies/
 ├── runs/
+│   └── <run-id>/
+│       ├── approvals/
+│       ├── context.toml
+│       ├── evidence.toml
+│       ├── gates/
+│       ├── invocations/
+│       │   └── <request-id>/
+│       │       ├── attempt-01.toml
+│       │       ├── decision.toml
+│       │       ├── payload/
+│       │       └── request.toml
+│       ├── links.toml
+│       ├── run.toml
+│       ├── state.toml
+│       └── verification/
 ├── sessions/
 └── traces/
 ```
 
-At a high level:
+Why that matters:
 
-- `runs/` stores per-run manifests, state, gates, approvals, and verification
-- `artifacts/` stores emitted artifact bundles
-- `methods/` stores materialized method definitions
-- `policies/` stores materialized policy definitions
-- `decisions/` is durable decision memory
-- `traces/` stores adapter and execution evidence
+- you can inspect what Canon allowed, constrained, denied, or escalated
+- you can see evidence without replaying the run
+- you can audit approvals and decisions as files, not hidden application state
+- you can resume a run against durable local context
 
-The point is that Canon does not treat chat as system memory. The filesystem is
-the system of record.
+Canon is not trying to preserve every prompt transcript. It preserves the durable parts of consequential work: requests, policy outcomes, attempts, traces, evidence bundles, artifacts, and decisions.
 
-## Current v0.1 Status
+## Why This Is Different
 
-Working today:
+### Not a prompt runner
+
+A prompt runner sends text to a model and returns output. Canon resolves mode, risk, zone, policy, and ownership requirements before invocation, and persists the request even when it is denied or gated.
+
+### Not an agent framework
+
+Agent frameworks optimize for orchestration, extensibility, and generic tool graphs. Canon keeps typed mode semantics in the core and optimizes for bounded behavior inside a repo.
+
+### Not a plain Copilot wrapper
+
+A wrapper forwards work to a tool. Canon decides whether that capability is allowed at all, under which constraints, and what evidence must exist afterward. External tools are execution surfaces, not the product identity.
+
+## Why This Exists
+
+Engineering runs go bad long before anyone notices the final output is weak. Scope drifts. Generated text validates generated text. Decisions disappear into chat logs. Reviews happen after too much has already happened.
+
+Canon exists to move governance forward in time. It governs the invocation itself, not just the final markdown someone saved afterward.
+
+## Current Status
+
+Available now:
 
 - `init`
-- `run --mode requirements`
-- `run --mode brownfield-change`
-- `run --mode pr-review`
+- `run`
 - `status`
-- `inspect modes|methods|policies|artifacts`
+- `inspect modes|methods|policies|artifacts|invocations|evidence`
 - `approve`
 - `resume`
 
-Mode depth today:
+Implemented end to end today:
 
-- `requirements`, `brownfield-change`, and `pr-review` are fully runnable
-- the other nine modes already exist in the typed domain model and defaults
-- those nine are not yet implemented as full runtime flows
+- `requirements`
+- `brownfield-change`
+- `pr-review`
 
-Not implemented yet:
+Modeled but not fully implemented end to end yet:
 
-- `verify`
-- deeper semantic review beyond the current local diff heuristics
-- end-to-end runtime execution for `discovery`, `greenfield`, `architecture`,
-  `implementation`, `refactor`, `verification`, `review`, `incident`, and
-  `migration`
+- `discovery`
+- `greenfield`
+- `architecture`
+- `implementation`
+- `refactor`
+- `verification`
+- `review`
+- `incident`
+- `migration`
 
-## Development
+Current limitations:
 
-Useful local commands:
+- `verify` is present as a CLI surface but not implemented yet
+- MCP runtime is modeled in policy and domain terms, but explicitly denied at runtime
+- packaged distribution is not done yet; source install is the supported path
+- deeper semantic critique and broader adapter coverage are still backlog
+
+## Command Overview
+
+- `canon init`: materialize `.canon/` in the current repo
+- `canon run`: start a governed run with explicit mode, risk, zone, owner, and inputs
+- `canon status --run <RUN_ID>`: inspect run state, pending approvals, and evidence summary
+- `canon inspect modes`: inspect the typed mode catalog
+- `canon inspect methods`: inspect available method definitions
+- `canon inspect policies`: inspect loaded policy definitions
+- `canon inspect artifacts --run <RUN_ID>`: list emitted artifacts
+- `canon inspect invocations --run <RUN_ID>`: inspect request-level decisions and outcomes
+- `canon inspect evidence --run <RUN_ID>`: inspect generation paths, validation paths, and evidence linkage
+- `canon approve --run <RUN_ID> --target ...`: approve a specific invocation or gate
+- `canon resume --run <RUN_ID>`: continue a run after approval or after fixing a blocked condition
+- `canon verify --run <RUN_ID>`: planned surface, not implemented
+
+## Development / Build From Source
+
+Install the binary locally:
+
+```bash
+cargo +1.94.0 install --path crates/canon-cli --bin canon
+```
+
+Useful verification commands:
 
 ```bash
 cargo fmt --check
 cargo clippy --all-targets --all-features -- -D warnings
 cargo test
 cargo nextest run
-cargo +1.94.0 test --all-targets --all-features
 ```
 
-Install the local git hooks with:
+Install local git hooks:
 
 ```bash
 ./scripts/install-hooks.sh
 ```
 
-## Further Reading
+## Deeper Docs
 
 - Constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
-- Product specification: [`specs/001-canon-spec/spec.md`](specs/001-canon-spec/spec.md)
-- Implementation plan: [`specs/001-canon-spec/plan.md`](specs/001-canon-spec/plan.md)
+- Core product spec: [`specs/001-canon-spec/spec.md`](specs/001-canon-spec/spec.md)
+- Core implementation plan: [`specs/001-canon-spec/plan.md`](specs/001-canon-spec/plan.md)
+- Governed execution spec: [`specs/002-governed-execution-adapters/spec.md`](specs/002-governed-execution-adapters/spec.md)
+- Governed execution plan: [`specs/002-governed-execution-adapters/plan.md`](specs/002-governed-execution-adapters/plan.md)
+- Governed execution validation: [`specs/002-governed-execution-adapters/validation-report.md`](specs/002-governed-execution-adapters/validation-report.md)

@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-27
+Auto-generated from all feature plans. Last updated: 2026-03-28
 
 ## Governing Constitution
 
@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-27
   `.canon/`.
 
 ## Active Technologies
+- Rust 1.94.0, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, (002-governed-execution-adapters)
+- local filesystem only under `.canon/`; TOML for run and approval (002-governed-execution-adapters)
 
 - Rust 1.94.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -61,6 +63,7 @@ tests/
 - `/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 002-governed-execution-adapters: Added Rust 1.94.0, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`,
 
 - `001-canon-spec`: established the Rust CLI workspace, typed mode
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts

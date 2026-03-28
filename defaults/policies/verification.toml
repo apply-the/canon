@@ -1,4 +1,4 @@
-version = 1
+version = 2
 
 [layers]
 low = ["SelfCritique"]
@@ -9,3 +9,7 @@ systemic = [
     "PeerReview",
     "ArchitecturalReview",
 ]
+
+[independence]
+ai_generation_requires_distinct_validation = true
+human_review_counts_independent = true

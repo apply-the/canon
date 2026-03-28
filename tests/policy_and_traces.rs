@@ -39,16 +39,27 @@ mutable_execution = false
     .expect("zone override");
     fs::write(
         override_root.join("adapters.toml"),
-        r#"version = 1
+        r#"version = 2
 
-[capabilities]
-Filesystem = ["ReadRepository", "WriteArtifact"]
-Shell = ["ExecReadOnlyCommand", "ExecMutatingCommand"]
-CopilotCli = ["InvokeAiGeneration", "InvokeAiCritique"]
-McpStdio = ["InvokeStructuredTool"]
+[[adapter]]
+kind = "Filesystem"
+capabilities = ["ReadRepository", "ReadArtifact", "EmitArtifact"]
+
+[[adapter]]
+kind = "Shell"
+capabilities = ["RunCommand", "ValidateWithTool", "ExecuteBoundedTransformation"]
+
+[[adapter]]
+kind = "CopilotCli"
+capabilities = ["GenerateContent", "CritiqueContent", "ProposeWorkspaceEdit"]
+
+[[adapter]]
+kind = "McpStdio"
+capabilities = ["InvokeStructuredTool"]
 
 [rules]
 block_mutation_for_red_or_systemic = false
+runtime_disabled_adapters = []
 "#,
     )
     .expect("adapters override");
@@ -118,7 +129,7 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
         "trace stream should record filesystem adapter invocations"
     );
     assert!(
-        trace_contents.contains("\"capability\":\"WriteArtifact\""),
+        trace_contents.contains("\"capability\":\"EmitArtifact\""),
         "trace stream should record write capability usage"
     );
 

@@ -5,7 +5,8 @@ use time::OffsetDateTime;
 
 use crate::dispatcher;
 use crate::{
-    AdapterError, AdapterInvocation, AdapterKind, AdapterRequest, CapabilityKind, SideEffectClass,
+    AdapterError, AdapterInvocation, AdapterKind, AdapterRequest, CapabilityKind,
+    InvocationOrientation, LineageClass, SideEffectClass, TrustBoundaryKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,6 +22,7 @@ pub struct GitDiff {
     pub base_ref: String,
     pub head_ref: String,
     pub changed_files: Vec<String>,
+    pub changed_files_text: String,
     pub patch: String,
     pub invocations: Vec<AdapterInvocation>,
 }
@@ -32,8 +34,11 @@ impl ShellAdapter {
     pub fn read_only_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::Shell,
-            capability: CapabilityKind::ExecReadOnlyCommand,
+            capability: CapabilityKind::RunCommand,
             purpose: purpose.to_string(),
+            orientation: Some(InvocationOrientation::Context),
+            trust_boundary: Some(TrustBoundaryKind::LocalProcess),
+            lineage: Some(LineageClass::NonGenerative),
             side_effect: SideEffectClass::ReadOnly,
         }
     }
@@ -41,9 +46,36 @@ impl ShellAdapter {
     pub fn mutating_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::Shell,
-            capability: CapabilityKind::ExecMutatingCommand,
+            capability: CapabilityKind::ExecuteBoundedTransformation,
             purpose: purpose.to_string(),
+            orientation: Some(InvocationOrientation::Generation),
+            trust_boundary: Some(TrustBoundaryKind::LocalProcess),
+            lineage: Some(LineageClass::NonGenerative),
             side_effect: SideEffectClass::WorkspaceMutation,
+        }
+    }
+
+    pub fn validation_request(&self, purpose: &str) -> AdapterRequest {
+        AdapterRequest {
+            adapter: AdapterKind::Shell,
+            capability: CapabilityKind::ValidateWithTool,
+            purpose: purpose.to_string(),
+            orientation: Some(InvocationOrientation::Validation),
+            trust_boundary: Some(TrustBoundaryKind::LocalProcess),
+            lineage: Some(LineageClass::NonGenerative),
+            side_effect: SideEffectClass::ReadOnly,
+        }
+    }
+
+    pub fn inspect_diff_request(&self, purpose: &str) -> AdapterRequest {
+        AdapterRequest {
+            adapter: AdapterKind::Shell,
+            capability: CapabilityKind::InspectDiff,
+            purpose: purpose.to_string(),
+            orientation: Some(InvocationOrientation::Context),
+            trust_boundary: Some(TrustBoundaryKind::LocalProcess),
+            lineage: Some(LineageClass::NonGenerative),
+            side_effect: SideEffectClass::ReadOnly,
         }
     }
 
@@ -85,7 +117,7 @@ impl ShellAdapter {
         head_ref: &str,
         cwd: &Path,
     ) -> Result<GitDiff, AdapterError> {
-        let list_request = self.read_only_request("collect changed surfaces for pr-review");
+        let list_request = self.inspect_diff_request("collect changed surfaces for pr-review");
         let names_output = self.run_checked(
             &list_request,
             "git",
@@ -94,7 +126,7 @@ impl ShellAdapter {
             false,
         )?;
 
-        let diff_request = self.read_only_request("collect diff patch for pr-review");
+        let diff_request = self.inspect_diff_request("collect diff patch for pr-review");
         let patch_output = self.run_checked(
             &diff_request,
             "git",
@@ -115,6 +147,7 @@ impl ShellAdapter {
             base_ref: base_ref.to_string(),
             head_ref: head_ref.to_string(),
             changed_files,
+            changed_files_text: names_output.stdout,
             patch: patch_output.stdout,
             invocations: vec![names_output.invocation, patch_output.invocation],
         })

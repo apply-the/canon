@@ -1,0 +1,151 @@
+use std::fs;
+use std::process::Command as ProcessCommand;
+
+use assert_cmd::Command;
+use tempfile::TempDir;
+
+fn cli_command() -> Command {
+    let mut command = Command::new("cargo");
+    command.args([
+        "run",
+        "--quiet",
+        "--manifest-path",
+        concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"),
+        "-p",
+        "canon-cli",
+        "--bin",
+        "canon",
+        "--",
+    ]);
+    command
+}
+
+fn git(workspace: &TempDir, args: &[&str]) {
+    let output = ProcessCommand::new("git")
+        .args(args)
+        .current_dir(workspace.path())
+        .output()
+        .expect("git command");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: stdout=`{}` stderr=`{}`",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_brownfield_repo(workspace: &TempDir) {
+    git(workspace, &["init", "-b", "main"]);
+    git(workspace, &["config", "user.name", "Canon Test"]);
+    git(workspace, &["config", "user.email", "canon@example.com"]);
+
+    fs::create_dir_all(workspace.path().join("src/auth")).expect("src dir");
+    fs::create_dir_all(workspace.path().join("tests")).expect("tests dir");
+    fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String {\n    format!(\"revoked:{id}\")\n}\n",
+    )
+    .expect("source file");
+    fs::write(
+        workspace.path().join("tests/session.md"),
+        "# Session Checks\n\n- revocation formatting remains stable\n",
+    )
+    .expect("test file");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "seed brownfield repo"]);
+}
+
+fn complete_brief() -> &'static str {
+    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+}
+
+#[test]
+fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_requests() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_brownfield_repo(&workspace);
+    fs::write(workspace.path().join("brownfield.md"), complete_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "brownfield-change",
+            "--risk",
+            "systemic-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "architect",
+            "--input",
+            "brownfield.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
+    let run_id = json["run_id"].as_str().expect("run id");
+    assert_eq!(json["state"], "AwaitingApproval");
+
+    let invocations = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let invocation_json: serde_json::Value = serde_json::from_slice(&invocations).expect("json");
+    let entries = invocation_json["entries"].as_array().expect("entries");
+    let pending_request_id = entries
+        .iter()
+        .find_map(|entry| {
+            if entry["policy_decision"] == "NeedsApproval" {
+                entry["request_id"].as_str().map(ToString::to_string)
+            } else {
+                None
+            }
+        })
+        .expect("pending request");
+    assert!(
+        entries.iter().any(|entry| entry["latest_outcome"] == "RecommendationOnly"),
+        "systemic brownfield work should persist a recommendation-only mutation request"
+    );
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "approve",
+            "--run",
+            run_id,
+            "--target",
+            &format!("invocation:{pending_request_id}"),
+            "--by",
+            "principal-engineer",
+            "--decision",
+            "approve",
+            "--rationale",
+            "Allow bounded systemic brownfield generation with explicit ownership.",
+        ])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("\"state\": \"Completed\""));
+}

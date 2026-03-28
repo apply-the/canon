@@ -10,6 +10,7 @@ pub enum OutputFormat {
     Text,
     Json,
     Yaml,
+    Markdown,
 }
 
 impl std::fmt::Display for OutputFormat {
@@ -18,6 +19,7 @@ impl std::fmt::Display for OutputFormat {
             Self::Text => "text",
             Self::Json => "json",
             Self::Yaml => "yaml",
+            Self::Markdown => "markdown",
         };
         write!(f, "{value}")
     }
@@ -44,6 +46,18 @@ pub enum InspectCommand {
         output: OutputFormat,
     },
     Artifacts {
+        #[arg(long)]
+        run: String,
+        #[arg(long, default_value_t)]
+        output: OutputFormat,
+    },
+    Invocations {
+        #[arg(long)]
+        run: String,
+        #[arg(long, default_value_t)]
+        output: OutputFormat,
+    },
+    Evidence {
         #[arg(long)]
         run: String,
         #[arg(long, default_value_t)]
@@ -90,8 +104,13 @@ pub enum Command {
     Approve {
         #[arg(long)]
         run: String,
-        #[arg(long)]
-        gate: String,
+        #[arg(
+            long,
+            help = "Approval target in the form gate:<gate-kind> or invocation:<request-id>"
+        )]
+        target: Option<String>,
+        #[arg(long, hide = true)]
+        gate: Option<String>,
         #[arg(long)]
         by: String,
         #[arg(long)]
@@ -150,8 +169,8 @@ pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
         ),
         Command::Resume { run } => commands::resume::execute(&service, &run),
         Command::Status { run, output } => commands::status::execute(&service, &run, output),
-        Command::Approve { run, gate, by, decision, rationale } => {
-            commands::approve::execute(&service, &run, gate, by, decision, rationale)
+        Command::Approve { run, target, gate, by, decision, rationale } => {
+            commands::approve::execute(&service, &run, target, gate, by, decision, rationale)
         }
         Command::Verify { .. } => commands::verify::execute(),
         Command::Inspect { command } => commands::inspect::execute(&service, command),

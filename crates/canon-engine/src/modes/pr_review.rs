@@ -4,8 +4,10 @@ pub const MODE_FILE: &str = "pr-review.toml";
 pub const STEP_SEQUENCE: &[&str] = &[
     "capture-context",
     "classify-risk",
-    "collect-diff",
+    "govern-diff-inspection",
     "map-changed-surfaces",
+    "govern-review-critique",
+    "assemble-evidence",
     "render-review-packet",
     "evaluate-gates",
 ];

@@ -33,6 +33,30 @@ fn parse_run_id(output: &[u8]) -> String {
     json["run_id"].as_str().expect("run id").to_string()
 }
 
+fn pending_request_id(workspace: &TempDir, run_id: &str) -> String {
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    json["entries"]
+        .as_array()
+        .and_then(|entries| {
+            entries.iter().find_map(|entry| {
+                if entry["policy_decision"] == "NeedsApproval" {
+                    entry["request_id"].as_str().map(ToString::to_string)
+                } else {
+                    None
+                }
+            })
+        })
+        .expect("pending request")
+}
+
 #[test]
 fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
     let workspace = TempDir::new().expect("temp dir");
@@ -90,6 +114,7 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
         .stdout
         .clone();
     let run_id = parse_run_id(&run_output);
+    let request_id = pending_request_id(&workspace, &run_id);
 
     cli_command()
         .current_dir(workspace.path())
@@ -97,8 +122,8 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
             "approve",
             "--run",
             &run_id,
-            "--gate",
-            "risk",
+            "--target",
+            &format!("invocation:{request_id}"),
             "--by",
             "principal-engineer",
             "--decision",
@@ -118,6 +143,14 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
         .join("approvals")
         .join("approval-00.toml");
     assert!(approval_record.exists(), "approval record should be persisted");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", &run_id])
+        .assert()
+        .success()
+        .stdout(contains(&run_id))
+        .stdout(contains("Completed"));
 
     cli_command()
         .current_dir(workspace.path())

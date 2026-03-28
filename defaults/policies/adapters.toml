@@ -1,10 +1,93 @@
-version = 1
+version = 2
 
-[capabilities]
-Filesystem = ["ReadRepository", "WriteArtifact"]
-Shell = ["ExecReadOnlyCommand", "ExecMutatingCommand"]
-CopilotCli = ["InvokeAiGeneration", "InvokeAiCritique"]
-McpStdio = ["InvokeStructuredTool"]
+[[adapter]]
+kind = "Filesystem"
+capabilities = ["ReadRepository", "ReadArtifact", "EmitArtifact"]
+
+[[adapter]]
+kind = "Shell"
+capabilities = ["InspectDiff", "RunCommand", "ValidateWithTool", "ExecuteBoundedTransformation"]
+
+[[adapter]]
+kind = "CopilotCli"
+capabilities = ["GenerateContent", "CritiqueContent", "ProposeWorkspaceEdit"]
+
+[[adapter]]
+kind = "McpStdio"
+capabilities = ["InvokeStructuredTool"]
+
+[[constraint_profile]]
+id = "requirements-context"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 8192
+command_profile = "requirements-context"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "requirements-generation"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 16384
+command_profile = "requirements-generation"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "requirements-validation"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 16384
+command_profile = "requirements-validation"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "brownfield-context"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 16384
+command_profile = "brownfield-context"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "brownfield-generation"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 32768
+command_profile = "brownfield-generation"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "brownfield-validation"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 16384
+command_profile = "brownfield-validation"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "brownfield-mutation"
+payload_retention = "SummaryOnly"
+max_payload_bytes = 4096
+command_profile = "brownfield-mutation"
+recommendation_only = true
+patch_disabled = false
+
+[[constraint_profile]]
+id = "pr-review-diff"
+payload_retention = "SummaryWithRetainedPayload"
+max_payload_bytes = 65536
+command_profile = "pr-review-diff"
+recommendation_only = false
+patch_disabled = true
+
+[[constraint_profile]]
+id = "pr-review-critique"
+payload_retention = "SummaryWithDigest"
+max_payload_bytes = 32768
+command_profile = "pr-review-critique"
+recommendation_only = false
+patch_disabled = true
 
 [rules]
 block_mutation_for_red_or_systemic = true
+runtime_disabled_adapters = ["McpStdio"]
