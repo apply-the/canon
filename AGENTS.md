@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-28
+Auto-generated from all feature plans. Last updated: 2026-03-29
 
 ## Governing Constitution
 
@@ -15,6 +15,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-28
 - local filesystem only under `.canon/`; TOML for run and approval (002-governed-execution-adapters)
 - Markdown `SKILL.md` files, repo-local shell helpers + installed `canon` binary, existing repo-local (003-codex-skills-frontend)
 - repo-local files under `.agents/skills` plus existing `.canon/` (003-codex-skills-frontend)
+- Markdown `SKILL.md` files, repo-local Bash and PowerShell helpers, installed `canon` binary, Git local ref inspection commands (004-ref-safe-binding)
+- repo-local skill files under `.agents/skills`; no new persistent storage beyond existing `.canon/` (004-ref-safe-binding)
 
 - Rust 1.94.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -65,9 +67,9 @@ tests/
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 004-ref-safe-binding: Added Markdown `SKILL.md` files, repo-local Bash and PowerShell + installed `canon` binary, Git command-line ref
 - 003-codex-skills-frontend: Added Markdown `SKILL.md` files, repo-local shell helpers + installed `canon` binary, existing repo-local
 - 002-governed-execution-adapters: Added Rust 1.94.0, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`,
-
 - `001-canon-spec`: established the Rust CLI workspace, typed mode
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
