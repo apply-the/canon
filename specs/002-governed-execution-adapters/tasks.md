@@ -1,11 +1,11 @@
 # Tasks: Governed Execution Adapters
 
-**Input**: Design documents from `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/`  
+**Input**: Design documents from `specs/002-governed-execution-adapters/`
 **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 **Validation**: Layered validation is mandatory. Add executable tests before
 implementation, persist evidence in
-`/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`,
+`specs/002-governed-execution-adapters/validation-report.md`,
 and keep independent review separate from generation.
 
 **Organization**: Tasks are grouped into governance, setup, foundational
@@ -37,10 +37,10 @@ independently testable.
 **Purpose**: Lock the increment to the corrected risk model, baseline, and
 evidence contract before code changes begin.
 
-- [x] T001 Record the corrected `SystemicImpact` classification, baseline assumptions, and scope guardrails in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md`
-- [x] T002 Update execution, validation, and independent review checkpoints in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
-- [x] T003 Freeze governed invocation and evidence inspection checkpoints in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/contracts/cli-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/contracts/runtime-evidence-contract.md`
-- [x] T004 Record the first-tranche exclusion of MCP runtime execution in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/research.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md`
+- [x] T001 Record the corrected `SystemicImpact` classification, baseline assumptions, and scope guardrails in `specs/002-governed-execution-adapters/decision-log.md`
+- [x] T002 Update execution, validation, and independent review checkpoints in `specs/002-governed-execution-adapters/validation-report.md`
+- [x] T003 Freeze governed invocation and evidence inspection checkpoints in `specs/002-governed-execution-adapters/contracts/cli-contract.md` and `specs/002-governed-execution-adapters/contracts/runtime-evidence-contract.md`
+- [x] T004 Record the first-tranche exclusion of MCP runtime execution in `specs/002-governed-execution-adapters/research.md` and `specs/002-governed-execution-adapters/decision-log.md`
 
 ---
 
@@ -49,11 +49,11 @@ evidence contract before code changes begin.
 **Purpose**: Create the new files and module boundaries this increment depends
 on without reopening the whole Canon architecture.
 
-- [x] T005 Create execution-domain scaffolding in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/execution.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mod.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/lib.rs`
-- [x] T006 Create invocation and evidence orchestrator scaffolding in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/evidence.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/mod.rs`
-- [x] T007 [P] Create invocation persistence scaffolding in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/invocations.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/traces.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/mod.rs`
-- [x] T008 [P] Expand policy default scaffolding for governed invocation in `/Users/rt/workspace/apply-the/canon/defaults/policies/adapters.toml` and `/Users/rt/workspace/apply-the/canon/defaults/policies/verification.toml`
-- [x] T009 [P] Seed CLI inspection scaffolding for invocation and evidence views in `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/inspect.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/output.rs`
+- [x] T005 Create execution-domain scaffolding in `crates/canon-engine/src/domain/execution.rs`, `crates/canon-engine/src/domain/mod.rs`, and `crates/canon-engine/src/lib.rs`
+- [x] T006 Create invocation and evidence orchestrator scaffolding in `crates/canon-engine/src/orchestrator/invocation.rs`, `crates/canon-engine/src/orchestrator/evidence.rs`, and `crates/canon-engine/src/orchestrator/mod.rs`
+- [x] T007 [P] Create invocation persistence scaffolding in `crates/canon-engine/src/persistence/invocations.rs`, `crates/canon-engine/src/persistence/traces.rs`, and `crates/canon-engine/src/persistence/mod.rs`
+- [x] T008 [P] Expand policy default scaffolding for governed invocation in `defaults/policies/adapters.toml` and `defaults/policies/verification.toml`
+- [x] T009 [P] Seed CLI inspection scaffolding for invocation and evidence views in `crates/canon-cli/src/commands/inspect.rs` and `crates/canon-cli/src/output.rs`
 
 ---
 
@@ -66,31 +66,31 @@ layer that every story depends on.
 
 ### Validation and Contracts
 
-- [x] T010 [P] Add failing unit tests for invocation policy evaluation in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`
-- [x] T011 [P] Add failing unit tests for capability and trust-boundary classification in `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/capability.rs`
-- [x] T012 [P] Add failing unit tests for generation and validation lineage separation in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/evidence.rs`
-- [x] T013 [P] Add failing contract coverage for invocation manifests and `evidence.toml` in `/Users/rt/workspace/apply-the/canon/tests/contract/runtime_evidence_contract.rs` (new file to be created intentionally)
-- [x] T014 [P] Add failing CLI contract coverage for `inspect invocations`, `inspect evidence`, and invocation-scoped approvals in `/Users/rt/workspace/apply-the/canon/tests/contract/invocation_cli_contract.rs` (new file to be created intentionally)
+- [x] T010 [P] Add failing unit tests for invocation policy evaluation in `crates/canon-engine/src/orchestrator/invocation.rs`
+- [x] T011 [P] Add failing unit tests for capability and trust-boundary classification in `crates/canon-adapters/src/capability.rs`
+- [x] T012 [P] Add failing unit tests for generation and validation lineage separation in `crates/canon-engine/src/orchestrator/evidence.rs`
+- [x] T013 [P] Add failing contract coverage for invocation manifests and `evidence.toml` in `tests/contract/runtime_evidence_contract.rs` (new file to be created intentionally)
+- [x] T014 [P] Add failing CLI contract coverage for `inspect invocations`, `inspect evidence`, and invocation-scoped approvals in `tests/contract/invocation_cli_contract.rs` (new file to be created intentionally)
 
 ### Shared Runtime Implementation
 
-- [x] T015 Implement `ExecutionAdapterDescriptor`, `InvocationRequest`, `InvocationPolicyDecision`, `InvocationTrace`, `ToolOutcome`, `GenerationPath`, `ValidationPath`, and `EvidenceBundle` in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/execution.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mod.rs`
-- [x] T016 [P] Extend run, approval, and verification types for invocation evidence linkage in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/run.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/approval.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/verification.rs`
-- [x] T017 [P] Extend adapter capability typing, trust boundaries, orientations, and mutability classes in `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/capability.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/dispatcher.rs`
-- [x] T018 Implement adapter and verification policy schema updates plus constraint defaults in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/policy.rs`, `/Users/rt/workspace/apply-the/canon/defaults/policies/adapters.toml`, and `/Users/rt/workspace/apply-the/canon/defaults/policies/verification.toml`
-- [x] T019 Implement policy loading and parsing for invocation rules and constraint profiles in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/store.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/policy.rs`
-- [x] T020 Implement invocation policy evaluation logic and classifier wiring in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/classifier.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`
-- [x] T021 Implement per-invocation request, decision, and attempt persistence in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/invocations.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/layout.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/manifests.rs`
-- [x] T022 Implement summary-first trace event append and read helpers in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/traces.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/store.rs`
-- [x] T023 Implement run-level evidence bundle persistence and link management in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/evidence.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/store.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/manifests.rs`
-- [x] T024 Implement invocation request normalization and preflight validation in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/execution.rs`
-- [x] T025 Implement invocation policy checks and constraint application in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/classifier.rs`
-- [x] T026 Implement adapter dispatch orchestration for filesystem, shell, and Copilot CLI in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/service.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/filesystem.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/shell.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/copilot_cli.rs`
-- [x] T027 Implement invocation outcome mapping and persistence hooks in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/evidence.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/store.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/traces.rs`
-- [x] T028 Implement invocation-scoped approval targets and stale resume invalidation in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/approval.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/resume.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/approve.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/resume.rs`
-- [x] T029 Implement CLI inspection plumbing for invocation and evidence views in `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/inspect.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/output.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/app.rs`
-- [x] T030 Implement artifact provenance fields and execution-derived artifact links in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/artifacts/manifest.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/store.rs`
-- [x] T031 Keep `McpStdio` contract-only by wiring explicit runtime denial or disabled policy in `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/mcp_stdio.rs`, `/Users/rt/workspace/apply-the/canon/defaults/policies/adapters.toml`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`
+- [x] T015 Implement `ExecutionAdapterDescriptor`, `InvocationRequest`, `InvocationPolicyDecision`, `InvocationTrace`, `ToolOutcome`, `GenerationPath`, `ValidationPath`, and `EvidenceBundle` in `crates/canon-engine/src/domain/execution.rs` and `crates/canon-engine/src/domain/mod.rs`
+- [x] T016 [P] Extend run, approval, and verification types for invocation evidence linkage in `crates/canon-engine/src/domain/run.rs`, `crates/canon-engine/src/domain/approval.rs`, and `crates/canon-engine/src/domain/verification.rs`
+- [x] T017 [P] Extend adapter capability typing, trust boundaries, orientations, and mutability classes in `crates/canon-adapters/src/capability.rs` and `crates/canon-adapters/src/dispatcher.rs`
+- [x] T018 Implement adapter and verification policy schema updates plus constraint defaults in `crates/canon-engine/src/domain/policy.rs`, `defaults/policies/adapters.toml`, and `defaults/policies/verification.toml`
+- [x] T019 Implement policy loading and parsing for invocation rules and constraint profiles in `crates/canon-engine/src/persistence/store.rs` and `crates/canon-engine/src/domain/policy.rs`
+- [x] T020 Implement invocation policy evaluation logic and classifier wiring in `crates/canon-engine/src/orchestrator/classifier.rs` and `crates/canon-engine/src/orchestrator/invocation.rs`
+- [x] T021 Implement per-invocation request, decision, and attempt persistence in `crates/canon-engine/src/persistence/invocations.rs`, `crates/canon-engine/src/persistence/layout.rs`, and `crates/canon-engine/src/persistence/manifests.rs`
+- [x] T022 Implement summary-first trace event append and read helpers in `crates/canon-engine/src/persistence/traces.rs` and `crates/canon-engine/src/persistence/store.rs`
+- [x] T023 Implement run-level evidence bundle persistence and link management in `crates/canon-engine/src/orchestrator/evidence.rs`, `crates/canon-engine/src/persistence/store.rs`, and `crates/canon-engine/src/persistence/manifests.rs`
+- [x] T024 Implement invocation request normalization and preflight validation in `crates/canon-engine/src/orchestrator/invocation.rs` and `crates/canon-engine/src/domain/execution.rs`
+- [x] T025 Implement invocation policy checks and constraint application in `crates/canon-engine/src/orchestrator/invocation.rs` and `crates/canon-engine/src/orchestrator/classifier.rs`
+- [x] T026 Implement adapter dispatch orchestration for filesystem, shell, and Copilot CLI in `crates/canon-engine/src/orchestrator/invocation.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-adapters/src/filesystem.rs`, `crates/canon-adapters/src/shell.rs`, and `crates/canon-adapters/src/copilot_cli.rs`
+- [x] T027 Implement invocation outcome mapping and persistence hooks in `crates/canon-engine/src/orchestrator/invocation.rs`, `crates/canon-engine/src/orchestrator/evidence.rs`, `crates/canon-engine/src/persistence/store.rs`, and `crates/canon-engine/src/persistence/traces.rs`
+- [x] T028 Implement invocation-scoped approval targets and stale resume invalidation in `crates/canon-engine/src/domain/approval.rs`, `crates/canon-engine/src/orchestrator/resume.rs`, `crates/canon-cli/src/commands/approve.rs`, and `crates/canon-cli/src/commands/resume.rs`
+- [x] T029 Implement CLI inspection plumbing for invocation and evidence views in `crates/canon-cli/src/commands/inspect.rs`, `crates/canon-cli/src/output.rs`, and `crates/canon-cli/src/app.rs`
+- [x] T030 Implement artifact provenance fields and execution-derived artifact links in `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/artifacts/manifest.rs`, and `crates/canon-engine/src/persistence/store.rs`
+- [x] T031 Keep `McpStdio` contract-only by wiring explicit runtime denial or disabled policy in `crates/canon-adapters/src/mcp_stdio.rs`, `defaults/policies/adapters.toml`, and `crates/canon-engine/src/orchestrator/invocation.rs`
 
 **Checkpoint**: Canon can evaluate invocation policy before execution, persist
 request and evidence records under `.canon/`, expose inspection scaffolding,
@@ -111,18 +111,18 @@ policy blocks a capability.
 
 ### Validation for User Story 1 (MANDATORY)
 
-- [x] T032 [P] [US1] Add a failing integration test for governed `requirements` invocations in `/Users/rt/workspace/apply-the/canon/tests/integration/requirements_governed_invocation.rs` (new file to be created intentionally)
-- [x] T033 [P] [US1] Add failing contract coverage for requirements evidence-derived artifacts in `/Users/rt/workspace/apply-the/canon/tests/contract/requirements_evidence_contract.rs` (new file to be created intentionally)
-- [x] T034 [US1] Record US1 acceptance and evidence checkpoints in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T032 [P] [US1] Add a failing integration test for governed `requirements` invocations in `tests/integration/requirements_governed_invocation.rs` (new file to be created intentionally)
+- [x] T033 [P] [US1] Add failing contract coverage for requirements evidence-derived artifacts in `tests/contract/requirements_evidence_contract.rs` (new file to be created intentionally)
+- [x] T034 [US1] Record US1 acceptance and evidence checkpoints in `specs/002-governed-execution-adapters/validation-report.md`
 
 ### Implementation for User Story 1
 
-- [x] T035 [US1] Wire governed context, generation, and critique requests into `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/requirements.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/service.rs`
-- [x] T036 [US1] Implement summary-first Copilot CLI generation and critique execution in `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/copilot_cli.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`
-- [x] T037 [US1] Derive requirements artifacts and provenance from invocation evidence in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/artifacts/markdown.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/artifacts/contract.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/requirements.rs`
-- [x] T038 [US1] Extend requirements gate evaluation to consume denied invocations and evidence completeness in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/gatekeeper.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/requirements.rs`
-- [x] T039 [US1] Expose requirements run summaries with invocation counts and evidence references in `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/run.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/status.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/output.rs`
-- [x] T040 [US1] Capture US1 decisions and validation evidence in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T035 [US1] Wire governed context, generation, and critique requests into `crates/canon-engine/src/modes/requirements.rs` and `crates/canon-engine/src/orchestrator/service.rs`
+- [x] T036 [US1] Implement summary-first Copilot CLI generation and critique execution in `crates/canon-adapters/src/copilot_cli.rs` and `crates/canon-engine/src/orchestrator/invocation.rs`
+- [x] T037 [US1] Derive requirements artifacts and provenance from invocation evidence in `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, and `crates/canon-engine/src/modes/requirements.rs`
+- [x] T038 [US1] Extend requirements gate evaluation to consume denied invocations and evidence completeness in `crates/canon-engine/src/orchestrator/gatekeeper.rs` and `crates/canon-engine/src/modes/requirements.rs`
+- [x] T039 [US1] Expose requirements run summaries with invocation counts and evidence references in `crates/canon-cli/src/commands/run.rs`, `crates/canon-cli/src/commands/status.rs`, and `crates/canon-cli/src/output.rs`
+- [x] T040 [US1] Capture US1 decisions and validation evidence in `specs/002-governed-execution-adapters/decision-log.md` and `specs/002-governed-execution-adapters/validation-report.md`
 
 **Checkpoint**: User Story 1 is independently testable and proves governed
 external invocation, `inspect invocations`, `inspect evidence`,
@@ -144,18 +144,18 @@ mutation recommendation-only or approval-gated.
 
 ### Validation for User Story 2 (MANDATORY)
 
-- [x] T041 [P] [US2] Add a failing integration test for brownfield governed repository analysis and validation separation in `/Users/rt/workspace/apply-the/canon/tests/integration/brownfield_governed_execution.rs` (new file to be created intentionally)
-- [x] T042 [P] [US2] Add failing contract coverage for brownfield approval-gated invocations and recommendation-only outcomes in `/Users/rt/workspace/apply-the/canon/tests/contract/brownfield_invocation_contract.rs` (new file to be created intentionally)
-- [x] T043 [US2] Record US2 validation-independence and approval checkpoints in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T041 [P] [US2] Add a failing integration test for brownfield governed repository analysis and validation separation in `tests/integration/brownfield_governed_execution.rs` (new file to be created intentionally)
+- [x] T042 [P] [US2] Add failing contract coverage for brownfield approval-gated invocations and recommendation-only outcomes in `tests/contract/brownfield_invocation_contract.rs` (new file to be created intentionally)
+- [x] T043 [US2] Record US2 validation-independence and approval checkpoints in `specs/002-governed-execution-adapters/validation-report.md`
 
 ### Implementation for User Story 2
 
-- [x] T044 [US2] Wire repository-context invocation requests into `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/brownfield_change.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/service.rs`
-- [x] T045 [US2] Enforce bounded repository scope and mutability constraints in `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/filesystem.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/shell.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`
-- [x] T046 [US2] Implement generation-path, validation-path, and independence assessment recording in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/execution.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/evidence.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/verification.rs`
-- [x] T047 [US2] Attach validation-tool outcomes to brownfield validation paths in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/brownfield_change.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/verification_runner.rs`
-- [x] T048 [US2] Extend brownfield gates to block insufficiently independent validation and stale approvals in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/gatekeeper.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/brownfield_change.rs`
-- [x] T049 [US2] Capture US2 decisions, approval rationale, and validation evidence in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T044 [US2] Wire repository-context invocation requests into `crates/canon-engine/src/modes/brownfield_change.rs` and `crates/canon-engine/src/orchestrator/service.rs`
+- [x] T045 [US2] Enforce bounded repository scope and mutability constraints in `crates/canon-adapters/src/filesystem.rs`, `crates/canon-adapters/src/shell.rs`, and `crates/canon-engine/src/orchestrator/invocation.rs`
+- [x] T046 [US2] Implement generation-path, validation-path, and independence assessment recording in `crates/canon-engine/src/domain/execution.rs`, `crates/canon-engine/src/orchestrator/evidence.rs`, and `crates/canon-engine/src/domain/verification.rs`
+- [x] T047 [US2] Attach validation-tool outcomes to brownfield validation paths in `crates/canon-engine/src/modes/brownfield_change.rs` and `crates/canon-engine/src/orchestrator/verification_runner.rs`
+- [x] T048 [US2] Extend brownfield gates to block insufficiently independent validation and stale approvals in `crates/canon-engine/src/orchestrator/gatekeeper.rs` and `crates/canon-engine/src/modes/brownfield_change.rs`
+- [x] T049 [US2] Capture US2 decisions, approval rationale, and validation evidence in `specs/002-governed-execution-adapters/decision-log.md` and `specs/002-governed-execution-adapters/validation-report.md`
 
 **Checkpoint**: User Story 2 is independently testable and proves that
 consequential brownfield work cannot pass without separately recorded
@@ -176,18 +176,18 @@ execution.
 
 ### Validation for User Story 3 (MANDATORY)
 
-- [x] T050 [P] [US3] Add a failing integration test for pr-review invocation evidence and reviewer inspection in `/Users/rt/workspace/apply-the/canon/tests/integration/pr_review_evidence.rs` (new file to be created intentionally)
-- [x] T051 [P] [US3] Add failing CLI and contract coverage for pr-review evidence inspection in `/Users/rt/workspace/apply-the/canon/tests/contract/pr_review_evidence_contract.rs` (new file to be created intentionally)
-- [x] T052 [US3] Record US3 review-evidence and disposition checkpoints in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T050 [P] [US3] Add a failing integration test for pr-review invocation evidence and reviewer inspection in `tests/integration/pr_review_evidence.rs` (new file to be created intentionally)
+- [x] T051 [P] [US3] Add failing CLI and contract coverage for pr-review evidence inspection in `tests/contract/pr_review_evidence_contract.rs` (new file to be created intentionally)
+- [x] T052 [US3] Record US3 review-evidence and disposition checkpoints in `specs/002-governed-execution-adapters/validation-report.md`
 
 ### Implementation for User Story 3
 
-- [x] T053 [US3] Wire governed diff inspection and critique requests into `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/modes/pr_review.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/service.rs`
-- [x] T054 [US3] Extend shell diff ingestion to retain summary-first payload references per request in `/Users/rt/workspace/apply-the/canon/crates/canon-adapters/src/shell.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/persistence/invocations.rs`
-- [x] T055 [US3] Derive pr-review findings, review summary, and provenance links from invocation evidence in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/review/findings.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/review/summary.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/artifacts/markdown.rs`
-- [x] T056 [US3] Extend pr-review gates and disposition handling to consume denied invocations, approvals, and evidence bundles in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/gatekeeper.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/approval.rs`
-- [x] T057 [US3] Surface reviewer-facing invocation and evidence inspection in `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/status.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/commands/inspect.rs`, and `/Users/rt/workspace/apply-the/canon/crates/canon-cli/src/output.rs`
-- [x] T058 [US3] Capture US3 evidence and review closeout in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T053 [US3] Wire governed diff inspection and critique requests into `crates/canon-engine/src/modes/pr_review.rs` and `crates/canon-engine/src/orchestrator/service.rs`
+- [x] T054 [US3] Extend shell diff ingestion to retain summary-first payload references per request in `crates/canon-adapters/src/shell.rs` and `crates/canon-engine/src/persistence/invocations.rs`
+- [x] T055 [US3] Derive pr-review findings, review summary, and provenance links from invocation evidence in `crates/canon-engine/src/review/findings.rs`, `crates/canon-engine/src/review/summary.rs`, and `crates/canon-engine/src/artifacts/markdown.rs`
+- [x] T056 [US3] Extend pr-review gates and disposition handling to consume denied invocations, approvals, and evidence bundles in `crates/canon-engine/src/orchestrator/gatekeeper.rs` and `crates/canon-engine/src/domain/approval.rs`
+- [x] T057 [US3] Surface reviewer-facing invocation and evidence inspection in `crates/canon-cli/src/commands/status.rs`, `crates/canon-cli/src/commands/inspect.rs`, and `crates/canon-cli/src/output.rs`
+- [x] T058 [US3] Capture US3 evidence and review closeout in `specs/002-governed-execution-adapters/decision-log.md` and `specs/002-governed-execution-adapters/validation-report.md`
 
 **Checkpoint**: User Story 3 is independently testable and lets reviewers
 inspect durable evidence of work in motion.
@@ -199,12 +199,12 @@ inspect durable evidence of work in motion.
 **Purpose**: Close the increment with structural validation, logical
 verification, contract alignment, and independent review.
 
-- [x] T059 Run structural validation for invocation manifests, evidence bundle schema, and CLI contracts in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
-- [x] T060 Run logical integration validation for the delivered US1 `requirements` slice, denied requests, approval-gated requests, and resume flows in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
-- [x] T061 Perform independent review of lineage rules, constraint enforcement, and MCP runtime exclusion in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md`
-- [x] T062 Update operator guidance for governed execution and evidence inspection in `/Users/rt/workspace/apply-the/canon/README.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/quickstart.md`
-- [x] T063 Confirm the implemented CLI and runtime evidence behavior still matches `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/contracts/cli-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/contracts/runtime-evidence-contract.md`
-- [x] T064 Record the final milestone decision and closeout evidence in `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md`
+- [x] T059 Run structural validation for invocation manifests, evidence bundle schema, and CLI contracts in `specs/002-governed-execution-adapters/validation-report.md`
+- [x] T060 Run logical integration validation for the delivered US1 `requirements` slice, denied requests, approval-gated requests, and resume flows in `specs/002-governed-execution-adapters/validation-report.md`
+- [x] T061 Perform independent review of lineage rules, constraint enforcement, and MCP runtime exclusion in `specs/002-governed-execution-adapters/validation-report.md` and `specs/002-governed-execution-adapters/decision-log.md`
+- [x] T062 Update operator guidance for governed execution and evidence inspection in `README.md` and `specs/002-governed-execution-adapters/quickstart.md`
+- [x] T063 Confirm the implemented CLI and runtime evidence behavior still matches `specs/002-governed-execution-adapters/contracts/cli-contract.md` and `specs/002-governed-execution-adapters/contracts/runtime-evidence-contract.md`
+- [x] T064 Record the final milestone decision and closeout evidence in `specs/002-governed-execution-adapters/decision-log.md` and `specs/002-governed-execution-adapters/validation-report.md`
 
 ---
 
@@ -291,7 +291,7 @@ Task: "T055 Derive pr-review findings, review summary, and provenance links from
 2. Complete Phase 3 and stop at T040.
 3. Run the requirements governed invocation integration and contract tests.
 4. Confirm `.canon/` persistence now includes invocation manifests, trace persistence, `inspect invocations`, `inspect evidence`, and invocation-scoped approval behavior.
-5. Update `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/validation-report.md` before broadening scope.
+5. Update `specs/002-governed-execution-adapters/validation-report.md` before broadening scope.
 
 ### Incremental Delivery
 
