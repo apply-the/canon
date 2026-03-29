@@ -8,18 +8,15 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "MIT",
-    "Unicode-DFS-2016",
+    "Unicode-3.0",
     "Zlib",
 ]
 confidence-threshold = 0.93
-copyleft = "deny"
 private = { ignore = true }
-unlicensed = "deny"
 
 [advisories]
 ignore = []
 version = 2
-vulnerability = "deny"
 yanked = "warn"
 
 [bans]

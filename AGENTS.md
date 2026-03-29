@@ -13,6 +13,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-28
 ## Active Technologies
 - Rust 1.94.0, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, (002-governed-execution-adapters)
 - local filesystem only under `.canon/`; TOML for run and approval (002-governed-execution-adapters)
+- Markdown `SKILL.md` files, repo-local shell helpers + installed `canon` binary, existing repo-local (003-codex-skills-frontend)
+- repo-local files under `.agents/skills` plus existing `.canon/` (003-codex-skills-frontend)
 
 - Rust 1.94.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -60,13 +62,25 @@ tests/
 
 ## Decision Log References
 
-- `/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/decision-log.md`
+- `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 003-codex-skills-frontend: Added Markdown `SKILL.md` files, repo-local shell helpers + installed `canon` binary, existing repo-local
 - 002-governed-execution-adapters: Added Rust 1.94.0, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`,
 
 - `001-canon-spec`: established the Rust CLI workspace, typed mode
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->
+## Codex Skills Frontend
+
+- Available-now Codex skills: `canon-init`, `canon-requirements`,
+  `canon-status`, `canon-inspect-invocations`, `canon-inspect-evidence`,
+  `canon-inspect-artifacts`, `canon-approve`, `canon-resume`,
+  `canon-brownfield`, `canon-pr-review`.
+- Discoverable support-state skills MUST NOT fabricate Canon runs, run ids,
+  approvals, evidence, or CLI output.
+- Skill validation commands:
+  - `/bin/bash scripts/validate-canon-skills.sh`
+  - `pwsh -File scripts/validate-canon-skills.ps1` when PowerShell is available
 <!-- MANUAL ADDITIONS END -->

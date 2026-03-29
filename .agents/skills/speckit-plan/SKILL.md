@@ -153,7 +153,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Key rules
 
-- Use absolute paths
+- Use repo-relative paths in persisted repository documents; reserve absolute paths for ephemeral local tooling output only when strictly necessary
 - ERROR if execution mode, risk classification, scope boundaries, or invariants are missing
 - ERROR if validation ownership does not preserve separation between generation and validation
 - ERROR on gate failures or unresolved clarifications

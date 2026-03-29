@@ -90,6 +90,44 @@ What you get:
 
 That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
 
+## Use Canon From Codex
+
+Canon now ships a repo-local Codex skill frontend under `.agents/skills/`.
+The CLI is still the engine. The skills are just a sharper way to invoke it.
+
+High-value available-now skills:
+
+- `$canon-init`
+- `$canon-requirements`
+- `$canon-status`
+- `$canon-inspect-invocations`
+- `$canon-inspect-evidence`
+- `$canon-inspect-artifacts`
+- `$canon-approve`
+- `$canon-resume`
+- `$canon-brownfield`
+- `$canon-pr-review`
+
+Typical Codex flow:
+
+```text
+$canon-init
+Initialize Canon in this repository.
+
+$canon-requirements
+Start a requirements run with owner staff-engineer, risk bounded-impact, zone yellow, input idea.md.
+
+$canon-status
+Show status for run <RUN_ID>.
+
+$canon-inspect-evidence
+Inspect evidence for run <RUN_ID>.
+```
+
+All Canon skills are discoverable through `$`. Not all are runnable yet. The
+non-runnable ones are still visible, but they must say so explicitly and must
+not fabricate runs, run ids, approvals, or evidence.
+
 ## Example Workflows
 
 ### `requirements`
@@ -256,6 +294,19 @@ Implemented end to end today:
 - `brownfield-change`
 - `pr-review`
 
+Available-now Codex skills backed by the real Canon CLI:
+
+- `canon-init`
+- `canon-requirements`
+- `canon-status`
+- `canon-inspect-invocations`
+- `canon-inspect-evidence`
+- `canon-inspect-artifacts`
+- `canon-approve`
+- `canon-resume`
+- `canon-brownfield`
+- `canon-pr-review`
+
 Modeled but not fully implemented end to end yet:
 
 - `discovery`
@@ -267,6 +318,18 @@ Modeled but not fully implemented end to end yet:
 - `review`
 - `incident`
 - `migration`
+
+Discoverable Codex skills that are honest support-state wrappers:
+
+- `canon-discovery`
+- `canon-greenfield`
+- `canon-architecture`
+- `canon-implementation`
+- `canon-refactor`
+- `canon-review`
+- `canon-incident`
+- `canon-migration`
+- `canon-verification` as `intentionally-limited`
 
 Current limitations:
 
@@ -321,3 +384,6 @@ Install local git hooks:
 - Governed execution spec: [`specs/002-governed-execution-adapters/spec.md`](specs/002-governed-execution-adapters/spec.md)
 - Governed execution plan: [`specs/002-governed-execution-adapters/plan.md`](specs/002-governed-execution-adapters/plan.md)
 - Governed execution validation: [`specs/002-governed-execution-adapters/validation-report.md`](specs/002-governed-execution-adapters/validation-report.md)
+- Codex skills frontend spec: [`specs/003-codex-skills-frontend/spec.md`](specs/003-codex-skills-frontend/spec.md)
+- Codex skills frontend plan: [`specs/003-codex-skills-frontend/plan.md`](specs/003-codex-skills-frontend/plan.md)
+- Codex skills frontend validation: [`specs/003-codex-skills-frontend/validation-report.md`](specs/003-codex-skills-frontend/validation-report.md)

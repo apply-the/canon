@@ -1,7 +1,7 @@
 # Implementation Plan: Canon v0.1 Native CLI
 
-**Branch**: `001-canon-spec` | **Date**: 2026-03-27 | **Spec**: `/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/spec.md`
-**Input**: Feature specification from `/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/spec.md`
+**Branch**: `001-canon-spec` | **Date**: 2026-03-27 | **Spec**: `specs/001-canon-spec/spec.md`
+**Input**: Feature specification from `specs/001-canon-spec/spec.md`
 
 ## Summary
 
@@ -40,7 +40,7 @@ and deep workflow UX beyond the initial CLI contracts
 - Adapters are governed execution surfaces and cannot bypass policy or
   persistence.
 
-**Decision Log**: `/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/decision-log.md`  
+**Decision Log**: `specs/001-canon-spec/decision-log.md`
 **Validation Ownership**: run orchestration and adapters generate outputs;
 policy evaluation, verification layers, tests, and human review validate them
 through separate artifacts and gate outcomes  
@@ -869,4 +869,3 @@ No constitution deviations are required.
 | How should reruns relate to prior decision memory? | Fork by default with `parent_run_id` links; never overwrite prior run history. |
 | How much trace detail is enough? | JSONL summaries with capability, intent, timestamps, status, and evidence links; do not persist raw prompt transcripts by default. |
 | Should red-zone execution ever mutate state in v0.1? | No. `Red` zone or `Systemic Impact` runs are recommendation-only for mutating adapters in v0.1. |
-
