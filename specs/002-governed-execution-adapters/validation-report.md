@@ -17,15 +17,15 @@ Completed on `2026-03-28`.
 - `cargo test`
 - `cargo nextest run`
 - contract coverage passed in
-  `/Users/rt/workspace/apply-the/canon/tests/contract/runtime_evidence_contract.rs`
+  `tests/contract/runtime_evidence_contract.rs`
 - contract coverage passed in
-  `/Users/rt/workspace/apply-the/canon/tests/contract/invocation_cli_contract.rs`
+  `tests/contract/invocation_cli_contract.rs`
 - contract coverage passed in
-  `/Users/rt/workspace/apply-the/canon/tests/contract/requirements_evidence_contract.rs`
+  `tests/contract/requirements_evidence_contract.rs`
 - contract coverage passed in
-  `/Users/rt/workspace/apply-the/canon/tests/contract/brownfield_invocation_contract.rs`
+  `tests/contract/brownfield_invocation_contract.rs`
 - contract coverage passed in
-  `/Users/rt/workspace/apply-the/canon/tests/contract/pr_review_evidence_contract.rs`
+  `tests/contract/pr_review_evidence_contract.rs`
 
 Validated filesystem and contract shape:
 
@@ -86,11 +86,11 @@ Completed on `2026-03-28`.
 
 Confirmed on `2026-03-28`.
 
-- `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/contracts/cli-contract.md`
+- `specs/002-governed-execution-adapters/contracts/cli-contract.md`
   matches the implemented `inspect invocations`, `inspect evidence`, and
   invocation-target approval surface across `requirements`,
   `brownfield-change`, and `pr-review`
-- `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/contracts/runtime-evidence-contract.md`
+- `specs/002-governed-execution-adapters/contracts/runtime-evidence-contract.md`
   matches the implemented invocation manifests, `evidence.toml`, summary-first
   trace linkage, retained payload refs, and policy-attempt persistence
 
@@ -99,18 +99,18 @@ Confirmed on `2026-03-28`.
 Completed on `2026-03-28`.
 
 - reviewed lineage separation in
-  `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/evidence.rs`
+  `crates/canon-engine/src/orchestrator/evidence.rs`
   plus the `requirements`, `brownfield-change`, and `pr-review` service paths:
   AI-originated generation or critique remains challenged by either
   non-generative shell validation or gate-scoped human review
 - reviewed constraint enforcement in
-  `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`
-  and `/Users/rt/workspace/apply-the/canon/defaults/policies/adapters.toml`:
+  `crates/canon-engine/src/orchestrator/invocation.rs`
+  and `defaults/policies/adapters.toml`:
   red or systemic mutation stays blocked or recommendation-only, and retained
   payload posture remains policy-bounded
 - reviewed MCP runtime exclusion in
-  `/Users/rt/workspace/apply-the/canon/defaults/policies/adapters.toml` and
-  `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/invocation.rs`:
+  `defaults/policies/adapters.toml` and
+  `crates/canon-engine/src/orchestrator/invocation.rs`:
   `McpStdio` remains modeled but runtime-denied
 - residual risk: AI critique remains synthetic in this tranche; deeper semantic
   analysis is still future work

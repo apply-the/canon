@@ -3,7 +3,7 @@
 **Purpose**: Validate specification completeness and quality before proceeding
 to planning  
 **Created**: 2026-03-27  
-**Feature**: [/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/spec.md](/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/spec.md)
+**Feature**: [specs/001-canon-spec/spec.md](../spec.md)
 
 ## Content Quality
 

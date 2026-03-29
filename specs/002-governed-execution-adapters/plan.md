@@ -1,7 +1,7 @@
 # Implementation Plan: Governed Execution Adapters
 
-**Branch**: `002-governed-execution-adapters` | **Date**: 2026-03-28 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/spec.md](/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/spec.md)  
-**Input**: Feature specification from `/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/spec.md`
+**Branch**: `002-governed-execution-adapters` | **Date**: 2026-03-28 | **Spec**: [specs/002-governed-execution-adapters/spec.md](./spec.md)
+**Input**: Feature specification from `specs/002-governed-execution-adapters/spec.md`
 
 ## Summary
 
@@ -45,7 +45,7 @@ governance
 - `.canon/` remains the local system of record for runs, traces, approvals,
   decisions, and execution evidence.
 
-**Decision Log**: [/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md](/Users/rt/workspace/apply-the/canon/specs/002-governed-execution-adapters/decision-log.md)  
+**Decision Log**: [specs/002-governed-execution-adapters/decision-log.md](./decision-log.md)
 **Validation Ownership**: adapters and orchestration produce invocation
 outcomes; policy evaluation, evidence assembly, gate evaluation, tests,
 non-generative validation tools, adversarial critique, and human review

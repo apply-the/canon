@@ -1,8 +1,8 @@
-# Specification Quality Checklist: Governed Execution Adapters
+# Specification Quality Checklist: Codex Skills Frontend for Canon
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-28  
-**Feature**: [specs/002-governed-execution-adapters/spec.md](../spec.md)
+**Feature**: [specs/003-codex-skills-frontend/spec.md](../spec.md)
 
 ## Content Quality
 
@@ -35,6 +35,8 @@
 
 ## Notes
 
-- Validation completed in one iteration. The spec stays additive to the current
-  Canon baseline and focuses the product increment on governed execution over
-  external tools rather than on generic workflow expansion.
+- Validated against the current accepted Canon baseline in
+  `specs/001-canon-spec/` and
+  `specs/002-governed-execution-adapters/`.
+- The specification stays additive: Canon CLI and `.canon/` remain the engine
+  and system of record, while Codex skills are defined as the frontend layer.
