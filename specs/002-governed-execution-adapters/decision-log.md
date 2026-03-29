@@ -119,7 +119,7 @@ territory.
 
 ## D-013: Serialize root-package CLI integration tests under `nextest`
 
-**Decision**: add `/Users/rt/workspace/apply-the/canon/.config/nextest.toml`
+**Decision**: add `.config/nextest.toml`
 to run the root package test binaries in a single test group under
 `cargo nextest run`.
 

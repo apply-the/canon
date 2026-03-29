@@ -1,6 +1,6 @@
 # Tasks: Canon v0.1 Native CLI
 
-**Input**: Design documents from `/Users/rt/workspace/apply-the/canon/specs/001-canon-spec/`
+**Input**: Design documents from `specs/001-canon-spec/`
 **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 **Validation**: Layered validation is mandatory. Add executable tests before

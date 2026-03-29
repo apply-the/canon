@@ -1,0 +1,10 @@
+[canon]
+expected_workspace_version = "0.3.0"
+install_command = "cargo +1.94.0 install --path crates/canon-cli --bin canon"
+version_command = "canon --version"
+version_check_strategy = "prefer-semver-then-command-probe"
+command_probe = "canon inspect modes --output json"
+required_modes = ["requirements", "brownfield-change", "pr-review"]
+
+[notes]
+summary = "Canon CLI compatibility is semver-based when the binary exposes --version and command-contract-based when it does not."
