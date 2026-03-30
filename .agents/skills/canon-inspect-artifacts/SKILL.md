@@ -30,6 +30,7 @@ Expose artifact paths from a real Canon run without inventing runtime state.
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command inspect-artifacts --repo-root "$PWD" --require-init --run-id <RUN_ID>` first.
+- Treat the shared helper output as the source of truth for run-id validation and retry behavior.
 
 ## Canon Command Contract
 
@@ -46,7 +47,9 @@ Expose artifact paths from a real Canon run without inventing runtime state.
 ## Failure Handling Guidance
 
 - If `.canon/` is missing, point to `$canon-init`.
-- If the run id is missing, show the canonical retry form.
+- The helper-enforced flow keeps the retry surface limited to `RUN_ID`.
+- If the run id is missing or invalid, ask only for the exact run id and show the exact retry form `canon inspect artifacts --run <RUN_ID> --output json`.
+- If Canon fails after preflight succeeds, report it as a Canon-execution outcome rather than a preflight failure.
 - Never summarize artifacts that were not returned by Canon-backed output.
 
 ## Next-Step Guidance

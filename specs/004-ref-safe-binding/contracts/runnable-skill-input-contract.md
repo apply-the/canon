@@ -63,6 +63,17 @@ The shared preflight helper returns key/value output with:
   - `NORMALIZED_REF_1`
   - `NORMALIZED_REF_2`
 
+Runtime-aligned normalization accepted by this patch:
+
+- `RiskField` accepts `low-impact` and `LowImpact`, `bounded-impact` and
+  `BoundedImpact`, `systemic-impact` and `SystemicImpact`
+- `ZoneField` accepts `green` and `Green`, `yellow` and `Yellow`, `red` and
+  `Red`
+
+Ready responses may also emit helper diagnostics such as `VERSION_KIND` and
+`DETECTED_VERSION`, but retry and validation logic must key off the required
+contract fields above rather than those diagnostics.
+
 `PHASE` must be:
 
 - `preflight` for helper-side validation failures or ready states

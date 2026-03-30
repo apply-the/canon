@@ -31,6 +31,7 @@ Inspect the evidence Canon recorded for an existing run.
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command inspect-evidence --repo-root "$PWD" --require-init --run-id <RUN_ID>` first.
+- Treat the shared helper output as the source of truth for run-id validation and retry behavior.
 
 ## Canon Command Contract
 
@@ -46,7 +47,9 @@ Inspect the evidence Canon recorded for an existing run.
 ## Failure Handling Guidance
 
 - If `.canon/` is missing, point to `$canon-init`.
-- If the run id is missing or invalid, ask for the exact run id and retry form.
+- The helper-enforced flow requests only the missing or invalid `RUN_ID` and does not broaden into generic conversational recovery.
+- If the run id is missing or invalid, ask only for the exact run id and show the exact retry form `canon inspect evidence --run <RUN_ID> --output json`.
+- If Canon fails after preflight succeeds, report it as a Canon-execution outcome rather than a preflight failure.
 
 ## Next-Step Guidance
 

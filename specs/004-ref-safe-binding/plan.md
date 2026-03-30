@@ -28,9 +28,11 @@ reuse the same typed-input approach.
 **Execution Mode**: `brownfield` because this increment patches the current
 Codex skills layer and shared helper scripts in place without redesigning
 Canon  
-**Risk Classification**: `High` because runnable-skill misbinding can start
-the wrong governed command or make delivered skills look dishonest, but the
-blast radius stays bounded by keeping Canon CLI as the only execution engine  
+**Risk Classification**: `bounded-impact` because runnable-skill misbinding can
+start the wrong governed command or make delivered skills look dishonest, but
+the blast radius stays bounded to the repo-local skills frontend while Canon
+CLI remains the only execution engine
+
 **Scope In**: typed input handling for executable skills, incremental
 missing-input collection, ref-safe preflight and retry rendering for
 `canon-pr-review`, deterministic failure semantics, and minimal shared helper
@@ -111,7 +113,7 @@ and PowerShell parity
 - [x] Required artifacts and owners are identified
 - [x] Decision logging is planned and linked to a durable artifact
 - [x] Validation plan separates generation from validation
-- [x] High-risk approval checkpoints are named
+- [x] Required approval checkpoints are named
 - [x] No constitution deviations are required before design
 
 ### Post-Design Re-Check

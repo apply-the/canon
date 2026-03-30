@@ -30,6 +30,7 @@ Continue an existing Canon run after approval or after the blocked condition was
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command resume --repo-root "$PWD" --require-init --run-id <RUN_ID>` first.
+- Treat the shared helper output as the source of truth for run-id validation and retry behavior.
 
 ## Canon Command Contract
 
@@ -45,8 +46,10 @@ Continue an existing Canon run after approval or after the blocked condition was
 
 ## Failure Handling Guidance
 
-- If the run id is missing or unknown, ask for the exact run id.
-- If Canon reports the run is still gated or stale, surface that state and point back to `$canon-status` or `$canon-approve`.
+- If `.canon/` is missing, point to `$canon-init`.
+- The helper-enforced flow asks only for the missing or invalid `RUN_ID` and keeps retry guidance scoped to that identifier.
+- If the run id is missing or unknown, ask only for the exact run id and show the exact retry form `canon resume --run <RUN_ID>`.
+- If Canon reports the run is still gated or stale after preflight succeeded, surface that as a Canon-execution outcome and point back to `$canon-status` or `$canon-approve`.
 - Never report a resumed state that did not come from Canon.
 
 ## Next-Step Guidance

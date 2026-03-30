@@ -33,6 +33,7 @@ Expose the delivered Canon brownfield-change workflow through a named Codex skil
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command brownfield-change --repo-root "$PWD" --require-init --owner <OWNER> --risk <RISK> --zone <ZONE> --input <INPUT_PATH>` first.
+- Treat the shared helper output as the source of truth for typed preflight behavior.
 
 ## Canon Command Contract
 
@@ -49,7 +50,11 @@ Expose the delivered Canon brownfield-change workflow through a named Codex skil
 ## Failure Handling Guidance
 
 - If `.canon/` is missing, point to `$canon-init`.
-- If required brownfield inputs are missing, name them explicitly.
+- The helper-enforced flow must preserve valid ownership fields and asks only for the missing brief path or missing ownership slot.
+- If required brownfield inputs are missing, name the missing typed slot explicitly and show the exact Canon CLI retry form after the semantic prompt.
+- If the helper returns `missing-file`, request only the missing brief path and do not restate already valid ownership metadata.
+- If the helper returns `invalid-input`, ask only for the failing slot rather than resetting the whole request.
+- If Canon returns a failure after preflight succeeded, report it as a Canon-execution outcome, not as a preflight failure.
 - If Canon returns `AwaitingApproval`, surface the exact target Canon produced and do not imply the run is complete.
 
 ## Next-Step Guidance

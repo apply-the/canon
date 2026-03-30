@@ -31,6 +31,7 @@ Show the current Canon-backed state of an existing run.
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command status --repo-root "$PWD" --require-init --run-id <RUN_ID>` first.
+- Treat the shared helper output as the source of truth for run-id validation and retry behavior.
 
 ## Canon Command Contract
 
@@ -48,7 +49,9 @@ Show the current Canon-backed state of an existing run.
 ## Failure Handling Guidance
 
 - If `.canon/` is missing, point to `$canon-init`.
-- If the run id is missing or unknown, ask for the exact run id and show the retry form.
+- The helper-enforced flow asks only for the missing or invalid `RUN_ID` and must not invent any other missing state.
+- If the run id is missing or unknown, ask only for the exact run id and show the exact retry form `canon status --run <RUN_ID> --output json`.
+- If Canon fails after preflight succeeds, report it as a Canon-execution outcome rather than a preflight failure.
 
 ## Next-Step Guidance
 

@@ -34,6 +34,14 @@ For each slot:
 
 This order is deterministic and must be identical in Bash and PowerShell.
 
+## Enforcement Boundary
+
+- `.agents/skills/canon-shared/scripts/check-runtime.sh` and
+  `.agents/skills/canon-shared/scripts/check-runtime.ps1` are the source of
+  truth for ref classification and normalization.
+- `.agents/skills/canon-pr-review/SKILL.md` must mirror the helper-enforced
+  contract and must not widen accepted ref forms in prose.
+
 ## Pair Rules
 
 - `base-ref` and `head-ref` are validated as `RefPairInput`

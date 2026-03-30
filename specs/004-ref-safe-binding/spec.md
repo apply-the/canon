@@ -8,10 +8,13 @@
 ## Governance Context *(mandatory)*
 
 **Mode**: brownfield  
-**Risk Classification**: High because this patch changes how delivered
-executable skills collect and normalize user inputs before invoking Canon, and a
-mistake here can start the wrong governed workflow or make a runnable skill
-look dishonest even when Canon itself is correct.  
+**Risk Classification**: `bounded-impact` because this patch changes how
+delivered executable skills collect and normalize user inputs before invoking
+Canon, and a mistake here can start the wrong governed workflow or make a
+runnable skill look dishonest even when Canon itself is correct, but the blast
+radius stays bounded to the repo-local skills frontend because Canon remains the
+only execution engine.
+
 **Scope In**: runnable skill interaction quality, typed input handling,
 incremental collection of missing inputs, ref-safe preflight and retry guidance
 for executable skills, and correction of command-binding behavior for the
