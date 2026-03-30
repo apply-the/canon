@@ -113,3 +113,53 @@ not needed to repair `canon-pr-review`.
 
 - operational skills become more consistent without scope expansion
 - approval-field typing can be reconsidered in a future focused patch
+
+## 2026-03-29 - D-006 Feature risk classification is `bounded-impact`
+
+**Context**: the feature plan originally used the generic label `High`, while
+Canon policy, CLI contracts, and downstream task generation use canonical risk
+tokens such as `low-impact`, `bounded-impact`, and `systemic-impact`.
+
+**Decision**: classify this corrective patch as `bounded-impact`.
+
+**Alternatives considered**:
+
+- classify the patch as `systemic-impact`
+- keep the generic `High` label and let downstream tooling map it implicitly
+
+**Rationale**: the failure mode is important because a bad binding can start the
+wrong governed command or damage trust in delivered skills, but the change
+remains bounded to the repo-local skills frontend and keeps Canon CLI as the
+only execution engine and system of record.
+
+**Consequences**:
+
+- feature artifacts can reference the same risk vocabulary the runtime and
+  policies already enforce
+- task generation no longer needs to invent an ad hoc mapping from `High` to a
+  Canon-native risk token
+
+## 2026-03-29 - D-007 Shared helpers remain the enforcement point
+
+**Context**: this patch updates `SKILL.md` files for the direct-scope runnable
+skills, but trust repair only works if typed preflight, ref classification, and
+retry rendering are enforced by the shared helper boundary rather than by prose.
+
+**Decision**: keep `.agents/skills/canon-shared/scripts/check-runtime.sh` and
+`.agents/skills/canon-shared/scripts/check-runtime.ps1` as the source of truth
+for typed preflight behavior, and require skill docs to mirror that behavior
+without widening it.
+
+**Alternatives considered**:
+
+- encode most of the behavior only in `SKILL.md` guidance
+- create a new interaction layer separate from the existing shared helpers
+
+**Rationale**: prose-only fixes would leave the real enforcement point weak,
+while a new layer would broaden scope beyond a narrow trust-repair patch.
+
+**Consequences**:
+
+- validation must prove helper behavior first and skill wording second
+- direct-scope skill updates are constrained to documenting helper-backed
+  behavior rather than inventing new interaction semantics

@@ -47,6 +47,45 @@ git diff --check
 
 ### Shared Preflight Probes
 
+#### Bash: missing `zone` after valid `owner` and `risk`
+
+```bash
+/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh \
+   --command requirements \
+   --repo-root "$PWD" \
+   --require-init \
+   --owner reviewer \
+   --risk bounded-impact \
+   --input specs/004-ref-safe-binding/spec.md
+```
+
+Expected outcome:
+
+- returns `STATUS=missing-input`
+- returns `FAILED_SLOT=zone`
+- preserves the provided owner and risk for retry rendering
+
+#### Bash: missing file path while ownership metadata is valid
+
+```bash
+/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh \
+   --command brownfield-change \
+   --repo-root "$PWD" \
+   --require-init \
+   --owner reviewer \
+   --risk bounded-impact \
+   --zone yellow \
+   --input missing-brief.md
+```
+
+Expected outcome:
+
+- returns `STATUS=missing-file`
+- returns `FAILED_SLOT=input-path`
+- does not reclassify the failure as missing ownership metadata
+
+#### Bash: `canon-pr-review` with local refs
+
 ```bash
 /bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh \
   --command pr-review \
@@ -58,6 +97,13 @@ git diff --check
   --ref master \
   --ref HEAD
 ```
+
+Expected outcome:
+
+- returns `STATUS=ready`
+- emits canonical normalized ref output for the base/head pair
+
+#### Bash: `canon-pr-review` with unresolved `main` in a master-only local repo
 
 ```bash
 /bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh \
@@ -77,6 +123,72 @@ Expected outcomes:
 - second case returns `STATUS=invalid-ref` and suggests the correct local
   branch without calling it a missing file
 
+#### PowerShell: missing `zone` after valid `owner` and `risk`
+
+```powershell
+pwsh -File .agents/skills/canon-shared/scripts/check-runtime.ps1 \
+   -Command requirements \
+   -RepoRoot $PWD.Path \
+   -RequireInit \
+   -Owner reviewer \
+   -Risk bounded-impact \
+   -InputPath specs/004-ref-safe-binding/spec.md
+```
+
+Expected outcome:
+
+- returns `STATUS=missing-input`
+- returns `FAILED_SLOT=zone`
+- preserves the provided owner and risk for retry rendering
+
+#### PowerShell: missing file path while ownership metadata is valid
+
+```powershell
+pwsh -File .agents/skills/canon-shared/scripts/check-runtime.ps1 \
+   -Command brownfield-change \
+   -RepoRoot $PWD.Path \
+   -RequireInit \
+   -Owner reviewer \
+   -Risk bounded-impact \
+   -Zone yellow \
+   -InputPath missing-brief.md
+```
+
+Expected outcome:
+
+- returns `STATUS=missing-file`
+- returns `FAILED_SLOT=input-path`
+- does not reclassify the failure as missing ownership metadata
+
+#### PowerShell: `canon-pr-review` with local refs and unresolved refs
+
+```powershell
+pwsh -File .agents/skills/canon-shared/scripts/check-runtime.ps1 \
+   -Command pr-review \
+   -RepoRoot $PWD.Path \
+   -RequireInit \
+   -Owner reviewer \
+   -Risk bounded-impact \
+   -Zone yellow \
+   -RefName master, HEAD
+```
+
+```powershell
+pwsh -File .agents/skills/canon-shared/scripts/check-runtime.ps1 \
+   -Command pr-review \
+   -RepoRoot $PWD.Path \
+   -RequireInit \
+   -Owner reviewer \
+   -Risk bounded-impact \
+   -Zone yellow \
+   -RefName main, HEAD
+```
+
+Expected outcomes:
+
+- first case returns `STATUS=ready` and normalized ref output
+- second case returns `STATUS=invalid-ref` without any file-path wording
+
 ### Runnable Walkthroughs
 
 - missing only `zone` after valid `owner` and `risk`
@@ -85,3 +197,10 @@ Expected outcomes:
 - `canon-pr-review` with unresolved `main` in a master-only local repo
 - missing file path for `canon-brownfield` or `canon-requirements`
 - run-id-only correction for `canon-status` or `canon-resume`
+
+For each walkthrough, capture:
+
+- the reported `STATUS`
+- the reported `PHASE`
+- the `FAILED_SLOT` or normalized output keys when present
+- the exact retry text shown to the user

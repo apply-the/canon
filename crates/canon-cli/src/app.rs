@@ -131,6 +131,7 @@ pub enum Command {
 #[derive(Debug, Parser)]
 #[command(name = "canon")]
 #[command(about = "A governed method engine for AI-assisted software engineering.")]
+#[command(version)]
 pub struct Cli {
     #[command(subcommand)]
     command: Command,

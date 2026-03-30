@@ -35,6 +35,7 @@ the raw CLI.
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command requirements --repo-root "$PWD" --require-init --owner <OWNER> --risk <RISK> --zone <ZONE> --input <INPUT_PATH>` first.
+- Treat the shared helper output as the source of truth for typed preflight behavior.
 
 ## Canon Command Contract
 
@@ -51,7 +52,11 @@ the raw CLI.
 ## Failure Handling Guidance
 
 - If `.canon/` is missing, point to `$canon-init`.
-- If owner, risk, zone, or input are missing, name the missing input and show the retry form.
+- The helper-enforced flow asks only for the missing slot and must preserve valid ownership fields inside the current interaction.
+- If owner, risk, zone, or input are missing, name the missing input, keep the already valid fields, and show the exact Canon CLI retry form after the semantic prompt.
+- If the helper returns `invalid-input`, tell the user which typed slot failed and retry only that slot.
+- If the helper returns `missing-file`, ask only for the missing path and do not restate already valid ownership metadata.
+- If Canon fails after preflight succeeds, state that the failure happened inside Canon execution rather than before Canon execution.
 - Never simulate a successful run if Canon did not start one.
 
 ## Next-Step Guidance

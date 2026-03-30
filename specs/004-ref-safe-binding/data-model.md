@@ -109,7 +109,10 @@ Represents what the skill shows after a preflight failure or normalization.
   - `low-impact`
   - `bounded-impact`
   - `systemic-impact`
-  - plus runtime-recognized aliases such as `LowImpact`
+  - plus runtime-recognized aliases:
+    - `LowImpact`
+    - `BoundedImpact`
+    - `SystemicImpact`
 - Normalization: convert accepted alias to canonical hyphenated token
 - Retry rendering:
   - semantic: `risk bounded-impact`
@@ -121,7 +124,10 @@ Represents what the skill shows after a preflight failure or normalization.
   - `green`
   - `yellow`
   - `red`
-  - plus runtime-recognized aliases such as `Yellow`
+  - plus runtime-recognized aliases:
+    - `Green`
+    - `Yellow`
+    - `Red`
 - Normalization: convert accepted alias to canonical lowercase token
 - Retry rendering:
   - semantic: `zone yellow`
@@ -160,6 +166,15 @@ Represents what the skill shows after a preflight failure or normalization.
 - Retry rendering:
   - semantic: `base ref master`
   - CLI: `--input refs/heads/master`
+
+## Shared Helper Contract Notes
+
+- `.agents/skills/canon-shared/scripts/check-runtime.sh` and
+  `.agents/skills/canon-shared/scripts/check-runtime.ps1` are the enforcement
+  point for typed preflight behavior in this patch.
+- `SKILL.md` files may restate the accepted flow, but they must not promise any
+  retry, normalization, or failure-class behavior that the shared helpers do
+  not emit.
 
 ## Relationships
 

@@ -1,5 +1,5 @@
 [canon]
-expected_workspace_version = "0.3.0"
+expected_workspace_version = "0.4.0"
 install_command = "cargo +1.94.0 install --path crates/canon-cli --bin canon"
 version_command = "canon --version"
 version_check_strategy = "prefer-semver-then-command-probe"

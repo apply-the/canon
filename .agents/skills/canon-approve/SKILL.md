@@ -34,6 +34,7 @@ Record an explicit approval against a real Canon gate or invocation target.
 ## Preflight Profile
 
 - Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command approve --repo-root "$PWD" --require-init --run-id <RUN_ID>` first.
+- Treat the shared helper output as the source of truth for shared run-id validation and retry behavior.
 
 ## Canon Command Contract
 
@@ -50,8 +51,12 @@ Record an explicit approval against a real Canon gate or invocation target.
 
 ## Failure Handling Guidance
 
+- If `.canon/` is missing, point to `$canon-init`.
+- The shared helper reuses only run-id handling in this patch; `TARGET`, `BY`, `DECISION`, and `RATIONALE` remain skill-local requirements.
+- If the run id is missing or invalid, ask only for the exact run id and show the exact retry form `canon approve --run <RUN_ID> --target <TARGET> --by <BY> --decision <DECISION> --rationale <RATIONALE>` while preserving the other approval fields in the current interaction.
 - If the target is missing, require the exact `gate:<kind>` or `invocation:<request-id>` form.
 - If `BY`, `DECISION`, or `RATIONALE` are missing, require them explicitly before invoking Canon.
+- If Canon fails after preflight succeeds, report it as a Canon-execution outcome rather than a preflight failure.
 - Never invent approval success without Canon-backed output.
 
 ## Next-Step Guidance
