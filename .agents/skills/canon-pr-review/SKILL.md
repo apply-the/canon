@@ -33,7 +33,8 @@ Expose the delivered Canon pr-review workflow through a named Codex skill.
 
 ## Preflight Profile
 
-- Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command pr-review --repo-root "$PWD" --require-init --owner <OWNER> --risk <RISK> --zone <ZONE> --input <BASE_REF> --input <HEAD_REF>` first.
+- Run `/bin/bash .agents/skills/canon-shared/scripts/check-runtime.sh --command pr-review --repo-root "$PWD" --require-init --owner <OWNER> --risk <RISK> --zone <ZONE> --ref <BASE_REF> --ref <HEAD_REF>` first.
+- Treat the shared helper output as the source of truth for ref classification, normalization, and retry behavior.
 
 ## Canon Command Contract
 
@@ -51,7 +52,12 @@ Expose the delivered Canon pr-review workflow through a named Codex skill.
 ## Failure Handling Guidance
 
 - If `.canon/` is missing, point to `$canon-init`.
-- If base or head ref is missing, require them explicitly.
+- The helper-enforced ref pair flow preserves the valid side of the pair when only one ref is missing or invalid.
+- If base or head ref is missing, require only the missing ref explicitly and show the exact Canon CLI form after the semantic prompt.
+- If the helper returns `invalid-ref`, keep ref wording specific to refs and never blur it into file-path guidance.
+- The helper rejects remote refs explicitly; do not widen the patch by implying `origin/*` or `refs/remotes/*` are accepted.
+- If the helper returns `malformed-ref-pair`, ask for a distinct base/head pair and keep any normalized valid side visible in the retry guidance.
+- If Canon fails after preflight succeeds, state that the failure happened inside Canon execution rather than before Canon execution.
 - If Canon returns `AwaitingApproval`, surface the exact gate target, typically `gate:review-disposition`, and do not simulate a review packet beyond Canon output.
 
 ## Next-Step Guidance
