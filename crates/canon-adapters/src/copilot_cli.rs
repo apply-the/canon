@@ -53,7 +53,7 @@ impl CopilotCliAdapter {
     }
 
     pub fn generate(&self, context: &str) -> CopilotCliOutput {
-        let normalized = context.split_whitespace().collect::<Vec<_>>().join(" ");
+        let normalized = normalize_multiline_context(context);
         let summary = format!(
             "Bound the problem before implementation. Preserve explicit ownership, constraints, options, tradeoffs, and scope cuts for: {}",
             normalized
@@ -62,9 +62,10 @@ impl CopilotCliAdapter {
     }
 
     pub fn critique(&self, generated: &str) -> CopilotCliOutput {
+        let normalized = normalize_multiline_context(generated);
         let summary = format!(
             "Challenge the generated frame for scope drift, weak invariants, circular validation, and missing exclusions. Review target: {}",
-            generated
+            normalized
         );
         self.output(CapabilityKind::CritiqueContent, "copilot-cli critique", summary)
     }
@@ -88,4 +89,24 @@ impl CopilotCliAdapter {
             executor: "copilot-cli(synthetic-summary)".to_string(),
         }
     }
+}
+
+fn normalize_multiline_context(value: &str) -> String {
+    let mut lines = Vec::new();
+    let mut previous_blank = false;
+
+    for raw_line in value.lines() {
+        let line = raw_line.split_whitespace().collect::<Vec<_>>().join(" ");
+        if line.is_empty() {
+            if !previous_blank && !lines.is_empty() {
+                lines.push(String::new());
+            }
+            previous_blank = true;
+        } else {
+            lines.push(line);
+            previous_blank = false;
+        }
+    }
+
+    lines.join("\n").trim().to_string()
 }

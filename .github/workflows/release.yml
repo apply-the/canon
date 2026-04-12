@@ -1,0 +1,191 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Canon version to build. Defaults to the workspace version.
+        required: false
+        type: string
+      publish:
+        description: Publish assets to the GitHub Release after verification.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare-release-metadata:
+    name: prepare-release-metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      publish: ${{ steps.meta.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        shell: bash
+        run: |
+          cargo_version="$(sed -n '/^\[workspace.package\]/,/^\[/{s/^version = "\(.*\)"/\1/p}' Cargo.toml | head -n1)"
+          if [[ -z "$cargo_version" ]]; then
+            echo "Unable to determine workspace version from Cargo.toml" >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${{ inputs.version }}"
+            if [[ -z "$version" ]]; then
+              version="$cargo_version"
+            fi
+            tag="v${version}"
+            publish="${{ inputs.publish }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+            version="${tag#v}"
+            publish="true"
+          fi
+
+          if [[ "$version" != "$cargo_version" ]]; then
+            echo "Release version ${version} does not match workspace version ${cargo_version}" >&2
+            exit 1
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "publish=${publish}" >> "$GITHUB_OUTPUT"
+
+  build-and-package:
+    name: build-and-package (${{ matrix.label }})
+    needs: prepare-release-metadata
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macos-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+            packaging: unix
+          - label: macos-x86_64
+            os: macos-13
+            target: x86_64-apple-darwin
+            packaging: unix
+          - label: linux-arm64
+            os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            packaging: unix
+            install_linux_cross: true
+          - label: linux-x86_64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            packaging: unix
+          - label: windows-x86_64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            packaging: windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: matrix.install_linux_cross
+        run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross qemu-user unzip
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          targets: ${{ matrix.target }}
+
+      - if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc' >> "$GITHUB_ENV"
+
+      - name: Build release binary
+        run: cargo build --locked -p canon-cli --bin canon --release --target ${{ matrix.target }}
+
+      - name: Package unix artifact
+        if: matrix.packaging == 'unix'
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [[ "${{ matrix.label }}" == "linux-arm64" ]]; then
+            version_output="$(qemu-aarch64 -L /usr/aarch64-linux-gnu target/${{ matrix.target }}/release/canon --version)"
+          else
+            version_output="$(target/${{ matrix.target }}/release/canon --version)"
+          fi
+          artifact_path="$(bash scripts/release/package-unix.sh --version '${{ needs.prepare-release-metadata.outputs.version }}' --target '${{ matrix.target }}' --output-dir dist)"
+          printf '%s\n' "$version_output" > "${artifact_path}.version.txt"
+
+      - name: Package windows artifact
+        if: matrix.packaging == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          $versionOutput = & "target/${{ matrix.target }}/release/canon.exe" --version
+          $artifactPath = & ./scripts/release/package-windows.ps1 -Version '${{ needs.prepare-release-metadata.outputs.version }}' -Target '${{ matrix.target }}' -OutputDir dist
+          Set-Content -Path ("{0}.version.txt" -f $artifactPath) -Value $versionOutput
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packaged-${{ matrix.label }}
+          path: dist/*
+          if-no-files-found: error
+
+  assemble-release:
+    name: assemble-release
+    needs:
+      - prepare-release-metadata
+      - build-and-package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packaged-*
+          merge-multiple: true
+          path: dist
+
+      - name: Render release notes
+        shell: bash
+        run: |
+          sed \
+            -e "s/{{VERSION}}/${{ needs.prepare-release-metadata.outputs.version }}/g" \
+            -e "s/{{TAG}}/${{ needs.prepare-release-metadata.outputs.tag }}/g" \
+            .github/release-notes-template.md > dist/release-notes.md
+
+      - name: Verify release surface and generate checksums
+        shell: bash
+        run: |
+          bash scripts/release/verify-release-surface.sh \
+            --version '${{ needs.prepare-release-metadata.outputs.version }}' \
+            --dist-dir dist \
+            --release-notes dist/release-notes.md \
+            --write-checksums
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle-${{ needs.prepare-release-metadata.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: needs.prepare-release-metadata.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare-release-metadata.outputs.tag }}
+          body_path: dist/release-notes.md
+          files: |
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-macos-arm64.tar.gz
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-macos-x86_64.tar.gz
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-linux-arm64.tar.gz
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-linux-x86_64.tar.gz
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-windows-x86_64.zip
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-SHA256SUMS.txt

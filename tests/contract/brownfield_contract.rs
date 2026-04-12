@@ -63,7 +63,7 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
     let brief_path = workspace.path().join("brownfield.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
-    cli_command()
+    let run_output = cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
@@ -82,7 +82,55 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
         ])
         .assert()
         .code(2)
-        .stdout(contains("\"state\": \"Blocked\""));
+        .stdout(contains("\"state\": \"Blocked\""))
+        .get_output()
+        .stdout
+        .clone();
+
+    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    let run_id = run_json["run_id"].as_str().expect("run id");
+    assert_eq!(run_json["blocking_classification"], "artifact-blocked");
+    assert!(
+        run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
+        "blocked artifact runs should not imply approval targets when none exist"
+    );
+    assert_eq!(run_json["artifact_count"], 6);
+    assert!(
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
+        "blocked brownfield runs should expose all readable artifact paths"
+    );
+    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
+
+    let blocked_gates = run_json["blocked_gates"].as_array().expect("blocked gates");
+    let preservation_gate = blocked_gates
+        .iter()
+        .find(|gate| gate["gate"] == "brownfield-preservation")
+        .expect("brownfield preservation gate");
+    assert!(
+        preservation_gate["blockers"]
+            .as_array()
+            .is_some_and(|blockers| blockers.iter().any(|blocker| blocker
+                == "legacy-invariants.md is missing required section `Legacy Invariants`")),
+        "status should expose the concrete gate blockers"
+    );
+
+    let status_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_json: serde_json::Value =
+        serde_json::from_slice(&status_output).expect("status json");
+    assert_eq!(status_json["state"], "Blocked");
+    assert_eq!(status_json["blocking_classification"], "artifact-blocked");
+    assert!(
+        status_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
+        "blocked artifact runs should not advertise approval targets"
+    );
+    assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
 }
 
 #[test]
@@ -114,7 +162,28 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
         .stdout
         .clone();
     let run_id = parse_run_id(&run_output);
+    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    assert_eq!(run_json["state"], "AwaitingApproval");
+    assert_eq!(run_json["blocking_classification"], "approval-gated");
+    assert!(
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.is_empty()),
+        "approval-gated brownfield runs should not advertise readable artifacts before generation emits them"
+    );
+    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-evidence");
     let request_id = pending_request_id(&workspace, &run_id);
+
+    let status_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", &run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_json: serde_json::Value =
+        serde_json::from_slice(&status_output).expect("status json");
+    assert_eq!(status_json["state"], "AwaitingApproval");
+    assert_eq!(status_json["recommended_next_action"]["action"], "inspect-evidence");
 
     cli_command()
         .current_dir(workspace.path())

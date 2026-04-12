@@ -73,4 +73,16 @@ impl ProjectLayout {
     pub fn run_artifact_dir(&self, run_id: &str, mode: Mode) -> PathBuf {
         self.artifacts_dir().join(run_id).join(mode.as_str())
     }
+
+    pub fn skills_dir(&self) -> PathBuf {
+        self.repo_root.join(".agents").join("skills")
+    }
+
+    pub fn claude_skills_dir(&self) -> PathBuf {
+        self.repo_root.join(".claude").join("skills")
+    }
+
+    pub fn claude_md_path(&self) -> PathBuf {
+        self.repo_root.join("CLAUDE.md")
+    }
 }

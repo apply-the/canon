@@ -151,3 +151,49 @@ not environment availability but correctness of the PowerShell scripts
 themselves. Closing the increment required real execution plus targeted fixes in
 `validate-canon-skills.ps1`, `check-runtime.ps1`, and
 `render-support-state.ps1`, not a paper assertion of parity.
+
+## D-018: Keep `.canon/runs` internal in standard user-facing skill output
+
+**Decision**: Canon skills and human-readable CLI rendering should treat
+`.canon/artifacts/...` as the readable public file surface, while keeping
+run-state TOML files under `.canon/runs/...` internal to persistence and
+runtime inspection logic.
+
+**Rationale**: users need durable, readable artifacts and concise lineage, not
+direct exposure to internal storage files such as `evidence.toml`, decision
+manifests, or approval manifests. Exposing those files in normal output makes
+the frontend leak implementation detail and encourages the model to route users
+through internal state rather than the intended review packet.
+
+**Consequences**:
+
+- skill output contracts must stop promising `.canon/runs/...` TOML paths as
+	readable evidence
+- inspect and status summaries may still derive conclusions from persisted run
+	state, but standard user-facing output should foreground `.canon/artifacts/...`
+	when a readable surface exists
+- persistence contracts under earlier runtime specs remain valid because the
+	internal files still exist and are still used by Canon runtime logic
+
+## D-019: Action chips are frontend affordances, not runtime authority
+
+**Decision**: any future action chips in Codex-facing Canon skills must be
+progressive enhancement over the existing text next-step contract, not a new
+execution surface. The initial chip vocabulary is `Approve generation...`,
+`Resume run`, and `Inspect evidence`.
+
+**Rationale**: the frontend should make the real next move easier to invoke,
+but it must not collapse Canon's governed approval model into an unsafe
+`Proceed` shortcut or fabricate approval and resume eligibility that the
+runtime did not actually return.
+
+**Consequences**:
+
+- chips must only prefill Canon-backed values such as the active `RUN_ID` and
+	approval `TARGET`
+- the approval chip must preserve explicit human inputs such as `BY`,
+	`DECISION`, and `RATIONALE`
+- textual `Possible Actions:` and `Recommended Next Step:` remain required so
+	the contract still works in hosts without chip rendering
+- when a run is gated and no readable packet exists yet, the frontend should
+	prefer `Inspect evidence` over approval-oriented affordances

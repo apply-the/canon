@@ -29,6 +29,9 @@ and any attempt to replace Canon CLI or `.canon/` persistence with skills.
 - Skills for modeled-only modes must not pretend those workflows are already
   runnable end to end.
 - Skill output must lead users back to Canon runtime state, not away from it.
+- Standard user-facing skill output must not expose internal run-state TOML
+  files under `.canon/runs/`; readable file pointers belong under
+  `.canon/artifacts/`.
 
 **Decision Traceability**: decisions for this increment must be recorded in the
 feature decision log and linked to the resulting `.agents/skills` layout,
@@ -420,12 +423,15 @@ specific workflows instead of one overloaded wrapper.
 
 - **Purpose**: inspect run-level evidence bundles and lineage.
 - **Trigger**: use when the user wants generation versus validation paths,
-  approval refs, or artifact provenance.
+  artifact provenance, or the rationale behind a gated run.
 - **Must not trigger**: when the user only wants emitted artifact names.
 - **Required inputs**: run id.
 - **Canon commands it drives**: `canon inspect evidence --run <RUN_ID>`.
 - **Evidence surfaces**: evidence summary, generation paths, validation paths,
-  approval refs, decision refs, artifact provenance.
+  denied invocations, and readable artifact provenance.
+- **Public output boundary**: standard user-facing output must not surface
+  internal `.canon/runs/.../*.toml` paths, approval refs, or decision refs as
+  readable file pointers.
 - **Approval expectations**: may point to `canon-approve` or `canon-resume`
   when evidence indicates a gated run.
 - **Support state**: fully supported now.
@@ -438,8 +444,10 @@ specific workflows instead of one overloaded wrapper.
   history.
 - **Required inputs**: run id.
 - **Canon commands it drives**: `canon inspect artifacts --run <RUN_ID>`.
-- **Evidence surfaces**: artifact names, paths, and provenance pointers when
+- **Evidence surfaces**: artifact names and readable artifact paths when
   available.
+- **Public output boundary**: artifact inspection must not point users to
+  internal `.canon/runs/...` TOML files as a follow-on readable surface.
 - **Approval expectations**: none directly, though artifacts may imply a gated
   status.
 - **Support state**: fully supported now.
@@ -641,8 +649,8 @@ The default policy for this increment is:
 | `canon-init` | `canon init` | Available now | Prominent | Initializes `.canon/` and points to the next workflow skill. |
 | `canon-status` | `canon status` | Available now | Prominent | Reports run state, pending approvals, and next step. |
 | `canon-inspect-invocations` | `canon inspect invocations` | Available now | Prominent | Shows request-level decisions and outcomes. |
-| `canon-inspect-evidence` | `canon inspect evidence` | Available now | Prominent | Shows evidence bundle, lineage, and approval refs. |
-| `canon-inspect-artifacts` | `canon inspect artifacts` | Available now | Prominent | Shows emitted artifacts and related pointers. |
+| `canon-inspect-evidence` | `canon inspect evidence` | Available now | Prominent | Shows lineage plus readable artifact provenance without exposing internal run-state files as user-facing paths. |
+| `canon-inspect-artifacts` | `canon inspect artifacts` | Available now | Prominent | Shows emitted readable artifacts without pointing users at internal run-state TOML files. |
 | `canon-approve` | `canon approve` | Available now | Prominent | Records gate or invocation approval, then points to resume. |
 | `canon-resume` | `canon resume` | Available now | Prominent | Continues a blocked or approved run. |
 | `canon-requirements` | `run --mode requirements` | Available now | Prominent | Starts a real governed run and returns run id plus evidence pointers. |
@@ -670,6 +678,8 @@ For a supported run-starting skill:
 - concise run summary
 - run id
 - current state (`Completed`, `Blocked`, `AwaitingApproval`, or equivalent)
+- optional action chips that mirror the same Canon-backed next step when the
+  host supports them
 - next recommended skill or Canon command
 - pointers to `inspect invocations`, `inspect evidence`, and
   `inspect artifacts`
@@ -678,6 +688,9 @@ For a gated run:
 
 - explicit approval target
 - clear statement that the run is gated
+- optional `Inspect evidence` chip when inspection is the honest next move
+- optional `Approve generation...` chip only when Canon returned a real
+  approval target for the active run
 - next step using `canon-approve`
 - follow-up step using `canon-resume`
 
@@ -686,6 +699,8 @@ For inspection skills:
 - concise summary of what was found
 - run id
 - the specific evidence surface inspected
+- optional action chips that preserve the same run context, never inventing
+  approval or resume eligibility
 - pointer to related surfaces when helpful
 
 For modeled-only skills:
@@ -694,6 +709,31 @@ For modeled-only skills:
 - current support state
 - nearest supported skill, if one exists
 - no fake run id and no fabricated summary of work Canon did not actually do
+
+### 12.1 Action-Chip Progressive Enhancement
+
+Action chips are an optional frontend affordance layered on top of the same
+Canon-backed text contract. They do not create a second execution model.
+
+- Every chip must mirror an already-valid entry under `Possible Actions:` or
+  `Recommended Next Step:`.
+- Text fallback remains mandatory in every host, including hosts with no chip
+  UI.
+- The initial supported chip labels are:
+  - `Approve generation...`
+  - `Resume run`
+  - `Inspect evidence`
+- `Approve generation...` must never appear unless Canon already emitted a
+  real `RUN_ID` and approval `TARGET` for the active run.
+- Approval chips may prefill Canon-backed arguments such as `RUN_ID` and
+  `TARGET`, but they must still collect any missing human decision fields such
+  as `BY`, `DECISION`, and `RATIONALE`.
+- `Resume run` must never appear unless Canon still allows continuation on the
+  same run id.
+- When a run is gated and no readable artifact packet exists yet, `Inspect
+  evidence` is the preferred chip over approval-oriented actions.
+- The frontend must not use `Proceed with generation` as a label because it
+  hides the explicit approval decision Canon requires.
 
 For runtime dependency failures:
 
@@ -733,6 +773,8 @@ distribution complexity.
   every skill by default.
 - Skills surface run ids, evidence pointers, and approval or resume next steps
   for supported runs.
+- Optional action chips, when rendered by a host, preserve the same Canon
+  governance semantics and do not replace the text contract.
 - The repo can ship a coherent `.agents/skills` layout without requiring plugin
   packaging.
 - `AGENTS.md` and skills complement each other without duplicated
