@@ -91,8 +91,8 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         .assert()
         .success()
         .stdout(contains("# artifacts"))
-        .stdout(contains(&format!("Run ID: {run_id}")))
-        .stdout(contains(&format!(".canon/artifacts/{run_id}/requirements/problem-statement.md")));
+        .stdout(contains(format!("Run ID: {run_id}")))
+        .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/problem-statement.md")));
 
     let contract_path =
         workspace.path().join(".canon").join("runs").join(&run_id).join("artifact-contract.toml");
