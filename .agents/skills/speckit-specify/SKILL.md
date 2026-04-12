@@ -97,7 +97,7 @@ Given that feature description, do this:
        Identify: actors, actions, data, constraints, affected system boundaries
     3. Derive governance context:
        - Choose the operating mode that best fits the feature
-       - Classify risk as Low/Medium/High/Critical with brief rationale
+       - Classify risk as low-impact, bounded-impact, or systemic-impact with brief rationale
        - State explicit scope-in and scope-out boundaries
        - Define at least 2 invariants the implementation must preserve
        - Identify where decisions and validation evidence will be recorded
@@ -144,7 +144,7 @@ Given that feature description, do this:
 
       - [ ] No implementation details (languages, frameworks, APIs)
       - [ ] Focused on user value and business needs
-      - [ ] Written for non-technical stakeholders
+      - [ ] Written for the intended artifact audience
       - [ ] Governance context is explicit (mode, risk, scope, invariants)
       - [ ] All mandatory sections completed
 

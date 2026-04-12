@@ -188,7 +188,7 @@ Every task MUST strictly follow this format:
 
 4. **From Governance/Artifacts**:
    - Mode, risk, scope, invariants, decision logging, and validation evidence → Phase 0
-   - High-risk or critical approval checkpoints → Phase 0 or Final Phase, as appropriate
+   - Declared-risk approval checkpoints → Phase 0 or Final Phase, as appropriate
 
 5. **From Setup/Infrastructure**:
    - Shared infrastructure → Setup phase (Phase 1)

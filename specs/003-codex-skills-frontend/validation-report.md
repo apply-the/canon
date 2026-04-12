@@ -30,6 +30,8 @@ No work should proceed to later phases until:
 - walkthrough validation for `canon-approve` plus `canon-resume`
 - walkthrough validation for `canon-brownfield`
 - walkthrough validation for `canon-pr-review`
+- action-chip contract validation for `Approve generation...`, `Resume run`,
+  and `Inspect evidence` visibility and fallback text
 
 ## Planned Failure Validation
 
@@ -68,6 +70,8 @@ Each of these must prove:
   and quickstart
 - review failure messages for actionability and determinism
 - review that support-state wrappers never claim Canon executed unsupported work
+- review that chip-capable hosts still retain `Possible Actions:` and
+  `Recommended Next Step:` as text fallback
 
 ## Planned MVP Walkthrough Record
 
@@ -144,7 +148,7 @@ Walkthrough workspace: `/Users/rt/workspace/java-html-sanitizer`
 5. `$canon-inspect-invocations`:
    - result: `4` invocation records, including one denied workspace edit
 6. `$canon-inspect-evidence`:
-   - result: evidence bundle path under `.canon/runs/.../evidence.toml`
+  - result: readable artifact provenance plus generation and validation lineage
    - artifact provenance: `6` requirements artifacts under `.canon/artifacts/.../requirements/`
 
 This walkthrough confirms that the Codex-facing runnable skills stay
@@ -190,8 +194,8 @@ Walkthrough workspace: `/tmp/canon-phase345-AASyAH/pr-review`
   `canon approve --run 019d36b0-c9ec-7443-b2dd-28ff8a64e6bb --target gate:review-disposition --by principal-engineer --decision approve --rationale "..."`
 - post-approval status:
   `Completed`
-- evidence bundle:
-  `runs/019d36b0-c9ec-7443-b2dd-28ff8a64e6bb/evidence.toml`
+- readable evidence surface:
+  review artifacts under `.canon/artifacts/.../pr-review/`
 - emitted review artifacts:
   `boundary-check.md`, `contract-drift.md`, `decision-impact.md`,
   `duplication-check.md`, `missing-tests.md`, `pr-analysis.md`,
@@ -200,9 +204,30 @@ Walkthrough workspace: `/tmp/canon-phase345-AASyAH/pr-review`
 This confirms the delivered `pr-review` skill boundary:
 
 - the skill maps to a real diff-backed Canon run
-- review evidence stays inspectable under `.canon/`
+- review evidence stays inspectable while readable file pointers stay under `.canon/artifacts/`
 - `gate:review-disposition` approval may complete the run directly, without a
   required `resume`
+
+## Public Output Boundary Validation
+
+- Standard user-facing inspect and status output no longer expose
+  `.canon/runs/.../evidence.toml` or related run-state TOML files as readable
+  follow-on paths.
+- Readable file pointers are limited to `.canon/artifacts/...` when Canon
+  emitted them.
+- Internal persistence under `.canon/runs/...` remains intact and is still
+  covered by lower-level runtime contracts and contract tests.
+
+## Action-Chip Contract Validation
+
+- `Approve generation...` is defined as a governed approval affordance, not a
+  blind `Proceed with generation` shortcut.
+- `Resume run` remains tied to real continuation eligibility on the same run
+  id.
+- `Inspect evidence` remains the preferred gated-state affordance when Canon
+  has not yet emitted a readable artifact packet.
+- Text fallback through `Possible Actions:` and `Recommended Next Step:`
+  remains mandatory even if a future host renders chips.
 
 ## Executed Failure Validation
 

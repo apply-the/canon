@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use std::path::{Path, PathBuf};
 
 use canon_adapters::{AdapterInvocation, AdapterKind, filesystem::FilesystemAdapter};
@@ -50,12 +50,196 @@ const POLICY_FILES: &[(&str, &str)] = &[
     ("adapters.toml", include_str!("../../../../defaults/policies/adapters.toml")),
 ];
 
+/// Skill SKILL.md files embedded at compile time for materialization into
+/// `.agents/skills/<name>/SKILL.md` during `canon init` or `canon skills install`.
+const SKILL_FILES: &[(&str, &str)] = &[
+    (
+        "canon-init/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-init/skill-source.md"),
+    ),
+    (
+        "canon-requirements/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-requirements/skill-source.md"),
+    ),
+    (
+        "canon-brownfield/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-brownfield/skill-source.md"),
+    ),
+    (
+        "canon-pr-review/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-pr-review/skill-source.md"),
+    ),
+    (
+        "canon-status/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-status/skill-source.md"),
+    ),
+    (
+        "canon-inspect-invocations/SKILL.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-inspect-invocations/skill-source.md"
+        ),
+    ),
+    (
+        "canon-inspect-evidence/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-inspect-evidence/skill-source.md"),
+    ),
+    (
+        "canon-inspect-artifacts/SKILL.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-inspect-artifacts/skill-source.md"
+        ),
+    ),
+    (
+        "canon-approve/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-approve/skill-source.md"),
+    ),
+    (
+        "canon-resume/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-resume/skill-source.md"),
+    ),
+    (
+        "canon-discovery/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-discovery/skill-source.md"),
+    ),
+    (
+        "canon-greenfield/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-greenfield/skill-source.md"),
+    ),
+    (
+        "canon-architecture/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-architecture/skill-source.md"),
+    ),
+    (
+        "canon-implementation/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-implementation/skill-source.md"),
+    ),
+    (
+        "canon-refactor/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-refactor/skill-source.md"),
+    ),
+    (
+        "canon-review/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-review/skill-source.md"),
+    ),
+    (
+        "canon-incident/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-incident/skill-source.md"),
+    ),
+    (
+        "canon-migration/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-migration/skill-source.md"),
+    ),
+    (
+        "canon-verification/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-verification/skill-source.md"),
+    ),
+];
+
+/// Shared scripts and references embedded at compile time.
+const SHARED_SKILL_FILES: &[(&str, &str)] = &[
+    (
+        "canon-shared/scripts/check-runtime.sh",
+        include_str!("../../../../defaults/embedded-skills/canon-shared/scripts/check-runtime.sh"),
+    ),
+    (
+        "canon-shared/scripts/check-runtime.ps1",
+        include_str!("../../../../defaults/embedded-skills/canon-shared/scripts/check-runtime.ps1"),
+    ),
+    (
+        "canon-shared/scripts/render-next-steps.sh",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/scripts/render-next-steps.sh"
+        ),
+    ),
+    (
+        "canon-shared/scripts/render-next-steps.ps1",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/scripts/render-next-steps.ps1"
+        ),
+    ),
+    (
+        "canon-shared/scripts/render-support-state.sh",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/scripts/render-support-state.sh"
+        ),
+    ),
+    (
+        "canon-shared/scripts/render-support-state.ps1",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/scripts/render-support-state.ps1"
+        ),
+    ),
+    (
+        "canon-shared/references/runtime-compatibility.toml",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml"
+        ),
+    ),
+    (
+        "canon-shared/references/skill-index.md",
+        include_str!("../../../../defaults/embedded-skills/canon-shared/references/skill-index.md"),
+    ),
+    (
+        "canon-shared/references/skill-template.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/references/skill-template.md"
+        ),
+    ),
+    (
+        "canon-shared/references/output-shapes.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/references/output-shapes.md"
+        ),
+    ),
+    (
+        "canon-shared/references/support-states.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-shared/references/support-states.md"
+        ),
+    ),
+];
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InitSummary {
     pub repo_root: String,
     pub canon_root: String,
     pub methods_materialized: usize,
     pub policies_materialized: usize,
+    pub skills_materialized: usize,
+    pub claude_md_created: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkillMaterializationTarget {
+    Agents,
+    Claude,
+}
+
+impl SkillMaterializationTarget {
+    fn skills_dir(self, layout: &ProjectLayout) -> PathBuf {
+        match self {
+            Self::Agents => layout.skills_dir(),
+            Self::Claude => layout.claude_skills_dir(),
+        }
+    }
+
+    fn creates_claude_md(self) -> bool {
+        matches!(self, Self::Claude)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SkillsSummary {
+    pub skills_dir: String,
+    pub skills_materialized: usize,
+    pub skills_skipped: usize,
+    pub claude_md_created: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SkillEntry {
+    pub name: String,
+    pub support_state: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,18 +274,32 @@ impl WorkspaceStore {
         Self { layout: ProjectLayout::new(repo_root), filesystem: FilesystemAdapter }
     }
 
-    pub fn init_runtime_state(&self) -> Result<InitSummary, Error> {
+    pub fn init_runtime_state(
+        &self,
+        skill_target: Option<SkillMaterializationTarget>,
+    ) -> Result<InitSummary, Error> {
         self.ensure_layout()?;
         let methods_materialized =
             self.materialize_defaults(self.layout.methods_dir(), METHOD_FILES)?;
         let policies_materialized =
             self.materialize_defaults(self.layout.policies_dir(), POLICY_FILES)?;
+        let skills_materialized = skill_target
+            .map(|target| self.materialize_skills(target, false))
+            .transpose()?
+            .unwrap_or(0);
+        let claude_md_created = skill_target
+            .filter(|target| target.creates_claude_md())
+            .map(|_| self.materialize_claude_md())
+            .transpose()?
+            .unwrap_or(false);
 
         Ok(InitSummary {
             repo_root: self.layout.repo_root.display().to_string(),
             canon_root: self.layout.canon_root.display().to_string(),
             methods_materialized,
             policies_materialized,
+            skills_materialized,
+            claude_md_created,
         })
     }
 
@@ -156,6 +354,19 @@ impl WorkspaceStore {
     }
 
     pub fn persist_run_bundle(&self, bundle: &PersistedRunBundle) -> Result<(), Error> {
+        let validated_artifact_paths = bundle
+            .artifacts
+            .iter()
+            .map(|artifact| {
+                artifact_storage_path(
+                    &self.layout,
+                    &artifact.record,
+                    &bundle.run.run_id,
+                    bundle.run.mode,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
         self.ensure_layout()?;
 
         let run_dir = self.layout.run_dir(&bundle.run.run_id);
@@ -248,12 +459,11 @@ impl WorkspaceStore {
             self.filesystem.trace_write(&artifact_manifest_toml, "persist artifact manifest"),
         );
 
-        for artifact in &bundle.artifacts {
-            let path = self.layout.canon_root.join(&artifact.record.relative_path);
-            write_text_file(&path, &artifact.contents)?;
+        for (artifact, path) in bundle.artifacts.iter().zip(validated_artifact_paths.iter()) {
+            write_text_file(path, &artifact.contents)?;
             trace_invocations.push(
                 self.filesystem
-                    .trace_write(&path, &format!("write artifact {}", artifact.record.file_name)),
+                    .trace_write(path, &format!("write artifact {}", artifact.record.file_name)),
             );
         }
 
@@ -353,13 +563,25 @@ impl WorkspaceStore {
         let mut entries = Vec::new();
         for mode_dir in fs::read_dir(run_artifacts_root)? {
             let mode_dir = mode_dir?;
+            let mode_name = mode_dir.file_name().to_string_lossy().into_owned();
+            let mode = mode_name.parse::<Mode>().map_err(|error| {
+                Error::new(
+                    ErrorKind::InvalidData,
+                    format!(
+                        "artifact manifest directory `{mode_name}` is not a supported mode: {error}"
+                    ),
+                )
+            })?;
             let manifest_path = mode_dir.path().join("manifest.toml");
             if !manifest_path.exists() {
                 continue;
             }
 
             let manifest: ArtifactManifest = read_toml_file(manifest_path)?;
-            entries.extend(manifest.records.into_iter().map(|record| record.file_name));
+            for record in manifest.records {
+                validate_run_artifact_record(&record, run_id, mode)?;
+                entries.push(format!(".canon/{}", record.relative_path));
+            }
         }
 
         entries.sort();
@@ -494,7 +716,7 @@ impl WorkspaceStore {
                             requirement.file_name
                         ))
                     })?;
-                let path = self.layout.canon_root.join(&record.relative_path);
+                let path = artifact_storage_path(&self.layout, &record, run_id, mode)?;
                 let contents = fs::read_to_string(path)?;
                 Ok(PersistedArtifact { record, contents })
             })
@@ -606,6 +828,103 @@ impl WorkspaceStore {
         }
 
         Ok(written)
+    }
+
+    /// Materialize skill files into the requested AI-tool skill directory.
+    /// When `force` is false, existing files are skipped (idempotent).
+    /// When `force` is true, all files are overwritten (update mode).
+    /// Returns the number of files written.
+    fn materialize_skills(
+        &self,
+        target: SkillMaterializationTarget,
+        force: bool,
+    ) -> Result<usize, Error> {
+        let skills_dir = target.skills_dir(&self.layout);
+        let mut written = 0;
+
+        for (relative_path, contents) in SKILL_FILES.iter().chain(SHARED_SKILL_FILES.iter()) {
+            let path = skills_dir.join(relative_path);
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            if force || !path.exists() {
+                write_text_file(&path, contents)?;
+                #[cfg(unix)]
+                if relative_path.ends_with(".sh") {
+                    use std::os::unix::fs::PermissionsExt;
+                    fs::set_permissions(&path, fs::Permissions::from_mode(0o755))?;
+                }
+                written += 1;
+            }
+        }
+
+        Ok(written)
+    }
+
+    /// Materialize a minimal CLAUDE.md that imports AGENTS.md.
+    /// Skips if the file already exists to avoid overwriting user customizations.
+    fn materialize_claude_md(&self) -> Result<bool, Error> {
+        let path = self.layout.claude_md_path();
+        if path.exists() {
+            return Ok(false);
+        }
+        write_text_file(&path, "@AGENTS.md\n")?;
+        Ok(true)
+    }
+
+    /// Install skills without requiring `.canon/` to exist.
+    pub fn install_skills(
+        &self,
+        target: SkillMaterializationTarget,
+    ) -> Result<SkillsSummary, Error> {
+        let total = SKILL_FILES.len() + SHARED_SKILL_FILES.len();
+        let written = self.materialize_skills(target, false)?;
+        let claude_md_created =
+            if target.creates_claude_md() { self.materialize_claude_md()? } else { false };
+
+        Ok(SkillsSummary {
+            skills_dir: target.skills_dir(&self.layout).display().to_string(),
+            skills_materialized: written,
+            skills_skipped: total - written,
+            claude_md_created,
+        })
+    }
+
+    /// Force-update all skills, overwriting existing files.
+    pub fn update_skills(
+        &self,
+        target: SkillMaterializationTarget,
+    ) -> Result<SkillsSummary, Error> {
+        let total = SKILL_FILES.len() + SHARED_SKILL_FILES.len();
+        let written = self.materialize_skills(target, true)?;
+        let claude_md_created =
+            if target.creates_claude_md() { self.materialize_claude_md()? } else { false };
+
+        Ok(SkillsSummary {
+            skills_dir: target.skills_dir(&self.layout).display().to_string(),
+            skills_materialized: written,
+            skills_skipped: total - written,
+            claude_md_created,
+        })
+    }
+
+    /// List all embedded skill names and their support state.
+    pub fn list_skills(&self) -> Vec<SkillEntry> {
+        SKILL_FILES
+            .iter()
+            .filter_map(|(relative_path, contents)| {
+                let name = relative_path.split('/').next()?;
+                let support_state = if contents.contains("`available-now`") {
+                    "available-now"
+                } else {
+                    "discoverable"
+                };
+                Some(SkillEntry {
+                    name: name.to_string(),
+                    support_state: support_state.to_string(),
+                })
+            })
+            .collect()
     }
 
     fn load_policy_overrides(&self, override_root: &Path) -> Result<PolicySetOverrides, Error> {
@@ -777,6 +1096,26 @@ fn adapter_error_to_io(error: canon_adapters::AdapterError) -> Error {
             Error::other("filesystem adapter unexpectedly blocked")
         }
     }
+}
+
+fn validate_run_artifact_record(
+    record: &ArtifactRecord,
+    run_id: &str,
+    mode: Mode,
+) -> Result<(), Error> {
+    record
+        .validate_relative_path(run_id, mode)
+        .map_err(|message| Error::new(ErrorKind::InvalidData, message))
+}
+
+fn artifact_storage_path(
+    layout: &ProjectLayout,
+    record: &ArtifactRecord,
+    run_id: &str,
+    mode: Mode,
+) -> Result<PathBuf, Error> {
+    validate_run_artifact_record(record, run_id, mode)?;
+    Ok(layout.canon_root.join(&record.relative_path))
 }
 
 fn list_file_names(directory: PathBuf) -> Result<Vec<String>, Error> {

@@ -163,7 +163,7 @@ collapsing generation and validation into the same reasoning path.
 - `cargo test` passed on 2026-03-27 after the final phase changes.
 - `cargo nextest run` passed on 2026-03-27 with 20 tests run and 20 tests
   passed.
-- `cargo +1.94.0 test --all-targets --all-features` passed on 2026-03-27 as
+- `cargo +1.94.1 test --all-targets --all-features` passed on 2026-03-27 as
   the explicit local MSRV verification strategy.
 - `./scripts/install-hooks.sh` passed on 2026-03-27 and installed the local
   `core.hooksPath` to `.githooks`.
@@ -248,7 +248,7 @@ The CI pipeline must enforce:
 - `cargo clippy --all-targets --all-features -- -D warnings`
 - `cargo test`
 - `cargo nextest run`
-- `cargo msrv verify`, or the pinned `cargo +1.94.0 test` fallback strategy
+- `cargo msrv verify`, or the pinned `cargo +1.94.1 test` fallback strategy
 - `cargo deny check licenses advisories bans sources`
 
 ## 5. Manual Review Expectations

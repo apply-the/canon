@@ -8,6 +8,6 @@ pub mod persistence;
 pub mod review;
 
 pub use orchestrator::service::{
-    ApprovalSummary, EngineError, EngineService, InitSummary, InspectResponse, InspectTarget,
-    RunRequest, RunSummary, StatusSummary,
+    AiTool, ApprovalSummary, EngineError, EngineService, InitSummary, InspectResponse,
+    InspectTarget, RunRequest, RunSummary, SkillEntry, SkillsSummary, StatusSummary,
 };

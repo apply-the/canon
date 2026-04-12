@@ -56,7 +56,10 @@ fn bounded_requirements_run_reports_governed_invocation_counts_and_evidence() {
     assert_eq!(json["invocations_total"], 4);
     assert_eq!(json["invocations_denied"], 1);
     assert_eq!(json["invocations_pending_approval"], 0);
-    assert_eq!(json["evidence_bundle"], format!("runs/{run_id}/evidence.toml"));
+    assert!(
+        json.get("evidence_bundle").is_none(),
+        "run JSON should not expose internal evidence bundle paths"
+    );
 
     let invocations = cli_command()
         .current_dir(workspace.path())

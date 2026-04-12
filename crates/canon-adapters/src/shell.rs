@@ -153,6 +153,55 @@ impl ShellAdapter {
         })
     }
 
+    /// Diff the working tree (staged + unstaged) against a base ref.
+    pub fn git_diff_worktree(&self, base_ref: &str, cwd: &Path) -> Result<GitDiff, AdapterError> {
+        let list_request =
+            self.inspect_diff_request("collect changed surfaces for pr-review worktree diff");
+        let names_output = self.run_checked(
+            &list_request,
+            "git",
+            &["diff", "--name-only", base_ref],
+            Some(cwd),
+            false,
+        )?;
+
+        let diff_request =
+            self.inspect_diff_request("collect diff patch for pr-review worktree diff");
+        let patch_output = self.run_checked(
+            &diff_request,
+            "git",
+            &["diff", "--unified=0", base_ref],
+            Some(cwd),
+            false,
+        )?;
+
+        let changed_files = names_output
+            .stdout
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+
+        Ok(GitDiff {
+            base_ref: base_ref.to_string(),
+            head_ref: "WORKTREE".to_string(),
+            changed_files,
+            changed_files_text: names_output.stdout,
+            patch: patch_output.stdout,
+            invocations: vec![names_output.invocation, patch_output.invocation],
+        })
+    }
+
+    /// Check whether the working tree has uncommitted changes (staged or unstaged).
+    pub fn has_uncommitted_changes(&self, cwd: &Path) -> Result<bool, AdapterError> {
+        let request =
+            self.inspect_diff_request("check for uncommitted changes in the working tree");
+        let output =
+            self.run_checked(&request, "git", &["status", "--porcelain"], Some(cwd), false)?;
+        Ok(!output.stdout.trim().is_empty())
+    }
+
     fn run_checked(
         &self,
         request: &AdapterRequest,

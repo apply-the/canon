@@ -26,8 +26,8 @@ implementation, validation, and auditability for each increment.
 - Every feature MUST start with mode, risk, scope, and invariant artifact tasks.
 - No implementation task may appear before the artifacts that authorize it.
 - Every user story MUST include validation tasks and evidence capture.
-- High-risk and critical work MUST include an independent review task separate
-  from generation.
+- Systemic-impact work MUST include an independent review task separate from
+  generation.
 
 ## Path Conventions
 

@@ -72,11 +72,27 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
 
     let inspect_text = String::from_utf8(inspect_output).expect("utf8 stdout");
     let inspect_json: serde_json::Value = serde_json::from_str(&inspect_text).expect("json output");
-    let inspect_snapshot = serde_json::to_string_pretty(&inspect_json).expect("json snapshot");
-    assert_eq!(
-        inspect_snapshot.trim(),
-        include_str!("snapshots/requirements_artifact_inspect.json").trim()
-    );
+    let entries = inspect_json["entries"].as_array().expect("artifact entries");
+    let actual_paths =
+        entries.iter().map(|entry| entry.as_str().expect("artifact path")).collect::<Vec<_>>();
+    let expected_paths = vec![
+        format!(".canon/artifacts/{run_id}/requirements/constraints.md"),
+        format!(".canon/artifacts/{run_id}/requirements/decision-checklist.md"),
+        format!(".canon/artifacts/{run_id}/requirements/options.md"),
+        format!(".canon/artifacts/{run_id}/requirements/problem-statement.md"),
+        format!(".canon/artifacts/{run_id}/requirements/scope-cuts.md"),
+        format!(".canon/artifacts/{run_id}/requirements/tradeoffs.md"),
+    ];
+    assert_eq!(actual_paths, expected_paths);
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "artifacts", "--run", &run_id])
+        .assert()
+        .success()
+        .stdout(contains("# artifacts"))
+        .stdout(contains(&format!("Run ID: {run_id}")))
+        .stdout(contains(&format!(".canon/artifacts/{run_id}/requirements/problem-statement.md")));
 
     let contract_path =
         workspace.path().join(".canon").join("runs").join(&run_id).join("artifact-contract.toml");
