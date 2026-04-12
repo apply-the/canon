@@ -8,10 +8,10 @@
 ## Governance Context *(mandatory)*
 
 **Mode**: [greenfield, brownfield, review, architecture, debugging, operations
-or NEEDS CLARIFICATION]  
-**Risk Classification**: [Low | Medium | High | Critical with rationale]  
-**Scope In**: [What this feature is allowed to change]  
-**Scope Out**: [Explicitly excluded work and non-goals]  
+or NEEDS CLARIFICATION]
+**Risk Classification**: [low-impact | bounded-impact | systemic-impact with rationale]
+**Scope In**: [What this feature is allowed to change]
+**Scope Out**: [Explicitly excluded work and non-goals]
 
 **Invariants**:
 

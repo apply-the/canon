@@ -63,6 +63,10 @@ pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> Strin
     let normalized = brief_summary.to_lowercase();
     let system_slice = extract_marker(brief_summary, &normalized, "system slice")
         .unwrap_or("Map the bounded subsystem before change planning.".to_string());
+    let intended_change = extract_marker(brief_summary, &normalized, "intended change").unwrap_or(
+        "Bound the intended change explicitly before implementation expands the surface area."
+            .to_string(),
+    );
     let legacy_invariants = extract_marker(brief_summary, &normalized, "legacy invariants");
     let change_surface = extract_marker(brief_summary, &normalized, "change surface");
     let implementation_plan = extract_marker(brief_summary, &normalized, "implementation plan")
@@ -79,38 +83,89 @@ pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> Strin
         "Prefer additive change over normalization when the legacy surface still matters."
             .to_string(),
     );
+    let owner = extract_marker(brief_summary, &normalized, "owner")
+        .unwrap_or("bounded-system-maintainer".to_string());
+    let risk_level = extract_marker(brief_summary, &normalized, "risk level")
+        .unwrap_or("unspecified-risk".to_string());
+    let zone = extract_marker(brief_summary, &normalized, "zone")
+        .unwrap_or("unspecified-zone".to_string());
+    let summary = render_brownfield_bundle_summary(
+        file_name,
+        &system_slice,
+        &intended_change,
+        &owner,
+        &risk_level,
+        &zone,
+    );
 
     match file_name {
         "system-slice.md" => format!(
-            "# System Slice\n\n## Summary\n\n{brief_summary}\n\n## System Slice\n\n{system_slice}\n\n## Excluded Areas\n\n- Do not expand beyond the named bounded subsystem in this run.\n"
+            "# System Slice\n\n## Summary\n\n{summary}\n\n## System Slice\n\n{system_slice}\n\n## Excluded Areas\n\n- Do not expand beyond the named bounded subsystem in this run.\n"
         ),
         "legacy-invariants.md" => match legacy_invariants {
             Some(value) => format!(
-                "# Legacy Invariants\n\n## Summary\n\n{brief_summary}\n\n## Legacy Invariants\n\n- {value}\n\n## Forbidden Normalization\n\n- Do not simplify away existing behavior that operators or downstream systems still depend on.\n"
+                "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Legacy Invariants\n\n{value}\n\n## Forbidden Normalization\n\n- Do not simplify away existing behavior that operators or downstream systems still depend on.\n"
             ),
             None => format!(
-                "# Legacy Invariants\n\n## Summary\n\n{brief_summary}\n\n## Missing Context\n\nCapture preserved behavior before this run can pass brownfield preservation.\n"
+                "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture preserved behavior before this run can pass brownfield preservation.\n"
             ),
         },
         "change-surface.md" => match change_surface {
             Some(value) => format!(
-                "# Change Surface\n\n## Summary\n\n{brief_summary}\n\n## Change Surface\n\n- {value}\n\n## Ownership\n\n- Primary owner: bounded-system-maintainer\n"
+                "# Change Surface\n\n## Summary\n\n{summary}\n\n## Change Surface\n\n{value}\n\n## Ownership\n\n- Primary owner: bounded-system-maintainer\n"
             ),
             None => format!(
-                "# Change Surface\n\n## Summary\n\n{brief_summary}\n\n## Missing Context\n\nName the affected modules, interfaces, and owners before change planning can proceed.\n"
+                "# Change Surface\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nName the affected modules, interfaces, and owners before change planning can proceed.\n"
             ),
         },
         "implementation-plan.md" => format!(
-            "# Implementation Plan\n\n## Summary\n\n{brief_summary}\n\n## Plan\n\n- {implementation_plan}\n\n## Sequencing\n\n- Preserve externally meaningful behavior before any internal cleanup.\n"
+            "# Implementation Plan\n\n## Summary\n\n{summary}\n\n## Plan\n\n{implementation_plan}\n\n## Sequencing\n\n- Preserve externally meaningful behavior before any internal cleanup.\n"
         ),
         "validation-strategy.md" => format!(
-            "# Validation Strategy\n\n## Summary\n\n{brief_summary}\n\n## Validation Strategy\n\n- {validation_strategy}\n\n## Independent Checks\n\n- Re-run invariant checks separately from generated implementation notes.\n"
+            "# Validation Strategy\n\n## Summary\n\n{summary}\n\n## Validation Strategy\n\n{validation_strategy}\n\n## Independent Checks\n\n- Re-run invariant checks separately from generated implementation notes.\n"
         ),
         "decision-record.md" => format!(
-            "# Decision Record\n\n## Summary\n\n{brief_summary}\n\n## Decision\n\n{decision_record}\n\n## Consequences\n\n- The preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- Which adjacent slices should stay out of scope until this change stabilizes?\n"
+            "# Decision Record\n\n## Summary\n\n{summary}\n\n## Decision\n\n{decision_record}\n\n## Consequences\n\n- The preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- Which adjacent slices should stay out of scope until this change stabilizes?\n"
         ),
         other => render_markdown(other, brief_summary),
     }
+}
+
+fn render_brownfield_bundle_summary(
+    current_file: &str,
+    system_slice: &str,
+    intended_change: &str,
+    owner: &str,
+    risk_level: &str,
+    zone: &str,
+) -> String {
+    let detail_links = [
+        "system-slice.md",
+        "legacy-invariants.md",
+        "change-surface.md",
+        "implementation-plan.md",
+        "validation-strategy.md",
+        "decision-record.md",
+    ]
+    .into_iter()
+    .filter(|file_name| *file_name != current_file)
+    .map(|file_name| format!("[{file_name}]({file_name})"))
+    .collect::<Vec<_>>()
+    .join(", ");
+
+    format!(
+        "- Bounded slice: `{}`\n- Intended change: {}\n- Owner / risk / zone: `{}` / `{}` / `{}`\n- Details: {}",
+        compact_summary_line(system_slice),
+        compact_summary_line(intended_change),
+        compact_summary_line(owner),
+        compact_summary_line(risk_level),
+        compact_summary_line(zone),
+        detail_links,
+    )
+}
+
+fn compact_summary_line(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 pub fn render_pr_review_artifact(
@@ -234,11 +289,109 @@ pub fn render_pr_review_artifact(
 }
 
 fn extract_marker(source: &str, normalized: &str, marker: &str) -> Option<String> {
+    extract_markdown_section(source, marker)
+        .or_else(|| extract_inline_marker(source, normalized, marker))
+}
+
+fn extract_inline_marker(source: &str, normalized: &str, marker: &str) -> Option<String> {
     let marker_with_colon = format!("{marker}:");
     let start = normalized.find(&marker_with_colon)?;
     let remainder = &source[start + marker_with_colon.len()..];
     let line = remainder.lines().next()?.trim();
     if line.is_empty() { None } else { Some(line.to_string()) }
+}
+
+fn extract_markdown_section(source: &str, marker: &str) -> Option<String> {
+    let mut lines = source.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        if !is_matching_heading(line, marker) {
+            continue;
+        }
+
+        let mut section_lines = Vec::new();
+        while let Some(next_line) = lines.peek() {
+            if is_section_boundary(next_line) {
+                break;
+            }
+
+            section_lines.push(lines.next().unwrap_or_default());
+        }
+
+        let section = trim_multiline_block(&section_lines.join("\n"));
+        if !section.is_empty() {
+            return Some(section);
+        }
+    }
+
+    None
+}
+
+fn is_matching_heading(line: &str, marker: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.starts_with('#') {
+        return false;
+    }
+
+    trimmed.trim_start_matches('#').trim().eq_ignore_ascii_case(marker)
+}
+
+fn is_section_boundary(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.starts_with('#')
+        || trimmed.starts_with("Generated framing:")
+        || trimmed.starts_with("Validation evidence:")
+        || trimmed.starts_with("Mutation posture:")
+}
+
+fn trim_multiline_block(value: &str) -> String {
+    let lines = value.lines().collect::<Vec<_>>();
+    let start = lines.iter().position(|line| !line.trim().is_empty());
+    let end = lines.iter().rposition(|line| !line.trim().is_empty());
+
+    match (start, end) {
+        (Some(start), Some(end)) => lines[start..=end].join("\n"),
+        _ => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_marker, render_brownfield_artifact};
+
+    #[test]
+    fn extract_marker_prefers_markdown_section_over_inline_mentions() {
+        let source = "# Brownfield Brief\n\n## Change Surface\n- bounded module\n- stable interface\n\nMutation posture: propose bounded legacy transformation within declared change surface: workspace, adjacent modules";
+        let normalized = source.to_lowercase();
+
+        let marker = extract_marker(source, &normalized, "change surface").expect("change surface");
+
+        assert_eq!(marker, "- bounded module\n- stable interface");
+    }
+
+    #[test]
+    fn render_brownfield_change_surface_preserves_markdown_bullets() {
+        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Change Surface\n- Public API entrypoints\n- Debug logging only\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
+
+        let rendered = render_brownfield_artifact("change-surface.md", source);
+
+        assert!(
+            rendered
+                .contains("## Change Surface\n\n- Public API entrypoints\n- Debug logging only")
+        );
+        assert!(rendered.contains("- Owner / risk / zone: `Lead Eng` / `low-impact` / `green`"));
+    }
+
+    #[test]
+    fn render_brownfield_validation_strategy_preserves_markdown_bullets() {
+        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Validation Strategy\n- Unit tests\n- Log assertion checks\n";
+
+        let rendered = render_brownfield_artifact("validation-strategy.md", source);
+
+        assert!(
+            rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
+        );
+    }
 }
 
 fn render_surface_list(values: &[String], empty_message: &str) -> String {

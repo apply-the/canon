@@ -60,7 +60,7 @@ contract of any Canon skill
 ## 1. Technical Context
 
 **Language/Version**: Markdown `SKILL.md` files, repo-local shell helpers
-(`.sh` and `.ps1`), existing Canon Rust 1.94.0 CLI/runtime  
+(`.sh` and `.ps1`), existing Canon Rust 1.94.1 CLI/runtime  
 **Primary Dependencies**: installed `canon` binary, existing repo-local
 `AGENTS.md`, `.agents/skills`, `README.md`, Git working directory semantics,
 and built-in Codex skill discovery via `$`  

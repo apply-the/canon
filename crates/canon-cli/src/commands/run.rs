@@ -16,7 +16,7 @@ pub fn execute(
     mode: String,
     risk: String,
     zone: String,
-    owner: String,
+    owner: Option<String>,
     inputs: Vec<String>,
     excluded_paths: Vec<String>,
     policy_root: Option<String>,
@@ -31,7 +31,7 @@ pub fn execute(
         zone: zone
             .parse::<UsageZone>()
             .map_err(|error| Error::new(ErrorKind::InvalidInput, error))?,
-        owner,
+        owner: owner.unwrap_or_default(),
         inputs,
         excluded_paths,
         policy_root,

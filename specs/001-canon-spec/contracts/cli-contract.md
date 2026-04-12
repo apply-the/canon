@@ -31,62 +31,46 @@ Required flags:
 
 - `--mode <mode>`
 - `--risk <risk-class>`
-- `--zone <usage-zone>`
-- `--owner <owner-id>`
-
-Optional flags:
+- run-scoped summaries may expose persisted actor fields such as `owner`, `approved_by`, and `recorded_at` when Canon has already recorded them
 
 - `--input <path-or-ref>` repeated
 - `--exclude <path>` repeated
 - `--policy-root <path>`
 - `--method-root <path>`
-- `--output <text|json|yaml>`
-
-Behavior:
-
 - creates a new run id
 - captures context
 - resolves policy
-- writes the artifact contract
-- executes the allowed steps for the selected mode
-- blocks or completes according to gate outcomes
-
-### `resume`
-
+- may include the persisted run `owner` in the returned run summary
 Required flags:
 
 - `--run <run-id>`
 
 Behavior:
-
 - loads the stored run state
 - checks fingerprint drift
 - continues from the first incomplete or invalidated step
-
+- prints current state, gate summary, approval status, artifact status, and the persisted run `owner`
 ### `status`
 
 Required flags:
 
 - `--run <run-id>`
 
-Behavior:
-
-- prints current state, gate summary, approval status, and artifact status
-
 ### `approve`
 
-Required flags:
-
-- `--run <run-id>`
-- `--gate <gate-kind>`
-- `--by <approver-id>`
+- returns `approved_by` and `recorded_at` from the persisted approval record
 - `--decision <approve|reject>`
 - `--rationale <text>`
+
+Optional flags:
+
+- `--by <approver-id>` when overriding Git-derived approver identity explicitly
 
 Behavior:
 
 - persists an `ApprovalRecord`
-- links the record to the run and gate
+- links the record to the run and target
+- resolves the approver from repo-local Git identity first, then global Git identity, when `--by` is omitted
 - may unblock a `NeedsApproval` gate
 
 ### `verify`

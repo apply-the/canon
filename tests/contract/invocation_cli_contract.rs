@@ -28,7 +28,8 @@ fn approve_help_exposes_target_instead_of_gate_only() {
         .assert()
         .success()
         .stdout(contains("--target"))
-        .stdout(contains("invocation:"));
+        .stdout(contains("invocation:"))
+        .stdout(contains("git user.name and user.email"));
 }
 
 #[test]

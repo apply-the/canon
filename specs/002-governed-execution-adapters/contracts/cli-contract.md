@@ -27,12 +27,13 @@ by the governed execution increment.
 Implemented shape:
 
 ```text
-canon approve --run <run-id> --target gate:<gate-kind>|invocation:<request-id> --decision approve|reject --by <owner> --rationale <text>
+canon approve --run <run-id> --target gate:<gate-kind>|invocation:<request-id> --decision approve|reject [--by <owner>] --rationale <text>
 ```
 
 Rules:
 
 - invocation approvals attach to `request_id`
+- when `--by` is omitted, Canon resolves the approver from repo-local Git identity first, then global Git identity
 - approvals are invalidated if the request’s scope or context changes before
   resume
 - gate targets remain supported for brownfield and pr-review disposition flows

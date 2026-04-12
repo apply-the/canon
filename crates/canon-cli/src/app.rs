@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use canon_engine::EngineService;
+use canon_engine::{AiTool, EngineService};
 use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::commands;
@@ -34,40 +34,79 @@ impl Default for OutputFormat {
 #[derive(Debug, Subcommand, Clone)]
 pub enum InspectCommand {
     Modes {
-        #[arg(long, default_value_t)]
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
     Methods {
-        #[arg(long, default_value_t)]
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
     Policies {
-        #[arg(long, default_value_t)]
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
     Artifacts {
         #[arg(long)]
         run: String,
-        #[arg(long, default_value_t)]
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
     Invocations {
         #[arg(long)]
         run: String,
-        #[arg(long, default_value_t)]
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
     Evidence {
         #[arg(long)]
         run: String,
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
+        output: OutputFormat,
+    },
+}
+
+#[derive(Debug, Subcommand, Clone)]
+pub enum SkillsCommand {
+    Install {
+        #[arg(long, value_enum)]
+        ai: AiTarget,
+        #[arg(long, default_value_t)]
+        output: OutputFormat,
+    },
+    Update {
+        #[arg(long, value_enum)]
+        ai: AiTarget,
+        #[arg(long, default_value_t)]
+        output: OutputFormat,
+    },
+    List {
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum AiTarget {
+    Codex,
+    Copilot,
+    Claude,
+}
+
+impl From<AiTarget> for AiTool {
+    fn from(value: AiTarget) -> Self {
+        match value {
+            AiTarget::Codex => AiTool::Codex,
+            AiTarget::Copilot => AiTool::Copilot,
+            AiTarget::Claude => AiTool::Claude,
+        }
+    }
+}
+
 #[derive(Debug, Subcommand)]
 pub enum Command {
     Init {
+        #[arg(long, value_enum)]
+        ai: Option<AiTarget>,
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
@@ -78,8 +117,11 @@ pub enum Command {
         risk: String,
         #[arg(long)]
         zone: String,
-        #[arg(long)]
-        owner: String,
+        #[arg(
+            long,
+            help = "Human owner for the run. If omitted, Canon tries git user.name and user.email."
+        )]
+        owner: Option<String>,
         #[arg(long = "input")]
         inputs: Vec<String>,
         #[arg(long = "exclude")]
@@ -111,8 +153,11 @@ pub enum Command {
         target: Option<String>,
         #[arg(long, hide = true)]
         gate: Option<String>,
-        #[arg(long)]
-        by: String,
+        #[arg(
+            long,
+            help = "Human approver for the decision. If omitted, Canon tries git user.name and user.email."
+        )]
+        by: Option<String>,
         #[arg(long)]
         decision: String,
         #[arg(long)]
@@ -125,6 +170,10 @@ pub enum Command {
     Inspect {
         #[command(subcommand)]
         command: InspectCommand,
+    },
+    Skills {
+        #[command(subcommand)]
+        command: SkillsCommand,
     },
 }
 
@@ -145,7 +194,9 @@ pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
     let service = EngineService::new(PathBuf::from(repo_root));
 
     match cli.command {
-        Command::Init { output } => commands::init::execute(&service, output),
+        Command::Init { ai, output } => {
+            commands::init::execute(&service, ai.map(Into::into), output)
+        }
         Command::Run {
             mode,
             risk,
@@ -175,5 +226,6 @@ pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
         }
         Command::Verify { .. } => commands::verify::execute(),
         Command::Inspect { command } => commands::inspect::execute(&service, command),
+        Command::Skills { command } => commands::skills::execute(&service, command),
     }
 }

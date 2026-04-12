@@ -30,7 +30,8 @@ use crate::orchestrator::{evidence as evidence_builder, invocation as invocation
 use crate::persistence::invocations::PersistedInvocation;
 use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use crate::persistence::store::{
-    InitSummary as StoreInitSummary, PersistedArtifact, PersistedRunBundle, WorkspaceStore,
+    InitSummary as StoreInitSummary, PersistedArtifact, PersistedRunBundle,
+    SkillMaterializationTarget, SkillsSummary as StoreSkillsSummary, WorkspaceStore,
 };
 use crate::review::findings::ReviewPacket;
 use crate::review::summary::ReviewSummary;
@@ -69,12 +70,44 @@ pub struct RunRequest {
     pub method_root: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AiTool {
+    Codex,
+    Copilot,
+    Claude,
+}
+
+impl AiTool {
+    fn materialization_target(self) -> SkillMaterializationTarget {
+        match self {
+            Self::Codex | Self::Copilot => SkillMaterializationTarget::Agents,
+            Self::Claude => SkillMaterializationTarget::Claude,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct InitSummary {
     pub repo_root: String,
     pub canon_root: String,
     pub methods_materialized: usize,
     pub policies_materialized: usize,
+    pub skills_materialized: usize,
+    pub claude_md_created: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SkillsSummary {
+    pub skills_dir: String,
+    pub skills_materialized: usize,
+    pub skills_skipped: usize,
+    pub claude_md_created: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SkillEntry {
+    pub name: String,
+    pub support_state: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -100,9 +133,7 @@ pub struct InvocationInspectSummary {
     pub policy_decision: String,
     pub approval_state: String,
     pub latest_outcome: Option<String>,
-    pub linked_evidence_bundle: Option<String>,
     pub linked_artifacts: Vec<String>,
-    pub linked_decisions: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -110,14 +141,13 @@ pub struct EvidenceInspectSummary {
     pub generation_paths: Vec<String>,
     pub validation_paths: Vec<String>,
     pub denied_invocations: Vec<String>,
-    pub approval_links: Vec<String>,
-    pub decision_links: Vec<String>,
     pub artifact_provenance_links: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RunSummary {
     pub run_id: String,
+    pub owner: String,
     pub mode: String,
     pub risk: String,
     pub zone: String,
@@ -126,23 +156,48 @@ pub struct RunSummary {
     pub invocations_total: usize,
     pub invocations_denied: usize,
     pub invocations_pending_approval: usize,
-    pub evidence_bundle: Option<String>,
+    pub blocking_classification: Option<String>,
+    pub blocked_gates: Vec<GateInspectSummary>,
+    pub approval_targets: Vec<String>,
+    pub artifact_paths: Vec<String>,
+    pub recommended_next_action: Option<RecommendedActionSummary>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StatusSummary {
     pub run: String,
+    pub owner: String,
     pub state: String,
     pub invocations_total: usize,
     pub pending_invocation_approvals: usize,
     pub validation_independence_satisfied: bool,
-    pub evidence_bundle: Option<String>,
+    pub blocking_classification: Option<String>,
+    pub blocked_gates: Vec<GateInspectSummary>,
+    pub approval_targets: Vec<String>,
+    pub artifact_paths: Vec<String>,
+    pub recommended_next_action: Option<RecommendedActionSummary>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GateInspectSummary {
+    pub gate: String,
+    pub status: String,
+    pub blockers: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RecommendedActionSummary {
+    pub action: String,
+    pub rationale: String,
+    pub target: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ApprovalSummary {
     pub run_id: String,
     pub target: String,
+    pub approved_by: String,
+    pub recorded_at: String,
     pub decision: String,
     pub state: String,
 }
@@ -182,6 +237,25 @@ struct RunSummarySpec<'a> {
 }
 
 #[derive(Debug, Clone)]
+struct RunRuntimeDetails {
+    invocations_total: usize,
+    invocations_denied: usize,
+    pending_invocation_approvals: usize,
+    validation_independence_satisfied: bool,
+    blocking_classification: Option<String>,
+    blocked_gates: Vec<GateInspectSummary>,
+    approval_targets: Vec<String>,
+    artifact_paths: Vec<String>,
+    recommended_next_action: Option<RecommendedActionSummary>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GitConfigScope {
+    Local,
+    Global,
+}
+
+#[derive(Debug, Clone)]
 pub struct EngineService {
     repo_root: PathBuf,
 }
@@ -191,23 +265,55 @@ impl EngineService {
         Self { repo_root: repo_root.as_ref().to_path_buf() }
     }
 
-    pub fn init(&self) -> Result<InitSummary, EngineError> {
+    pub fn init(&self, ai_tool: Option<AiTool>) -> Result<InitSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
-        let summary = store.init_runtime_state()?;
+        let summary = store.init_runtime_state(ai_tool.map(AiTool::materialization_target))?;
         Ok(Self::map_init_summary(summary))
     }
 
-    pub fn run(&self, request: RunRequest) -> Result<RunSummary, EngineError> {
+    pub fn skills_install(&self, ai_tool: AiTool) -> Result<SkillsSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
-        store.init_runtime_state()?;
+        let summary = store.install_skills(ai_tool.materialization_target())?;
+        Ok(Self::map_skills_summary(summary))
+    }
+
+    pub fn skills_update(&self, ai_tool: AiTool) -> Result<SkillsSummary, EngineError> {
+        let store = WorkspaceStore::new(&self.repo_root);
+        let summary = store.update_skills(ai_tool.materialization_target())?;
+        Ok(Self::map_skills_summary(summary))
+    }
+
+    pub fn skills_list(&self) -> Vec<SkillEntry> {
+        let store = WorkspaceStore::new(&self.repo_root);
+        store
+            .list_skills()
+            .into_iter()
+            .map(|entry| SkillEntry { name: entry.name, support_state: entry.support_state })
+            .collect()
+    }
+
+    pub fn run(&self, mut request: RunRequest) -> Result<RunSummary, EngineError> {
+        let store = WorkspaceStore::new(&self.repo_root);
+        store.init_runtime_state(None)?;
 
         let policy_root = request.policy_root.as_deref().map(|root| {
             let root = PathBuf::from(root);
             if root.is_absolute() { root } else { self.repo_root.join(root) }
         });
         let policy_set = store.load_policy_set(policy_root.as_deref())?;
-        classifier::classify_owner_requirement(&policy_set, request.risk, &request.owner)
-            .map_err(EngineError::Validation)?;
+        let owner_supplied_explicitly = !request.owner.trim().is_empty();
+        request.owner = self.resolve_owner(&request.owner);
+        classifier::classify_owner_requirement(&policy_set, request.risk, &request.owner).map_err(
+            |error| {
+                if !owner_supplied_explicitly && request.owner.trim().is_empty() {
+                    EngineError::Validation(format!(
+                        "{error}; pass --owner or configure git user.name and user.email"
+                    ))
+                } else {
+                    EngineError::Validation(error)
+                }
+            },
+        )?;
 
         match request.mode {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
@@ -225,6 +331,15 @@ impl EngineService {
         decision: ApprovalDecision,
         rationale: &str,
     ) -> Result<ApprovalSummary, EngineError> {
+        let approver_supplied_explicitly = !by.trim().is_empty();
+        let approver = self.resolve_approver(by);
+        if !approver_supplied_explicitly && approver.trim().is_empty() {
+            return Err(EngineError::Validation(
+                "missing approver identity; pass --by or configure git user.name and user.email"
+                    .to_string(),
+            ));
+        }
+
         let store = WorkspaceStore::new(&self.repo_root);
         let manifest = store.load_run_manifest(run_id)?;
         let contract = store.load_artifact_contract(run_id)?;
@@ -238,7 +353,7 @@ impl EngineService {
             ApprovalRecord::for_gate(
                 gate.parse::<GateKind>()
                     .map_err(|error| EngineError::Validation(error.to_string()))?,
-                by.to_string(),
+                approver.clone(),
                 decision,
                 rationale.to_string(),
                 OffsetDateTime::now_utc(),
@@ -246,7 +361,7 @@ impl EngineService {
         } else if let Some(request_id) = target.strip_prefix("invocation:") {
             ApprovalRecord::for_invocation(
                 request_id.to_string(),
-                by.to_string(),
+                approver,
                 decision,
                 rationale.to_string(),
                 OffsetDateTime::now_utc(),
@@ -266,6 +381,8 @@ impl EngineService {
         Ok(ApprovalSummary {
             run_id: run_id.to_string(),
             target: target_label,
+            approved_by: approval.by.clone(),
+            recorded_at: approval.recorded_at.to_string(),
             decision: decision.as_str().to_string(),
             state: format!("{state:?}"),
         })
@@ -742,16 +859,7 @@ impl EngineService {
                                 .attempts
                                 .last()
                                 .map(|attempt| format!("{:?}", attempt.outcome.kind)),
-                            linked_evidence_bundle: store
-                                .load_evidence_bundle(&run_id)
-                                .ok()
-                                .flatten()
-                                .map(|_| format!("runs/{run_id}/evidence.toml")),
                             linked_artifacts,
-                            linked_decisions: vec![format!(
-                                "runs/{run_id}/invocations/{}/decision.toml",
-                                invocation.request.request_id
-                            )],
                         })
                     })
                     .collect::<Vec<_>>();
@@ -777,8 +885,6 @@ impl EngineService {
                                 .into_iter()
                                 .map(|denied| denied.request_id)
                                 .collect(),
-                            approval_links: evidence.approval_refs,
-                            decision_links: evidence.decision_refs,
                             artifact_provenance_links: evidence.artifact_refs,
                         })]
                     })
@@ -793,31 +899,22 @@ impl EngineService {
     pub fn status(&self, run: &str) -> Result<StatusSummary, EngineError> {
         let _ = all_mode_profiles();
         let store = WorkspaceStore::new(&self.repo_root);
+        let manifest = store.load_run_manifest(run)?;
         let state = store.load_run_state(run)?;
-        let invocations = store.load_persisted_invocations(run).unwrap_or_default();
-        let evidence_bundle =
-            store.load_evidence_bundle(run)?.map(|_| format!("runs/{run}/evidence.toml"));
-        let validation_independence_satisfied = store
-            .load_evidence_bundle(run)?
-            .map(|bundle| bundle.validation_paths.iter().all(|path| path.independence.sufficient))
-            .unwrap_or(true);
+        let details = self.collect_run_runtime_details(&store, run, manifest.mode, state.state)?;
 
         Ok(StatusSummary {
             run: run.to_string(),
+            owner: manifest.owner,
             state: format!("{:?}", state.state),
-            invocations_total: invocations.len(),
-            pending_invocation_approvals: invocations
-                .iter()
-                .filter(|invocation| {
-                    invocation.decision.requires_approval
-                        && !invocation
-                            .approvals
-                            .iter()
-                            .any(|approval| matches!(approval.decision, ApprovalDecision::Approve))
-                })
-                .count(),
-            validation_independence_satisfied,
-            evidence_bundle,
+            invocations_total: details.invocations_total,
+            pending_invocation_approvals: details.pending_invocation_approvals,
+            validation_independence_satisfied: details.validation_independence_satisfied,
+            blocking_classification: details.blocking_classification,
+            blocked_gates: details.blocked_gates,
+            approval_targets: details.approval_targets,
+            artifact_paths: details.artifact_paths,
+            recommended_next_action: details.recommended_next_action,
         })
     }
 
@@ -978,25 +1075,28 @@ impl EngineService {
                 ],
             };
             store.persist_run_bundle(&bundle)?;
+            let details = self.collect_run_runtime_details(
+                store,
+                &bundle.run.run_id,
+                bundle.run.mode,
+                bundle.state.state,
+            )?;
             return Ok(RunSummary {
                 run_id,
+                owner: bundle.run.owner.clone(),
                 mode: bundle.run.mode.as_str().to_string(),
                 risk: bundle.run.risk.as_str().to_string(),
                 zone: bundle.run.zone.as_str().to_string(),
                 state: format!("{:?}", bundle.state.state),
                 artifact_count: 0,
-                invocations_total: bundle.invocations.len(),
-                invocations_denied: bundle
-                    .evidence
-                    .as_ref()
-                    .map(|evidence| evidence.denied_invocations.len())
-                    .unwrap_or(0),
-                invocations_pending_approval: bundle
-                    .invocations
-                    .iter()
-                    .filter(|invocation| invocation.decision.requires_approval)
-                    .count(),
-                evidence_bundle: Some(format!("runs/{}/evidence.toml", bundle.run.run_id)),
+                invocations_total: details.invocations_total,
+                invocations_denied: details.invocations_denied,
+                invocations_pending_approval: details.pending_invocation_approvals,
+                blocking_classification: details.blocking_classification,
+                blocked_gates: details.blocked_gates,
+                approval_targets: details.approval_targets,
+                artifact_paths: details.artifact_paths,
+                recommended_next_action: details.recommended_next_action,
             });
         }
 
@@ -1233,22 +1333,29 @@ impl EngineService {
         };
 
         store.persist_run_bundle(&bundle)?;
+        let details = self.collect_run_runtime_details(
+            store,
+            &bundle.run.run_id,
+            bundle.run.mode,
+            bundle.state.state,
+        )?;
 
         Ok(RunSummary {
             run_id,
+            owner: bundle.run.owner.clone(),
             mode: bundle.run.mode.as_str().to_string(),
             risk: bundle.run.risk.as_str().to_string(),
             zone: bundle.run.zone.as_str().to_string(),
             state: format!("{:?}", bundle.state.state),
             artifact_count: bundle.artifacts.len(),
-            invocations_total: bundle.invocations.len(),
-            invocations_denied: bundle
-                .evidence
-                .as_ref()
-                .map(|evidence| evidence.denied_invocations.len())
-                .unwrap_or(0),
-            invocations_pending_approval: 0,
-            evidence_bundle: Some(format!("runs/{}/evidence.toml", bundle.run.run_id)),
+            invocations_total: details.invocations_total,
+            invocations_denied: details.invocations_denied,
+            invocations_pending_approval: details.pending_invocation_approvals,
+            blocking_classification: details.blocking_classification,
+            blocked_gates: details.blocked_gates,
+            approval_targets: details.approval_targets,
+            artifact_paths: details.artifact_paths,
+            recommended_next_action: details.recommended_next_action,
         })
     }
 
@@ -1292,6 +1399,7 @@ impl EngineService {
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
         let context_summary = self.read_requirements_context(&request.inputs)?;
+        let declared_change_surface = extract_brownfield_change_surface_entries(&context_summary);
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -1322,6 +1430,14 @@ impl EngineService {
         let generation_policy_attempt =
             self.policy_decision_attempt(&generation_request, &generation_decision);
 
+        let mutation_summary = if declared_change_surface.is_empty() {
+            "propose bounded legacy transformation without mutating the workspace".to_string()
+        } else {
+            format!(
+                "propose bounded legacy transformation within declared change surface: {}",
+                declared_change_surface.join(", ")
+            )
+        };
         let mutation_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
             mode: Mode::BrownfieldChange,
@@ -1330,8 +1446,8 @@ impl EngineService {
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ExecuteBoundedTransformation,
-            summary: "propose bounded legacy transformation without mutating the workspace",
-            scope: request.inputs.clone(),
+            summary: &mutation_summary,
+            scope: declared_change_surface.clone(),
         });
         let mutation_decision =
             invocation_runtime::evaluate_request_policy(&mutation_request, &policy_set);
@@ -1339,6 +1455,10 @@ impl EngineService {
 
         let approved_generation = approvals.iter().any(|approval| {
             approval.matches_invocation(&generation_request.request_id)
+                && matches!(approval.decision, ApprovalDecision::Approve)
+        });
+        let approved_mutation = approvals.iter().any(|approval| {
+            approval.matches_invocation(&mutation_request.request_id)
                 && matches!(approval.decision, ApprovalDecision::Approve)
         });
 
@@ -1444,7 +1564,12 @@ impl EngineService {
         }
 
         let copilot = CopilotCliAdapter;
-        let generation_output = copilot.generate(&format!("{brief_summary}\n\n{context_summary}"));
+        let generation_context = if context_summary == brief_summary {
+            brief_summary.clone()
+        } else {
+            format!("{brief_summary}\n\n{context_summary}")
+        };
+        let generation_output = copilot.generate(&generation_context);
         let generation_attempt = self.completed_attempt(
             &generation_request,
             if matches!(generation_decision.kind, PolicyDecisionKind::NeedsApproval) {
@@ -1570,7 +1695,13 @@ impl EngineService {
                 evidence_complete: true,
             },
         );
-        let state = run_state_from_gates(&gates);
+        let mut state = run_state_from_gates(&gates);
+        if mutation_decision.requires_approval
+            && !approved_mutation
+            && !matches!(state, RunState::Blocked)
+        {
+            state = RunState::AwaitingApproval;
+        }
 
         let mut verification_records = verification_runner::brownfield_verification_records(
             &artifact_contract.required_verification_layers,
@@ -1705,6 +1836,7 @@ impl EngineService {
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
         let (base_ref, head_ref) = self.load_pr_review_refs(&request.inputs)?;
+        let is_worktree = head_ref == "WORKTREE";
         let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
         let evidence_path = format!("runs/{run_id}/evidence.toml");
 
@@ -1722,7 +1854,12 @@ impl EngineService {
         let diff_decision = invocation_runtime::evaluate_request_policy(&diff_request, &policy_set);
 
         let shell = ShellAdapter;
-        let diff = shell.git_diff(&base_ref, &head_ref, &self.repo_root).map_err(|error| {
+        let diff = if is_worktree {
+            shell.git_diff_worktree(&base_ref, &self.repo_root)
+        } else {
+            shell.git_diff(&base_ref, &head_ref, &self.repo_root)
+        }
+        .map_err(|error| {
             EngineError::Validation(format!("unable to collect pr-review diff: {error}"))
         })?;
 
@@ -2097,7 +2234,7 @@ impl EngineService {
             }
         }
 
-        let normalized = fragments.join("\n").split_whitespace().collect::<Vec<_>>().join(" ");
+        let normalized = preserve_multiline_summary(&fragments.join("\n"));
         Ok(if normalized.is_empty() {
             "Capture the bounded engineering need before implementation accelerates drift."
                 .to_string()
@@ -2282,34 +2419,121 @@ impl EngineService {
         store: &WorkspaceStore,
         spec: RunSummarySpec<'_>,
     ) -> Result<RunSummary, EngineError> {
-        let invocations = store.load_persisted_invocations(spec.run_id).unwrap_or_default();
-        let evidence_bundle = store.load_evidence_bundle(spec.run_id)?;
+        let details =
+            self.collect_run_runtime_details(store, spec.run_id, spec.mode, spec.state)?;
+        let manifest = store.load_run_manifest(spec.run_id)?;
 
         Ok(RunSummary {
             run_id: spec.run_id.to_string(),
+            owner: manifest.owner,
             mode: spec.mode.as_str().to_string(),
             risk: spec.risk.as_str().to_string(),
             zone: spec.zone.as_str().to_string(),
             state: format!("{:?}", spec.state),
             artifact_count: spec.artifact_count,
+            invocations_total: details.invocations_total,
+            invocations_denied: details.invocations_denied,
+            invocations_pending_approval: details.pending_invocation_approvals,
+            blocking_classification: details.blocking_classification,
+            blocked_gates: details.blocked_gates,
+            approval_targets: details.approval_targets,
+            artifact_paths: details.artifact_paths,
+            recommended_next_action: details.recommended_next_action,
+        })
+    }
+
+    fn collect_run_runtime_details(
+        &self,
+        store: &WorkspaceStore,
+        run_id: &str,
+        mode: Mode,
+        state: RunState,
+    ) -> Result<RunRuntimeDetails, EngineError> {
+        let invocations = store.load_persisted_invocations(run_id).unwrap_or_default();
+        let evidence_bundle = store.load_evidence_bundle(run_id)?;
+        let gates = store.load_gate_evaluations(run_id).unwrap_or_default();
+
+        let artifact_paths = store
+            .load_artifact_contract(run_id)
+            .ok()
+            .and_then(|contract| store.load_persisted_artifacts(run_id, mode, &contract).ok())
+            .map(|artifacts| {
+                artifacts
+                    .into_iter()
+                    .map(|artifact| format!(".canon/{}", artifact.record.relative_path))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let pending_invocation_targets = invocations
+            .iter()
+            .filter(|invocation| {
+                invocation.decision.requires_approval
+                    && !invocation
+                        .approvals
+                        .iter()
+                        .any(|approval| matches!(approval.decision, ApprovalDecision::Approve))
+            })
+            .map(|invocation| format!("invocation:{}", invocation.request.request_id))
+            .collect::<Vec<_>>();
+
+        let pending_gate_targets = gates
+            .iter()
+            .filter(|gate| matches!(gate.status, GateStatus::NeedsApproval))
+            .map(|gate| format!("gate:{}", gate.gate.as_str()))
+            .collect::<Vec<_>>();
+
+        let blocked_gates = gates
+            .iter()
+            .filter(|gate| matches!(gate.status, GateStatus::Blocked))
+            .map(|gate| GateInspectSummary {
+                gate: gate.gate.as_str().to_string(),
+                status: format!("{:?}", gate.status),
+                blockers: gate.blockers.clone(),
+            })
+            .collect::<Vec<_>>();
+
+        let mut approval_targets = pending_gate_targets;
+        approval_targets.extend(pending_invocation_targets);
+
+        let blocking_classification =
+            if !approval_targets.is_empty() || matches!(state, RunState::AwaitingApproval) {
+                Some("approval-gated".to_string())
+            } else if !blocked_gates.is_empty() || matches!(state, RunState::Blocked) {
+                Some("artifact-blocked".to_string())
+            } else {
+                None
+            };
+
+        let validation_independence_satisfied = evidence_bundle
+            .as_ref()
+            .map(|bundle| bundle.validation_paths.iter().all(|path| path.independence.sufficient))
+            .unwrap_or(true);
+
+        let recommended_next_action = recommend_next_action(
+            state,
+            &artifact_paths,
+            evidence_bundle.is_some(),
+            &blocked_gates,
+            &approval_targets,
+        );
+
+        Ok(RunRuntimeDetails {
             invocations_total: invocations.len(),
             invocations_denied: evidence_bundle
                 .as_ref()
                 .map(|bundle| bundle.denied_invocations.len())
                 .unwrap_or(0),
-            invocations_pending_approval: invocations
+            pending_invocation_approvals: approval_targets
                 .iter()
-                .filter(|invocation| {
-                    invocation.decision.requires_approval
-                        && !invocation
-                            .approvals
-                            .iter()
-                            .any(|approval| matches!(approval.decision, ApprovalDecision::Approve))
-                })
+                .filter(|target| target.starts_with("invocation:"))
                 .count(),
-            evidence_bundle: evidence_bundle
-                .as_ref()
-                .map(|_| format!("runs/{}/evidence.toml", spec.run_id)),
+            validation_independence_satisfied,
+            blocking_classification,
+            blocked_gates,
+            approval_targets,
+            artifact_paths,
+            recommended_next_action,
         })
     }
 
@@ -2328,7 +2552,7 @@ impl EngineService {
         }
 
         let combined = fragments.join("\n");
-        let normalized = combined.split_whitespace().collect::<Vec<_>>().join(" ");
+        let normalized = preserve_multiline_summary(&combined);
         if normalized.is_empty() {
             Ok("Capture the bounded engineering need before implementation accelerates drift."
                 .to_string())
@@ -2388,7 +2612,189 @@ impl EngineService {
             canon_root: summary.canon_root,
             methods_materialized: summary.methods_materialized,
             policies_materialized: summary.policies_materialized,
+            skills_materialized: summary.skills_materialized,
+            claude_md_created: summary.claude_md_created,
         }
+    }
+
+    fn map_skills_summary(summary: StoreSkillsSummary) -> SkillsSummary {
+        SkillsSummary {
+            skills_dir: summary.skills_dir,
+            skills_materialized: summary.skills_materialized,
+            skills_skipped: summary.skills_skipped,
+            claude_md_created: summary.claude_md_created,
+        }
+    }
+
+    fn resolve_approver(&self, explicit_approver: &str) -> String {
+        self.resolve_identity(explicit_approver)
+    }
+
+    fn resolve_owner(&self, explicit_owner: &str) -> String {
+        self.resolve_identity(explicit_owner)
+    }
+
+    fn resolve_identity(&self, explicit_identity: &str) -> String {
+        let explicit_identity = explicit_identity.trim();
+        if !explicit_identity.is_empty() {
+            return explicit_identity.to_string();
+        }
+
+        self.resolve_git_owner(GitConfigScope::Local)
+            .or_else(|| self.resolve_git_owner(GitConfigScope::Global))
+            .unwrap_or_default()
+    }
+
+    fn resolve_git_owner(&self, scope: GitConfigScope) -> Option<String> {
+        let name = self.git_config_value(scope, "user.name");
+        let email = self.git_config_value(scope, "user.email");
+
+        match (name, email) {
+            (Some(name), Some(email)) => Some(format!("{name} <{email}>")),
+            (Some(name), None) => Some(name),
+            (None, Some(email)) => Some(email),
+            (None, None) => None,
+        }
+    }
+
+    fn git_config_value(&self, scope: GitConfigScope, key: &str) -> Option<String> {
+        let shell = ShellAdapter;
+        let request = shell.read_only_request("resolve owner identity from git config");
+        let scope_arg = match scope {
+            GitConfigScope::Local => "--local",
+            GitConfigScope::Global => "--global",
+        };
+
+        let output = shell
+            .run(
+                &request,
+                "git",
+                &["config", scope_arg, "--get", key],
+                Some(&self.repo_root),
+                false,
+            )
+            .ok()?;
+
+        if output.status_code != 0 {
+            return None;
+        }
+
+        let value = output.stdout.trim();
+        if value.is_empty() { None } else { Some(value.to_string()) }
+    }
+}
+
+fn preserve_multiline_summary(value: &str) -> String {
+    let mut lines = Vec::new();
+    let mut previous_blank = false;
+
+    for raw_line in value.lines() {
+        let line = raw_line.split_whitespace().collect::<Vec<_>>().join(" ");
+        if line.is_empty() {
+            if !previous_blank && !lines.is_empty() {
+                lines.push(String::new());
+            }
+            previous_blank = true;
+        } else {
+            lines.push(line);
+            previous_blank = false;
+        }
+    }
+
+    lines.join("\n").trim().to_string()
+}
+
+fn extract_brownfield_change_surface_entries(source: &str) -> Vec<String> {
+    let normalized = source.to_lowercase();
+    let Some(raw_surface) = extract_marker(source, &normalized, "change surface") else {
+        return Vec::new();
+    };
+
+    let mut entries = Vec::new();
+    for line in raw_surface.lines() {
+        let trimmed = line.trim().trim_start_matches(['-', '*', '+']).trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        for segment in trimmed.split(';').flat_map(|segment| segment.split(',')) {
+            let value = segment.trim();
+            if value.is_empty() {
+                continue;
+            }
+            if !entries.iter().any(|existing: &String| existing.eq_ignore_ascii_case(value)) {
+                entries.push(value.to_string());
+            }
+        }
+    }
+
+    entries
+}
+
+fn extract_marker(source: &str, normalized: &str, marker: &str) -> Option<String> {
+    extract_markdown_section(source, marker)
+        .or_else(|| extract_inline_marker(source, normalized, marker))
+}
+
+fn extract_inline_marker(source: &str, normalized: &str, marker: &str) -> Option<String> {
+    let marker_with_colon = format!("{marker}:");
+    let start = normalized.find(&marker_with_colon)?;
+    let remainder = &source[start + marker_with_colon.len()..];
+    let line = remainder.lines().next()?.trim();
+    if line.is_empty() { None } else { Some(line.to_string()) }
+}
+
+fn extract_markdown_section(source: &str, marker: &str) -> Option<String> {
+    let mut lines = source.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        if !is_matching_heading(line, marker) {
+            continue;
+        }
+
+        let mut section_lines = Vec::new();
+        while let Some(next_line) = lines.peek() {
+            if is_section_boundary(next_line) {
+                break;
+            }
+
+            section_lines.push(lines.next().unwrap_or_default());
+        }
+
+        let section = trim_multiline_block(&section_lines.join("\n"));
+        if !section.is_empty() {
+            return Some(section);
+        }
+    }
+
+    None
+}
+
+fn is_matching_heading(line: &str, marker: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.starts_with('#') {
+        return false;
+    }
+
+    trimmed.trim_start_matches('#').trim().eq_ignore_ascii_case(marker)
+}
+
+fn is_section_boundary(line: &str) -> bool {
+    let trimmed = line.trim();
+    trimmed.starts_with('#')
+        || trimmed.starts_with("Generated framing:")
+        || trimmed.starts_with("Validation evidence:")
+        || trimmed.starts_with("Mutation posture:")
+}
+
+fn trim_multiline_block(value: &str) -> String {
+    let lines = value.lines().collect::<Vec<_>>();
+    let start = lines.iter().position(|line| !line.trim().is_empty());
+    let end = lines.iter().rposition(|line| !line.trim().is_empty());
+
+    match (start, end) {
+        (Some(start), Some(end)) => lines[start..=end].join("\n"),
+        _ => String::new(),
     }
 }
 
@@ -2399,6 +2805,173 @@ fn run_state_from_gates(gates: &[crate::domain::gate::GateEvaluation]) -> RunSta
         RunState::Blocked
     } else {
         RunState::Completed
+    }
+}
+
+fn recommend_next_action(
+    state: RunState,
+    artifact_paths: &[String],
+    has_evidence_bundle: bool,
+    blocked_gates: &[GateInspectSummary],
+    approval_targets: &[String],
+) -> Option<RecommendedActionSummary> {
+    if !approval_targets.is_empty() {
+        if !artifact_paths.is_empty() {
+            return Some(RecommendedActionSummary {
+                action: "inspect-artifacts".to_string(),
+                rationale: "Review the emitted packet before recording approval.".to_string(),
+                target: None,
+            });
+        }
+
+        if has_evidence_bundle {
+            return Some(RecommendedActionSummary {
+                action: "inspect-evidence".to_string(),
+                rationale: "Approval is required; inspect the evidence lineage before deciding."
+                    .to_string(),
+                target: None,
+            });
+        }
+
+        return Some(RecommendedActionSummary {
+            action: "approve".to_string(),
+            rationale: "Canon is explicitly waiting for approval on a real target.".to_string(),
+            target: approval_targets.first().cloned(),
+        });
+    }
+
+    if !blocked_gates.is_empty() || matches!(state, RunState::Blocked) {
+        if !artifact_paths.is_empty() {
+            return Some(RecommendedActionSummary {
+                action: "inspect-artifacts".to_string(),
+                rationale: "The run is blocked by gate blockers in the emitted packet, not by a pending approval."
+                    .to_string(),
+                target: None,
+            });
+        }
+
+        if has_evidence_bundle {
+            return Some(RecommendedActionSummary {
+                action: "inspect-evidence".to_string(),
+                rationale: "The run is blocked but no readable artifact packet was found; inspect the evidence bundle next."
+                    .to_string(),
+                target: None,
+            });
+        }
+    }
+
+    if matches!(state, RunState::Completed) {
+        if !artifact_paths.is_empty() {
+            return Some(RecommendedActionSummary {
+                action: "inspect-artifacts".to_string(),
+                rationale: "The run completed and emitted readable artifacts worth reviewing."
+                    .to_string(),
+                target: None,
+            });
+        }
+
+        if has_evidence_bundle {
+            return Some(RecommendedActionSummary {
+                action: "inspect-evidence".to_string(),
+                rationale: "The run completed; inspect the evidence bundle for execution lineage."
+                    .to_string(),
+                target: None,
+            });
+        }
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        GateInspectSummary, RecommendedActionSummary, extract_brownfield_change_surface_entries,
+        preserve_multiline_summary, recommend_next_action,
+    };
+    use crate::domain::run::RunState;
+
+    #[test]
+    fn change_surface_entries_prefer_markdown_section_over_inline_summary_mentions() {
+        let source = "# Brownfield Brief\n\n## Change Surface\n- session repository\n- auth service\n\nMutation posture: propose bounded legacy transformation within declared change surface: entire repository, adjacent modules";
+
+        let entries = extract_brownfield_change_surface_entries(source);
+
+        assert_eq!(entries, vec!["session repository".to_string(), "auth service".to_string()]);
+    }
+
+    #[test]
+    fn preserve_multiline_summary_keeps_bullets_on_separate_lines() {
+        let summary = "## Change Surface\n- first bullet\n- second bullet\n\n## Validation Strategy\n- independent check";
+
+        let normalized = preserve_multiline_summary(summary);
+
+        assert!(normalized.contains("- first bullet\n- second bullet"));
+        assert!(normalized.contains("\n\n## Validation Strategy\n- independent check"));
+    }
+
+    #[test]
+    fn recommend_next_action_prefers_artifact_review_for_approval_gated_runs() {
+        let action = recommend_next_action(
+            RunState::AwaitingApproval,
+            &[".canon/artifacts/run-123/brownfield-change/system-slice.md".to_string()],
+            true,
+            &[],
+            &["invocation:req-1".to_string()],
+        );
+
+        assert_eq!(
+            action,
+            Some(RecommendedActionSummary {
+                action: "inspect-artifacts".to_string(),
+                rationale: "Review the emitted packet before recording approval.".to_string(),
+                target: None,
+            })
+        );
+    }
+
+    #[test]
+    fn recommend_next_action_points_to_direct_approval_when_no_packet_exists() {
+        let action = recommend_next_action(
+            RunState::AwaitingApproval,
+            &[],
+            false,
+            &[],
+            &["gate:review-disposition".to_string()],
+        );
+
+        assert_eq!(
+            action,
+            Some(RecommendedActionSummary {
+                action: "approve".to_string(),
+                rationale: "Canon is explicitly waiting for approval on a real target.".to_string(),
+                target: Some("gate:review-disposition".to_string()),
+            })
+        );
+    }
+
+    #[test]
+    fn recommend_next_action_uses_evidence_for_blocked_runs_without_artifacts() {
+        let action = recommend_next_action(
+            RunState::Blocked,
+            &[],
+            true,
+            &[GateInspectSummary {
+                gate: "brownfield-preservation".to_string(),
+                status: "Blocked".to_string(),
+                blockers: vec!["legacy-invariants.md missing".to_string()],
+            }],
+            &[],
+        );
+
+        assert_eq!(
+            action,
+            Some(RecommendedActionSummary {
+                action: "inspect-evidence".to_string(),
+                rationale: "The run is blocked but no readable artifact packet was found; inspect the evidence bundle next.".to_string(),
+                target: None,
+            })
+        );
     }
 }
 

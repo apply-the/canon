@@ -17,6 +17,7 @@
   - `command_binding`: canonical Canon command or support-state check
   - `output_profile`: link to the expected result shape
   - `next_step_profile`: related inspection, approval, or resume guidance
+  - `action_chip_profile` (optional): structured progressive-enhancement affordances derived from the same Canon-backed next-step state
 
 ## 2. PreflightProfile
 
@@ -59,12 +60,27 @@
   - `run_id` (optional)
   - `state` (optional)
   - `evidence_pointers`
+  - `action_chips` (optional)
   - `approval_guidance` (optional)
   - `resume_guidance` (optional)
   - `support_state_notice` (optional)
   - `failure_guidance` (optional)
 
-## 6. AmbiguityBoundary
+## 6. ActionChipProfile
+
+- **Purpose**: define optional frontend actions that preserve the exact Canon-backed next step without replacing the text contract
+- **Fields**:
+  - `id`: stable action identifier such as `approve-generation`, `resume-run`, or `inspect-evidence`
+  - `label`: user-facing affordance label; approval uses `Approve generation...`, never `Proceed with generation`
+  - `skill`: canonical skill binding such as `canon-approve`, `canon-resume`, or `canon-inspect-evidence`
+  - `intent`: `Inspect`, `GovernedAction`, or `Continue`
+  - `prefilled_args`: Canon-backed inputs already known for the active run, such as `RUN_ID` and `TARGET`
+  - `required_user_inputs`: inputs that must still be collected before invocation, such as `BY`, `DECISION`, or `RATIONALE`
+  - `visibility_condition`: runtime state predicate that must already be true before the chip can be shown
+  - `recommended`: whether the chip mirrors `Recommended Next Step:`
+  - `text_fallback`: the exact textual action already represented under `Possible Actions:` or `Recommended Next Step:`
+
+## 7. AmbiguityBoundary
 
 - **Purpose**: preserve clear selection boundaries between overlapping skills
 - **Fields**:
@@ -73,7 +89,7 @@
   - `distinguishing_rule`
   - `fallback_rule`
 
-## 7. SharedReference
+## 8. SharedReference
 
 - **Purpose**: deterministic, repo-local metadata used across many skills
 - **Fields**:
