@@ -7,7 +7,7 @@ pub fn execute(
     run: &str,
     target: Option<String>,
     gate: Option<String>,
-    by: String,
+    by: Option<String>,
     decision: String,
     rationale: String,
 ) -> Result<i32, Box<dyn std::error::Error>> {
@@ -25,7 +25,7 @@ pub fn execute(
     let summary: ApprovalSummary = service.approve(
         run,
         &target,
-        &by,
+        by.as_deref().unwrap_or_default(),
         decision
             .parse::<ApprovalDecision>()
             .map_err(|error| Error::new(ErrorKind::InvalidInput, error))?,

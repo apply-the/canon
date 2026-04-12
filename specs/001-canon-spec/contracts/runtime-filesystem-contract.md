@@ -53,6 +53,10 @@ Required directories:
 - contains all emitted artifacts for that run and mode
 - file names are determined by the artifact contract
 - machine-readable artifact manifests may appear alongside Markdown artifacts
+- artifact records must resolve only to paths under the matching
+  `.canon/artifacts/<run-id>/<mode>/` directory
+- run-scoped analysis, summaries, and review packets must not be emitted as
+  ad-hoc files in the repository root
 
 ### `.canon/decisions/`
 
@@ -71,6 +75,8 @@ Required directories:
 - no gate may be considered passed unless a persisted gate result exists under
   the run directory
 - no artifact may satisfy the contract unless an `ArtifactRecord` points to it
+- no `ArtifactRecord` may use absolute paths, `.` segments, `..` traversal, or
+  any other relative path that escapes `.canon/artifacts/<run-id>/<mode>/`
 - no override may exist without both an approval record and a linked decision
   record
 - reruns create new run directories; they do not overwrite prior run state

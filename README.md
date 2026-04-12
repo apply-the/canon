@@ -6,6 +6,12 @@ You give Canon a mode, risk class, usage zone, owner, and inputs. Canon decides 
 
 Canon is not a generic agent framework. It is not a prompt library. It is not a Copilot/Claude replacement. It is a disciplined terminal tool for governed execution.
 
+If you are here to use Canon rather than build it, the path is simple:
+
+1. install the right release archive for your machine
+2. verify `canon --version` and the resolved PATH location
+3. initialize Canon in a repo and start a governed run
+
 ## What Canon Is
 
 - A local CLI for governed engineering runs.
@@ -27,24 +33,90 @@ If you are skeptical of AI wrappers, that is the point of Canon. It turns a run 
 
 ## Install
 
-Today, Canon installs from source.
+Canon ships as a single prebuilt binary for macOS, Linux, and Windows.
+Check [Releases](https://github.com/apply-the/canon/releases) for the latest tag.
 
-Requirements:
+### Option 1: Persistent Installation (Recommended)
 
-- Rust `1.94.0`
-- Git
-- a repository or working directory where Canon can create `.canon/`
+Install once, use everywhere. Pin a specific release tag for stability.
 
-Install the binary:
+**macOS / Linux**
 
 ```bash
-git clone https://github.com/apply-the/canon.git
-cd canon
-cargo +1.94.0 install --path crates/canon-cli --bin canon
-canon --help
+# Detect architecture
+ARCH=$(uname -m)   # arm64 or x86_64
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')   # darwin or linux
+
+# Replace vX.Y.Z with the latest release tag
+VERSION=vX.Y.Z
+ARCHIVE="canon-${VERSION}-${OS}-${ARCH}.tar.gz"
+
+curl -LO "https://github.com/apply-the/canon/releases/download/${VERSION}/${ARCHIVE}"
+tar -xzf "${ARCHIVE}"
+install -m 0755 canon "$HOME/.local/bin/canon"
 ```
 
-That is the supported install path today. Prebuilt releases, Homebrew, and Windows package-manager distribution are planned but not wired yet.
+Then verify:
+
+```bash
+canon --version
+command -v canon
+```
+
+**Windows (PowerShell)**
+
+```powershell
+# Replace vX.Y.Z with the latest release tag
+$Version = 'vX.Y.Z'
+$Archive = "canon-$Version-windows-x86_64.zip"
+
+Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/$Version/$Archive" -OutFile $Archive
+Expand-Archive -Path $Archive -DestinationPath "$env:USERPROFILE\bin" -Force
+```
+
+Then verify:
+
+```powershell
+canon --version
+Get-Command canon
+```
+
+To upgrade, repeat the install steps with the new tag. If the resolved path
+still points to an older binary, move the install directory earlier on PATH
+and run the verification commands again.
+
+### Option 2: One-time Usage
+
+Run Canon from the current directory without adding it to PATH.
+
+**macOS / Linux**
+
+```bash
+VERSION=vX.Y.Z
+ARCHIVE="canon-${VERSION}-darwin-arm64.tar.gz"   # adjust OS/arch as needed
+
+curl -LO "https://github.com/apply-the/canon/releases/download/${VERSION}/${ARCHIVE}"
+tar -xzf "${ARCHIVE}"
+./canon --version
+```
+
+**Windows (PowerShell)**
+
+```powershell
+$Version = 'vX.Y.Z'
+$Archive = "canon-$Version-windows-x86_64.zip"
+
+Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/$Version/$Archive" -OutFile $Archive
+Expand-Archive -Path $Archive -DestinationPath ".\canon-$Version" -Force
+.\canon-$Version\canon.exe --version
+```
+
+### Option 3: Enterprise / Air-Gapped Installation
+
+If your environment blocks access to GitHub, download the release archive on a
+connected machine and transfer it to the target host via your internal artifact
+registry or secure file transfer. Then follow the Option 1 steps using the
+local archive path instead of the `curl` step.
 
 ## Quickstart
 
@@ -68,18 +140,20 @@ canon run \
   --risk bounded-impact \
   --zone yellow \
   --owner product-lead \
-  --input idea.md \
-  --output json
+  --input idea.md
 ```
 
-Take the `run_id` from the JSON output, then inspect what Canon actually did:
+Take the `run_id` from the output, then inspect what Canon actually did:
 
 ```bash
-canon status --run <RUN_ID> --output json
-canon inspect invocations --run <RUN_ID> --output json
-canon inspect evidence --run <RUN_ID> --output json
-canon inspect artifacts --run <RUN_ID> --output json
+canon status --run <RUN_ID>
+canon inspect invocations --run <RUN_ID>
+canon inspect evidence --run <RUN_ID>
+canon inspect artifacts --run <RUN_ID>
 ```
+
+Inspection commands default to Markdown output for human review. Use `--output json`
+when you need machine-readable output for scripts or tests.
 
 What you get:
 
@@ -90,10 +164,31 @@ What you get:
 
 That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
 
-## Use Canon From Codex
+## How To Contribute
 
-Canon now ships a repo-local Codex skill frontend under `.agents/skills/`.
-The CLI is still the engine. The skills are just a sharper way to invoke it.
+This README is written for end users first.
+
+If you want to compile, test, or develop Canon itself, use
+[`CONTRIBUTING.md`](CONTRIBUTING.md). It contains contributor rules, local
+setup, build commands, validation commands, and repository development
+guidance.
+
+## Use Canon From Codex or Copilot
+
+To materialize repo-local skills for Codex or compatible Copilot environments,
+run:
+
+```bash
+canon init --ai codex
+```
+
+Use `--ai copilot` if you want the explicit Copilot label instead. Both targets
+materialize the same `.agents/skills/` surface. The CLI is still the engine.
+The skills are just a sharper way to invoke it.
+
+Those skills assume a real `canon` binary is already on PATH. If they report a
+missing or incompatible Canon installation, return to the install guide above
+and update the shared binary before retrying.
 
 High-value available-now skills:
 
@@ -108,7 +203,7 @@ High-value available-now skills:
 - `$canon-brownfield`
 - `$canon-pr-review`
 
-Typical Codex flow:
+Typical skill flow:
 
 ```text
 $canon-init
@@ -124,9 +219,16 @@ $canon-inspect-evidence
 Inspect evidence for run <RUN_ID>.
 ```
 
-All Canon skills are discoverable through `$`. Not all are runnable yet. The
-non-runnable ones are still visible, but they must say so explicitly and must
-not fabricate runs, run ids, approvals, or evidence.
+Canon skills are intended to behave as guided handoffs, not as a flat menu.
+When a run is blocked, the next response should say what is wrong, point to the
+readable `.canon/artifacts/...` or `.canon/runs/...` files that explain it,
+list the valid actions, and recommend one next step without auto-executing it.
+
+In environments that support repo-local skill discovery, Canon skills are
+discoverable through `$`. Not all are runnable yet. The non-runnable ones are
+still visible, but they must say so explicitly and must not fabricate runs,
+run ids, approvals, or evidence. Claude materialization is separate and only
+happens when you explicitly run `canon init --ai claude`.
 
 ## Example Workflows
 
@@ -140,8 +242,7 @@ canon run \
   --risk bounded-impact \
   --zone yellow \
   --owner product-lead \
-  --input idea.md \
-  --output json
+  --input idea.md
 ```
 
 Canon will:
@@ -155,14 +256,19 @@ Canon will:
 
 Use this for changes in a live codebase where preserved behavior matters.
 
+If you already have a brownfield brief, use it directly. If you only have a
+change intent, the skill should guide you to fill the minimum missing slots
+before invoking Canon: system slice, intended change, legacy invariants,
+allowed or excluded change surface, and validation strategy. Only redirect to
+`requirements` when the change is still too ambiguous to bound honestly.
+
 ```bash
 canon run \
   --mode brownfield-change \
   --risk bounded-impact \
   --zone yellow \
   --owner staff-engineer \
-  --input brownfield.md \
-  --output json
+  --input brownfield.md
 ```
 
 Canon will:
@@ -171,6 +277,10 @@ Canon will:
 - separate generation-oriented and validation-oriented work
 - keep consequential mutation recommendation-only in the current release
 - block readiness if invariants or independent challenge are missing
+
+When brownfield work is blocked or recommendation-only, the guided next step
+should usually be to inspect the emitted packet under
+`.canon/artifacts/<RUN_ID>/brownfield-change/` before recording approval.
 
 If a consequential request is gated, approval is explicit and local:
 
@@ -196,8 +306,19 @@ canon run \
   --zone yellow \
   --owner reviewer \
   --input refs/heads/main \
-  --input HEAD \
-  --output json
+  --input HEAD
+```
+
+To review uncommitted changes in the working tree instead of a committed ref:
+
+```bash
+canon run \
+  --mode pr-review \
+  --risk low-impact \
+  --zone green \
+  --owner reviewer \
+  --input refs/heads/main \
+  --input WORKTREE
 ```
 
 Canon will:
@@ -254,6 +375,7 @@ Why that matters:
 - you can see evidence without replaying the run
 - you can audit approvals and decisions as files, not hidden application state
 - you can resume a run against durable local context
+- run-scoped analysis and review artifacts belong under `.canon/`, not as ad-hoc files in the repository root
 
 Canon is not trying to preserve every prompt transcript. It preserves the durable parts of consequential work: requests, policy outcomes, attempts, traces, evidence bundles, artifacts, and decisions.
 
@@ -335,49 +457,32 @@ Current limitations:
 
 - `verify` is present as a CLI surface but not implemented yet
 - MCP runtime is modeled in policy and domain terms, but explicitly denied at runtime
-- packaged distribution is not done yet; source install is the supported path
+- convenience channels such as Homebrew or Chocolatey are not shipped yet; use the GitHub release archives
 - deeper semantic critique and broader adapter coverage are still backlog
 
 ## Command Overview
 
-- `canon init`: materialize `.canon/` in the current repo
+- `canon init [--ai codex|copilot|claude]`: materialize `.canon/` and optionally the requested AI-facing repo-local surface
 - `canon run`: start a governed run with explicit mode, risk, zone, owner, and inputs
 - `canon status --run <RUN_ID>`: inspect run state, pending approvals, and evidence summary
 - `canon inspect modes`: inspect the typed mode catalog
 - `canon inspect methods`: inspect available method definitions
 - `canon inspect policies`: inspect loaded policy definitions
-- `canon inspect artifacts --run <RUN_ID>`: list emitted artifacts
-- `canon inspect invocations --run <RUN_ID>`: inspect request-level decisions and outcomes
-- `canon inspect evidence --run <RUN_ID>`: inspect generation paths, validation paths, and evidence linkage
+- `canon inspect artifacts --run <RUN_ID>`: list emitted artifact paths in Markdown by default
+- `canon inspect invocations --run <RUN_ID>`: inspect request-level decisions and outcomes in Markdown by default
+- `canon inspect evidence --run <RUN_ID>`: inspect readable artifact links, generation paths, validation paths, and evidence linkage in Markdown by default
 - `canon approve --run <RUN_ID> --target ...`: approve a specific invocation or gate
 - `canon resume --run <RUN_ID>`: continue a run after approval or after fixing a blocked condition
 - `canon verify --run <RUN_ID>`: planned surface, not implemented
 
-## Development / Build From Source
+## Contributor Docs
 
-Install the binary locally:
-
-```bash
-cargo +1.94.0 install --path crates/canon-cli --bin canon
-```
-
-Useful verification commands:
-
-```bash
-cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test
-cargo nextest run
-```
-
-Install local git hooks:
-
-```bash
-./scripts/install-hooks.sh
-```
+Contributor setup, build-from-source instructions, local validation, and repo
+rules live in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Deeper Docs
 
+- Contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
 - Core product spec: [`specs/001-canon-spec/spec.md`](specs/001-canon-spec/spec.md)
 - Core implementation plan: [`specs/001-canon-spec/plan.md`](specs/001-canon-spec/plan.md)

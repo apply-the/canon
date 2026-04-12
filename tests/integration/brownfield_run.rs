@@ -27,6 +27,10 @@ fn complete_brief() -> &'static str {
     "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
+fn markdown_heading_brief() -> &'static str {
+    "# Brownfield Brief: Debug Logging for Null Arguments\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for every public function argument that is null. This will help diagnose edge cases and support troubleshooting in the schema validation pipeline.\n\n## Legacy Invariants\n- API compatibility must be maintained\n- Existing behavior and requirements must not change\n- Output format must remain unchanged\n\n## Change Surface\n- Public functions in schema validation module\n- Debug-level log statements only (non-intrusive)\n- No changes to function signatures or return types\n\n## Validation Strategy\n- Unit tests using JUnit5 and Mockito\n- Verify debug logs are emitted for null arguments\n- Ensure no performance degradation\n- Confirm null argument handling remains correct\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n"
+}
+
 #[test]
 fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
     let workspace = TempDir::new().expect("temp dir");
@@ -144,4 +148,96 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
             "{artifact} should exist in the brownfield bundle"
         );
     }
+}
+
+#[test]
+fn run_brownfield_change_preserves_markdown_brief_structure() {
+    let workspace = TempDir::new().expect("temp dir");
+    let brief_path = workspace.path().join("brownfield.md");
+    fs::write(&brief_path, markdown_heading_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "brownfield-change",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--owner",
+            "Lead Eng",
+            "--input",
+            brief_path.file_name().expect("file name").to_str().expect("utf8"),
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let text = String::from_utf8(output).expect("utf8 stdout");
+    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+
+    let artifact_root =
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("brownfield-change");
+
+    let system_slice =
+        fs::read_to_string(artifact_root.join("system-slice.md")).expect("system slice artifact");
+    assert!(
+        system_slice.contains("## Summary\n\n- Bounded slice: `Schema validation`"),
+        "summary should be compact instead of repeating the whole brief"
+    );
+    assert!(
+        system_slice.contains(
+            "- Intended change: Add debug logging for every public function argument that is null."
+        ),
+        "summary should include a short statement of the intended change"
+    );
+    assert!(
+        system_slice.contains("- Owner / risk / zone: `Lead Eng` / `low-impact` / `green`"),
+        "summary should keep ownership and risk metadata concise"
+    );
+    assert!(
+        system_slice.contains("- Details: [legacy-invariants.md](legacy-invariants.md), [change-surface.md](change-surface.md), [implementation-plan.md](implementation-plan.md), [validation-strategy.md](validation-strategy.md), [decision-record.md](decision-record.md)"),
+        "summary should point to the other detail files in the brownfield bundle"
+    );
+    assert!(
+        system_slice.contains("## System Slice\n\nSchema validation"),
+        "system slice should be extracted from markdown headings"
+    );
+    assert!(
+        !system_slice
+            .contains("## Summary\n\n# Brownfield Brief: Debug Logging for Null Arguments"),
+        "summary should no longer inline the full brief"
+    );
+
+    let legacy_invariants = fs::read_to_string(artifact_root.join("legacy-invariants.md"))
+        .expect("legacy invariants artifact");
+    assert!(
+        legacy_invariants.contains("## Legacy Invariants\n\n- API compatibility must be maintained\n- Existing behavior and requirements must not change\n- Output format must remain unchanged"),
+        "legacy invariants should preserve bullet lines without collapsing them into a single paragraph"
+    );
+    assert!(
+        !legacy_invariants.contains("## Legacy Invariants\n\n- - API compatibility"),
+        "renderer should not prepend an extra bullet to an already bulleted section"
+    );
+
+    let change_surface = fs::read_to_string(artifact_root.join("change-surface.md"))
+        .expect("change surface artifact");
+    assert!(
+        change_surface.contains("## Change Surface\n\n- Public functions in schema validation module\n- Debug-level log statements only (non-intrusive)\n- No changes to function signatures or return types"),
+        "change surface should preserve multi-line markdown bullets"
+    );
+
+    let validation_strategy = fs::read_to_string(artifact_root.join("validation-strategy.md"))
+        .expect("validation strategy artifact");
+    assert!(
+        validation_strategy.contains("## Validation Strategy\n\n- Unit tests using JUnit5 and Mockito\n- Verify debug logs are emitted for null arguments\n- Ensure no performance degradation\n- Confirm null argument handling remains correct"),
+        "validation strategy should preserve markdown bullets from the input brief"
+    );
 }

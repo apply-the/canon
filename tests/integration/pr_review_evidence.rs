@@ -108,7 +108,10 @@ fn pr_review_run_persists_invocation_evidence_and_independent_validation_paths()
     assert_eq!(json["invocations_total"], 2);
     assert_eq!(json["invocations_denied"], 0);
     assert_eq!(json["invocations_pending_approval"], 0);
-    assert_eq!(json["evidence_bundle"], format!("runs/{run_id}/evidence.toml"));
+    assert!(
+        json.get("evidence_bundle").is_none(),
+        "run JSON should not expose internal evidence bundle paths"
+    );
 
     let status = cli_command()
         .current_dir(workspace.path())
@@ -120,7 +123,10 @@ fn pr_review_run_persists_invocation_evidence_and_independent_validation_paths()
         .clone();
     let status_json: serde_json::Value = serde_json::from_slice(&status).expect("json");
     assert_eq!(status_json["validation_independence_satisfied"], true);
-    assert_eq!(status_json["evidence_bundle"], format!("runs/{run_id}/evidence.toml"));
+    assert!(
+        status_json.get("evidence_bundle").is_none(),
+        "status JSON should not expose internal evidence bundle paths"
+    );
 
     let invocations = cli_command()
         .current_dir(workspace.path())
@@ -166,5 +172,28 @@ fn pr_review_run_persists_invocation_evidence_and_independent_validation_paths()
     assert!(
         entry["artifact_provenance_links"].as_array().is_some_and(|paths| !paths.is_empty()),
         "evidence should link back to review artifacts"
+    );
+
+    let evidence_markdown = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "evidence", "--run", run_id])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let evidence_markdown = String::from_utf8(evidence_markdown).expect("utf8 markdown");
+    let review_summary_path = format!(".canon/artifacts/{run_id}/pr-review/review-summary.md");
+    assert!(
+        evidence_markdown.contains("## Readable Artifacts"),
+        "markdown evidence output should foreground readable review artifacts"
+    );
+    assert!(
+        evidence_markdown.contains(&review_summary_path),
+        "markdown evidence output should point to review-summary.md"
+    );
+    assert!(
+        !evidence_markdown.contains(".canon/runs/"),
+        "markdown evidence output should not expose internal run-state paths"
     );
 }

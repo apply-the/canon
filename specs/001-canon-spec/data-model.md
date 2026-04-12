@@ -57,10 +57,16 @@ The domain must define all of these as first-class variants:
 | `GateEvaluation` | gate, status, inputs, blockers, approval requirement, evaluator, timestamp | Persists whether a gate passed and why |
 | `DecisionRecord` | decision id, run id, context, alternatives, rationale, consequences, unresolved questions, owner | Makes consequential choices durable and reviewable |
 | `VerificationRecord` | layer, actor, target artifacts, findings, disposition, evidence paths | Preserves independent challenge evidence |
-| `ApprovalRecord` | gate, approver, role, decision, rationale, timestamp | Captures human ownership and explicit overrides |
+| `ApprovalRecord` | gate, approver, decision, rationale, timestamp | Captures explicit approval evidence and overrides |
 | `AdapterInvocation` | invocation id, adapter kind, capability, purpose, status, trace path | Makes external tool usage auditable |
 | `StopCondition` | trigger, severity, action, owner requirement | Forces the engine to halt when assumptions become unsafe |
 | `ExitCriteria` | required gates, required artifacts, required verification, required approvals | Defines when a run may complete |
+
+### User-Facing Summary Projections
+
+- `RunSummary` and `StatusSummary` may expose the persisted `owner` from the run manifest so user-facing summaries show who owns the run without re-deriving identity from host state.
+- `ApprovalSummary` may expose `approved_by` and `recorded_at` from the persisted `ApprovalRecord` so Canon surfaces who actually recorded the approval and when.
+- Summary projections must not invent `started_by` or `initiated_by` until Canon persists a distinct actor for that concept.
 
 ## 3. Relationships
 

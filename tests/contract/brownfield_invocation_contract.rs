@@ -61,6 +61,10 @@ fn complete_brief() -> &'static str {
     "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
+fn broad_surface_brief() -> &'static str {
+    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: auth service, session repository, and adjacent modules.\nImplementation Plan: tighten the auth persistence boundary while preserving the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+}
+
 #[test]
 fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_requests() {
     let workspace = TempDir::new().expect("temp dir");
@@ -148,4 +152,62 @@ fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_reque
         .assert()
         .success()
         .stdout(predicates::str::contains("\"state\": \"Completed\""));
+}
+
+#[test]
+fn broad_brownfield_change_surface_escalates_mutation_before_completion() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_brownfield_repo(&workspace);
+    fs::write(workspace.path().join("brownfield.md"), broad_surface_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "brownfield-change",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "maintainer",
+            "--input",
+            "brownfield.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
+    let run_id = json["run_id"].as_str().expect("run id");
+
+    assert_eq!(json["state"], "AwaitingApproval");
+    assert_eq!(json["blocking_classification"], "approval-gated");
+    assert_eq!(json["recommended_next_action"]["action"], "inspect-artifacts");
+    assert!(
+        json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
+        "scope-broadening escalation should still expose the bounded artifact packet"
+    );
+
+    let invocations = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let invocation_json: serde_json::Value = serde_json::from_slice(&invocations).expect("json");
+    let entries = invocation_json["entries"].as_array().expect("entries");
+    assert!(
+        entries.iter().any(|entry| {
+            entry["policy_decision"] == "NeedsApproval"
+                && entry["latest_outcome"] == "AwaitingApproval"
+        }),
+        "broad change surfaces should escalate the mutation request to explicit approval"
+    );
 }

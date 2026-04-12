@@ -3,6 +3,7 @@ pub mod init;
 pub mod inspect;
 pub mod resume;
 pub mod run;
+pub mod skills;
 pub mod status;
 pub mod verify;
 

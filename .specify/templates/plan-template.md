@@ -14,10 +14,10 @@ research]
 ## Governance Context
 
 **Execution Mode**: [e.g., greenfield, brownfield, review, debugging or NEEDS
-CLARIFICATION]  
-**Risk Classification**: [Low | Medium | High | Critical with rationale]  
-**Scope In**: [Explicitly included work]  
-**Scope Out**: [Explicitly excluded work]  
+CLARIFICATION]
+**Risk Classification**: [low-impact | bounded-impact | systemic-impact with rationale]
+**Scope In**: [Explicitly included work]
+**Scope Out**: [Explicitly excluded work]
 
 **Invariants**:
 
@@ -65,7 +65,7 @@ CLARIFICATION]
 - [ ] Required artifacts and owners are identified
 - [ ] Decision logging is planned and linked to a durable artifact
 - [ ] Validation plan separates generation from validation
-- [ ] High/Critical risk approval checkpoints are named
+- [ ] Declared-risk approval checkpoints are named where required by the risk classification
 - [ ] Any constitution deviations are documented in Complexity Tracking
 
 ## Project Structure

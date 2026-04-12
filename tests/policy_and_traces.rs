@@ -11,7 +11,7 @@ use tempfile::TempDir;
 fn load_policy_set_merges_known_local_overrides() {
     let workspace = TempDir::new().expect("temp dir");
     let store = WorkspaceStore::new(workspace.path());
-    store.init_runtime_state().expect("runtime state");
+    store.init_runtime_state(None).expect("runtime state");
 
     let override_root = workspace.path().join("policy-overrides");
     fs::create_dir_all(&override_root).expect("override root");
@@ -78,7 +78,7 @@ runtime_disabled_adapters = []
 fn load_policy_set_fails_closed_on_unknown_override_fields() {
     let workspace = TempDir::new().expect("temp dir");
     let store = WorkspaceStore::new(workspace.path());
-    store.init_runtime_state().expect("runtime state");
+    store.init_runtime_state(None).expect("runtime state");
 
     let override_root = workspace.path().join("bad-policy-overrides");
     fs::create_dir_all(&override_root).expect("override root");
@@ -105,7 +105,7 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
         .expect("idea file");
 
     let service = EngineService::new(workspace.path());
-    service.init().expect("init");
+    service.init(None).expect("init");
     let summary = service
         .run(RunRequest {
             mode: Mode::Requirements,

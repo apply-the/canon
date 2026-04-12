@@ -11,5 +11,5 @@ if ! git rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 git config core.hooksPath .githooks
-chmod +x .githooks/pre-commit
+find .githooks -maxdepth 1 -type f -exec chmod +x {} +
 echo "Installed git hooks from $repo_root/.githooks"

@@ -125,17 +125,27 @@ Require-Text $RequirementsPath 'preserve valid ownership fields' 'canon-requirem
 Require-Text $RequirementsPath 'asks only for the missing slot' 'canon-requirements: must describe single-slot retry behavior'
 Require-Text $RequirementsPath 'exact Canon CLI retry form' 'canon-requirements: must promise the exact CLI retry form'
 Require-Text $RequirementsPath 'inside Canon execution rather than before Canon execution' 'canon-requirements: must distinguish preflight failures from Canon-execution failures'
+Require-Text $RequirementsPath 'guided fixed choices' 'canon-requirements: must require guided choices for enum fields'
+Require-Text $RequirementsPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-requirements: must list canonical risk choices'
+Require-Text $RequirementsPath 'green`, `yellow`, or `red' 'canon-requirements: must list canonical zone choices'
 
 Require-Text $BrownfieldPath 'preserve valid ownership fields' 'canon-brownfield: must describe preserving valid ownership fields across retry'
 Require-Text $BrownfieldPath 'asks only for the missing brief path or missing ownership slot' 'canon-brownfield: must describe targeted retry behavior'
 Require-Text $BrownfieldPath 'exact Canon CLI retry form' 'canon-brownfield: must promise the exact CLI retry form'
 Require-Text $BrownfieldPath 'Canon-execution outcome' 'canon-brownfield: must distinguish Canon-execution outcomes from preflight failures'
 Require-Text $BrownfieldPath 'preflight failure' 'canon-brownfield: must distinguish Canon-execution outcomes from preflight failures'
+Require-Text $BrownfieldPath 'guided fixed choices' 'canon-brownfield: must require guided choices for enum fields'
+Require-Text $BrownfieldPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-brownfield: must list canonical risk choices'
+Require-Text $BrownfieldPath 'green`, `yellow`, or `red' 'canon-brownfield: must list canonical zone choices'
 
 Require-Text $PrReviewPath 'preserves the valid side of the pair' 'canon-pr-review: must describe preserving the valid ref side across retry'
 Require-Text $PrReviewPath 'exact Canon CLI form' 'canon-pr-review: must promise the exact CLI form'
-Require-Text $PrReviewPath 'rejects remote refs explicitly' 'canon-pr-review: must state remote refs are rejected explicitly'
+Require-Text $PrReviewPath 'accepts local refs plus resolved remote-tracking refs' 'canon-pr-review: must state remote-tracking refs are accepted when they resolve'
 Require-Text $PrReviewPath 'inside Canon execution rather than before Canon execution' 'canon-pr-review: must distinguish preflight failures from Canon-execution failures'
+Require-Text $PrReviewPath 'guided fixed choices' 'canon-pr-review: must require guided choices for enum fields'
+Require-Text $PrReviewPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-pr-review: must list canonical risk choices'
+Require-Text $PrReviewPath 'green`, `yellow`, or `red' 'canon-pr-review: must list canonical zone choices'
+Require-Text $PrReviewPath 'guided choice between `WORKTREE` and providing a different head ref' 'canon-pr-review: must require a guided WORKTREE choice when refs collapse and worktree is dirty'
 
 Forbid-Text $PrReviewPath 'valid file path or ref' 'canon-pr-review: must not blur ref slots with file-path guidance'
 

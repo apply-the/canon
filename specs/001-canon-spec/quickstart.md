@@ -1,32 +1,31 @@
-# Quickstart: Canon v0.1
+# Quickstart: Canon Install-First Workflow
 
 Canon is the product, repository, workspace, and CLI name.
 
 ## Prerequisites
 
-- Rust 1.94.0 installed through `rustup`
+- Canon installed from a release archive using the repository install guide
 - Git available on the local machine
 - Copilot CLI installed if AI generation or critique will be exercised
 - optional local MCP-compatible tools if the MCP adapter will be enabled
 
-## Bootstrap the Repository
+## Verify the Installed CLI
 
 ```bash
-rustup toolchain install 1.94.0 --profile minimal --component rustfmt --component clippy
-cargo build
-./scripts/install-hooks.sh
+canon --version
+command -v canon
 ```
 
-Validation checkpoints during implementation:
+Expected result:
 
-- CLI contract coverage lives in `tests/contract/cli_contract.rs`
-- Runtime filesystem coverage lives in `tests/contract/runtime_filesystem.rs`
-- End-to-end mode flows live in `tests/integration/*.rs`
+- the version command reports the installed Canon release
+- the resolved command path points to the PATH-installed binary, not a Cargo
+  build inside the repository
 
 ## Initialize Runtime State in a Target Repository
 
 ```bash
-cargo run -p canon-cli -- init
+canon init --output json
 ```
 
 Expected result:
@@ -38,7 +37,7 @@ Expected result:
 ## Start a Requirements Run
 
 ```bash
-cargo run -p canon-cli -- run \
+canon run \
   --mode requirements \
   --risk bounded-impact \
   --zone yellow \
@@ -56,7 +55,7 @@ Expected result:
 ## Start a Brownfield Change Run
 
 ```bash
-cargo run -p canon-cli -- run \
+canon run \
   --mode brownfield-change \
   --risk bounded-impact \
   --zone yellow \
@@ -68,12 +67,13 @@ Expected result:
 
 - the run blocks if `legacy-invariants.md` and `change-surface.md` are missing
 - systemic-impact or red-zone work moves into `AwaitingApproval`
-- repaired artifact bundles can later be resumed without re-running from scratch
+- repaired artifact bundles can later be resumed without re-running from
+  scratch
 
 ## Start a PR Review Run
 
 ```bash
-cargo run -p canon-cli -- run \
+canon run \
   --mode pr-review \
   --risk bounded-impact \
   --zone yellow \
@@ -91,7 +91,7 @@ Expected result:
 ## Resume a Blocked Run
 
 ```bash
-cargo run -p canon-cli -- resume --run <run-id>
+canon resume --run <run-id>
 ```
 
 Expected result:
@@ -104,7 +104,7 @@ Expected result:
 ## Record an Approval
 
 ```bash
-cargo run -p canon-cli -- approve \
+canon approve \
   --run <run-id> \
   --gate review-disposition \
   --by "staff-engineer" \
@@ -118,6 +118,22 @@ Expected result:
 - the run is re-evaluated against its current gates
 - unresolved review or risk disposition can move from `AwaitingApproval` to
   `Completed`
+
+## Contributor / Development Bootstrap
+
+Use this only when developing Canon itself.
+
+```bash
+rustup toolchain install 1.94.1 --profile minimal --component rustfmt --component clippy
+cargo build
+./scripts/install-hooks.sh
+```
+
+Validation checkpoints during implementation:
+
+- CLI contract coverage lives in `tests/contract/cli_contract.rs`
+- Runtime filesystem coverage lives in `tests/contract/runtime_filesystem.rs`
+- End-to-end mode flows live in `tests/integration/*.rs`
 
 ## Verification Command Status
 

@@ -152,3 +152,63 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
         serde_json::from_slice(&status_output).expect("status json output");
     assert_eq!(status_json["state"], "Completed");
 }
+
+#[test]
+fn run_pr_review_worktree_reviews_uncommitted_changes() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_review_repo(&workspace);
+
+    // Make changes without committing them
+    fs::write(
+        workspace.path().join("src/reviewer.rs"),
+        "pub fn format_review(label: &str) -> String {\n    format!(\"review:{}\", label.to_uppercase())\n}\n",
+    )
+    .expect("uncommitted source change");
+
+    let cmd_output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "pr-review",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--owner",
+            "reviewer",
+            "--input",
+            "refs/heads/main",
+            "--input",
+            "WORKTREE",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .get_output()
+        .stdout
+        .clone();
+
+    let text = String::from_utf8(cmd_output).expect("utf8 stdout");
+    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+
+    let artifact_root =
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
+
+    assert!(
+        artifact_root.join("pr-analysis.md").exists(),
+        "pr-analysis should exist for worktree review"
+    );
+
+    let pr_analysis =
+        fs::read_to_string(artifact_root.join("pr-analysis.md")).expect("pr analysis artifact");
+    assert!(
+        pr_analysis.contains("src/reviewer.rs"),
+        "pr-analysis should detect the uncommitted change in src/reviewer.rs"
+    );
+    assert!(
+        pr_analysis.contains("WORKTREE"),
+        "pr-analysis should reference WORKTREE as the head ref"
+    );
+}
