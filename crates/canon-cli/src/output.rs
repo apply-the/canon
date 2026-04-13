@@ -2,11 +2,9 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::app::OutputFormat;
+use crate::error::CliResult;
 
-pub fn print_value<T: Serialize>(
-    value: &T,
-    format: OutputFormat,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn print_value<T: Serialize>(value: &T, format: OutputFormat) -> CliResult<()> {
     match format {
         OutputFormat::Text => {
             println!("{}", serde_json::to_string_pretty(value)?);
@@ -30,7 +28,7 @@ pub fn print_inspect<T: Serialize>(
     target_name: &str,
     run_id: Option<&str>,
     format: OutputFormat,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> CliResult<()> {
     match format {
         OutputFormat::Markdown => {
             let json = serde_json::to_value(value)?;
