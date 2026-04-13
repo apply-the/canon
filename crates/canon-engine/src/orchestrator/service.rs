@@ -2902,10 +2902,17 @@ fn capability_tag(capability: CapabilityKind) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        GateInspectSummary, RecommendedActionSummary, extract_brownfield_change_surface_entries,
-        preserve_multiline_summary, recommend_next_action,
+        EngineService, GateInspectSummary, RecommendedActionSummary, capability_tag,
+        extract_brownfield_change_surface_entries, preserve_multiline_summary,
+        recommend_next_action, run_state_from_gates,
     };
+    use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
     use crate::domain::run::RunState;
+    use crate::persistence::store::{
+        InitSummary as StoreInitSummary, SkillsSummary as StoreSkillsSummary,
+    };
+    use canon_adapters::CapabilityKind;
+    use time::OffsetDateTime;
 
     #[test]
     fn change_surface_entries_prefer_markdown_section_over_inline_summary_mentions() {
@@ -2917,6 +2924,22 @@ mod tests {
     }
 
     #[test]
+    fn change_surface_entries_fall_back_to_inline_marker_and_dedupe_segments() {
+        let source = "Summary\n\nChange Surface: auth service, session repository; auth service; token cleanup job";
+
+        let entries = extract_brownfield_change_surface_entries(source);
+
+        assert_eq!(
+            entries,
+            vec![
+                "auth service".to_string(),
+                "session repository".to_string(),
+                "token cleanup job".to_string()
+            ]
+        );
+    }
+
+    #[test]
     fn preserve_multiline_summary_keeps_bullets_on_separate_lines() {
         let summary = "## Change Surface\n- first bullet\n- second bullet\n\n## Validation Strategy\n- independent check";
 
@@ -2924,6 +2947,135 @@ mod tests {
 
         assert!(normalized.contains("- first bullet\n- second bullet"));
         assert!(normalized.contains("\n\n## Validation Strategy\n- independent check"));
+    }
+
+    #[test]
+    fn run_state_from_gates_prioritizes_approval_then_blocked_then_completed() {
+        let approval_gate = GateEvaluation {
+            gate: GateKind::Risk,
+            status: GateStatus::NeedsApproval,
+            blockers: vec!["approval required".to_string()],
+            evaluated_at: OffsetDateTime::UNIX_EPOCH,
+        };
+        let blocked_gate = GateEvaluation {
+            gate: GateKind::Architecture,
+            status: GateStatus::Blocked,
+            blockers: vec!["missing artifact".to_string()],
+            evaluated_at: OffsetDateTime::UNIX_EPOCH,
+        };
+        let passed_gate = GateEvaluation {
+            gate: GateKind::Exploration,
+            status: GateStatus::Passed,
+            blockers: Vec::new(),
+            evaluated_at: OffsetDateTime::UNIX_EPOCH,
+        };
+
+        assert_eq!(
+            run_state_from_gates(&[passed_gate.clone(), approval_gate]),
+            RunState::AwaitingApproval
+        );
+        assert_eq!(run_state_from_gates(&[passed_gate.clone(), blocked_gate]), RunState::Blocked);
+        assert_eq!(run_state_from_gates(&[passed_gate]), RunState::Completed);
+    }
+
+    #[test]
+    fn recommend_next_action_prefers_evidence_for_completed_runs_without_artifacts() {
+        let action = recommend_next_action(RunState::Completed, &[], true, &[], &[]);
+
+        assert_eq!(
+            action,
+            Some(RecommendedActionSummary {
+                action: "inspect-evidence".to_string(),
+                rationale: "The run completed; inspect the evidence bundle for execution lineage."
+                    .to_string(),
+                target: None,
+            })
+        );
+    }
+
+    #[test]
+    fn capability_tag_covers_supported_capabilities() {
+        let cases = [
+            (CapabilityKind::ReadRepository, "context"),
+            (CapabilityKind::GenerateContent, "generate"),
+            (CapabilityKind::CritiqueContent, "critique"),
+            (CapabilityKind::ProposeWorkspaceEdit, "edit"),
+            (CapabilityKind::InspectDiff, "inspect-diff"),
+            (CapabilityKind::ReadArtifact, "read-artifact"),
+            (CapabilityKind::EmitArtifact, "emit-artifact"),
+            (CapabilityKind::RunCommand, "run-command"),
+            (CapabilityKind::ValidateWithTool, "validate"),
+            (CapabilityKind::InvokeStructuredTool, "structured-tool"),
+            (CapabilityKind::ExecuteBoundedTransformation, "transform"),
+        ];
+
+        for (capability, expected) in cases {
+            assert_eq!(capability_tag(capability), expected);
+        }
+    }
+
+    #[test]
+    fn engine_service_helpers_map_store_summaries_and_pr_review_inputs() {
+        let service = EngineService::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+
+        let init = EngineService::map_init_summary(StoreInitSummary {
+            repo_root: "/repo".to_string(),
+            canon_root: "/repo/.canon".to_string(),
+            methods_materialized: 12,
+            policies_materialized: 5,
+            skills_materialized: 19,
+            claude_md_created: false,
+        });
+        assert_eq!(init.repo_root, "/repo");
+        assert_eq!(init.methods_materialized, 12);
+
+        let skills = EngineService::map_skills_summary(StoreSkillsSummary {
+            skills_dir: "/repo/.agents/skills".to_string(),
+            skills_materialized: 19,
+            skills_skipped: 2,
+            claude_md_created: true,
+        });
+        assert_eq!(skills.skills_dir, "/repo/.agents/skills");
+        assert_eq!(skills.skills_skipped, 2);
+        assert!(skills.claude_md_created);
+
+        let refs = service
+            .load_pr_review_refs(&["origin/main".to_string(), "HEAD".to_string()])
+            .expect("two refs should parse");
+        assert_eq!(refs, ("origin/main".to_string(), "HEAD".to_string()));
+
+        let error = service
+            .load_pr_review_refs(&["origin/main".to_string()])
+            .expect_err("missing head ref should fail");
+        assert!(error.to_string().contains("pr-review requires two inputs"));
+    }
+
+    #[test]
+    fn engine_service_resolves_relative_and_absolute_input_paths() {
+        let service = EngineService::new("/tmp/canon-root");
+
+        assert_eq!(
+            service.resolve_input_path("idea.md"),
+            std::path::PathBuf::from("/tmp/canon-root").join("idea.md")
+        );
+        assert_eq!(
+            service.resolve_input_path("/tmp/elsewhere/input.md"),
+            std::path::PathBuf::from("/tmp/elsewhere/input.md")
+        );
+    }
+
+    #[test]
+    fn resolve_identity_prefers_explicit_values() {
+        let service = EngineService::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+
+        assert_eq!(
+            service.resolve_owner("  Owner <owner@example.com>  "),
+            "Owner <owner@example.com>".to_string()
+        );
+        assert_eq!(
+            service.resolve_approver("Reviewer <reviewer@example.com>"),
+            "Reviewer <reviewer@example.com>".to_string()
+        );
     }
 
     #[test]

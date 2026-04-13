@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, IntoStaticStr};
 use time::OffsetDateTime;
 
 use crate::domain::gate::GateKind;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum ApprovalDecision {
     Approve,
     Reject,
@@ -11,10 +13,7 @@ pub enum ApprovalDecision {
 
 impl ApprovalDecision {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Approve => "approve",
-            Self::Reject => "reject",
-        }
+        self.into()
     }
 }
 
@@ -86,5 +85,71 @@ impl ApprovalRecord {
             (_, Some(request_id)) => format!("invocation:{request_id}"),
             _ => "unknown".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use time::OffsetDateTime;
+
+    use super::{ApprovalDecision, ApprovalRecord};
+    use crate::domain::gate::GateKind;
+
+    #[test]
+    fn approval_decision_round_trips_supported_values() {
+        assert_eq!(ApprovalDecision::Approve.as_str(), "approve");
+        assert_eq!(ApprovalDecision::Reject.as_str(), "reject");
+        assert_eq!(
+            ApprovalDecision::from_str("approve").expect("approve should parse"),
+            ApprovalDecision::Approve
+        );
+        assert_eq!(
+            ApprovalDecision::from_str("Approve").expect("Approve should parse"),
+            ApprovalDecision::Approve
+        );
+        assert_eq!(
+            ApprovalDecision::from_str("reject").expect("reject should parse"),
+            ApprovalDecision::Reject
+        );
+        assert_eq!(
+            ApprovalDecision::from_str("Reject").expect("Reject should parse"),
+            ApprovalDecision::Reject
+        );
+    }
+
+    #[test]
+    fn approval_decision_rejects_unknown_values() {
+        let error = ApprovalDecision::from_str("defer").expect_err("unknown decision should fail");
+
+        assert_eq!(error, "unsupported approval decision: defer");
+    }
+
+    #[test]
+    fn approval_record_helpers_report_gate_and_invocation_targets() {
+        let gate_record = ApprovalRecord::for_gate(
+            GateKind::Risk,
+            "Owner <owner@example.com>".to_string(),
+            ApprovalDecision::Approve,
+            "accepted".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        );
+        assert!(gate_record.matches_gate(GateKind::Risk));
+        assert!(!gate_record.matches_invocation("req-7"));
+        assert!(gate_record.is_approved());
+        assert_eq!(gate_record.target_label(), "gate:risk");
+
+        let invocation_record = ApprovalRecord::for_invocation(
+            "req-7".to_string(),
+            "Owner <owner@example.com>".to_string(),
+            ApprovalDecision::Reject,
+            "rejected".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        );
+        assert!(!invocation_record.matches_gate(GateKind::Risk));
+        assert!(invocation_record.matches_invocation("req-7"));
+        assert!(!invocation_record.is_approved());
+        assert_eq!(invocation_record.target_label(), "invocation:req-7");
     }
 }

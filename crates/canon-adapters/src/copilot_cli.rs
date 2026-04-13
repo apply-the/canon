@@ -110,3 +110,60 @@ fn normalize_multiline_context(value: &str) -> String {
 
     lines.join("\n").trim().to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        AdapterKind, CapabilityKind, InvocationOrientation, LineageClass, SideEffectClass,
+        TrustBoundaryKind,
+    };
+
+    use super::CopilotCliAdapter;
+
+    #[test]
+    fn request_builders_emit_expected_metadata() {
+        let adapter = CopilotCliAdapter;
+
+        let generation = adapter.generation_request("summarize scope");
+        assert_eq!(generation.adapter, AdapterKind::CopilotCli);
+        assert_eq!(generation.capability, CapabilityKind::GenerateContent);
+        assert_eq!(generation.orientation, Some(InvocationOrientation::Generation));
+        assert_eq!(generation.trust_boundary, Some(TrustBoundaryKind::AiReasoning));
+        assert_eq!(generation.lineage, Some(LineageClass::AiVendorFamily));
+        assert_eq!(generation.side_effect, SideEffectClass::ReadOnly);
+
+        let critique = adapter.critique_request("challenge output");
+        assert_eq!(critique.capability, CapabilityKind::CritiqueContent);
+        assert_eq!(critique.orientation, Some(InvocationOrientation::Validation));
+        assert_eq!(critique.side_effect, SideEffectClass::ReadOnly);
+
+        let edit = adapter.workspace_edit_request("propose patch");
+        assert_eq!(edit.capability, CapabilityKind::ProposeWorkspaceEdit);
+        assert_eq!(edit.orientation, Some(InvocationOrientation::Generation));
+        assert_eq!(edit.side_effect, SideEffectClass::WorkspaceMutation);
+    }
+
+    #[test]
+    fn generate_normalizes_multiline_context_and_marks_output_allowed() {
+        let adapter = CopilotCliAdapter;
+
+        let output = adapter.generate("  First   line\n\n\n second   line  ");
+
+        assert!(output.summary.contains("First line\n\nsecond line"));
+        assert_eq!(output.invocation.adapter, AdapterKind::CopilotCli);
+        assert_eq!(output.invocation.capability, CapabilityKind::GenerateContent);
+        assert!(output.invocation.allowed);
+        assert_eq!(output.executor, "copilot-cli(synthetic-summary)");
+    }
+
+    #[test]
+    fn critique_uses_validation_summary_language() {
+        let adapter = CopilotCliAdapter;
+
+        let output = adapter.critique("Generated   plan\n\n needs tightening ");
+
+        assert!(output.summary.contains("Challenge the generated frame"));
+        assert!(output.summary.contains("Generated plan\n\nneeds tightening"));
+        assert_eq!(output.invocation.capability, CapabilityKind::CritiqueContent);
+    }
+}

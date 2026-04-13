@@ -52,7 +52,7 @@ tests/
 ## Commands
 
 - `cargo fmt --check`
-- `cargo clippy --all-targets --all-features -- -D warnings`
+- `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - `cargo test`
 - `cargo nextest run`
 - `cargo deny check licenses advisories bans sources`
