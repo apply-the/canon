@@ -95,7 +95,7 @@ Run the minimum validation suite to confirm your local build is sound:
 
 ```bash
 cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo nextest run --locked
 cargo deny check licenses advisories bans sources
 ```

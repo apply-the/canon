@@ -521,7 +521,7 @@ mod tests {
         sections.join("\n\n")
     }
 
-    fn gate<'a>(evaluations: &'a [GateEvaluation], kind: GateKind) -> &'a GateEvaluation {
+    fn gate(evaluations: &[GateEvaluation], kind: GateKind) -> &GateEvaluation {
         evaluations.iter().find(|evaluation| evaluation.gate == kind).expect("gate present")
     }
 

@@ -35,9 +35,9 @@ run_step \
   cargo fmt --check
 
 run_step \
-  "cargo clippy --all-targets --all-features -- -D warnings" \
-  "Run 'cargo clippy --all-targets --all-features -- -D warnings' and fix the reported warnings." \
-  cargo clippy --all-targets --all-features -- -D warnings
+  "cargo clippy --workspace --all-targets --all-features -- -D warnings" \
+  "Run 'cargo clippy --workspace --all-targets --all-features -- -D warnings' and fix the reported warnings." \
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 run_step \
   "cargo test" \
