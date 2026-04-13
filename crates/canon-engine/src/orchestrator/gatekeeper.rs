@@ -482,3 +482,319 @@ fn named_artifact_gate(
         evaluated_at: OffsetDateTime::now_utc(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use time::OffsetDateTime;
+
+    use super::{
+        BrownfieldGateContext, PrReviewGateContext, evaluate_brownfield_gates,
+        evaluate_pr_review_gates, evaluate_requirements_gates,
+    };
+    use crate::artifacts::contract::contract_for_mode;
+    use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
+    use crate::domain::artifact::{ArtifactContract, ArtifactRequirement};
+    use crate::domain::execution::DeniedInvocation;
+    use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
+    use crate::domain::mode::Mode;
+    use crate::domain::policy::{RiskClass, UsageZone};
+
+    fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
+        contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| (requirement.file_name.clone(), render_artifact(requirement, None)))
+            .collect()
+    }
+
+    fn render_artifact(requirement: &ArtifactRequirement, trailing: Option<&str>) -> String {
+        let mut sections = requirement
+            .required_sections
+            .iter()
+            .map(|section| format!("## {section}\n\nRecorded content for {section}."))
+            .collect::<Vec<_>>();
+
+        if let Some(trailing) = trailing {
+            sections.push(trailing.to_string());
+        }
+
+        sections.join("\n\n")
+    }
+
+    fn gate<'a>(evaluations: &'a [GateEvaluation], kind: GateKind) -> &'a GateEvaluation {
+        evaluations.iter().find(|evaluation| evaluation.gate == kind).expect("gate present")
+    }
+
+    #[test]
+    fn requirements_release_readiness_collects_evidence_and_runtime_disabled_blockers() {
+        let contract = contract_for_mode(Mode::Requirements);
+        let artifacts = valid_artifacts(&contract);
+        let denied = vec![DeniedInvocation {
+            request_id: "req-1".to_string(),
+            rationale: "adapter disabled for runtime execution by policy".to_string(),
+            policy_refs: Vec::new(),
+            recorded_at: OffsetDateTime::UNIX_EPOCH,
+        }];
+
+        let evaluations =
+            evaluate_requirements_gates(&contract, &artifacts, "Owner", &denied, false);
+        let release = gate(&evaluations, GateKind::ReleaseReadiness);
+
+        assert_eq!(release.status, GateStatus::Blocked);
+        assert!(
+            release
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("explicit generation and validation evidence"))
+        );
+        assert!(
+            release
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("runtime-disabled invocation attempts"))
+        );
+    }
+
+    #[test]
+    fn requirements_exploration_and_risk_block_without_problem_statement_or_owner() {
+        let contract = contract_for_mode(Mode::Requirements);
+        let mut artifacts = valid_artifacts(&contract);
+        artifacts.retain(|(file_name, _)| file_name != "problem-statement.md");
+
+        let evaluations = evaluate_requirements_gates(&contract, &artifacts, "   ", &[], true);
+
+        let exploration = gate(&evaluations, GateKind::Exploration);
+        assert_eq!(exploration.status, GateStatus::Blocked);
+        assert!(
+            exploration
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("problem statement artifact is required"))
+        );
+
+        let risk = gate(&evaluations, GateKind::Risk);
+        assert_eq!(risk.status, GateStatus::Blocked);
+        assert!(
+            risk.blockers.iter().any(|blocker| blocker.contains("human ownership is required"))
+        );
+    }
+
+    #[test]
+    fn brownfield_risk_gate_requires_or_records_approval_for_systemic_red_runs() {
+        let contract = contract_for_mode(Mode::BrownfieldChange);
+        let artifacts = valid_artifacts(&contract);
+
+        let gated = evaluate_brownfield_gates(
+            &contract,
+            &artifacts,
+            BrownfieldGateContext {
+                owner: "Owner",
+                risk: RiskClass::SystemicImpact,
+                zone: UsageZone::Red,
+                approvals: &[],
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        assert_eq!(gate(&gated, GateKind::Risk).status, GateStatus::NeedsApproval);
+
+        let approvals = vec![ApprovalRecord::for_gate(
+            GateKind::Risk,
+            "Approver <approver@example.com>".to_string(),
+            ApprovalDecision::Approve,
+            "approved for test".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )];
+        let overridden = evaluate_brownfield_gates(
+            &contract,
+            &artifacts,
+            BrownfieldGateContext {
+                owner: "Owner",
+                risk: RiskClass::SystemicImpact,
+                zone: UsageZone::Red,
+                approvals: &approvals,
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+
+        assert_eq!(gate(&overridden, GateKind::Risk).status, GateStatus::Overridden);
+    }
+
+    #[test]
+    fn brownfield_release_readiness_blocks_without_evidence_or_independent_validation() {
+        let contract = contract_for_mode(Mode::BrownfieldChange);
+        let artifacts = valid_artifacts(&contract);
+
+        let evaluations = evaluate_brownfield_gates(
+            &contract,
+            &artifacts,
+            BrownfieldGateContext {
+                owner: "Owner",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                validation_independence_satisfied: false,
+                evidence_complete: false,
+            },
+        );
+        let release = gate(&evaluations, GateKind::ReleaseReadiness);
+
+        assert_eq!(release.status, GateStatus::Blocked);
+        assert!(
+            release
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("explicit generation and validation evidence"))
+        );
+        assert!(
+            release
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("independently recorded validation path"))
+        );
+    }
+
+    #[test]
+    fn pr_review_architecture_gate_blocks_boundary_and_contract_drift_statuses() {
+        let contract = contract_for_mode(Mode::PrReview);
+        let mut artifacts = valid_artifacts(&contract);
+
+        let boundary_check = artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "boundary-check.md")
+            .expect("boundary-check artifact present");
+        boundary_check.1.push_str("\n\nStatus: missing-boundary-review");
+
+        let contract_drift = artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "contract-drift.md")
+            .expect("contract-drift artifact present");
+        contract_drift.1.push_str("\n\nStatus: unsupported-contract-drift");
+
+        let evaluations = evaluate_pr_review_gates(
+            &contract,
+            &artifacts,
+            PrReviewGateContext {
+                owner: "Reviewer",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                denied_invocations: &[],
+                evidence_complete: true,
+            },
+        );
+        let architecture = gate(&evaluations, GateKind::Architecture);
+
+        assert_eq!(architecture.status, GateStatus::Blocked);
+        assert!(
+            architecture
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("boundary review is incomplete"))
+        );
+        assert!(
+            architecture
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("unsupported contract drift"))
+        );
+    }
+
+    #[test]
+    fn pr_review_disposition_gate_respects_explicit_review_disposition_approval() {
+        let contract = contract_for_mode(Mode::PrReview);
+        let mut artifacts = valid_artifacts(&contract);
+        let review_summary = artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "review-summary.md")
+            .expect("review-summary artifact present");
+        review_summary.1.push_str("\n\nStatus: awaiting-disposition");
+
+        let gated = evaluate_pr_review_gates(
+            &contract,
+            &artifacts,
+            PrReviewGateContext {
+                owner: "Reviewer",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                denied_invocations: &[],
+                evidence_complete: true,
+            },
+        );
+        assert_eq!(gate(&gated, GateKind::ReviewDisposition).status, GateStatus::NeedsApproval);
+
+        let approvals = vec![ApprovalRecord::for_gate(
+            GateKind::ReviewDisposition,
+            "Reviewer <reviewer@example.com>".to_string(),
+            ApprovalDecision::Approve,
+            "resolved must-fix findings".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )];
+        let approved = evaluate_pr_review_gates(
+            &contract,
+            &artifacts,
+            PrReviewGateContext {
+                owner: "Reviewer",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &approvals,
+                denied_invocations: &[],
+                evidence_complete: true,
+            },
+        );
+
+        assert_eq!(gate(&approved, GateKind::ReviewDisposition).status, GateStatus::Overridden);
+    }
+
+    #[test]
+    fn pr_review_release_readiness_collects_evidence_disposition_and_runtime_blockers() {
+        let contract = contract_for_mode(Mode::PrReview);
+        let mut artifacts = valid_artifacts(&contract);
+        let review_summary = artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "review-summary.md")
+            .expect("review-summary artifact present");
+        review_summary.1.push_str("\n\nStatus: awaiting-disposition");
+
+        let denied = vec![DeniedInvocation {
+            request_id: "req-pr-1".to_string(),
+            rationale: "adapter disabled for runtime execution by policy".to_string(),
+            policy_refs: Vec::new(),
+            recorded_at: OffsetDateTime::UNIX_EPOCH,
+        }];
+
+        let evaluations = evaluate_pr_review_gates(
+            &contract,
+            &artifacts,
+            PrReviewGateContext {
+                owner: "Reviewer",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                denied_invocations: &denied,
+                evidence_complete: false,
+            },
+        );
+        let release = gate(&evaluations, GateKind::ReleaseReadiness);
+
+        assert_eq!(release.status, GateStatus::Blocked);
+        assert!(
+            release
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("persisted diff inspection and critique evidence"))
+        );
+        assert!(release
+            .blockers
+            .iter()
+            .any(|blocker| blocker.contains("unresolved must-fix findings without disposition")));
+        assert!(
+            release
+                .blockers
+                .iter()
+                .any(|blocker| blocker.contains("runtime-disabled pr-review invocation attempts"))
+        );
+    }
+}

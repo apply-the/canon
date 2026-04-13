@@ -1,27 +1,18 @@
 use canon_engine::{AiTool, EngineService};
 use clap::{Parser, Subcommand, ValueEnum};
+use strum_macros::Display;
 
 use crate::commands;
+use crate::error::CliResult;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum OutputFormat {
     #[default]
     Text,
     Json,
     Yaml,
     Markdown,
-}
-
-impl std::fmt::Display for OutputFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = match self {
-            Self::Text => "text",
-            Self::Json => "json",
-            Self::Yaml => "yaml",
-            Self::Markdown => "markdown",
-        };
-        write!(f, "{value}")
-    }
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -179,7 +170,7 @@ pub struct Cli {
     command: Command,
 }
 
-pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
+pub fn run() -> CliResult<i32> {
     tracing_subscriber::fmt::try_init().ok();
 
     let cli = Cli::parse();
@@ -220,5 +211,200 @@ pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
         Command::Verify { .. } => commands::verify::execute(),
         Command::Inspect { command } => commands::inspect::execute(&service, command),
         Command::Skills { command } => commands::skills::execute(&service, command),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::{AiTarget, Cli, Command, InspectCommand, OutputFormat, SkillsCommand};
+    use canon_engine::AiTool;
+
+    #[test]
+    fn output_format_display_matches_cli_values() {
+        assert_eq!(OutputFormat::Text.to_string(), "text");
+        assert_eq!(OutputFormat::Json.to_string(), "json");
+        assert_eq!(OutputFormat::Yaml.to_string(), "yaml");
+        assert_eq!(OutputFormat::Markdown.to_string(), "markdown");
+    }
+
+    #[test]
+    fn ai_target_converts_to_engine_tool() {
+        assert_eq!(AiTool::from(AiTarget::Codex), AiTool::Codex);
+        assert_eq!(AiTool::from(AiTarget::Copilot), AiTool::Copilot);
+        assert_eq!(AiTool::from(AiTarget::Claude), AiTool::Claude);
+    }
+
+    #[test]
+    fn inspect_modes_defaults_to_markdown_output() {
+        let cli = Cli::parse_from(["canon", "inspect", "modes"]);
+
+        match cli.command {
+            Command::Inspect { command: InspectCommand::Modes { output } } => {
+                assert_eq!(output, OutputFormat::Markdown);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn skills_install_parses_ai_and_default_output() {
+        let cli = Cli::parse_from(["canon", "skills", "install", "--ai", "codex"]);
+
+        match cli.command {
+            Command::Skills { command: SkillsCommand::Install { ai, output } } => {
+                assert_eq!(ai, AiTarget::Codex);
+                assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn run_command_parses_expected_arguments() {
+        let cli = Cli::parse_from([
+            "canon",
+            "run",
+            "--mode",
+            "requirements",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--owner",
+            "Owner <owner@example.com>",
+            "--input",
+            "idea.md",
+            "--exclude",
+            "target/",
+        ]);
+
+        match cli.command {
+            Command::Run { mode, risk, zone, owner, inputs, excluded_paths, .. } => {
+                assert_eq!(mode, "requirements");
+                assert_eq!(risk, "low-impact");
+                assert_eq!(zone, "green");
+                assert_eq!(owner.as_deref(), Some("Owner <owner@example.com>"));
+                assert_eq!(inputs, vec!["idea.md"]);
+                assert_eq!(excluded_paths, vec!["target/"]);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn init_status_resume_verify_and_approve_commands_parse_expected_defaults() {
+        let init_cli = Cli::parse_from(["canon", "init", "--ai", "claude", "--output", "yaml"]);
+        match init_cli.command {
+            Command::Init { ai, output } => {
+                assert_eq!(ai, Some(AiTarget::Claude));
+                assert_eq!(output, OutputFormat::Yaml);
+            }
+            other => panic!("unexpected init command parsed: {other:?}"),
+        }
+
+        let status_cli = Cli::parse_from(["canon", "status", "--run", "run-123"]);
+        match status_cli.command {
+            Command::Status { run, output } => {
+                assert_eq!(run, "run-123");
+                assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected status command parsed: {other:?}"),
+        }
+
+        let resume_cli = Cli::parse_from(["canon", "resume", "--run", "run-123"]);
+        match resume_cli.command {
+            Command::Resume { run } => assert_eq!(run, "run-123"),
+            other => panic!("unexpected resume command parsed: {other:?}"),
+        }
+
+        let verify_cli = Cli::parse_from(["canon", "verify", "--run", "run-123"]);
+        match verify_cli.command {
+            Command::Verify { run } => assert_eq!(run, "run-123"),
+            other => panic!("unexpected verify command parsed: {other:?}"),
+        }
+
+        let approve_cli = Cli::parse_from([
+            "canon",
+            "approve",
+            "--run",
+            "run-123",
+            "--target",
+            "gate:risk",
+            "--decision",
+            "approve",
+            "--rationale",
+            "looks good",
+        ]);
+        match approve_cli.command {
+            Command::Approve { run, target, gate, by, decision, rationale } => {
+                assert_eq!(run, "run-123");
+                assert_eq!(target.as_deref(), Some("gate:risk"));
+                assert_eq!(gate, None);
+                assert_eq!(by, None);
+                assert_eq!(decision, "approve");
+                assert_eq!(rationale, "looks good");
+            }
+            other => panic!("unexpected approve command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn inspect_run_scoped_targets_parse_run_id_and_output() {
+        let artifacts = Cli::parse_from([
+            "canon",
+            "inspect",
+            "artifacts",
+            "--run",
+            "run-123",
+            "--output",
+            "json",
+        ]);
+        match artifacts.command {
+            Command::Inspect { command: InspectCommand::Artifacts { run, output } } => {
+                assert_eq!(run, "run-123");
+                assert_eq!(output, OutputFormat::Json);
+            }
+            other => panic!("unexpected artifacts inspect command parsed: {other:?}"),
+        }
+
+        let invocations = Cli::parse_from(["canon", "inspect", "invocations", "--run", "run-123"]);
+        match invocations.command {
+            Command::Inspect { command: InspectCommand::Invocations { run, output } } => {
+                assert_eq!(run, "run-123");
+                assert_eq!(output, OutputFormat::Markdown);
+            }
+            other => panic!("unexpected invocations inspect command parsed: {other:?}"),
+        }
+
+        let evidence = Cli::parse_from(["canon", "inspect", "evidence", "--run", "run-123"]);
+        match evidence.command {
+            Command::Inspect { command: InspectCommand::Evidence { run, output } } => {
+                assert_eq!(run, "run-123");
+                assert_eq!(output, OutputFormat::Markdown);
+            }
+            other => panic!("unexpected evidence inspect command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn skills_update_and_list_parse_correctly() {
+        let update = Cli::parse_from(["canon", "skills", "update", "--ai", "copilot"]);
+        match update.command {
+            Command::Skills { command: SkillsCommand::Update { ai, output } } => {
+                assert_eq!(ai, AiTarget::Copilot);
+                assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected skills update command parsed: {other:?}"),
+        }
+
+        let list = Cli::parse_from(["canon", "skills", "list", "--output", "yaml"]);
+        match list.command {
+            Command::Skills { command: SkillsCommand::List { output } } => {
+                assert_eq!(output, OutputFormat::Yaml);
+            }
+            other => panic!("unexpected skills list command parsed: {other:?}"),
+        }
     }
 }

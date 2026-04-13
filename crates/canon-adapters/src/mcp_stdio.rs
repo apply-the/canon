@@ -6,3 +6,15 @@ impl McpStdioAdapter {
         false
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::McpStdioAdapter;
+
+    #[test]
+    fn runtime_support_is_disabled() {
+        let adapter = McpStdioAdapter;
+
+        assert!(!adapter.runtime_supported());
+    }
+}
