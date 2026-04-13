@@ -355,45 +355,6 @@ fn trim_multiline_block(value: &str) -> String {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{extract_marker, render_brownfield_artifact};
-
-    #[test]
-    fn extract_marker_prefers_markdown_section_over_inline_mentions() {
-        let source = "# Brownfield Brief\n\n## Change Surface\n- bounded module\n- stable interface\n\nMutation posture: propose bounded legacy transformation within declared change surface: workspace, adjacent modules";
-        let normalized = source.to_lowercase();
-
-        let marker = extract_marker(source, &normalized, "change surface").expect("change surface");
-
-        assert_eq!(marker, "- bounded module\n- stable interface");
-    }
-
-    #[test]
-    fn render_brownfield_change_surface_preserves_markdown_bullets() {
-        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Change Surface\n- Public API entrypoints\n- Debug logging only\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
-
-        let rendered = render_brownfield_artifact("change-surface.md", source);
-
-        assert!(
-            rendered
-                .contains("## Change Surface\n\n- Public API entrypoints\n- Debug logging only")
-        );
-        assert!(rendered.contains("- Owner / risk / zone: `Lead Eng` / `low-impact` / `green`"));
-    }
-
-    #[test]
-    fn render_brownfield_validation_strategy_preserves_markdown_bullets() {
-        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Validation Strategy\n- Unit tests\n- Log assertion checks\n";
-
-        let rendered = render_brownfield_artifact("validation-strategy.md", source);
-
-        assert!(
-            rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
-        );
-    }
-}
-
 fn render_surface_list(values: &[String], empty_message: &str) -> String {
     render_string_list(values, empty_message)
 }
@@ -436,5 +397,44 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
         "- No ownership breaks inferred from changed surfaces.".to_string()
     } else {
         "- Reviewer ownership is required before boundary-marked changes can be treated as acceptable output.".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_marker, render_brownfield_artifact};
+
+    #[test]
+    fn extract_marker_prefers_markdown_section_over_inline_mentions() {
+        let source = "# Brownfield Brief\n\n## Change Surface\n- bounded module\n- stable interface\n\nMutation posture: propose bounded legacy transformation within declared change surface: workspace, adjacent modules";
+        let normalized = source.to_lowercase();
+
+        let marker = extract_marker(source, &normalized, "change surface").expect("change surface");
+
+        assert_eq!(marker, "- bounded module\n- stable interface");
+    }
+
+    #[test]
+    fn render_brownfield_change_surface_preserves_markdown_bullets() {
+        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Change Surface\n- Public API entrypoints\n- Debug logging only\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
+
+        let rendered = render_brownfield_artifact("change-surface.md", source);
+
+        assert!(
+            rendered
+                .contains("## Change Surface\n\n- Public API entrypoints\n- Debug logging only")
+        );
+        assert!(rendered.contains("- Owner / risk / zone: `Lead Eng` / `low-impact` / `green`"));
+    }
+
+    #[test]
+    fn render_brownfield_validation_strategy_preserves_markdown_bullets() {
+        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Validation Strategy\n- Unit tests\n- Log assertion checks\n";
+
+        let rendered = render_brownfield_artifact("validation-strategy.md", source);
+
+        assert!(
+            rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
+        );
     }
 }

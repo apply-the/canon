@@ -1,12 +1,11 @@
-use std::path::PathBuf;
-
 use canon_engine::{AiTool, EngineService};
 use clap::{Parser, Subcommand, ValueEnum};
 
 use crate::commands;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {
+    #[default]
     Text,
     Json,
     Yaml,
@@ -22,12 +21,6 @@ impl std::fmt::Display for OutputFormat {
             Self::Markdown => "markdown",
         };
         write!(f, "{value}")
-    }
-}
-
-impl Default for OutputFormat {
-    fn default() -> Self {
-        Self::Text
     }
 }
 
@@ -191,7 +184,7 @@ pub fn run() -> Result<i32, Box<dyn std::error::Error>> {
 
     let cli = Cli::parse();
     let repo_root = std::env::current_dir()?;
-    let service = EngineService::new(PathBuf::from(repo_root));
+    let service = EngineService::new(repo_root);
 
     match cli.command {
         Command::Init { ai, output } => {

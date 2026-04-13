@@ -2883,6 +2883,22 @@ fn recommend_next_action(
     None
 }
 
+fn capability_tag(capability: CapabilityKind) -> &'static str {
+    match capability {
+        CapabilityKind::ReadRepository => "context",
+        CapabilityKind::GenerateContent => "generate",
+        CapabilityKind::CritiqueContent => "critique",
+        CapabilityKind::ProposeWorkspaceEdit => "edit",
+        CapabilityKind::InspectDiff => "inspect-diff",
+        CapabilityKind::ReadArtifact => "read-artifact",
+        CapabilityKind::EmitArtifact => "emit-artifact",
+        CapabilityKind::RunCommand => "run-command",
+        CapabilityKind::ValidateWithTool => "validate",
+        CapabilityKind::InvokeStructuredTool => "structured-tool",
+        CapabilityKind::ExecuteBoundedTransformation => "transform",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -2972,21 +2988,5 @@ mod tests {
                 target: None,
             })
         );
-    }
-}
-
-fn capability_tag(capability: CapabilityKind) -> &'static str {
-    match capability {
-        CapabilityKind::ReadRepository => "context",
-        CapabilityKind::GenerateContent => "generate",
-        CapabilityKind::CritiqueContent => "critique",
-        CapabilityKind::ProposeWorkspaceEdit => "edit",
-        CapabilityKind::InspectDiff => "inspect-diff",
-        CapabilityKind::ReadArtifact => "read-artifact",
-        CapabilityKind::EmitArtifact => "emit-artifact",
-        CapabilityKind::RunCommand => "run-command",
-        CapabilityKind::ValidateWithTool => "validate",
-        CapabilityKind::InvokeStructuredTool => "structured-tool",
-        CapabilityKind::ExecuteBoundedTransformation => "transform",
     }
 }
