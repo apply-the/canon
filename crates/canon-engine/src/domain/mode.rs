@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, IntoStaticStr};
 
 use canon_adapters::AdapterKind;
 
 use crate::domain::gate::GateKind;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[strum(serialize_all = "kebab-case")]
 pub enum Mode {
     Requirements,
     Discovery,
@@ -47,20 +49,7 @@ pub struct ModeProfile {
 
 impl Mode {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Requirements => "requirements",
-            Self::Discovery => "discovery",
-            Self::Greenfield => "greenfield",
-            Self::BrownfieldChange => "brownfield-change",
-            Self::Architecture => "architecture",
-            Self::Implementation => "implementation",
-            Self::Refactor => "refactor",
-            Self::Verification => "verification",
-            Self::Review => "review",
-            Self::PrReview => "pr-review",
-            Self::Incident => "incident",
-            Self::Migration => "migration",
-        }
+        self.into()
     }
 
     pub fn all() -> &'static [Mode] {

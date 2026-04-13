@@ -85,3 +85,39 @@ fn layer_summary(layer: VerificationLayer) -> &'static str {
         VerificationLayer::ArchitecturalReview => "Architectural review",
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::verification::VerificationLayer;
+
+    use super::{
+        brownfield_verification_records, pr_review_verification_records,
+        requirements_verification_records,
+    };
+
+    #[test]
+    fn requirements_verification_records_emit_two_default_layers() {
+        let targets = vec!["artifacts/run-1/requirements/problem-statement.md".to_string()];
+
+        let records = requirements_verification_records(&targets);
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].layer, VerificationLayer::SelfCritique);
+        assert_eq!(records[1].layer, VerificationLayer::AdversarialCritique);
+        assert_eq!(records[0].target_paths, targets);
+    }
+
+    #[test]
+    fn brownfield_and_pr_review_verification_records_preserve_layers_and_targets() {
+        let layers = vec![VerificationLayer::PeerReview, VerificationLayer::ArchitecturalReview];
+        let targets = vec!["artifacts/run-1/pr-review/review-summary.md".to_string()];
+
+        let brownfield = brownfield_verification_records(&layers, &targets);
+        let pr_review = pr_review_verification_records(&layers, &targets);
+
+        assert_eq!(brownfield.len(), 2);
+        assert!(brownfield[0].disposition.contains("Peer review"));
+        assert!(pr_review[1].disposition.contains("Architectural review"));
+        assert_eq!(pr_review[0].target_paths, targets);
+    }
+}

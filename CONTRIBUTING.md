@@ -85,7 +85,7 @@ Run these before opening or updating a pull request:
 
 ```bash
 cargo fmt --check
-cargo clippy --all-targets --all-features -- -D warnings
+cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --locked
 cargo nextest run --locked
 cargo deny check licenses advisories bans sources

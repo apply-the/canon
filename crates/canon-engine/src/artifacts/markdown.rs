@@ -402,7 +402,12 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract_marker, render_brownfield_artifact};
+    use super::{
+        extract_marker, render_brownfield_artifact, render_pr_review_artifact,
+        render_requirements_artifact, render_requirements_artifact_from_evidence,
+    };
+    use crate::review::findings::{FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket};
+    use crate::review::summary::{ReviewDisposition, ReviewSummary};
 
     #[test]
     fn extract_marker_prefers_markdown_section_over_inline_mentions() {
@@ -436,5 +441,104 @@ mod tests {
         assert!(
             rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
         );
+    }
+
+    #[test]
+    fn render_requirements_artifacts_cover_named_templates_and_fallback() {
+        let summary = "Bound the requirements work before planning";
+
+        let constraints = render_requirements_artifact("constraints.md", summary);
+        let fallback = render_requirements_artifact("custom-note.md", summary);
+        let evidence = render_requirements_artifact_from_evidence(
+            "tradeoffs.md",
+            summary,
+            "generated framing",
+            "critique note",
+            "denied mutation request remained visible",
+        );
+
+        assert!(constraints.contains("## Non-Negotiables"));
+        assert!(constraints.contains("Risk and zone classification happen before generation."));
+        assert!(fallback.starts_with(
+            "# custom-note.md\n\n## Summary\n\nBound the requirements work before planning"
+        ));
+        assert!(evidence.contains("Denied mutation requests keep requirements mode bounded."));
+        assert!(evidence.contains("- denied mutation request remained visible"));
+    }
+
+    #[test]
+    fn render_brownfield_artifact_reports_missing_context_and_default_metadata() {
+        let source = "# Brownfield Brief\n\n## System Slice\nSession repository\n\n## Intended Change\nStabilize resumable execution\n";
+
+        let invariants = render_brownfield_artifact("legacy-invariants.md", source);
+        let decision = render_brownfield_artifact("decision-record.md", source);
+
+        assert!(invariants.contains("## Missing Context\n\nCapture preserved behavior before this run can pass brownfield preservation."));
+        assert!(decision.contains(
+            "Prefer additive change over normalization when the legacy surface still matters."
+        ));
+        assert!(decision.contains("- Owner / risk / zone: `bounded-system-maintainer` / `unspecified-risk` / `unspecified-zone`"));
+    }
+
+    #[test]
+    fn render_pr_review_artifacts_handle_empty_and_populated_findings() {
+        let review_notes_packet = ReviewPacket::from_diff(
+            "origin/main",
+            "HEAD",
+            vec!["src/lib.rs".to_string(), "tests/lib_test.rs".to_string()],
+            "@@ -1 +1 @@\n-old\n+new\n",
+        );
+        let review_notes_summary = ReviewSummary::from_packet(&review_notes_packet, false);
+        let boundary = render_pr_review_artifact(
+            "boundary-check.md",
+            &review_notes_packet,
+            &review_notes_summary,
+        );
+
+        assert!(boundary.contains("- No boundary findings detected."));
+        assert!(boundary.contains("Status: no-structural-impact-detected"));
+
+        let must_fix_packet = ReviewPacket {
+            base_ref: "origin/main".to_string(),
+            head_ref: "feature".to_string(),
+            changed_surfaces: vec!["contracts/public-api.json".to_string()],
+            inferred_intent: "Review contract drift on a public API change.".to_string(),
+            surprising_surface_area: vec!["contracts/public-api.json".to_string()],
+            findings: vec![
+                ReviewFinding {
+                    category: FindingCategory::ContractDrift,
+                    severity: FindingSeverity::MustFix,
+                    title: "Contract-facing files changed".to_string(),
+                    details: "Compatibility drift needs explicit reviewer acceptance.".to_string(),
+                    changed_surfaces: vec!["contracts/public-api.json".to_string()],
+                },
+                ReviewFinding {
+                    category: FindingCategory::DecisionImpact,
+                    severity: FindingSeverity::Note,
+                    title: "Decision note".to_string(),
+                    details: "A broader acceptance note should be recorded.".to_string(),
+                    changed_surfaces: vec!["contracts/public-api.json".to_string()],
+                },
+            ],
+        };
+        let must_fix_summary = ReviewSummary {
+            disposition: ReviewDisposition::AcceptedWithApproval,
+            rationale: "Explicit reviewer approval accepted the remaining must-fix findings with named ownership.".to_string(),
+            must_fix_findings: vec!["Contract-facing files changed".to_string()],
+            accepted_risks: vec!["Decision note".to_string()],
+        };
+
+        let contract =
+            render_pr_review_artifact("contract-drift.md", &must_fix_packet, &must_fix_summary);
+        let summary =
+            render_pr_review_artifact("review-summary.md", &must_fix_packet, &must_fix_summary);
+
+        assert!(contract.contains("Status: explicit-contract-drift"));
+        assert!(contract.contains(
+            "Compatibility risk remains explicit until reviewer disposition is recorded."
+        ));
+        assert!(summary.contains("Overall severity: must-fix"));
+        assert!(summary.contains("Status: accepted-with-approval"));
+        assert!(summary.contains("- Decision note"));
     }
 }

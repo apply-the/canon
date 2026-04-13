@@ -49,9 +49,9 @@ evidence contract before code changes begin.
 **Purpose**: Create the new files and module boundaries this increment depends
 on without reopening the whole Canon architecture.
 
-- [x] T005 Create execution-domain scaffolding in `crates/canon-engine/src/domain/execution.rs`, `crates/canon-engine/src/domain/mod.rs`, and `crates/canon-engine/src/lib.rs`
-- [x] T006 Create invocation and evidence orchestrator scaffolding in `crates/canon-engine/src/orchestrator/invocation.rs`, `crates/canon-engine/src/orchestrator/evidence.rs`, and `crates/canon-engine/src/orchestrator/mod.rs`
-- [x] T007 [P] Create invocation persistence scaffolding in `crates/canon-engine/src/persistence/invocations.rs`, `crates/canon-engine/src/persistence/traces.rs`, and `crates/canon-engine/src/persistence/mod.rs`
+- [x] T005 Create execution-domain scaffolding in `crates/canon-engine/src/domain/execution.rs`, `crates/canon-engine/src/domain.rs`, and `crates/canon-engine/src/lib.rs`
+- [x] T006 Create invocation and evidence orchestrator scaffolding in `crates/canon-engine/src/orchestrator/invocation.rs`, `crates/canon-engine/src/orchestrator/evidence.rs`, and `crates/canon-engine/src/orchestrator.rs`
+- [x] T007 [P] Create invocation persistence scaffolding in `crates/canon-engine/src/persistence/invocations.rs`, `crates/canon-engine/src/persistence/traces.rs`, and `crates/canon-engine/src/persistence.rs`
 - [x] T008 [P] Expand policy default scaffolding for governed invocation in `defaults/policies/adapters.toml` and `defaults/policies/verification.toml`
 - [x] T009 [P] Seed CLI inspection scaffolding for invocation and evidence views in `crates/canon-cli/src/commands/inspect.rs` and `crates/canon-cli/src/output.rs`
 
@@ -74,7 +74,7 @@ layer that every story depends on.
 
 ### Shared Runtime Implementation
 
-- [x] T015 Implement `ExecutionAdapterDescriptor`, `InvocationRequest`, `InvocationPolicyDecision`, `InvocationTrace`, `ToolOutcome`, `GenerationPath`, `ValidationPath`, and `EvidenceBundle` in `crates/canon-engine/src/domain/execution.rs` and `crates/canon-engine/src/domain/mod.rs`
+- [x] T015 Implement `ExecutionAdapterDescriptor`, `InvocationRequest`, `InvocationPolicyDecision`, `InvocationTrace`, `ToolOutcome`, `GenerationPath`, `ValidationPath`, and `EvidenceBundle` in `crates/canon-engine/src/domain/execution.rs` and `crates/canon-engine/src/domain.rs`
 - [x] T016 [P] Extend run, approval, and verification types for invocation evidence linkage in `crates/canon-engine/src/domain/run.rs`, `crates/canon-engine/src/domain/approval.rs`, and `crates/canon-engine/src/domain/verification.rs`
 - [x] T017 [P] Extend adapter capability typing, trust boundaries, orientations, and mutability classes in `crates/canon-adapters/src/capability.rs` and `crates/canon-adapters/src/dispatcher.rs`
 - [x] T018 Implement adapter and verification policy schema updates plus constraint defaults in `crates/canon-engine/src/domain/policy.rs`, `defaults/policies/adapters.toml`, and `defaults/policies/verification.toml`

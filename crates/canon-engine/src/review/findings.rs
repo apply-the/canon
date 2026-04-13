@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, IntoStaticStr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[strum(serialize_all = "kebab-case")]
 pub enum FindingCategory {
     BoundaryCheck,
     DuplicationCheck,
@@ -11,17 +13,12 @@ pub enum FindingCategory {
 
 impl FindingCategory {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::BoundaryCheck => "boundary-check",
-            Self::DuplicationCheck => "duplication-check",
-            Self::ContractDrift => "contract-drift",
-            Self::MissingTests => "missing-tests",
-            Self::DecisionImpact => "decision-impact",
-        }
+        self.into()
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[strum(serialize_all = "kebab-case")]
 pub enum FindingSeverity {
     Note,
     MustFix,
@@ -29,10 +26,7 @@ pub enum FindingSeverity {
 
 impl FindingSeverity {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Note => "note",
-            Self::MustFix => "must-fix",
-        }
+        self.into()
     }
 }
 
@@ -218,4 +212,63 @@ fn is_boundary_surface(surface: &str) -> bool {
     normalized.contains("boundary")
         || normalized.contains("public")
         || normalized.contains("interface")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FindingCategory, FindingSeverity, ReviewPacket};
+
+    #[test]
+    fn from_diff_emits_expected_must_fix_findings_for_boundary_and_contract_changes() {
+        let packet = ReviewPacket::from_diff(
+            "origin/main",
+            "HEAD",
+            vec![
+                "src/boundary/router.rs".to_string(),
+                "contracts/schema.json".to_string(),
+                "src/service.rs".to_string(),
+            ],
+            "@@ -1,2 +1,3 @@\n-old\n+new\n",
+        );
+
+        assert_eq!(packet.must_fix_findings().len(), 4);
+        assert!(packet.note_findings().is_empty());
+        assert_eq!(packet.findings_for(FindingCategory::BoundaryCheck).len(), 1);
+        assert_eq!(packet.findings_for(FindingCategory::ContractDrift).len(), 1);
+        assert_eq!(packet.findings_for(FindingCategory::MissingTests).len(), 1);
+        assert_eq!(packet.findings_for(FindingCategory::DecisionImpact).len(), 1);
+        assert!(packet.surprising_surface_area.contains(&"src/boundary/router.rs".to_string()));
+        assert!(packet.surprising_surface_area.contains(&"contracts/schema.json".to_string()));
+    }
+
+    #[test]
+    fn from_diff_falls_back_to_note_when_tests_move_with_source() {
+        let packet = ReviewPacket::from_diff(
+            "origin/main",
+            "HEAD",
+            vec!["src/lib.rs".to_string(), "tests/lib_test.rs".to_string()],
+            "@@ -1 +1 @@\n-old\n+new\n",
+        );
+
+        assert!(packet.must_fix_findings().is_empty());
+        let notes = packet.note_findings();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].category, FindingCategory::DuplicationCheck);
+        assert_eq!(notes[0].severity, FindingSeverity::Note);
+    }
+
+    #[test]
+    fn from_evidence_appends_critique_summary_to_intent() {
+        let packet = ReviewPacket::from_evidence(
+            "origin/main",
+            "HEAD",
+            vec!["tests/lib_test.rs".to_string()],
+            "@@ -0,0 +1 @@\n+test\n",
+            "Independent critique highlighted missing rollback notes.",
+        );
+
+        assert!(packet.inferred_intent.contains(
+            "Governed critique evidence: Independent critique highlighted missing rollback notes."
+        ));
+    }
 }

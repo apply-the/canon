@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::{Display, IntoStaticStr};
 
 use canon_adapters::{AdapterKind, CapabilityKind};
 
@@ -6,7 +7,8 @@ use crate::domain::execution::{InvocationConstraintSet, PayloadRetentionLevel};
 use crate::domain::gate::GateKind;
 use crate::domain::verification::VerificationLayer;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[strum(serialize_all = "kebab-case")]
 pub enum RiskClass {
     LowImpact,
     BoundedImpact,
@@ -15,11 +17,7 @@ pub enum RiskClass {
 
 impl RiskClass {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::LowImpact => "low-impact",
-            Self::BoundedImpact => "bounded-impact",
-            Self::SystemicImpact => "systemic-impact",
-        }
+        self.into()
     }
 }
 
@@ -36,7 +34,8 @@ impl std::str::FromStr for RiskClass {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[strum(serialize_all = "lowercase")]
 pub enum UsageZone {
     Green,
     Yellow,
@@ -45,11 +44,7 @@ pub enum UsageZone {
 
 impl UsageZone {
     pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Green => "green",
-            Self::Yellow => "yellow",
-            Self::Red => "red",
-        }
+        self.into()
     }
 }
 
