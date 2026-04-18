@@ -24,14 +24,14 @@ public distribution logic bounded and makes release-readiness easier to audit.
 workflow metadata.
 
 **Rationale**: the spec requires version, operating system, and architecture in
-the artifact name. User-facing names like `canon-0.5.0-macos-arm64.tar.gz` are
+the artifact name. User-facing names like `canon-0.6.0-macos-arm64.tar.gz` are
 easier to choose correctly than raw triples while still mapping cleanly to
 build targets inside the workflow.
 
 **Alternatives considered**:
 
 - Publish target-triple names such as
-  `canon-0.5.0-aarch64-apple-darwin.tar.gz`. Rejected because they are more
+  `canon-0.6.0-aarch64-apple-darwin.tar.gz`. Rejected because they are more
   technical than the product surface needs.
 - Hide architecture in the asset name. Rejected because it weakens first-time
   artifact selection and violates the release contract.

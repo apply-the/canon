@@ -52,7 +52,7 @@ before broader skill refinement continues.
 ## Discoverable But Not Runnable End To End
 
 - `$canon-discovery`
-- `$canon-greenfield`
+- `$canon-system-shaping`
 - `$canon-architecture`
 - `$canon-implementation`
 - `$canon-refactor`

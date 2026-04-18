@@ -40,6 +40,7 @@ Represents one named input requirement for a runnable skill.
 | `error_class` | optional string | Filled when validation fails |
 | `semantic_retry_value` | optional string | Human-oriented retry rendering |
 | `cli_retry_value` | optional string | Exact Canon CLI rendering |
+| `binding_origin` | optional enum | `explicit-user`, `canonical-mode-input`, never `active-editor` or `.canon-artifact` |
 
 **Validation rules**:
 
@@ -145,6 +146,10 @@ Represents what the skill shows after a preflight failure or normalization.
 
 - Validation: existing path relative to repo root or explicit absolute path
 - Normalization: preserve repo-relative form when possible
+- Canonical auto-binding: only `canon-input/<mode>.md` or `canon-input/<mode>/`
+  for the active file-backed mode
+- Forbidden inference sources: active editor file, open tabs, `.canon/`
+  artifacts, or other incidental workspace files
 - Retry rendering:
   - semantic: `input path docs/brief.md`
   - CLI: `--input docs/brief.md`
@@ -181,6 +186,8 @@ Represents what the skill shows after a preflight failure or normalization.
 - `RunnableSkillInteraction` owns many `TypedInputSlot` values.
 - `canon-pr-review` builds one `RefPairInput` from two `TypedInputSlot`
   instances.
+- File-backed runnable modes may derive one `TypedInputSlot` from a canonical
+  mode input path, but only when that path is under `canon-input/`.
 - `PreflightOutcome` references one or more `TypedInputSlot` values through
   `failed_slot` and `normalized_values`.
 - `RetryGuidance` is derived from `PreflightOutcome` plus the preserved slots in

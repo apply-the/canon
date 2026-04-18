@@ -6,7 +6,7 @@ use crate::output;
 
 pub fn execute(service: &EngineService, run: &str, format: OutputFormat) -> CliResult<i32> {
     let summary = service.status(run)?;
-    output::print_value(&summary, format)?;
+    output::print_status_summary(&summary, format)?;
     Ok(0)
 }
 
@@ -18,6 +18,7 @@ mod tests {
         EngineService, RunRequest,
         domain::mode::Mode,
         domain::policy::{RiskClass, UsageZone},
+        domain::run::ClassificationProvenance,
     };
     use tempfile::tempdir;
 
@@ -35,6 +36,7 @@ mod tests {
                 mode: Mode::Requirements,
                 risk: RiskClass::LowImpact,
                 zone: UsageZone::Green,
+                classification: ClassificationProvenance::explicit(),
                 owner: "Owner <owner@example.com>".to_string(),
                 inputs: vec!["idea.md".to_string()],
                 excluded_paths: Vec::new(),

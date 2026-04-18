@@ -12,6 +12,9 @@ Directly applicable:
 - `canon-pr-review`
 - `canon-brownfield`
 - `canon-requirements`
+- `canon-discovery`
+- `canon-system-shaping`
+- `canon-architecture`
 
 Opportunistic reuse:
 
@@ -30,9 +33,25 @@ Opportunistic reuse:
 | `RiskField` | Accept runtime-recognized risk tokens and normalize to canonical hyphenated form |
 | `ZoneField` | Accept runtime-recognized zone tokens and normalize to canonical lowercase form |
 | `RunIdInput` | Validate against `.canon/runs/<RUN_ID>` before Canon execution |
-| `FilePathInput` | Validate against filesystem existence relative to repo root or explicit absolute path |
+| `FilePathInput` | Validate against filesystem existence relative to repo root or explicit absolute path; auto-bind only from the mode's canonical `canon-input/` location |
 | `RefInput` | Validate through Git ref resolution, never through filesystem existence |
 | `RefPairInput` | Validate base/head together after each side is individually classified as a ref |
+
+## Canonical Authored-Input Binding Rules
+
+- File-backed runnable skills may auto-bind only from their explicit canonical
+  mode locations:
+  - `canon-input/requirements.md` or `canon-input/requirements/`
+  - `canon-input/discovery.md` or `canon-input/discovery/`
+  - `canon-input/system-shaping.md` or `canon-input/system-shaping/`
+  - `canon-input/architecture.md` or `canon-input/architecture/`
+  - `canon-input/brownfield-change.md` or `canon-input/brownfield-change/`
+- If no canonical authored-input location exists and the user did not provide
+  an explicit file or folder path, the skill must ask explicitly.
+- Skills must not infer `--input` from the active editor file, open tabs,
+  generated files under `.canon/`, or any other incidental workspace file.
+- `canon-pr-review` is exempt from canonical file binding because it is ref-
+  based, not file-based.
 
 ## Interaction Contract
 
@@ -42,6 +61,8 @@ Opportunistic reuse:
 - Skills must not ask the user to restate every field after one correction.
 - Skills must not persist preserved input state outside the current
   interaction.
+- Skills must not silently bind generated `.canon/` artifacts as authored
+  inputs.
 
 ## Preflight Output Contract
 

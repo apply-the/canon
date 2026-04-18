@@ -29,6 +29,26 @@ pub enum InspectCommand {
         #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
+    RiskZone {
+        #[arg(long)]
+        mode: String,
+        #[arg(long)]
+        risk: Option<String>,
+        #[arg(long)]
+        zone: Option<String>,
+        #[arg(long = "input", num_args = 1..)]
+        inputs: Vec<String>,
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
+        output: OutputFormat,
+    },
+    Clarity {
+        #[arg(long)]
+        mode: String,
+        #[arg(long = "input", num_args = 1..)]
+        inputs: Vec<String>,
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
+        output: OutputFormat,
+    },
     Artifacts {
         #[arg(long)]
         run: String,
@@ -101,12 +121,24 @@ pub enum Command {
         risk: String,
         #[arg(long)]
         zone: String,
+        #[arg(long, hide = true)]
+        risk_source: Option<String>,
+        #[arg(long, hide = true)]
+        risk_rationale: Option<String>,
+        #[arg(long = "risk-signal", hide = true)]
+        risk_signals: Vec<String>,
+        #[arg(long, hide = true)]
+        zone_source: Option<String>,
+        #[arg(long, hide = true)]
+        zone_rationale: Option<String>,
+        #[arg(long = "zone-signal", hide = true)]
+        zone_signals: Vec<String>,
         #[arg(
             long,
             help = "Human owner for the run. If omitted, Canon tries git user.name and user.email."
         )]
         owner: Option<String>,
-        #[arg(long = "input")]
+        #[arg(long = "input", num_args = 1..)]
         inputs: Vec<String>,
         #[arg(long = "exclude")]
         excluded_paths: Vec<String>,
@@ -185,6 +217,12 @@ pub fn run() -> CliResult<i32> {
             mode,
             risk,
             zone,
+            risk_source,
+            risk_rationale,
+            risk_signals,
+            zone_source,
+            zone_rationale,
+            zone_signals,
             owner,
             inputs,
             excluded_paths,
@@ -196,6 +234,12 @@ pub fn run() -> CliResult<i32> {
             mode,
             risk,
             zone,
+            risk_source,
+            risk_rationale,
+            risk_signals,
+            zone_source,
+            zone_rationale,
+            zone_signals,
             owner,
             inputs,
             excluded_paths,
@@ -278,16 +322,66 @@ mod tests {
             "idea.md",
             "--exclude",
             "target/",
+            "--risk-source",
+            "inferred-confirmed",
+            "--risk-rationale",
+            "Production boundary detected",
+            "--risk-signal",
+            "Detected boundary keyword",
         ]);
 
         match cli.command {
-            Command::Run { mode, risk, zone, owner, inputs, excluded_paths, .. } => {
+            Command::Run {
+                mode,
+                risk,
+                zone,
+                risk_source,
+                risk_rationale,
+                risk_signals,
+                owner,
+                inputs,
+                excluded_paths,
+                ..
+            } => {
                 assert_eq!(mode, "requirements");
                 assert_eq!(risk, "low-impact");
                 assert_eq!(zone, "green");
+                assert_eq!(risk_source.as_deref(), Some("inferred-confirmed"));
+                assert_eq!(risk_rationale.as_deref(), Some("Production boundary detected"));
+                assert_eq!(risk_signals, vec!["Detected boundary keyword"]);
                 assert_eq!(owner.as_deref(), Some("Owner <owner@example.com>"));
                 assert_eq!(inputs, vec!["idea.md"]);
                 assert_eq!(excluded_paths, vec!["target/"]);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn run_command_accepts_multiple_inputs_after_single_flag() {
+        let cli = Cli::parse_from([
+            "canon",
+            "run",
+            "--mode",
+            "requirements",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--owner",
+            "Owner <owner@example.com>",
+            "--input",
+            "idea.md",
+            "constraints.md",
+            "canon-input/requirements",
+            "--output",
+            "json",
+        ]);
+
+        match cli.command {
+            Command::Run { inputs, output, .. } => {
+                assert_eq!(inputs, vec!["idea.md", "constraints.md", "canon-input/requirements"]);
+                assert_eq!(output, OutputFormat::Json);
             }
             other => panic!("unexpected command parsed: {other:?}"),
         }
@@ -352,6 +446,51 @@ mod tests {
 
     #[test]
     fn inspect_run_scoped_targets_parse_run_id_and_output() {
+        let classification = Cli::parse_from([
+            "canon",
+            "inspect",
+            "risk-zone",
+            "--mode",
+            "discovery",
+            "--input",
+            "canon-input/discovery.md",
+        ]);
+        match classification.command {
+            Command::Inspect { command: InspectCommand::RiskZone { mode, inputs, output, .. } } => {
+                assert_eq!(mode, "discovery");
+                assert_eq!(inputs, vec!["canon-input/discovery.md"]);
+                assert_eq!(output, OutputFormat::Markdown);
+            }
+            other => panic!("unexpected risk-zone inspect command parsed: {other:?}"),
+        }
+
+        let clarity = Cli::parse_from([
+            "canon",
+            "inspect",
+            "clarity",
+            "--mode",
+            "requirements",
+            "--input",
+            "canon-input/requirements.md",
+            "canon-input/requirements/supporting/constraints.md",
+            "--output",
+            "json",
+        ]);
+        match clarity.command {
+            Command::Inspect { command: InspectCommand::Clarity { mode, inputs, output } } => {
+                assert_eq!(mode, "requirements");
+                assert_eq!(
+                    inputs,
+                    vec![
+                        "canon-input/requirements.md",
+                        "canon-input/requirements/supporting/constraints.md"
+                    ]
+                );
+                assert_eq!(output, OutputFormat::Json);
+            }
+            other => panic!("unexpected clarity inspect command parsed: {other:?}"),
+        }
+
         let artifacts = Cli::parse_from([
             "canon",
             "inspect",

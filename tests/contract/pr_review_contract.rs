@@ -109,6 +109,22 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .stdout
         .clone();
     let run_id = parse_run_id(&run_output);
+    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Summary");
+    assert_eq!(
+        run_json["mode_result"]["primary_artifact_path"],
+        format!(".canon/artifacts/{run_id}/pr-review/review-summary.md")
+    );
+    assert!(
+        run_json["mode_result"]["headline"]
+            .as_str()
+            .is_some_and(|headline| headline.contains("waiting for explicit disposition"))
+    );
+    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
+    assert!(
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
+        "approval-gated pr-review runs should still expose the readable review packet"
+    );
 
     let review_summary = workspace
         .path()
@@ -126,6 +142,29 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         review_summary_text.contains("contracts/public-api.md"),
         "review-summary should name the changed high-impact surface"
     );
+
+    let status_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", &run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_json: serde_json::Value =
+        serde_json::from_slice(&status_output).expect("status json");
+    assert_eq!(status_json["state"], "AwaitingApproval");
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Review Summary");
+    assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", &run_id, "--output", "markdown"])
+        .assert()
+        .success()
+        .stdout(contains("## Result"))
+        .stdout(contains("review-summary.md"))
+        .stdout(contains("waiting for explicit disposition"));
 
     cli_command()
         .current_dir(workspace.path())
@@ -152,5 +191,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .args(["status", "--run", &run_id, "--output", "json"])
         .assert()
         .success()
-        .stdout(contains("\"state\": \"Completed\""));
+        .stdout(contains("\"state\": \"Completed\""))
+        .stdout(contains("\"primary_artifact_title\": \"Review Summary\""))
+        .stdout(contains("\"recommended_next_action\": null"));
 }

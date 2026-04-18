@@ -70,6 +70,10 @@ fn init_with_codex_materializes_agents_skills_only() {
         "canon-init/SKILL.md should exist in .agents/skills"
     );
     assert!(
+        skills.join("canon-inspect-clarity").join("SKILL.md").exists(),
+        "canon-inspect-clarity/SKILL.md should exist in .agents/skills"
+    );
+    assert!(
         skills.join("canon-requirements").join("SKILL.md").exists(),
         "canon-requirements/SKILL.md should exist in .agents/skills"
     );
@@ -99,6 +103,10 @@ fn init_with_claude_materializes_claude_skills_only() {
     assert!(
         claude_skills.join("canon-init").join("SKILL.md").exists(),
         "canon-init/SKILL.md should exist in .claude/skills"
+    );
+    assert!(
+        claude_skills.join("canon-inspect-clarity").join("SKILL.md").exists(),
+        "canon-inspect-clarity/SKILL.md should exist in .claude/skills"
     );
     assert!(
         claude_skills.join("canon-requirements").join("SKILL.md").exists(),
@@ -271,11 +279,12 @@ fn skills_list_returns_all_embedded_skills() {
     let entries: Vec<serde_json::Value> =
         serde_json::from_str(&stdout).expect("parse JSON skill list");
 
-    assert!(entries.len() >= 19, "should have at least 19 embedded canon skills");
+    assert!(entries.len() >= 20, "should have at least 20 embedded canon skills");
 
     let names: Vec<&str> = entries.iter().filter_map(|entry| entry.get("name")?.as_str()).collect();
 
     assert!(names.contains(&"canon-init"), "should list canon-init");
+    assert!(names.contains(&"canon-inspect-clarity"), "should list canon-inspect-clarity");
     assert!(names.contains(&"canon-requirements"), "should list canon-requirements");
     assert!(names.contains(&"canon-brownfield"), "should list canon-brownfield");
     assert!(names.contains(&"canon-pr-review"), "should list canon-pr-review");
@@ -407,4 +416,89 @@ fn pr_review_preflight_accepts_remote_tracking_refs() {
         "preflight should normalize remote ref: {stdout}"
     );
     assert!(stdout.contains("NORMALIZED_REF_2=HEAD"), "preflight should keep HEAD: {stdout}");
+}
+
+#[cfg(unix)]
+#[test]
+fn discovery_preflight_rejects_inputs_under_canon_artifacts() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let workspace = TempDir::new().expect("temp dir");
+    git(&workspace, &["init", "-b", "main"]);
+
+    let mut init = cli_command();
+    init.current_dir(workspace.path()).args(["init", "--ai", "codex"]).assert().success();
+
+    let generated_input = workspace
+        .path()
+        .join(".canon")
+        .join("artifacts")
+        .join("seed-run")
+        .join("discovery")
+        .join("decision-pressure-points.md");
+    std::fs::create_dir_all(generated_input.parent().expect("artifact parent"))
+        .expect("artifact dir");
+    std::fs::write(
+        &generated_input,
+        "# Generated Discovery Artifact\n\nThis should not pass preflight.\n",
+    )
+    .expect("generated artifact file");
+
+    let bin_dir = workspace.path().join("bin");
+    std::fs::create_dir_all(&bin_dir).expect("bin dir");
+    let wrapper = bin_dir.join("canon");
+    std::fs::write(
+        &wrapper,
+        format!(
+            "#!/usr/bin/env bash\nexec cargo run --quiet --manifest-path '{}' -p canon-cli --bin canon -- \"$@\"\n",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml")
+        ),
+    )
+    .expect("write canon wrapper");
+    std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755))
+        .expect("chmod wrapper");
+
+    let script = workspace
+        .path()
+        .join(".agents")
+        .join("skills")
+        .join("canon-shared")
+        .join("scripts")
+        .join("check-runtime.sh");
+
+    let path = format!("{}:{}", bin_dir.display(), std::env::var("PATH").expect("PATH"));
+
+    let output = ProcessCommand::new("/bin/bash")
+        .arg(&script)
+        .args([
+            "--command",
+            "discovery",
+            "--repo-root",
+            workspace.path().to_str().expect("workspace path"),
+            "--require-init",
+            "--owner",
+            "researcher",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--input",
+            ".canon/artifacts/seed-run/discovery/decision-pressure-points.md",
+        ])
+        .env("PATH", path)
+        .current_dir(workspace.path())
+        .output()
+        .expect("run preflight script");
+
+    assert_eq!(output.status.code(), Some(17), "preflight should fail with invalid-input");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("STATUS=invalid-input"),
+        "preflight should reject .canon input: {stdout}"
+    );
+    assert!(
+        stdout.contains("cannot be used as authored input for discovery"),
+        "preflight should explain the .canon restriction: {stdout}"
+    );
 }

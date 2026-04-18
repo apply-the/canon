@@ -15,7 +15,7 @@ generation extends implementation depth instead of reopening core architecture.
 
 ## Governance Context
 
-**Execution Mode**: `architecture` for greenfield product planning and control
+**Execution Mode**: `architecture` for system-shaping product planning and control
 plane design  
 **Risk Classification**: `Systemic Impact` because this plan defines the core
 domain, gate behavior, approval semantics, persistence model, and public CLI
@@ -51,7 +51,8 @@ named human approvals for `Systemic Impact` or `Red` zone work
 
 **Language/Version**: Rust 1.94.1, Edition 2024  
 **Primary Dependencies**: `clap` for CLI parsing; `serde`, `serde_json`,
-`toml`, and `serde_yaml` for manifest and artifact serialization;
+`toml`, and `serde_yaml` for manifest and artifact serialization; `sha2` for
+durable authored-input digests;
 `thiserror` for typed error boundaries; `tracing` and
 `tracing-subscriber` for local audit traces; `uuid` with UUIDv7 support for
 sortable run identifiers; `time` for stable timestamps; test-only
@@ -59,7 +60,9 @@ dependencies `assert_cmd`, `predicates`, `tempfile`, and `insta` for CLI,
 artifact, and snapshot verification  
 **Storage**: local filesystem only under `.canon/`; TOML for configuration and
 manifests; Markdown, JSON, and YAML for emitted artifacts; JSONL for adapter
-trace streams; atomic file replace semantics for every durable write  
+trace streams; run-local snapshots for authored file-backed inputs under
+`.canon/runs/<run-id>/inputs/`; atomic file replace semantics for every
+durable write
 **Testing**: `cargo test` for unit and focused integration tests, `cargo nextest
 run` in CI, snapshot tests for stable artifact rendering, dedicated gate and
 resume tests, and adapter isolation tests with fakes or fixture commands  
@@ -191,7 +194,7 @@ defaults/
 ├── methods/
 │   ├── requirements.toml
 │   ├── discovery.toml
-│   ├── greenfield.toml
+│   ├── system-shaping.toml
 │   ├── brownfield-change.toml
 │   ├── architecture.toml
 │   ├── implementation.toml
@@ -405,7 +408,7 @@ definitions. Implementation depth is staged, but semantic meaning is not.
 - Weight: analysis-heavy.
 - v0.1 depth: typed contract and skeleton flow, recommendation-only output.
 
-### greenfield
+### system-shaping
 
 - Purpose: define a new system or capability from bounded intent through early
   delivery structure.
@@ -717,6 +720,7 @@ Each run will persist a dedicated directory:
 ├── artifact-contract.toml
 ├── state.toml
 ├── gates/
+├── inputs/
 ├── approvals/
 ├── verification/
 └── links.toml
@@ -728,6 +732,8 @@ Key persistence rules:
   policy version, method version, owner, and parent run pointer.
 - `artifact-contract.toml` is written before gate evaluation and never replaced
   in place; revisions create a new contract version file and update links.
+- `inputs/` stores snapshots of the authored file-backed inputs that were
+  actually used for the run.
 - `links.toml` binds the run to artifacts, decisions, and traces.
 - trace files live in `.canon/traces/<run-id>.jsonl` and are referenced rather
   than embedded.

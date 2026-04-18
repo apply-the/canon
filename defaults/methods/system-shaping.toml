@@ -1,0 +1,12 @@
+version = 1
+mode = "system-shaping"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Exploration", "Architecture", "Risk", "ReleaseReadiness"]
+artifacts = [
+    "system-shape.md",
+    "architecture-outline.md",
+    "capability-map.md",
+    "delivery-options.md",
+    "risk-hotspots.md",
+]

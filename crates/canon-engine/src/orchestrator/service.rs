@@ -1,18 +1,20 @@
 use std::path::{Path, PathBuf};
 
 use canon_adapters::classify_capability;
-use canon_adapters::copilot_cli::CopilotCliAdapter;
+use canon_adapters::copilot_cli::{CopilotCliAdapter, RequirementsGenerationInput};
 use canon_adapters::filesystem::FilesystemAdapter;
 use canon_adapters::shell::ShellAdapter;
 use canon_adapters::{CapabilityKind, LineageClass};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use thiserror::Error;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
-    render_brownfield_artifact, render_pr_review_artifact,
+    render_architecture_artifact, render_brownfield_artifact, render_discovery_artifact,
+    render_greenfield_artifact, render_pr_review_artifact,
     render_requirements_artifact_from_evidence,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
@@ -24,7 +26,7 @@ use crate::domain::execution::{
 use crate::domain::gate::{GateKind, GateStatus};
 use crate::domain::mode::{Mode, all_mode_profiles};
 use crate::domain::policy::{RiskClass, UsageZone};
-use crate::domain::run::{InputFingerprint, RunContext, RunState};
+use crate::domain::run::{ClassificationProvenance, InputFingerprint, RunContext, RunState};
 use crate::orchestrator::{classifier, gatekeeper, resume, verification_runner};
 use crate::orchestrator::{evidence as evidence_builder, invocation as invocation_runtime};
 use crate::persistence::invocations::PersistedInvocation;
@@ -53,6 +55,8 @@ pub enum InspectTarget {
     Modes,
     Methods,
     Policies,
+    RiskZone { mode: Mode, risk: Option<RiskClass>, zone: Option<UsageZone>, inputs: Vec<String> },
+    Clarity { mode: Mode, inputs: Vec<String> },
     Artifacts { run_id: String },
     Invocations { run_id: String },
     Evidence { run_id: String },
@@ -63,6 +67,7 @@ pub struct RunRequest {
     pub mode: Mode,
     pub risk: RiskClass,
     pub zone: UsageZone,
+    pub classification: ClassificationProvenance,
     pub owner: String,
     pub inputs: Vec<String>,
     pub excluded_paths: Vec<String>,
@@ -120,6 +125,8 @@ pub struct InspectResponse {
 #[serde(untagged)]
 pub enum InspectEntry {
     Name(String),
+    RiskZone(ClassificationInspectSummary),
+    Clarity(ClarityInspectSummary),
     Invocation(InvocationInspectSummary),
     Evidence(EvidenceInspectSummary),
 }
@@ -145,6 +152,63 @@ pub struct EvidenceInspectSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ClassificationInspectSummary {
+    pub mode: String,
+    pub risk: String,
+    pub zone: String,
+    pub risk_was_supplied: bool,
+    pub zone_was_supplied: bool,
+    pub confidence: String,
+    pub requires_confirmation: bool,
+    pub headline: String,
+    pub rationale: String,
+    pub risk_rationale: String,
+    pub zone_rationale: String,
+    pub signals: Vec<String>,
+    pub risk_signals: Vec<String>,
+    pub zone_signals: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ClarificationQuestionSummary {
+    pub id: String,
+    pub prompt: String,
+    pub rationale: String,
+    pub evidence: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ClarityInspectSummary {
+    pub mode: String,
+    pub summary: String,
+    pub source_inputs: Vec<String>,
+    pub requires_clarification: bool,
+    pub missing_context: Vec<String>,
+    pub clarification_questions: Vec<ClarificationQuestionSummary>,
+    pub reasoning_signals: Vec<String>,
+    pub recommended_focus: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ResultActionSummary {
+    pub id: String,
+    pub label: String,
+    pub host_action: String,
+    pub target: String,
+    pub text_fallback: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ModeResultSummary {
+    pub headline: String,
+    pub artifact_packet_summary: String,
+    pub primary_artifact_title: String,
+    pub primary_artifact_path: String,
+    pub primary_artifact_action: ResultActionSummary,
+    pub result_excerpt: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RunSummary {
     pub run_id: String,
     pub owner: String,
@@ -160,6 +224,7 @@ pub struct RunSummary {
     pub blocked_gates: Vec<GateInspectSummary>,
     pub approval_targets: Vec<String>,
     pub artifact_paths: Vec<String>,
+    pub mode_result: Option<ModeResultSummary>,
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
 
@@ -175,6 +240,7 @@ pub struct StatusSummary {
     pub blocked_gates: Vec<GateInspectSummary>,
     pub approval_targets: Vec<String>,
     pub artifact_paths: Vec<String>,
+    pub mode_result: Option<ModeResultSummary>,
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
 
@@ -246,7 +312,227 @@ struct RunRuntimeDetails {
     blocked_gates: Vec<GateInspectSummary>,
     approval_targets: Vec<String>,
     artifact_paths: Vec<String>,
+    mode_result: Option<ModeResultSummary>,
     recommended_next_action: Option<RecommendedActionSummary>,
+}
+
+#[derive(Debug, Clone)]
+struct RequirementsBrief {
+    problem: String,
+    outcome: String,
+    constraints: Vec<String>,
+    tradeoffs: Vec<String>,
+    out_of_scope: Vec<String>,
+    open_questions: Vec<String>,
+    source_refs: Vec<String>,
+}
+
+impl RequirementsBrief {
+    fn from_context(context_summary: String, source_refs: &[String]) -> Self {
+        let normalized = context_summary.to_lowercase();
+        let problem =
+            extract_context_marker(&context_summary, &normalized, &["problem", "intent", "goal"])
+                .or_else(|| extract_context_marker(&context_summary, &normalized, &["abstract"]))
+                .or_else(|| extract_context_marker(&context_summary, &normalized, &["subject"]))
+                .map(|value| condense_context_block(&value, 420))
+                .unwrap_or_else(|| {
+                    "NOT CAPTURED - Provide a `## Problem` section in the requirements input."
+                        .to_string()
+                });
+        let outcome = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["outcome", "desired outcome", "success signal", "objective"],
+        )
+        .map(|value| condense_context_block(&value, 320))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Outcome` section in the requirements input.".to_string()
+        });
+
+        let constraints = extract_context_list(
+            &context_summary,
+            &normalized,
+            &["constraints", "constraint", "non-negotiables"],
+        );
+        let tradeoffs =
+            extract_context_list(&context_summary, &normalized, &["tradeoffs", "tradeoff"]);
+        let out_of_scope = extract_context_list(
+            &context_summary,
+            &normalized,
+            &["out of scope", "out-of-scope", "scope cuts", "excluded"],
+        );
+        let open_questions = extract_context_list(
+            &context_summary,
+            &normalized,
+            &["open questions", "questions", "unknowns", "risks"],
+        );
+
+        let mut brief = Self {
+            problem,
+            outcome,
+            constraints: default_list(
+                constraints,
+                "NOT CAPTURED - Provide a `## Constraints` section in the requirements input.",
+            ),
+            tradeoffs: default_list(
+                tradeoffs,
+                "NOT CAPTURED - Provide a `## Tradeoffs` section in the requirements input.",
+            ),
+            out_of_scope: default_list(
+                out_of_scope,
+                "NOT CAPTURED - Provide a `## Out of Scope` or `## Scope Cuts` section in the requirements input.",
+            ),
+            open_questions,
+            source_refs: source_refs.iter().map(ToString::to_string).collect(),
+        };
+
+        if brief.open_questions.is_empty() {
+            brief.open_questions.extend(
+                prioritized_requirements_clarification_questions(&brief, &context_summary)
+                    .into_iter()
+                    .take(4)
+                    .map(|question| question.prompt),
+            );
+        }
+
+        if brief.open_questions.is_empty() {
+            brief
+                .open_questions
+                .push("Which downstream mode should consume this packet first?".to_string());
+        }
+
+        brief
+    }
+
+    fn summary(&self) -> String {
+        let mut lines = vec![
+            format!("Problem framing: {}", truncate_context_excerpt(&self.problem, 180)),
+            format!("Desired outcome: {}", truncate_context_excerpt(&self.outcome, 180)),
+        ];
+
+        if !self.source_refs.is_empty() {
+            lines.push(format!("Source inputs: {}", self.source_refs.join(", ")));
+        }
+
+        lines.join("\n")
+    }
+}
+
+#[derive(Debug, Clone)]
+struct DiscoveryBrief {
+    context_summary: String,
+    problem: String,
+    constraints: String,
+    repo_focus: String,
+    unknowns: String,
+    next_phase: String,
+}
+
+impl DiscoveryBrief {
+    fn from_context(context_summary: String, repo_surfaces: &[String]) -> Self {
+        let normalized = context_summary.to_lowercase();
+        let problem =
+            extract_context_marker(&context_summary, &normalized, &["problem", "problem domain"])
+                .unwrap_or_else(|| {
+                    let line = first_meaningful_line(&context_summary);
+                    if line.contains("Bound the problem to") {
+                        "NOT CAPTURED - Provide a `## Problem` section in the discovery brief."
+                            .to_string()
+                    } else {
+                        line
+                    }
+                });
+        let constraints = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["constraints", "constraint", "boundary"],
+        )
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Constraints` section in the discovery brief.".to_string()
+        });
+        let repo_focus = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["repo focus", "repository focus", "current state", "system slice"],
+        )
+        .unwrap_or_else(|| {
+            if repo_surfaces.is_empty() {
+                "NOT CAPTURED - Provide a `## Repo Focus` section in the discovery brief."
+                    .to_string()
+            } else {
+                format!(
+                    "Ground discovery in these repository surfaces: {}",
+                    repo_surfaces.join(", ")
+                )
+            }
+        });
+        let unknowns = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["unknowns", "open questions", "risks"],
+        )
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide an `## Unknowns` section in the discovery brief.".to_string()
+        });
+        let next_phase = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["next phase", "handoff", "translation trigger"],
+        )
+        .unwrap_or_else(|| {
+            let inferred = infer_discovery_next_phase(&context_summary);
+            if inferred.contains("Translate this packet") {
+                "NOT CAPTURED - Provide a `## Next Phase` section in the discovery brief."
+                    .to_string()
+            } else {
+                inferred
+            }
+        });
+
+        Self { context_summary, problem, constraints, repo_focus, unknowns, next_phase }
+    }
+
+    fn generation_prompt(&self, repo_surfaces: &[String]) -> String {
+        format!(
+            "# Discovery Brief\n\n## Problem\n{}\n\n## Constraints\n{}\n\n## Repo Focus\n{}\n\n## Repo Surface\n{}\n\n## Unknowns\n{}\n\n## Next Phase\n{}",
+            self.problem,
+            self.constraints,
+            self.repo_focus,
+            render_repo_surface_block(repo_surfaces),
+            self.unknowns,
+            self.next_phase,
+        )
+    }
+
+    fn critique_prompt(&self, generation_summary: &str, repo_surfaces: &[String]) -> String {
+        format!(
+            "# Discovery Critique Target\n\n## Context Summary\n{}\n\n## Repo Surface\n{}\n\n## Generated Framing\n{}\n\n## Challenge\nCheck whether the generated framing stays anchored to the repository surfaces, preserves the stated constraints, and points to a concrete next governed mode.",
+            self.context_summary,
+            render_repo_surface_block(repo_surfaces),
+            generation_summary,
+        )
+    }
+
+    fn evidence_backed_summary(
+        &self,
+        repo_surfaces: &[String],
+        generation_summary: &str,
+        critique_summary: &str,
+        validation_summary: &str,
+    ) -> String {
+        format!(
+            "# Discovery Brief\n\n## Problem\n{}\n\n## Constraints\n{}\n\n## Repo Focus\n{}\n\n## Repo Surface\n{}\n\n## Unknowns\n{}\n\n## Next Phase\n{}\n\nGenerated framing: {}\n\nCritique evidence: {}\n\nValidation evidence: {}",
+            self.problem,
+            self.constraints,
+            self.repo_focus,
+            render_repo_surface_block(repo_surfaces),
+            self.unknowns,
+            self.next_phase,
+            generation_summary,
+            critique_summary,
+            validation_summary,
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -314,10 +600,14 @@ impl EngineService {
                 }
             },
         )?;
+        self.validate_authored_input_paths(request.mode, &request.inputs)?;
 
         match request.mode {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
+            Mode::Discovery => self.run_discovery(&store, request, policy_set),
+            Mode::Greenfield => self.run_greenfield(&store, request, policy_set),
             Mode::BrownfieldChange => self.run_brownfield_change(&store, request, policy_set),
+            Mode::Architecture => self.run_architecture(&store, request, policy_set),
             Mode::PrReview => self.run_pr_review(&store, request, policy_set),
             other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
         }
@@ -430,6 +720,7 @@ impl EngineService {
                 mode: manifest.mode,
                 risk: manifest.risk,
                 zone: manifest.zone,
+                classification: manifest.classification.clone(),
                 owner: manifest.owner.clone(),
                 inputs: context.inputs.clone(),
                 excluded_paths: context.excluded_paths.clone(),
@@ -753,6 +1044,7 @@ impl EngineService {
                 mode: manifest.mode,
                 risk: manifest.risk,
                 zone: manifest.zone,
+                classification: manifest.classification.clone(),
                 owner: manifest.owner.clone(),
                 inputs: context.inputs.clone(),
                 excluded_paths: context.excluded_paths.clone(),
@@ -801,6 +1093,14 @@ impl EngineService {
             InspectTarget::Policies => (
                 "policies".to_string(),
                 store.list_policy_files()?.into_iter().map(InspectEntry::Name).collect::<Vec<_>>(),
+            ),
+            InspectTarget::RiskZone { mode, risk, zone, inputs } => (
+                "risk-zone".to_string(),
+                vec![InspectEntry::RiskZone(self.inspect_risk_zone(mode, risk, zone, &inputs)?)],
+            ),
+            InspectTarget::Clarity { mode, inputs } => (
+                "clarity".to_string(),
+                vec![InspectEntry::Clarity(self.inspect_clarity(mode, &inputs)?)],
             ),
             InspectTarget::Artifacts { run_id } => (
                 "artifacts".to_string(),
@@ -896,6 +1196,176 @@ impl EngineService {
         Ok(InspectResponse { target: name, entries })
     }
 
+    fn inspect_risk_zone(
+        &self,
+        mode: Mode,
+        risk: Option<RiskClass>,
+        zone: Option<UsageZone>,
+        inputs: &[String],
+    ) -> Result<ClassificationInspectSummary, EngineError> {
+        if inputs.is_empty() {
+            return Err(EngineError::Validation(format!(
+                "risk-zone inspection requires at least one input for {}",
+                mode.as_str()
+            )));
+        }
+
+        if matches!(mode, Mode::PrReview) {
+            if inputs.len() < 2 {
+                return Err(EngineError::Validation(
+                    "risk-zone inspection for pr-review requires two refs or inputs".to_string(),
+                ));
+            }
+        } else {
+            self.validate_authored_input_paths(mode, inputs)?;
+            for input in inputs {
+                let resolved = self.resolve_input_path(input);
+                if !resolved.exists() {
+                    return Err(EngineError::Validation(format!(
+                        "input `{input}` was not found from {}",
+                        self.repo_root.display()
+                    )));
+                }
+            }
+        }
+
+        let intake_summary = if matches!(mode, Mode::PrReview) {
+            self.load_input_summary(inputs)?
+        } else {
+            self.read_requirements_context(inputs)?
+        };
+        let repo_surfaces = self.scan_workspace_surface().unwrap_or_default();
+        let inferred =
+            classifier::infer_risk_zone(mode, risk, zone, &intake_summary, inputs, &repo_surfaces);
+
+        Ok(ClassificationInspectSummary {
+            mode: mode.as_str().to_string(),
+            risk: inferred.risk.as_str().to_string(),
+            zone: inferred.zone.as_str().to_string(),
+            risk_was_supplied: inferred.risk_was_supplied,
+            zone_was_supplied: inferred.zone_was_supplied,
+            confidence: inferred.confidence.as_str().to_string(),
+            requires_confirmation: inferred.requires_confirmation,
+            headline: inferred.headline,
+            rationale: inferred.rationale,
+            risk_rationale: inferred.risk_rationale,
+            zone_rationale: inferred.zone_rationale,
+            signals: inferred.signals,
+            risk_signals: inferred.risk_signals,
+            zone_signals: inferred.zone_signals,
+        })
+    }
+
+    fn inspect_clarity(
+        &self,
+        mode: Mode,
+        inputs: &[String],
+    ) -> Result<ClarityInspectSummary, EngineError> {
+        if inputs.is_empty() {
+            return Err(EngineError::Validation(format!(
+                "clarity inspection requires at least one input for {}",
+                mode.as_str()
+            )));
+        }
+
+        match mode {
+            Mode::Requirements => self.inspect_requirements_clarity(inputs),
+            Mode::Discovery => self.inspect_discovery_clarity(inputs),
+            other => Err(EngineError::UnsupportedInspectTarget(format!(
+                "clarity inspection is currently available only for requirements and discovery, not {}",
+                other.as_str()
+            ))),
+        }
+    }
+
+    fn inspect_requirements_clarity(
+        &self,
+        inputs: &[String],
+    ) -> Result<ClarityInspectSummary, EngineError> {
+        self.validate_authored_input_paths(Mode::Requirements, inputs)?;
+        for input in inputs {
+            let resolved = self.resolve_input_path(input);
+            if !resolved.exists() {
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` was not found from {}",
+                    self.repo_root.display()
+                )));
+            }
+        }
+
+        let source_inputs = self.clarity_source_inputs(inputs)?;
+        let context_summary = self.read_requirements_context(inputs)?;
+        let brief = RequirementsBrief::from_context(context_summary.clone(), &source_inputs);
+        let missing_context = requirements_missing_context(&brief);
+        let clarification_questions =
+            prioritized_requirements_clarification_questions(&brief, &context_summary);
+        let reasoning_signals = requirements_reasoning_signals(&source_inputs, &brief);
+        let requires_clarification =
+            !missing_context.is_empty() || !clarification_questions.is_empty();
+        let recommended_focus = if !missing_context.is_empty() {
+            "Resolve the missing context items before starting a requirements run or handing the packet to downstream design work.".to_string()
+        } else if !clarification_questions.is_empty() {
+            "Review the authored open questions with the named owner before selecting the next governed mode.".to_string()
+        } else {
+            "No critical clarification questions detected; the authored brief is bounded enough for requirements mode.".to_string()
+        };
+
+        Ok(ClarityInspectSummary {
+            mode: Mode::Requirements.as_str().to_string(),
+            summary: brief.summary(),
+            source_inputs,
+            requires_clarification,
+            missing_context,
+            clarification_questions,
+            reasoning_signals,
+            recommended_focus,
+        })
+    }
+
+    fn inspect_discovery_clarity(
+        &self,
+        inputs: &[String],
+    ) -> Result<ClarityInspectSummary, EngineError> {
+        self.validate_authored_input_paths(Mode::Discovery, inputs)?;
+        for input in inputs {
+            let resolved = self.resolve_input_path(input);
+            if !resolved.exists() {
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` was not found from {}",
+                    self.repo_root.display()
+                )));
+            }
+        }
+
+        let source_inputs = self.clarity_source_inputs(inputs)?;
+        let context_summary = self.read_requirements_context(inputs)?;
+        let repo_surfaces = self.scan_workspace_surface()?;
+        let brief = DiscoveryBrief::from_context(context_summary, &repo_surfaces);
+        let missing_context = discovery_missing_context(&brief);
+        let clarification_questions = prioritized_discovery_clarification_questions(&brief);
+        let reasoning_signals = discovery_reasoning_signals(&source_inputs, &repo_surfaces, &brief);
+        let requires_clarification =
+            !missing_context.is_empty() || !clarification_questions.is_empty();
+        let recommended_focus = if !missing_context.is_empty() {
+            "Resolve the missing discovery boundaries before translating this packet into requirements, architecture, or brownfield planning.".to_string()
+        } else if !clarification_questions.is_empty() {
+            "Review the open discovery questions with the named owner before choosing the downstream handoff mode.".to_string()
+        } else {
+            "No critical clarification questions detected; discovery has enough explicit structure for downstream translation.".to_string()
+        };
+
+        Ok(ClarityInspectSummary {
+            mode: Mode::Discovery.as_str().to_string(),
+            summary: discovery_summary(&brief),
+            source_inputs,
+            requires_clarification,
+            missing_context,
+            clarification_questions,
+            reasoning_signals,
+            recommended_focus,
+        })
+    }
+
     pub fn status(&self, run: &str) -> Result<StatusSummary, EngineError> {
         let _ = all_mode_profiles();
         let store = WorkspaceStore::new(&self.repo_root);
@@ -914,6 +1384,7 @@ impl EngineService {
             blocked_gates: details.blocked_gates,
             approval_targets: details.approval_targets,
             artifact_paths: details.artifact_paths,
+            mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
     }
@@ -1028,6 +1499,7 @@ impl EngineService {
                     mode: request.mode,
                     risk: request.risk,
                     zone: request.zone,
+                    classification: request.classification.clone(),
                     owner: request.owner.clone(),
                     created_at: now,
                 },
@@ -1096,12 +1568,23 @@ impl EngineService {
                 blocked_gates: details.blocked_gates,
                 approval_targets: details.approval_targets,
                 artifact_paths: details.artifact_paths,
+                mode_result: details.mode_result,
                 recommended_next_action: details.recommended_next_action,
             });
         }
 
+        let requirements_brief = RequirementsBrief::from_context(context_summary, &request.inputs);
+        let brief_summary = requirements_brief.summary();
         let copilot = CopilotCliAdapter;
-        let generation_output = copilot.generate(&context_summary);
+        let generation_output = copilot.generate_requirements(RequirementsGenerationInput {
+            problem: &requirements_brief.problem,
+            outcome: &requirements_brief.outcome,
+            constraints: &requirements_brief.constraints,
+            tradeoffs: &requirements_brief.tradeoffs,
+            out_of_scope: &requirements_brief.out_of_scope,
+            open_questions: &requirements_brief.open_questions,
+            source_refs: &requirements_brief.source_refs,
+        });
         let generation_attempt = self.completed_attempt(
             &generation_request,
             1,
@@ -1131,7 +1614,14 @@ impl EngineService {
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
-        let critique_output = copilot.critique(&generation_output.summary);
+        let critique_output = copilot.critique_requirements(
+            &requirements_brief.problem,
+            &requirements_brief.outcome,
+            &requirements_brief.constraints,
+            &requirements_brief.out_of_scope,
+            &requirements_brief.open_questions,
+            &generation_output.summary,
+        );
         let critique_attempt = self.completed_attempt(
             &critique_request,
             1,
@@ -1215,7 +1705,7 @@ impl EngineService {
                 },
                 contents: render_requirements_artifact_from_evidence(
                     &requirement.file_name,
-                    &context_summary,
+                    &brief_summary,
                     &generation_output.summary,
                     &critique_output.summary,
                     &denied_summary,
@@ -1276,6 +1766,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
             },
@@ -1355,6 +1846,7 @@ impl EngineService {
             blocked_gates: details.blocked_gates,
             approval_targets: details.approval_targets,
             artifact_paths: details.artifact_paths,
+            mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
     }
@@ -1367,6 +1859,913 @@ impl EngineService {
     ) -> Result<RunSummary, EngineError> {
         let run_id = Uuid::now_v7().to_string();
         self.execute_brownfield_change(store, request, policy_set, run_id, Vec::new())
+    }
+
+    fn run_discovery(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        let now = OffsetDateTime::now_utc();
+        let run_id = Uuid::now_v7().to_string();
+        let mut artifact_contract = contract_for_mode(request.mode);
+        classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
+
+        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let evidence_path = format!("runs/{run_id}/evidence.toml");
+
+        let context_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Discovery,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
+            summary: "capture discovery context and problem framing",
+            scope: request.inputs.clone(),
+        });
+        let context_decision =
+            invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
+        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let repo_surfaces = self.scan_workspace_surface()?;
+        let discovery_brief = DiscoveryBrief::from_context(context_summary, &repo_surfaces);
+        let context_attempt = self.completed_attempt(
+            &context_request,
+            1,
+            "filesystem",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: format!(
+                    "Captured discovery context from {} input(s) and {} repository surface(s).",
+                    request.inputs.len(),
+                    repo_surfaces.len()
+                ),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let generation_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Discovery,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::GenerateContent,
+            summary: "generate bounded discovery analysis",
+            scope: request.inputs.clone(),
+        });
+        let generation_decision =
+            invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
+        let copilot = CopilotCliAdapter;
+        let generation_output =
+            copilot.generate(&discovery_brief.generation_prompt(&repo_surfaces));
+        let generation_attempt = self.completed_attempt(
+            &generation_request,
+            1,
+            &generation_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: generation_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: artifact_contract
+                    .artifact_requirements
+                    .iter()
+                    .map(|requirement| requirement.file_name.clone())
+                    .collect(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let critique_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Discovery,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::CritiqueContent,
+            summary: "critique discovery framing against repository evidence",
+            scope: request.inputs.clone(),
+        });
+        let critique_decision =
+            invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
+        let critique_output = copilot
+            .critique(&discovery_brief.critique_prompt(&generation_output.summary, &repo_surfaces));
+        let critique_attempt = self.completed_attempt(
+            &critique_request,
+            1,
+            &critique_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: critique_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let validation_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Discovery,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::Shell,
+            capability: CapabilityKind::ValidateWithTool,
+            summary: "validate discovery framing against repository context",
+            scope: request.inputs.clone(),
+        });
+        let validation_decision =
+            invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
+        let (validation_summary, validation_attempt) =
+            self.brownfield_validation_attempt(&validation_request)?;
+
+        let artifact_paths = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| {
+                format!("artifacts/{}/{}/{}", run_id, request.mode.as_str(), requirement.file_name)
+            })
+            .collect::<Vec<_>>();
+        let generation_path = GenerationPath {
+            path_id: format!("generation:{}", generation_request.request_id),
+            request_ids: vec![generation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            derived_artifacts: artifact_paths.clone(),
+        };
+        let validation_path = ValidationPath {
+            path_id: format!("validation:{}", validation_request.request_id),
+            request_ids: vec![validation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::NonGenerative],
+            verification_refs: vec![format!(
+                "runs/{run_id}/invocations/{}/attempt-01.toml",
+                validation_request.request_id
+            )],
+            independence: evidence_builder::assess_validation_independence(
+                &generation_path,
+                &ValidationPath {
+                    path_id: format!("validation:{}", validation_request.request_id),
+                    request_ids: vec![validation_request.request_id.clone()],
+                    lineage_classes: vec![LineageClass::NonGenerative],
+                    verification_refs: vec![format!(
+                        "runs/{run_id}/invocations/{}/attempt-01.toml",
+                        validation_request.request_id
+                    )],
+                    independence: evidence_builder::default_independence(&generation_path.path_id),
+                },
+            ),
+        };
+        let evidence_backed_summary = discovery_brief.evidence_backed_summary(
+            &repo_surfaces,
+            &generation_output.summary,
+            &critique_output.summary,
+            &validation_summary,
+        );
+        let artifacts = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: requirement.file_name.clone(),
+                    relative_path: format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    ),
+                    format: requirement.format,
+                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                        request_ids: vec![
+                            context_request.request_id.clone(),
+                            generation_request.request_id.clone(),
+                            critique_request.request_id.clone(),
+                            validation_request.request_id.clone(),
+                        ],
+                        evidence_bundle: Some(evidence_path.clone()),
+                        disposition: crate::domain::execution::EvidenceDisposition::Supporting,
+                    }),
+                },
+                contents: render_discovery_artifact(
+                    &requirement.file_name,
+                    &evidence_backed_summary,
+                ),
+            })
+            .collect::<Vec<_>>();
+
+        let approvals = Vec::new();
+        let gate_inputs = artifacts
+            .iter()
+            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
+            .collect::<Vec<_>>();
+        let gates = gatekeeper::evaluate_discovery_gates(
+            &artifact_contract,
+            &gate_inputs,
+            gatekeeper::DiscoveryGateContext {
+                owner: &request.owner,
+                risk: request.risk,
+                zone: request.zone,
+                approvals: &approvals,
+                validation_independence_satisfied: validation_path.independence.sufficient,
+                evidence_complete: true,
+            },
+        );
+        let state = run_state_from_gates(&gates);
+
+        let mut verification_records = verification_runner::analysis_verification_records(
+            "discovery",
+            &artifact_contract.required_verification_layers,
+            &artifact_paths,
+        );
+        for record in &mut verification_records {
+            record.request_ids = vec![
+                generation_request.request_id.clone(),
+                critique_request.request_id.clone(),
+                validation_request.request_id.clone(),
+            ];
+            record.validation_path_id = Some(validation_path.path_id.clone());
+            record.evidence_bundle = Some(evidence_path.clone());
+        }
+
+        let evidence = EvidenceBundle {
+            run_id: run_id.clone(),
+            generation_paths: vec![generation_path],
+            validation_paths: vec![validation_path],
+            denied_invocations: Vec::new(),
+            trace_refs: vec![format!("traces/{run_id}.jsonl")],
+            artifact_refs: artifact_paths.clone(),
+            decision_refs: vec![
+                format!("runs/{run_id}/invocations/{}/decision.toml", context_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    generation_request.request_id
+                ),
+                format!("runs/{run_id}/invocations/{}/decision.toml", critique_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    validation_request.request_id
+                ),
+            ],
+            approval_refs: Vec::new(),
+        };
+
+        let bundle = PersistedRunBundle {
+            run: RunManifest {
+                run_id: run_id.clone(),
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                classification: request.classification.clone(),
+                owner: request.owner.clone(),
+                created_at: now,
+            },
+            context: RunContext {
+                repo_root: self.repo_root.display().to_string(),
+                owner: Some(request.owner.clone()),
+                inputs: request.inputs,
+                excluded_paths: request.excluded_paths,
+                input_fingerprints,
+                captured_at: now,
+            },
+            state: RunStateManifest { state, updated_at: now },
+            artifact_contract: artifact_contract.clone(),
+            links: LinkManifest {
+                artifacts: artifact_paths.clone(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: Some(evidence_path.clone()),
+            },
+            verification_records,
+            artifacts,
+            gates,
+            approvals,
+            evidence: Some(evidence),
+            invocations: vec![
+                PersistedInvocation {
+                    request: context_request,
+                    decision: context_decision,
+                    attempts: vec![context_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: generation_request,
+                    decision: generation_decision,
+                    attempts: vec![generation_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: critique_request,
+                    decision: critique_decision,
+                    attempts: vec![critique_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: validation_request,
+                    decision: validation_decision,
+                    attempts: vec![validation_attempt],
+                    approvals: Vec::new(),
+                },
+            ],
+        };
+
+        store.persist_run_bundle(&bundle)?;
+        self.summarize_run(
+            store,
+            RunSummarySpec {
+                run_id: &run_id,
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                state,
+                artifact_count: bundle.artifacts.len(),
+            },
+        )
+    }
+
+    fn run_greenfield(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        let now = OffsetDateTime::now_utc();
+        let run_id = Uuid::now_v7().to_string();
+        let mut artifact_contract = contract_for_mode(request.mode);
+        classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
+
+        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let evidence_path = format!("runs/{run_id}/evidence.toml");
+        let context_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Greenfield,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
+            summary: "capture system-shaping context and bounded intent",
+            scope: request.inputs.clone(),
+        });
+        let context_decision =
+            invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
+        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_attempt = self.completed_attempt(
+            &context_request,
+            1,
+            "filesystem",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: format!(
+                    "Captured system-shaping context from {} input(s).",
+                    request.inputs.len()
+                ),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let generation_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Greenfield,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::GenerateContent,
+            summary: "generate bounded system-shaping analysis",
+            scope: request.inputs.clone(),
+        });
+        let generation_decision =
+            invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
+        let copilot = CopilotCliAdapter;
+        let generation_output = copilot.generate(&context_summary);
+        let generation_attempt = self.completed_attempt(
+            &generation_request,
+            1,
+            &generation_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: generation_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: artifact_contract
+                    .artifact_requirements
+                    .iter()
+                    .map(|requirement| requirement.file_name.clone())
+                    .collect(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let critique_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Greenfield,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::CritiqueContent,
+            summary: "critique bounded system-shaping analysis",
+            scope: request.inputs.clone(),
+        });
+        let critique_decision =
+            invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
+        let critique_output = copilot.critique(&generation_output.summary);
+        let critique_attempt = self.completed_attempt(
+            &critique_request,
+            1,
+            &critique_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: critique_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let artifact_paths = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| {
+                format!("artifacts/{}/{}/{}", run_id, request.mode.as_str(), requirement.file_name)
+            })
+            .collect::<Vec<_>>();
+        let generation_path = GenerationPath {
+            path_id: format!("generation:{}", generation_request.request_id),
+            request_ids: vec![generation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            derived_artifacts: artifact_paths.clone(),
+        };
+        let validation_path = ValidationPath {
+            path_id: format!("validation:{}", critique_request.request_id),
+            request_ids: vec![critique_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            verification_refs: vec![format!(
+                "runs/{run_id}/invocations/{}/attempt-01.toml",
+                critique_request.request_id
+            )],
+            independence: evidence_builder::assess_validation_independence(
+                &generation_path,
+                &ValidationPath {
+                    path_id: format!("validation:{}", critique_request.request_id),
+                    request_ids: vec![critique_request.request_id.clone()],
+                    lineage_classes: vec![LineageClass::AiVendorFamily],
+                    verification_refs: vec![format!(
+                        "runs/{run_id}/invocations/{}/attempt-01.toml",
+                        critique_request.request_id
+                    )],
+                    independence: evidence_builder::default_independence(&generation_path.path_id),
+                },
+            ),
+        };
+
+        let artifacts = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: requirement.file_name.clone(),
+                    relative_path: format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    ),
+                    format: requirement.format,
+                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                        request_ids: vec![
+                            context_request.request_id.clone(),
+                            generation_request.request_id.clone(),
+                            critique_request.request_id.clone(),
+                        ],
+                        evidence_bundle: Some(evidence_path.clone()),
+                        disposition: crate::domain::execution::EvidenceDisposition::Supporting,
+                    }),
+                },
+                contents: render_greenfield_artifact(
+                    &requirement.file_name,
+                    &context_summary,
+                    &generation_output.summary,
+                    &critique_output.summary,
+                ),
+            })
+            .collect::<Vec<_>>();
+
+        let approvals = Vec::new();
+        let gate_inputs = artifacts
+            .iter()
+            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
+            .collect::<Vec<_>>();
+        let gates = gatekeeper::evaluate_greenfield_gates(
+            &artifact_contract,
+            &gate_inputs,
+            gatekeeper::GreenfieldGateContext {
+                owner: &request.owner,
+                risk: request.risk,
+                zone: request.zone,
+                approvals: &approvals,
+                evidence_complete: true,
+            },
+        );
+        let state = run_state_from_gates(&gates);
+
+        let mut verification_records = verification_runner::analysis_verification_records(
+            "system-shaping",
+            &artifact_contract.required_verification_layers,
+            &artifact_paths,
+        );
+        for record in &mut verification_records {
+            record.request_ids =
+                vec![generation_request.request_id.clone(), critique_request.request_id.clone()];
+            record.validation_path_id = Some(validation_path.path_id.clone());
+            record.evidence_bundle = Some(evidence_path.clone());
+        }
+
+        let evidence = EvidenceBundle {
+            run_id: run_id.clone(),
+            generation_paths: vec![generation_path],
+            validation_paths: vec![validation_path],
+            denied_invocations: Vec::new(),
+            trace_refs: vec![format!("traces/{run_id}.jsonl")],
+            artifact_refs: artifact_paths.clone(),
+            decision_refs: vec![
+                format!("runs/{run_id}/invocations/{}/decision.toml", context_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    generation_request.request_id
+                ),
+                format!("runs/{run_id}/invocations/{}/decision.toml", critique_request.request_id),
+            ],
+            approval_refs: Vec::new(),
+        };
+
+        let bundle = PersistedRunBundle {
+            run: RunManifest {
+                run_id: run_id.clone(),
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                classification: request.classification.clone(),
+                owner: request.owner.clone(),
+                created_at: now,
+            },
+            context: RunContext {
+                repo_root: self.repo_root.display().to_string(),
+                owner: Some(request.owner.clone()),
+                inputs: request.inputs,
+                excluded_paths: request.excluded_paths,
+                input_fingerprints,
+                captured_at: now,
+            },
+            state: RunStateManifest { state, updated_at: now },
+            artifact_contract: artifact_contract.clone(),
+            links: LinkManifest {
+                artifacts: artifact_paths.clone(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: Some(evidence_path.clone()),
+            },
+            verification_records,
+            artifacts,
+            gates,
+            approvals,
+            evidence: Some(evidence),
+            invocations: vec![
+                PersistedInvocation {
+                    request: context_request,
+                    decision: context_decision,
+                    attempts: vec![context_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: generation_request,
+                    decision: generation_decision,
+                    attempts: vec![generation_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: critique_request,
+                    decision: critique_decision,
+                    attempts: vec![critique_attempt],
+                    approvals: Vec::new(),
+                },
+            ],
+        };
+
+        store.persist_run_bundle(&bundle)?;
+        self.summarize_run(
+            store,
+            RunSummarySpec {
+                run_id: &run_id,
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                state,
+                artifact_count: bundle.artifacts.len(),
+            },
+        )
+    }
+
+    fn run_architecture(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        let now = OffsetDateTime::now_utc();
+        let run_id = Uuid::now_v7().to_string();
+        let mut artifact_contract = contract_for_mode(request.mode);
+        classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
+
+        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let evidence_path = format!("runs/{run_id}/evidence.toml");
+        let context_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Architecture,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
+            summary: "capture architecture context and structural dilemma",
+            scope: request.inputs.clone(),
+        });
+        let context_decision =
+            invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
+        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_attempt = self.completed_attempt(
+            &context_request,
+            1,
+            "filesystem",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: format!(
+                    "Captured architecture context from {} input(s).",
+                    request.inputs.len()
+                ),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let generation_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Architecture,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::GenerateContent,
+            summary: "generate bounded architecture analysis",
+            scope: request.inputs.clone(),
+        });
+        let generation_decision =
+            invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
+        let copilot = CopilotCliAdapter;
+        let generation_output = copilot.generate(&context_summary);
+        let generation_attempt = self.completed_attempt(
+            &generation_request,
+            1,
+            &generation_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: generation_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: artifact_contract
+                    .artifact_requirements
+                    .iter()
+                    .map(|requirement| requirement.file_name.clone())
+                    .collect(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let critique_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: Mode::Architecture,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::CritiqueContent,
+            summary: "critique bounded architecture decisions and invariants",
+            scope: request.inputs.clone(),
+        });
+        let critique_decision =
+            invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
+        let critique_output = copilot.critique(&generation_output.summary);
+        let critique_attempt = self.completed_attempt(
+            &critique_request,
+            1,
+            &critique_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: critique_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let artifact_paths = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| {
+                format!("artifacts/{}/{}/{}", run_id, request.mode.as_str(), requirement.file_name)
+            })
+            .collect::<Vec<_>>();
+        let generation_path = GenerationPath {
+            path_id: format!("generation:{}", generation_request.request_id),
+            request_ids: vec![generation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            derived_artifacts: artifact_paths.clone(),
+        };
+        let validation_path = ValidationPath {
+            path_id: format!("validation:{}", critique_request.request_id),
+            request_ids: vec![critique_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            verification_refs: vec![format!(
+                "runs/{run_id}/invocations/{}/attempt-01.toml",
+                critique_request.request_id
+            )],
+            independence: evidence_builder::assess_validation_independence(
+                &generation_path,
+                &ValidationPath {
+                    path_id: format!("validation:{}", critique_request.request_id),
+                    request_ids: vec![critique_request.request_id.clone()],
+                    lineage_classes: vec![LineageClass::AiVendorFamily],
+                    verification_refs: vec![format!(
+                        "runs/{run_id}/invocations/{}/attempt-01.toml",
+                        critique_request.request_id
+                    )],
+                    independence: evidence_builder::default_independence(&generation_path.path_id),
+                },
+            ),
+        };
+
+        let artifacts = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: requirement.file_name.clone(),
+                    relative_path: format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    ),
+                    format: requirement.format,
+                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                        request_ids: vec![
+                            context_request.request_id.clone(),
+                            generation_request.request_id.clone(),
+                            critique_request.request_id.clone(),
+                        ],
+                        evidence_bundle: Some(evidence_path.clone()),
+                        disposition: crate::domain::execution::EvidenceDisposition::Supporting,
+                    }),
+                },
+                contents: render_architecture_artifact(
+                    &requirement.file_name,
+                    &context_summary,
+                    &generation_output.summary,
+                    &critique_output.summary,
+                ),
+            })
+            .collect::<Vec<_>>();
+
+        let approvals = Vec::new();
+        let gate_inputs = artifacts
+            .iter()
+            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
+            .collect::<Vec<_>>();
+        let gates = gatekeeper::evaluate_architecture_gates(
+            &artifact_contract,
+            &gate_inputs,
+            gatekeeper::ArchitectureGateContext {
+                owner: &request.owner,
+                risk: request.risk,
+                zone: request.zone,
+                approvals: &approvals,
+                evidence_complete: true,
+            },
+        );
+        let state = run_state_from_gates(&gates);
+
+        let mut verification_records = verification_runner::analysis_verification_records(
+            "architecture",
+            &artifact_contract.required_verification_layers,
+            &artifact_paths,
+        );
+        for record in &mut verification_records {
+            record.request_ids =
+                vec![generation_request.request_id.clone(), critique_request.request_id.clone()];
+            record.validation_path_id = Some(validation_path.path_id.clone());
+            record.evidence_bundle = Some(evidence_path.clone());
+        }
+
+        let evidence = EvidenceBundle {
+            run_id: run_id.clone(),
+            generation_paths: vec![generation_path],
+            validation_paths: vec![validation_path],
+            denied_invocations: Vec::new(),
+            trace_refs: vec![format!("traces/{run_id}.jsonl")],
+            artifact_refs: artifact_paths.clone(),
+            decision_refs: vec![
+                format!("runs/{run_id}/invocations/{}/decision.toml", context_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    generation_request.request_id
+                ),
+                format!("runs/{run_id}/invocations/{}/decision.toml", critique_request.request_id),
+            ],
+            approval_refs: Vec::new(),
+        };
+
+        let bundle = PersistedRunBundle {
+            run: RunManifest {
+                run_id: run_id.clone(),
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                classification: request.classification.clone(),
+                owner: request.owner.clone(),
+                created_at: now,
+            },
+            context: RunContext {
+                repo_root: self.repo_root.display().to_string(),
+                owner: Some(request.owner.clone()),
+                inputs: request.inputs,
+                excluded_paths: request.excluded_paths,
+                input_fingerprints,
+                captured_at: now,
+            },
+            state: RunStateManifest { state, updated_at: now },
+            artifact_contract: artifact_contract.clone(),
+            links: LinkManifest {
+                artifacts: artifact_paths.clone(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: Some(evidence_path.clone()),
+            },
+            verification_records,
+            artifacts,
+            gates,
+            approvals,
+            evidence: Some(evidence),
+            invocations: vec![
+                PersistedInvocation {
+                    request: context_request,
+                    decision: context_decision,
+                    attempts: vec![context_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: generation_request,
+                    decision: generation_decision,
+                    attempts: vec![generation_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: critique_request,
+                    decision: critique_decision,
+                    attempts: vec![critique_attempt],
+                    approvals: Vec::new(),
+                },
+            ],
+        };
+
+        store.persist_run_bundle(&bundle)?;
+        self.summarize_run(
+            store,
+            RunSummarySpec {
+                run_id: &run_id,
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                state,
+                artifact_count: bundle.artifacts.len(),
+            },
+        )
     }
 
     fn execute_brownfield_change(
@@ -1503,6 +2902,7 @@ impl EngineService {
                     mode: request.mode,
                     risk: request.risk,
                     zone: request.zone,
+                    classification: request.classification.clone(),
                     owner: request.owner.clone(),
                     created_at: now,
                 },
@@ -1757,6 +3157,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
             },
@@ -2061,6 +3462,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
             },
@@ -2133,13 +3535,38 @@ impl EngineService {
             .map(|bundle| bundle.validation_paths.iter().all(|path| path.independence.sufficient))
             .unwrap_or(true);
 
+        let artifact_inputs = artifacts
+            .iter()
+            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
+            .collect::<Vec<_>>();
+
         let gates = match manifest.mode {
+            Mode::Discovery => gatekeeper::evaluate_discovery_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::DiscoveryGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::Greenfield => gatekeeper::evaluate_greenfield_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::GreenfieldGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    evidence_complete,
+                },
+            ),
             Mode::BrownfieldChange => gatekeeper::evaluate_brownfield_gates(
                 contract,
-                &artifacts
-                    .iter()
-                    .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
-                    .collect::<Vec<_>>(),
+                &artifact_inputs,
                 gatekeeper::BrownfieldGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
@@ -2149,12 +3576,20 @@ impl EngineService {
                     evidence_complete,
                 },
             ),
+            Mode::Architecture => gatekeeper::evaluate_architecture_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::ArchitectureGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    evidence_complete,
+                },
+            ),
             Mode::PrReview => gatekeeper::evaluate_pr_review_gates(
                 contract,
-                &artifacts
-                    .iter()
-                    .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
-                    .collect::<Vec<_>>(),
+                &artifact_inputs,
                 gatekeeper::PrReviewGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
@@ -2223,14 +3658,27 @@ impl EngineService {
         let filesystem = FilesystemAdapter;
         let mut fragments = Vec::new();
         for input in inputs {
-            let path = self.resolve_input_path(input);
-            if path.is_file() {
+            let resolved = self.resolve_input_path(input);
+            let files = self.collect_input_files(input)?;
+            if files.is_empty() {
+                fragments.push(input.clone());
+                continue;
+            }
+
+            let include_labels = resolved.is_dir() || files.len() > 1 || inputs.len() > 1;
+            for path in files {
                 let (contents, _) = filesystem
                     .read_to_string_traced(&path, "capture requirements context")
                     .map_err(|error| EngineError::Validation(error.to_string()))?;
-                fragments.push(contents);
-            } else {
-                fragments.push(input.clone());
+                if include_labels {
+                    fragments.push(format!(
+                        "## Input: {}\n\n{}",
+                        self.persisted_input_path(&path),
+                        contents
+                    ));
+                } else {
+                    fragments.push(contents);
+                }
             }
         }
 
@@ -2438,6 +3886,7 @@ impl EngineService {
             blocked_gates: details.blocked_gates,
             approval_targets: details.approval_targets,
             artifact_paths: details.artifact_paths,
+            mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
     }
@@ -2453,17 +3902,24 @@ impl EngineService {
         let evidence_bundle = store.load_evidence_bundle(run_id)?;
         let gates = store.load_gate_evaluations(run_id).unwrap_or_default();
 
-        let artifact_paths = store
+        let persisted_artifacts = store
             .load_artifact_contract(run_id)
             .ok()
-            .and_then(|contract| store.load_persisted_artifacts(run_id, mode, &contract).ok())
+            .and_then(|contract| store.load_persisted_artifacts(run_id, mode, &contract).ok());
+
+        let artifact_paths = persisted_artifacts
+            .as_ref()
             .map(|artifacts| {
                 artifacts
-                    .into_iter()
+                    .iter()
                     .map(|artifact| format!(".canon/{}", artifact.record.relative_path))
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default();
+
+        let mode_result = persisted_artifacts
+            .as_ref()
+            .and_then(|artifacts| summarize_mode_result(mode, artifacts));
 
         let pending_invocation_targets = invocations
             .iter()
@@ -2512,6 +3968,7 @@ impl EngineService {
 
         let recommended_next_action = recommend_next_action(
             state,
+            mode_result.as_ref(),
             &artifact_paths,
             evidence_bundle.is_some(),
             &blocked_gates,
@@ -2533,6 +3990,7 @@ impl EngineService {
             blocked_gates,
             approval_targets,
             artifact_paths,
+            mode_result,
             recommended_next_action,
         })
     }
@@ -2541,11 +3999,12 @@ impl EngineService {
         let mut fragments = Vec::new();
 
         for input in inputs {
-            let resolved = self.resolve_input_path(input);
-
-            if resolved.is_file() {
-                let contents = std::fs::read_to_string(&resolved)?;
-                fragments.push(contents);
+            let files = self.collect_input_files(input)?;
+            if !files.is_empty() {
+                for resolved in files {
+                    let contents = std::fs::read_to_string(&resolved)?;
+                    fragments.push(contents);
+                }
             } else {
                 fragments.push(input.clone());
             }
@@ -2568,27 +4027,104 @@ impl EngineService {
         let mut fingerprints = Vec::new();
 
         for input in inputs {
-            let resolved = self.resolve_input_path(input);
-            if !resolved.is_file() {
-                continue;
+            for resolved in self.collect_input_files(input)? {
+                let metadata = std::fs::metadata(&resolved)?;
+                let modified = metadata
+                    .modified()
+                    .ok()
+                    .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|duration| duration.as_secs() as i64)
+                    .unwrap_or_default();
+
+                fingerprints.push(InputFingerprint {
+                    path: self.persisted_input_path(&resolved),
+                    size_bytes: metadata.len(),
+                    modified_unix_seconds: modified,
+                    content_digest_sha256: Some(sha256_hex(&std::fs::read(&resolved)?)),
+                    snapshot_ref: None,
+                });
             }
-
-            let metadata = std::fs::metadata(&resolved)?;
-            let modified = metadata
-                .modified()
-                .ok()
-                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|duration| duration.as_secs() as i64)
-                .unwrap_or_default();
-
-            fingerprints.push(InputFingerprint {
-                path: input.clone(),
-                size_bytes: metadata.len(),
-                modified_unix_seconds: modified,
-            });
         }
 
         Ok(fingerprints)
+    }
+
+    fn clarity_source_inputs(&self, inputs: &[String]) -> Result<Vec<String>, EngineError> {
+        let mut source_inputs = Vec::new();
+
+        for input in inputs {
+            let files = self.collect_input_files(input)?;
+            if files.is_empty() {
+                if !source_inputs.iter().any(|existing| existing == input) {
+                    source_inputs.push(input.clone());
+                }
+                continue;
+            }
+
+            for path in files {
+                let persisted = self.persisted_input_path(&path);
+                if !source_inputs.iter().any(|existing| existing == &persisted) {
+                    source_inputs.push(persisted);
+                }
+            }
+        }
+
+        Ok(source_inputs)
+    }
+
+    fn collect_input_files(&self, input: &str) -> Result<Vec<PathBuf>, EngineError> {
+        let resolved = self.resolve_input_path(input);
+        if resolved.is_file() {
+            return Ok(vec![resolved]);
+        }
+        if resolved.is_dir() {
+            let mut files = Vec::new();
+            collect_files_recursively(&resolved, &mut files)?;
+            files.sort();
+            return Ok(files);
+        }
+
+        Ok(Vec::new())
+    }
+
+    fn validate_authored_input_paths(
+        &self,
+        mode: Mode,
+        inputs: &[String],
+    ) -> Result<(), EngineError> {
+        if matches!(mode, Mode::PrReview) {
+            return Ok(());
+        }
+
+        let canon_root = self.repo_root.join(".canon");
+        if !canon_root.exists() {
+            return Ok(());
+        }
+        let canon_root = canon_root.canonicalize()?;
+
+        for input in inputs {
+            let resolved = self.resolve_input_path(input);
+            if !resolved.exists() {
+                continue;
+            }
+
+            let canonical = resolved.canonicalize()?;
+            if canonical.starts_with(&canon_root) {
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` points inside .canon/ and cannot be used as authored input for {}",
+                    mode.as_str()
+                )));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn persisted_input_path(&self, resolved: &Path) -> String {
+        resolved
+            .strip_prefix(&self.repo_root)
+            .map(|path| path.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| resolved.display().to_string())
     }
 
     fn resolve_input_path(&self, input: &str) -> PathBuf {
@@ -2684,6 +4220,30 @@ impl EngineService {
     }
 }
 
+fn collect_files_recursively(directory: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect_files_recursively(&path, files)?;
+        } else if path.is_file() {
+            files.push(path);
+        }
+    }
+
+    Ok(())
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(&mut encoded, "{byte:02x}");
+    }
+    encoded
+}
+
 fn preserve_multiline_summary(value: &str) -> String {
     let mut lines = Vec::new();
     let mut previous_blank = false;
@@ -2702,6 +4262,1047 @@ fn preserve_multiline_summary(value: &str) -> String {
     }
 
     lines.join("\n").trim().to_string()
+}
+
+fn default_list(values: Vec<String>, fallback: &str) -> Vec<String> {
+    if values.is_empty() { vec![fallback.to_string()] } else { values }
+}
+
+fn list_contains_missing_markers(values: &[String]) -> bool {
+    values.iter().any(|value| value.contains("NOT CAPTURED"))
+}
+
+fn count_captured_list_items(values: &[String]) -> usize {
+    values.iter().filter(|value| !value.contains("NOT CAPTURED")).count()
+}
+
+fn push_clarification_question(
+    questions: &mut Vec<ClarificationQuestionSummary>,
+    id: &str,
+    prompt: &str,
+    rationale: &str,
+    evidence: &str,
+) {
+    if questions.iter().any(|question| question.prompt.eq_ignore_ascii_case(prompt)) {
+        return;
+    }
+
+    questions.push(ClarificationQuestionSummary {
+        id: id.to_string(),
+        prompt: prompt.to_string(),
+        rationale: rationale.to_string(),
+        evidence: evidence.to_string(),
+    });
+}
+
+fn is_default_requirements_open_question(question: &str) -> bool {
+    question.eq_ignore_ascii_case("Which downstream mode should consume this packet first?")
+}
+
+fn question_prompt(question: &str) -> String {
+    let trimmed = question.trim().trim_end_matches('.');
+    if trimmed.ends_with('?') { trimmed.to_string() } else { format!("{trimmed}?") }
+}
+
+fn requirements_missing_context(brief: &RequirementsBrief) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if brief.problem.contains("NOT CAPTURED") {
+        missing.push(
+            "Problem framing is missing explicit authored intent or operator goal.".to_string(),
+        );
+    }
+    if brief.outcome.contains("NOT CAPTURED") {
+        missing.push(
+            "Outcome framing is missing an explicit success signal or bounded result.".to_string(),
+        );
+    }
+    if list_contains_missing_markers(&brief.constraints) {
+        missing.push(
+            "Constraints are incomplete; downstream shaping would lack explicit non-negotiables."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_markers(&brief.tradeoffs) {
+        missing.push(
+            "Tradeoffs are incomplete; option evaluation would drift toward generic guidance."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_markers(&brief.out_of_scope) {
+        missing.push(
+            "Scope cuts are incomplete; the packet does not yet name explicit exclusions."
+                .to_string(),
+        );
+    }
+
+    missing
+}
+
+fn prioritized_requirements_clarification_questions(
+    brief: &RequirementsBrief,
+    context_summary: &str,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+    let first_line = first_meaningful_line(context_summary);
+
+    if brief.problem.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-problem",
+            "What bounded operator or engineering problem should this requirements packet frame?",
+            "Without an explicit problem statement, later modes will optimize for the wrong boundary.",
+            &format!("Current intake starts with: {first_line}"),
+        );
+    }
+    if brief.outcome.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-outcome",
+            "What explicit outcome or success signal should this packet preserve?",
+            "A requirements packet needs a bounded success condition before tradeoffs or exclusions make sense.",
+            "No authored `## Outcome` or equivalent success section was detected in the supplied inputs.",
+        );
+    }
+    if list_contains_missing_markers(&brief.constraints) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-constraints",
+            "Which constraints are non-negotiable for this work?",
+            "Constraints determine whether downstream shaping stays repo-specific instead of becoming generic planning advice.",
+            "No authored `## Constraints`, `## Constraint`, or `## Non-Negotiables` section was detected in the supplied inputs.",
+        );
+    }
+    if list_contains_missing_markers(&brief.tradeoffs) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-tradeoffs",
+            "Which tradeoffs are acceptable, and which ones are explicitly rejected?",
+            "Tradeoffs anchor option evaluation and keep the packet honest about what the team is willing to sacrifice.",
+            "No authored `## Tradeoffs` section was detected in the supplied inputs.",
+        );
+    }
+    if list_contains_missing_markers(&brief.out_of_scope) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-scope-cuts",
+            "What is explicitly out of scope or deferred for this packet?",
+            "Scope cuts keep the packet bounded and prevent later modes from inventing extra work.",
+            "No authored `## Out of Scope`, `## Scope Cuts`, or equivalent exclusions section was detected in the supplied inputs.",
+        );
+    }
+
+    for (index, question) in brief.open_questions.iter().enumerate() {
+        if question.contains("NOT CAPTURED") || is_default_requirements_open_question(question) {
+            continue;
+        }
+
+        let prompt = question_prompt(question);
+        push_clarification_question(
+            &mut questions,
+            &format!("authored-open-question-{}", index + 1),
+            &prompt,
+            "This question is already explicit in the supplied brief and should be resolved before the packet is treated as stable downstream input.",
+            "Captured from the authored open-questions or unknowns section.",
+        );
+    }
+
+    questions.truncate(5);
+    questions
+}
+
+fn requirements_reasoning_signals(
+    source_inputs: &[String],
+    brief: &RequirementsBrief,
+) -> Vec<String> {
+    vec![
+        format!(
+            "Detected {} authored input surface(s): {}.",
+            source_inputs.len(),
+            if source_inputs.is_empty() {
+                "no-authored-source-inputs-recorded".to_string()
+            } else {
+                source_inputs.join(", ")
+            }
+        ),
+        format!(
+            "Captured {} constraint point(s), {} tradeoff point(s), {} scope cut(s), and {} open question(s).",
+            count_captured_list_items(&brief.constraints),
+            count_captured_list_items(&brief.tradeoffs),
+            count_captured_list_items(&brief.out_of_scope),
+            count_captured_list_items(&brief.open_questions)
+        ),
+        if brief.problem.contains("NOT CAPTURED") || brief.outcome.contains("NOT CAPTURED") {
+            "The problem/outcome pair is still incomplete, so downstream design would rely on interpretation instead of authored intent.".to_string()
+        } else {
+            "The problem/outcome pair is explicit enough to bound a requirements packet before downstream mode selection.".to_string()
+        },
+    ]
+}
+
+fn discovery_summary(brief: &DiscoveryBrief) -> String {
+    format!(
+        "Problem framing: {}\nConstraints: {}\nRepo focus: {}\nNext phase: {}",
+        truncate_context_excerpt(&brief.problem, 180),
+        truncate_context_excerpt(&brief.constraints, 180),
+        truncate_context_excerpt(&brief.repo_focus, 180),
+        truncate_context_excerpt(&brief.next_phase, 180),
+    )
+}
+
+fn discovery_missing_context(brief: &DiscoveryBrief) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if brief.problem.contains("NOT CAPTURED") {
+        missing.push(
+            "Problem framing is missing; discovery still needs an explicit problem domain."
+                .to_string(),
+        );
+    }
+    if brief.constraints.contains("NOT CAPTURED") {
+        missing.push(
+            "Constraints are missing; discovery does not yet name the boundary it must preserve."
+                .to_string(),
+        );
+    }
+    if brief.repo_focus.contains("NOT CAPTURED") {
+        missing.push(
+            "Repository focus is missing; discovery is not yet anchored to concrete repo surfaces."
+                .to_string(),
+        );
+    }
+    if brief.unknowns.contains("NOT CAPTURED") {
+        missing.push(
+            "Unknowns are missing; discovery does not yet name the unresolved decision pressure points."
+                .to_string(),
+        );
+    }
+    if brief.next_phase.contains("NOT CAPTURED") {
+        missing.push(
+            "Next-phase handoff is missing; discovery does not yet say which downstream mode should consume the packet."
+                .to_string(),
+        );
+    }
+
+    missing
+}
+
+fn prioritized_discovery_clarification_questions(
+    brief: &DiscoveryBrief,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+
+    if brief.problem.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-problem",
+            "What exact problem domain should discovery bound before handoff?",
+            "Discovery needs a named problem domain so later packets do not drift across unrelated repository surfaces.",
+            "No authored `## Problem` or `## Problem Domain` section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.constraints.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-constraints",
+            "Which explicit constraints or boundary rules must discovery preserve?",
+            "Constraints keep the discovery packet honest about what later modes are allowed to change or assume.",
+            "No authored `## Constraints` or equivalent boundary section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.repo_focus.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-repo-focus",
+            "Which repository surfaces, modules, or files should discovery stay anchored to?",
+            "Repo focus determines whether discovery remains grounded in the actual workspace instead of generic planning language.",
+            "No authored `## Repo Focus`, `## Repository Focus`, or `## System Slice` section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.unknowns.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-unknowns",
+            "Which unknowns or decision risks should discovery make explicit before handoff?",
+            "Discovery becomes weaker when it names a boundary but not the unresolved questions that still matter.",
+            "No authored `## Unknowns` or `## Open Questions` section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.next_phase.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-next-phase",
+            "Which downstream governed mode should consume this packet next, and under what trigger?",
+            "A discovery packet needs a concrete translation path so the result remains actionable.",
+            "No authored `## Next Phase`, `## Handoff`, or `## Translation Trigger` section was detected in the supplied discovery brief.",
+        );
+    }
+
+    if !brief.unknowns.contains("NOT CAPTURED") {
+        for (index, question) in split_context_items(&brief.unknowns).into_iter().enumerate() {
+            if question.contains("NOT CAPTURED") {
+                continue;
+            }
+
+            let prompt = question_prompt(&question);
+            push_clarification_question(
+                &mut questions,
+                &format!("authored-discovery-question-{}", index + 1),
+                &prompt,
+                "This unknown is already explicit in the discovery brief and should stay visible before downstream translation.",
+                "Captured from the authored unknowns or open-questions section.",
+            );
+        }
+    }
+
+    questions.truncate(5);
+    questions
+}
+
+fn discovery_reasoning_signals(
+    source_inputs: &[String],
+    repo_surfaces: &[String],
+    brief: &DiscoveryBrief,
+) -> Vec<String> {
+    vec![
+        format!(
+            "Detected {} authored input surface(s): {}.",
+            source_inputs.len(),
+            if source_inputs.is_empty() {
+                "no-authored-source-inputs-recorded".to_string()
+            } else {
+                source_inputs.join(", ")
+            }
+        ),
+        format!(
+            "Mapped {} repository surface hint(s) for discovery anchoring.",
+            repo_surfaces.len()
+        ),
+        format!(
+            "Captured {} unknown or open-question item(s) and inferred next phase `{}`.",
+            if brief.unknowns.contains("NOT CAPTURED") {
+                0
+            } else {
+                count_markdown_entries(&brief.unknowns)
+            },
+            truncate_context_excerpt(&brief.next_phase, 96)
+        ),
+    ]
+}
+
+fn extract_context_list(source: &str, normalized: &str, markers: &[&str]) -> Vec<String> {
+    extract_context_marker(source, normalized, markers)
+        .map(|value| split_context_items(&value))
+        .unwrap_or_default()
+}
+
+fn split_context_items(block: &str) -> Vec<String> {
+    let items = block
+        .lines()
+        .filter_map(|line| trim_list_item(line.trim()))
+        .filter(|item| !item.is_empty())
+        .collect::<Vec<_>>();
+
+    if !items.is_empty() {
+        return items;
+    }
+
+    let condensed = condense_context_block(block, 220);
+    if condensed.is_empty() { Vec::new() } else { vec![condensed] }
+}
+
+fn trim_list_item(line: &str) -> Option<String> {
+    if !is_meaningful_context_line(line) {
+        return None;
+    }
+
+    if let Some(item) = line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")) {
+        return Some(item.trim().to_string());
+    }
+
+    let mut digits = 0usize;
+    for character in line.chars() {
+        if character.is_ascii_digit() {
+            digits += 1;
+            continue;
+        }
+
+        if digits > 0 && (character == '.' || character == ')') {
+            return Some(line[digits + 1..].trim().to_string());
+        }
+
+        break;
+    }
+
+    None
+}
+
+fn condense_context_block(value: &str, max_chars: usize) -> String {
+    let filtered = value
+        .lines()
+        .map(str::trim)
+        .filter(|line| is_meaningful_context_line(line))
+        .collect::<Vec<_>>();
+    let candidate =
+        if filtered.is_empty() { trim_context_block(value) } else { filtered.join(" ") };
+
+    truncate_context_excerpt(&candidate, max_chars)
+}
+
+fn is_meaningful_context_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    !trimmed.is_empty()
+        && !trimmed.starts_with('#')
+        && !trimmed.starts_with("## Input:")
+        && !trimmed.starts_with("![](")
+        && !trimmed.starts_with('|')
+        && !trimmed.starts_with("Page ")
+        && !trimmed.eq_ignore_ascii_case("internal")
+        && !trimmed.starts_with("Version ")
+        && !trimmed.starts_with("Author:")
+        && !trimmed.starts_with("Prepared by:")
+        && !trimmed.starts_with("Checked by:")
+        && !trimmed.starts_with("Approved by:")
+        && !trimmed.starts_with("Revision")
+}
+
+fn truncate_context_excerpt(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    let char_count = trimmed.chars().count();
+    if char_count <= max_chars {
+        return trimmed.to_string();
+    }
+
+    let truncated = trimmed.chars().take(max_chars).collect::<String>();
+    let safe = truncated.rfind(char::is_whitespace).map(|index| truncated[..index].trim());
+    match safe {
+        Some(prefix) if !prefix.is_empty() => format!("{prefix}..."),
+        _ => format!("{}...", truncated.trim()),
+    }
+}
+
+fn summarize_mode_result(mode: Mode, artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    match mode {
+        Mode::Requirements => summarize_requirements_mode_result(artifacts),
+        Mode::Discovery => summarize_discovery_mode_result(artifacts),
+        Mode::Greenfield => summarize_greenfield_mode_result(artifacts),
+        Mode::Architecture => summarize_architecture_mode_result(artifacts),
+        Mode::BrownfieldChange => summarize_brownfield_mode_result(artifacts),
+        Mode::PrReview => summarize_pr_review_mode_result(artifacts),
+        _ => None,
+    }
+}
+
+fn summarize_discovery_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "problem-map.md")?;
+    let unknowns_artifact = artifacts
+        .iter()
+        .find(|artifact| artifact.record.file_name == "unknowns-and-assumptions.md");
+    let boundary_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "context-boundary.md");
+
+    let problem_domain = extract_context_section(&primary.contents, "Problem Domain")
+        .or_else(|| extract_context_section(&primary.contents, "Summary"))
+        .unwrap_or_else(|| "NOT CAPTURED - Problem domain summary is missing.".to_string());
+    let repo_signals = extract_context_section(&primary.contents, "Repo Signals")
+        .unwrap_or_else(|| "NOT CAPTURED - Repository signals are missing.".to_string());
+    let next_phase = extract_context_section(&primary.contents, "Downstream Handoff")
+        .or_else(|| {
+            boundary_artifact.and_then(|artifact| {
+                extract_context_section(&artifact.contents, "Translation Trigger")
+            })
+        })
+        .unwrap_or_else(|| "NOT CAPTURED - Next-phase handoff is missing.".to_string());
+    let unknowns = unknowns_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Unknowns"))
+        .unwrap_or_else(|| "NOT CAPTURED - Unknowns section is missing.".to_string());
+
+    let missing_context_markers =
+        count_missing_context_markers([&problem_domain, &repo_signals, &next_phase, &unknowns]);
+    let repo_signal_count = count_markdown_entries(&repo_signals);
+    let unknown_count = count_markdown_entries(&unknowns);
+
+    let headline = if missing_context_markers == 0 {
+        "Discovery packet ready for downstream translation.".to_string()
+    } else {
+        format!(
+            "Discovery packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = format!(
+        "Primary artifact maps {repo_signal_count} repository signal(s) and {unknown_count} unknown or assumption set(s). Next phase: {}.",
+        truncate_context_excerpt(&next_phase, 120)
+    );
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Problem Map".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&problem_domain, 320),
+    })
+}
+
+fn summarize_greenfield_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "system-shape.md")?;
+    let capability_map =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "capability-map.md");
+    let delivery_options =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "delivery-options.md");
+    let risk_hotspots =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "risk-hotspots.md");
+
+    let system_shape = extract_context_section(&primary.contents, "System Shape")
+        .or_else(|| extract_context_section(&primary.contents, "Summary"))
+        .unwrap_or_else(|| "NOT CAPTURED - System shape summary is missing.".to_string());
+    let boundary_decisions = extract_context_section(&primary.contents, "Boundary Decisions")
+        .unwrap_or_else(|| "NOT CAPTURED - Boundary decisions are missing.".to_string());
+    let capabilities = capability_map
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Capabilities"))
+        .unwrap_or_else(|| "NOT CAPTURED - Capability map is missing.".to_string());
+    let delivery_phases = delivery_options
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Delivery Phases"))
+        .unwrap_or_else(|| "NOT CAPTURED - Delivery phases are missing.".to_string());
+    let hotspots = risk_hotspots
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Hotspots"))
+        .unwrap_or_else(|| "NOT CAPTURED - Risk hotspots are missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &system_shape,
+        &boundary_decisions,
+        &capabilities,
+        &delivery_phases,
+        &hotspots,
+    ]);
+    let capability_count = count_markdown_entries(&capabilities);
+    let delivery_count = count_markdown_entries(&delivery_phases);
+    let hotspot_count = count_markdown_entries(&hotspots);
+
+    let headline = if missing_context_markers == 0 {
+        "System-shaping packet ready for downstream architecture or delivery planning.".to_string()
+    } else {
+        format!(
+            "System-shaping packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = format!(
+        "Primary artifact names {capability_count} capability slice(s), {delivery_count} delivery phase set(s), and {hotspot_count} risk hotspot set(s)."
+    );
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "System Shape".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&system_shape, 320),
+    })
+}
+
+fn summarize_architecture_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary = artifacts
+        .iter()
+        .find(|artifact| artifact.record.file_name == "architecture-decisions.md")?;
+    let invariants_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "invariants.md");
+    let tradeoff_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "tradeoff-matrix.md");
+    let boundary_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "boundary-map.md");
+
+    let decisions = extract_context_section(&primary.contents, "Decisions")
+        .or_else(|| extract_context_section(&primary.contents, "Summary"))
+        .unwrap_or_else(|| "NOT CAPTURED - Architecture decisions are missing.".to_string());
+    let tradeoffs = extract_context_section(&primary.contents, "Tradeoffs")
+        .or_else(|| {
+            tradeoff_artifact
+                .and_then(|artifact| extract_context_section(&artifact.contents, "Scores"))
+        })
+        .unwrap_or_else(|| "NOT CAPTURED - Architecture tradeoffs are missing.".to_string());
+    let invariants = invariants_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Invariants"))
+        .unwrap_or_else(|| "NOT CAPTURED - Invariants are missing.".to_string());
+    let boundaries = boundary_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Boundaries"))
+        .unwrap_or_else(|| "NOT CAPTURED - Boundary map is missing.".to_string());
+
+    let missing_context_markers =
+        count_missing_context_markers([&decisions, &tradeoffs, &invariants, &boundaries]);
+    let decision_count = count_markdown_entries(&decisions);
+    let tradeoff_count = count_markdown_entries(&tradeoffs);
+    let invariant_count = count_markdown_entries(&invariants);
+    let boundary_count = count_markdown_entries(&boundaries);
+
+    let headline = if missing_context_markers == 0 {
+        "Architecture packet ready for downstream implementation or review.".to_string()
+    } else {
+        format!(
+            "Architecture packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = format!(
+        "Primary artifact records {decision_count} decision set(s), {tradeoff_count} tradeoff set(s), {invariant_count} invariant set(s), and {boundary_count} boundary set(s)."
+    );
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Architecture Decisions".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&decisions, 320),
+    })
+}
+
+fn summarize_brownfield_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "change-surface.md")?;
+    let legacy_invariants_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "legacy-invariants.md");
+    let validation_strategy_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "validation-strategy.md");
+    let system_slice_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "system-slice.md");
+
+    let (change_surface, change_surface_missing) = extract_result_section(
+        &primary.contents,
+        "Change Surface",
+        "Missing Context",
+        "NOT CAPTURED - Change surface section is missing.",
+    );
+    let (legacy_invariants, legacy_missing) = legacy_invariants_artifact
+        .map(|artifact| {
+            extract_result_section(
+                &artifact.contents,
+                "Legacy Invariants",
+                "Missing Context",
+                "NOT CAPTURED - Legacy invariants section is missing.",
+            )
+        })
+        .unwrap_or_else(|| {
+            ("NOT CAPTURED - Legacy invariants artifact is missing.".to_string(), true)
+        });
+    let (validation_strategy, validation_missing) = validation_strategy_artifact
+        .map(|artifact| {
+            extract_result_section(
+                &artifact.contents,
+                "Validation Strategy",
+                "Missing Context",
+                "NOT CAPTURED - Validation strategy section is missing.",
+            )
+        })
+        .unwrap_or_else(|| {
+            ("NOT CAPTURED - Validation strategy artifact is missing.".to_string(), true)
+        });
+    let (system_slice, system_slice_missing) = system_slice_artifact
+        .map(|artifact| {
+            extract_result_section(
+                &artifact.contents,
+                "System Slice",
+                "Missing Context",
+                "NOT CAPTURED - System slice section is missing.",
+            )
+        })
+        .unwrap_or_else(|| ("NOT CAPTURED - System slice artifact is missing.".to_string(), true));
+
+    let missing_context_markers =
+        [change_surface_missing, legacy_missing, validation_missing, system_slice_missing]
+            .into_iter()
+            .filter(|missing| *missing)
+            .count();
+    let change_surface_count = count_markdown_entries(&change_surface);
+    let legacy_invariant_count = count_markdown_entries(&legacy_invariants);
+    let validation_count = count_markdown_entries(&validation_strategy);
+
+    let headline = if missing_context_markers == 0 {
+        "Brownfield packet ready for bounded change review.".to_string()
+    } else {
+        format!(
+            "Brownfield packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact names {change_surface_count} change-surface point(s). Packet also captures {legacy_invariant_count} legacy invariant(s) and {validation_count} validation check set(s) for the bounded slice {}.",
+            truncate_context_excerpt(&system_slice, 90)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Change surface: {change_surface_count}; legacy invariants: {legacy_invariant_count}; validation checks: {validation_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Change Surface".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&change_surface, 320),
+    })
+}
+
+fn summarize_pr_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "review-summary.md")?;
+    let pr_analysis_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "pr-analysis.md");
+
+    let final_disposition = extract_context_section(&primary.contents, "Final Disposition")
+        .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
+    let severity = extract_context_section(&primary.contents, "Severity")
+        .unwrap_or_else(|| "NOT CAPTURED - Severity section is missing.".to_string());
+    let must_fix_findings = extract_context_section(&primary.contents, "Must-Fix Findings")
+        .unwrap_or_else(|| "NOT CAPTURED - Must-fix findings section is missing.".to_string());
+    let accepted_risks = extract_context_section(&primary.contents, "Accepted Risks")
+        .unwrap_or_else(|| "NOT CAPTURED - Accepted risks section is missing.".to_string());
+    let changed_modules = pr_analysis_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Changed Modules"))
+        .unwrap_or_else(|| "NOT CAPTURED - Changed modules section is missing.".to_string());
+    let inferred_intent = pr_analysis_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Inferred Intent"))
+        .unwrap_or_else(|| "NOT CAPTURED - Inferred intent section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &final_disposition,
+        &severity,
+        &must_fix_findings,
+        &accepted_risks,
+        &changed_modules,
+        &inferred_intent,
+    ]);
+    let disposition_status = extract_labeled_context_value(&final_disposition, "Status")
+        .unwrap_or_else(|| "unknown-disposition".to_string());
+    let rationale = extract_labeled_context_value(&final_disposition, "Rationale")
+        .unwrap_or_else(|| truncate_context_excerpt(&final_disposition, 320));
+    let overall_severity = extract_labeled_context_value(&severity, "Overall severity")
+        .unwrap_or_else(|| {
+            if must_fix_findings.contains("No must-fix findings remain.") {
+                "review-notes".to_string()
+            } else {
+                "must-fix".to_string()
+            }
+        });
+    let must_fix_count =
+        extract_labeled_usize(&severity, "Must-fix findings").unwrap_or_else(|| {
+            count_context_items_without_placeholders(
+                &must_fix_findings,
+                &["No must-fix findings remain."],
+            )
+        });
+    let review_note_count = extract_labeled_usize(&severity, "Review notes").unwrap_or_else(|| {
+        count_context_items_without_placeholders(&accepted_risks, &["No accepted risks recorded."])
+    });
+    let changed_surface_count = count_context_items_without_placeholders(
+        &changed_modules,
+        &["No changed surfaces detected."],
+    );
+
+    let headline = if missing_context_markers == 0 {
+        match disposition_status.as_str() {
+            "ready-with-review-notes" => format!(
+                "PR review completed with {review_note_count} review note(s) and no unresolved must-fix findings."
+            ),
+            "awaiting-disposition" => format!(
+                "PR review found {must_fix_count} must-fix finding(s) and is waiting for explicit disposition."
+            ),
+            "accepted-with-approval" => {
+                "PR review completed with explicit approval for the remaining must-fix findings."
+                    .to_string()
+            }
+            _ => format!("PR review completed with disposition `{disposition_status}`."),
+        }
+    } else {
+        format!(
+            "PR review packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact records `{disposition_status}` disposition with `{overall_severity}` severity across {changed_surface_count} changed surface(s), {must_fix_count} must-fix finding(s), and {review_note_count} review note(s)."
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Changed surfaces: {changed_surface_count}; must-fix findings: {must_fix_count}; review notes: {review_note_count}."
+        )
+    };
+    let result_excerpt = if rationale.contains("NOT CAPTURED") {
+        truncate_context_excerpt(&inferred_intent, 320)
+    } else {
+        truncate_context_excerpt(&rationale, 320)
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Review Summary".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt,
+    })
+}
+
+fn summarize_requirements_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "problem-statement.md")?;
+    let constraints_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "constraints.md");
+    let scope_cuts_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "scope-cuts.md");
+    let decision_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "decision-checklist.md");
+
+    let problem = extract_context_section(&primary.contents, "Problem")
+        .or_else(|| extract_context_section(&primary.contents, "Summary"))
+        .unwrap_or_else(|| "NOT CAPTURED - Problem statement summary is missing.".to_string());
+    let constraints = constraints_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Constraints"))
+        .unwrap_or_else(|| "NOT CAPTURED - Constraints section is missing.".to_string());
+    let scope_cuts = scope_cuts_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Scope Cuts"))
+        .unwrap_or_else(|| "NOT CAPTURED - Scope cuts section is missing.".to_string());
+    let open_questions = decision_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Open Questions"))
+        .unwrap_or_else(|| "NOT CAPTURED - Open questions section is missing.".to_string());
+
+    let missing_context_markers = [&problem, &constraints, &scope_cuts, &open_questions]
+        .into_iter()
+        .filter(|section| section.contains("NOT CAPTURED"))
+        .count();
+    let constraint_count = count_markdown_entries(&constraints);
+    let scope_cut_count = count_markdown_entries(&scope_cuts);
+    let open_question_count = count_markdown_entries(&open_questions);
+
+    let headline = if missing_context_markers == 0 {
+        "Requirements packet ready for downstream review.".to_string()
+    } else {
+        format!(
+            "Requirements packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact is ready. Packet captures {constraint_count} constraint point(s), {scope_cut_count} scope cut(s), and {open_question_count} open question(s)."
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Constraints: {constraint_count}; scope cuts: {scope_cut_count}; open questions: {open_question_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Problem Statement".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&problem, 320),
+    })
+}
+
+fn primary_artifact_action_for(path: &str) -> ResultActionSummary {
+    ResultActionSummary {
+        id: "open-primary-artifact".to_string(),
+        label: "Open primary artifact".to_string(),
+        host_action: "open-file".to_string(),
+        target: path.to_string(),
+        text_fallback: format!("Open the primary artifact at {path}."),
+    }
+}
+
+fn count_markdown_entries(block: &str) -> usize {
+    let count = block.lines().filter(|line| trim_list_item(line.trim()).is_some()).count();
+    if count == 0 && !block.trim().is_empty() && !block.contains("NOT CAPTURED") {
+        1
+    } else {
+        count
+    }
+}
+
+fn count_context_items_without_placeholders(block: &str, placeholders: &[&str]) -> usize {
+    if block.contains("NOT CAPTURED") {
+        return 0;
+    }
+
+    split_context_items(block)
+        .into_iter()
+        .filter(|item| {
+            !placeholders.iter().any(|placeholder| item.eq_ignore_ascii_case(placeholder))
+        })
+        .count()
+}
+
+fn extract_labeled_usize(block: &str, label: &str) -> Option<usize> {
+    extract_labeled_context_value(block, label)?.parse().ok()
+}
+
+fn extract_labeled_context_value(block: &str, label: &str) -> Option<String> {
+    let prefix = format!("{}:", label.to_ascii_lowercase());
+
+    block.lines().find_map(|line| {
+        let normalized = trim_list_item(line.trim()).unwrap_or_else(|| line.trim().to_string());
+        if !normalized.to_ascii_lowercase().starts_with(&prefix) {
+            return None;
+        }
+
+        let value = normalized[normalized.find(':')? + 1..].trim();
+        if value.is_empty() { None } else { Some(value.to_string()) }
+    })
+}
+
+fn extract_result_section(
+    contents: &str,
+    section: &str,
+    missing_section: &str,
+    fallback: &str,
+) -> (String, bool) {
+    if let Some(value) = extract_context_section(contents, section) {
+        return (value, false);
+    }
+
+    if let Some(value) = extract_context_section(contents, missing_section) {
+        return (format!("NOT CAPTURED - {}", trim_context_block(&value)), true);
+    }
+
+    (fallback.to_string(), true)
+}
+
+fn count_missing_context_markers<T>(sections: impl IntoIterator<Item = T>) -> usize
+where
+    T: AsRef<str>,
+{
+    sections.into_iter().filter(|section| section.as_ref().contains("NOT CAPTURED")).count()
+}
+
+fn render_repo_surface_block(repo_surfaces: &[String]) -> String {
+    if repo_surfaces.is_empty() {
+        "- no-repository-surfaces-detected".to_string()
+    } else {
+        repo_surfaces.iter().map(|surface| format!("- {surface}")).collect::<Vec<_>>().join("\n")
+    }
+}
+
+fn extract_context_marker(source: &str, normalized: &str, markers: &[&str]) -> Option<String> {
+    markers.iter().find_map(|marker| {
+        extract_context_section(source, marker)
+            .or_else(|| extract_context_inline_marker(source, normalized, marker))
+    })
+}
+
+fn extract_context_inline_marker(source: &str, normalized: &str, marker: &str) -> Option<String> {
+    let marker_with_colon = format!("{marker}:");
+    let start = normalized.find(&marker_with_colon)?;
+    let remainder = &source[start + marker_with_colon.len()..];
+    let line = remainder.lines().next()?.trim();
+    if line.is_empty() { None } else { Some(line.to_string()) }
+}
+
+fn extract_context_section(source: &str, marker: &str) -> Option<String> {
+    let mut lines = source.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        if !is_matching_context_heading(line, marker) {
+            continue;
+        }
+
+        let mut section_lines = Vec::new();
+        while let Some(next_line) = lines.peek() {
+            if next_line.trim().starts_with('#') {
+                break;
+            }
+
+            section_lines.push(lines.next().unwrap_or_default());
+        }
+
+        let section = trim_context_block(&section_lines.join("\n"));
+        if !section.is_empty() {
+            return Some(section);
+        }
+    }
+
+    None
+}
+
+fn is_matching_context_heading(line: &str, marker: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.starts_with('#') {
+        return false;
+    }
+
+    trimmed.trim_start_matches('#').trim().eq_ignore_ascii_case(marker)
+}
+
+fn trim_context_block(value: &str) -> String {
+    let lines = value.lines().collect::<Vec<_>>();
+    let start = lines.iter().position(|line| !line.trim().is_empty());
+    let end = lines.iter().rposition(|line| !line.trim().is_empty());
+
+    match (start, end) {
+        (Some(start), Some(end)) => lines[start..=end].join("\n"),
+        _ => String::new(),
+    }
+}
+
+fn first_meaningful_line(source: &str) -> String {
+    source
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && !line.starts_with('#'))
+        .map(ToString::to_string)
+        .unwrap_or_else(|| {
+            "Bound the problem to the current repository before moving into a planning or execution mode."
+                .to_string()
+        })
+}
+
+fn infer_discovery_next_phase(source: &str) -> String {
+    let normalized = source.to_lowercase();
+    if normalized.contains("architecture") || normalized.contains("boundary") {
+        "Translate this discovery packet into architecture mode with named boundaries, invariants, and explicit tradeoffs."
+            .to_string()
+    } else if normalized.contains("legacy")
+        || normalized.contains("existing")
+        || normalized.contains("brownfield")
+    {
+        "Translate this discovery packet into brownfield-change mode with preserved invariants and a bounded change surface."
+            .to_string()
+    } else if normalized.contains("new capability")
+        || normalized.contains("greenfield")
+        || normalized.contains("system-shaping")
+        || normalized.contains("system shaping")
+        || normalized.contains("new system")
+    {
+        "Translate this discovery packet into system-shaping mode with explicit capability boundaries and phased delivery options."
+            .to_string()
+    } else {
+        "Translate this discovery packet into requirements mode with a bounded problem statement, constraints, options, and scope cuts."
+            .to_string()
+    }
 }
 
 fn extract_brownfield_change_surface_entries(source: &str) -> Vec<String> {
@@ -2810,6 +5411,7 @@ fn run_state_from_gates(gates: &[crate::domain::gate::GateEvaluation]) -> RunSta
 
 fn recommend_next_action(
     state: RunState,
+    mode_result: Option<&ModeResultSummary>,
     artifact_paths: &[String],
     has_evidence_bundle: bool,
     blocked_gates: &[GateInspectSummary],
@@ -2861,6 +5463,10 @@ fn recommend_next_action(
     }
 
     if matches!(state, RunState::Completed) {
+        if mode_result.is_some() {
+            return None;
+        }
+
         if !artifact_paths.is_empty() {
             return Some(RecommendedActionSummary {
                 action: "inspect-artifacts".to_string(),
@@ -2902,9 +5508,9 @@ fn capability_tag(capability: CapabilityKind) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        EngineService, GateInspectSummary, RecommendedActionSummary, capability_tag,
-        extract_brownfield_change_surface_entries, preserve_multiline_summary,
-        recommend_next_action, run_state_from_gates,
+        EngineService, GateInspectSummary, ModeResultSummary, RecommendedActionSummary,
+        ResultActionSummary, capability_tag, extract_brownfield_change_surface_entries,
+        preserve_multiline_summary, recommend_next_action, run_state_from_gates,
     };
     use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
     use crate::domain::run::RunState;
@@ -2980,7 +5586,7 @@ mod tests {
 
     #[test]
     fn recommend_next_action_prefers_evidence_for_completed_runs_without_artifacts() {
-        let action = recommend_next_action(RunState::Completed, &[], true, &[], &[]);
+        let action = recommend_next_action(RunState::Completed, None, &[], true, &[], &[]);
 
         assert_eq!(
             action,
@@ -2991,6 +5597,39 @@ mod tests {
                 target: None,
             })
         );
+    }
+
+    #[test]
+    fn recommend_next_action_is_absent_for_completed_runs_with_mode_result() {
+        let mode_result = ModeResultSummary {
+            headline: "Requirements packet ready for downstream review.".to_string(),
+            artifact_packet_summary: "Primary artifact is ready.".to_string(),
+            primary_artifact_title: "Problem Statement".to_string(),
+            primary_artifact_path: ".canon/artifacts/run-123/requirements/problem-statement.md"
+                .to_string(),
+            primary_artifact_action: ResultActionSummary {
+                id: "open-primary-artifact".to_string(),
+                label: "Open primary artifact".to_string(),
+                host_action: "open-file".to_string(),
+                target: ".canon/artifacts/run-123/requirements/problem-statement.md"
+                    .to_string(),
+                text_fallback:
+                    "Open the primary artifact at .canon/artifacts/run-123/requirements/problem-statement.md."
+                        .to_string(),
+            },
+            result_excerpt: "Build a bounded USB flashing CLI.".to_string(),
+        };
+
+        let action = recommend_next_action(
+            RunState::Completed,
+            Some(&mode_result),
+            std::slice::from_ref(&mode_result.primary_artifact_path),
+            true,
+            &[],
+            &[],
+        );
+
+        assert_eq!(action, None);
     }
 
     #[test]
@@ -3082,6 +5721,7 @@ mod tests {
     fn recommend_next_action_prefers_artifact_review_for_approval_gated_runs() {
         let action = recommend_next_action(
             RunState::AwaitingApproval,
+            None,
             &[".canon/artifacts/run-123/brownfield-change/system-slice.md".to_string()],
             true,
             &[],
@@ -3102,6 +5742,7 @@ mod tests {
     fn recommend_next_action_points_to_direct_approval_when_no_packet_exists() {
         let action = recommend_next_action(
             RunState::AwaitingApproval,
+            None,
             &[],
             false,
             &[],
@@ -3122,6 +5763,7 @@ mod tests {
     fn recommend_next_action_uses_evidence_for_blocked_runs_without_artifacts() {
         let action = recommend_next_action(
             RunState::Blocked,
+            None,
             &[],
             true,
             &[GateInspectSummary {

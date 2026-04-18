@@ -12,8 +12,22 @@ run_id=""
 owner=""
 risk=""
 zone=""
+normalized_risk=""
+normalized_zone=""
+inferred_risk=""
+inferred_zone=""
+inference_confidence=""
+inference_headline=""
+inference_rationale=""
+risk_rationale=""
+zone_rationale=""
+risk_was_supplied=""
+zone_was_supplied=""
 inputs=()
 refs=()
+inference_signals=()
+risk_signals=()
+zone_signals=()
 
 trim() {
   local value="$1"
@@ -82,6 +96,68 @@ normalize_zone() {
   esac
 }
 
+infer_classification() {
+  local mode="$1"
+  shift
+
+  local -a cmd=(canon inspect risk-zone --mode "$mode" --output text)
+  if [[ -n "${normalized_risk}" ]]; then
+    cmd+=(--risk "$normalized_risk")
+  fi
+  if [[ -n "${normalized_zone}" ]]; then
+    cmd+=(--zone "$normalized_zone")
+  fi
+  while [[ $# -gt 0 ]]; do
+    cmd+=(--input "$1")
+    shift
+  done
+
+  local output
+  if ! output="$("${cmd[@]}" 2>/dev/null)"; then
+    emit_failure "classification-unavailable" 20 \
+      "Canon could not infer risk and zone from the supplied intake." \
+      "Provide --risk and --zone explicitly, or fix the authored input surface before retrying." \
+      "FAILED_KIND=ClassificationInference"
+  fi
+
+  inferred_risk=""
+  inferred_zone=""
+  inference_confidence=""
+  inference_headline=""
+  inference_rationale=""
+  risk_rationale=""
+  zone_rationale=""
+  risk_was_supplied=""
+  zone_was_supplied=""
+  inference_signals=()
+  risk_signals=()
+  zone_signals=()
+
+  while IFS='=' read -r key value; do
+    case "$key" in
+      INFERRED_RISK) inferred_risk="$value" ;;
+      INFERRED_ZONE) inferred_zone="$value" ;;
+      INFERENCE_CONFIDENCE) inference_confidence="$value" ;;
+      INFERENCE_HEADLINE) inference_headline="$value" ;;
+      INFERENCE_RATIONALE) inference_rationale="$value" ;;
+      RISK_RATIONALE) risk_rationale="$value" ;;
+      ZONE_RATIONALE) zone_rationale="$value" ;;
+      RISK_WAS_SUPPLIED) risk_was_supplied="$value" ;;
+      ZONE_WAS_SUPPLIED) zone_was_supplied="$value" ;;
+      SIGNAL_*) inference_signals+=("$value") ;;
+      RISK_SIGNAL_*) risk_signals+=("$value") ;;
+      ZONE_SIGNAL_*) zone_signals+=("$value") ;;
+    esac
+  done <<<"$output"
+
+  if [[ -z "${inferred_risk}" || -z "${inferred_zone}" ]]; then
+    emit_failure "classification-unavailable" 20 \
+      "Canon returned an incomplete risk/zone inference payload." \
+      "Provide --risk and --zone explicitly, or inspect the authored intake before retrying." \
+      "FAILED_KIND=ClassificationInference"
+  fi
+}
+
 normalize_input_path() {
   local raw="$1"
   if [[ "$raw" == /* ]] && [[ "$raw" == "${repo_root}"/* ]]; then
@@ -89,6 +165,39 @@ normalize_input_path() {
   else
     printf '%s' "$raw"
   fi
+}
+
+resolve_existing_input_path() {
+  local raw="$1"
+  local candidate="$raw"
+  if [[ "$candidate" != /* ]]; then
+    candidate="${repo_root}/${candidate}"
+  fi
+
+  [[ -e "$candidate" ]] || return 1
+
+  local base_name
+  base_name="$(basename "$candidate")"
+  local parent_dir
+  parent_dir="$(cd "$(dirname "$candidate")" && pwd -P)"
+  printf '%s/%s' "$parent_dir" "$base_name"
+}
+
+canonical_mode_input_hint() {
+  case "$command_name" in
+    requirements|discovery|architecture)
+      printf '%s' "canon-input/${command_name}.md or canon-input/${command_name}/"
+      ;;
+    system-shaping|greenfield)
+      printf '%s' 'canon-input/system-shaping.md or canon-input/system-shaping/'
+      ;;
+    brownfield-change)
+      printf '%s' 'canon-input/brownfield-change.md or canon-input/brownfield-change/'
+      ;;
+    *)
+      return 1
+      ;;
+  esac
 }
 
 local_branch_exists() {
@@ -348,7 +457,7 @@ run_id_command="false"
 pr_review_command="false"
 
 case "${command_name}" in
-  requirements|brownfield-change)
+  requirements|discovery|system-shaping|greenfield|architecture|brownfield-change)
     run_start_command="true"
     ;;
   pr-review)
@@ -388,38 +497,6 @@ if [[ "${run_start_command}" == "true" ]]; then
   owner="$(trim "${owner}")"
   risk="$(trim "${risk}")"
   zone="$(trim "${zone}")"
-
-  if is_missing_value "$risk"; then
-    emit_failure "missing-input" 14 \
-      "Risk class is required for ${command_name}." \
-      "Retry with --risk <RISK>." \
-      "FAILED_SLOT=risk" \
-      "FAILED_KIND=RiskField"
-  fi
-
-  if ! normalized_risk="$(normalize_risk "$risk")"; then
-    emit_failure "invalid-input" 17 \
-      "Risk class ${risk} is not supported by the Canon runtime contract." \
-      "Retry with low-impact, bounded-impact, systemic-impact, or the runtime-recognized aliases LowImpact, BoundedImpact, SystemicImpact." \
-      "FAILED_SLOT=risk" \
-      "FAILED_KIND=RiskField"
-  fi
-
-  if is_missing_value "$zone"; then
-    emit_failure "missing-input" 14 \
-      "Usage zone is required for ${command_name}." \
-      "Retry with --zone <ZONE>." \
-      "FAILED_SLOT=zone" \
-      "FAILED_KIND=ZoneField"
-  fi
-
-  if ! normalized_zone="$(normalize_zone "$zone")"; then
-    emit_failure "invalid-input" 17 \
-      "Usage zone ${zone} is not supported by the Canon runtime contract." \
-      "Retry with green, yellow, red, or the runtime-recognized aliases Green, Yellow, Red." \
-      "FAILED_SLOT=zone" \
-      "FAILED_KIND=ZoneField"
-  fi
 
   if [[ "${pr_review_command}" == "true" ]]; then
     if (( ${#refs[@]} == 0 )); then
@@ -480,7 +557,96 @@ if [[ "${run_start_command}" == "true" ]]; then
         "FAILED_KIND=FilePathInput"
     fi
 
+    resolved_input="$(resolve_existing_input_path "$local_input")"
+    canon_root=""
+    if [[ -d "${repo_root}/.canon" ]]; then
+      canon_root="$(cd "${repo_root}/.canon" && pwd -P)"
+    fi
+    if [[ -n "${canon_root}" ]] && \
+      ([[ "${resolved_input}" == "${canon_root}" ]] || [[ "${resolved_input}" == "${canon_root}/"* ]]); then
+      input_hint=""
+      if input_hint="$(canonical_mode_input_hint 2>/dev/null)"; then
+        input_action="Retry with ${input_hint} or another authored file path outside .canon/."
+      else
+        input_action="Retry with an authored file path outside .canon/."
+      fi
+      emit_failure "invalid-input" 17 \
+        "Input ${local_input} points inside .canon/ and cannot be used as authored input for ${command_name}." \
+        "${input_action}" \
+        "FAILED_SLOT=input-path" \
+        "FAILED_KIND=FilePathInput"
+    fi
+
     normalized_input_1="$(normalize_input_path "$local_input")"
+  fi
+
+  if ! is_missing_value "$risk"; then
+    if ! normalized_risk="$(normalize_risk "$risk")"; then
+      emit_failure "invalid-input" 17 \
+        "Risk class ${risk} is not supported by the Canon runtime contract." \
+        "Retry with low-impact, bounded-impact, systemic-impact, or the runtime-recognized aliases LowImpact, BoundedImpact, SystemicImpact." \
+        "FAILED_SLOT=risk" \
+        "FAILED_KIND=RiskField"
+    fi
+  fi
+
+  if ! is_missing_value "$zone"; then
+    if ! normalized_zone="$(normalize_zone "$zone")"; then
+      emit_failure "invalid-input" 17 \
+        "Usage zone ${zone} is not supported by the Canon runtime contract." \
+        "Retry with green, yellow, red, or the runtime-recognized aliases Green, Yellow, Red." \
+        "FAILED_SLOT=zone" \
+        "FAILED_KIND=ZoneField"
+    fi
+  fi
+
+  if [[ -z "${normalized_risk}" || -z "${normalized_zone}" ]]; then
+    if [[ "${pr_review_command}" == "true" ]]; then
+      infer_classification "$command_name" "$normalized_ref_1" "$normalized_ref_2"
+    else
+      infer_classification "$command_name" "$normalized_input_1"
+    fi
+
+    extras=(
+      "VERSION_KIND=${version_kind}"
+      "DETECTED_VERSION=${detected_version}"
+      "NEEDS_CONFIRMATION=true"
+      "INFERRED_RISK=${inferred_risk}"
+      "INFERRED_ZONE=${inferred_zone}"
+      "INFERENCE_CONFIDENCE=${inference_confidence}"
+      "INFERENCE_HEADLINE=${inference_headline}"
+      "INFERENCE_RATIONALE=${inference_rationale}"
+      "RISK_RATIONALE=${risk_rationale}"
+      "ZONE_RATIONALE=${zone_rationale}"
+      "RISK_WAS_SUPPLIED=${risk_was_supplied:-false}"
+      "ZONE_WAS_SUPPLIED=${zone_was_supplied:-false}"
+    )
+
+    if [[ -n "${normalized_input_1}" ]]; then
+      extras+=("NORMALIZED_INPUT_1=${normalized_input_1}")
+    fi
+    if [[ -n "${normalized_ref_1}" ]]; then
+      extras+=("NORMALIZED_REF_1=${normalized_ref_1}")
+    fi
+    if [[ -n "${normalized_ref_2}" ]]; then
+      extras+=("NORMALIZED_REF_2=${normalized_ref_2}")
+    fi
+
+    for index in "${!inference_signals[@]}"; do
+      extras+=("SIGNAL_$((index + 1))=${inference_signals[$index]}")
+    done
+    for index in "${!risk_signals[@]}"; do
+      extras+=("RISK_SIGNAL_$((index + 1))=${risk_signals[$index]}")
+    done
+    for index in "${!zone_signals[@]}"; do
+      extras+=("ZONE_SIGNAL_$((index + 1))=${zone_signals[$index]}")
+    done
+
+    emit_result "needs-classification-confirmation" 19 "preflight" \
+      "${inference_headline}" \
+      "Confirm or override the inferred classification, then invoke Canon with explicit --risk and --zone." \
+      "${extras[@]}"
+    exit 19
   fi
 fi
 
@@ -500,6 +666,12 @@ if [[ -n "${normalized_ref_1}" ]]; then
 fi
 if [[ -n "${normalized_ref_2}" ]]; then
   extras+=("NORMALIZED_REF_2=${normalized_ref_2}")
+fi
+if [[ -n "${normalized_risk}" ]]; then
+  extras+=("NORMALIZED_RISK=${normalized_risk}")
+fi
+if [[ -n "${normalized_zone}" ]]; then
+  extras+=("NORMALIZED_ZONE=${normalized_zone}")
 fi
 
 emit_result "ready" 0 "preflight" \

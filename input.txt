@@ -1,0 +1,7 @@
+Problem: Create discovery mode artifacts
+Constraints: - Fast output
+- No LLM calls
+Repo Focus: canon-engine
+Repo Surface: src/orchestrator
+Unknowns: None
+Next Phase: Requirements
