@@ -8,7 +8,7 @@ The domain must define all of these as first-class variants:
 
 - `requirements`
 - `discovery`
-- `greenfield`
+- `system-shaping` (internal enum variant: `Greenfield`)
 - `brownfield-change`
 - `architecture`
 - `implementation`
@@ -49,7 +49,7 @@ The domain must define all of these as first-class variants:
 | `MethodDefinition` | mode, ordered steps, stop conditions, exit criteria | Defines the bounded sequence of work for a mode |
 | `StepDefinition` | step id, label, required inputs, produced outputs, stop conditions | Makes runs resumable and inspectable at step boundaries |
 | `PolicySet` | version, risk rules, zone rules, gate rules, verification rules, adapter rules | Centralizes governance without embedding it in prompts |
-| `RunContext` | repo root, git head, selected inputs, excluded paths, owner, adapter availability, parent run | Captures the bounded context of a run |
+| `RunContext` | repo root, git head, selected inputs, excluded paths, owner, adapter availability, parent run, input digests, input snapshot refs | Captures the bounded context of a run |
 | `Run` | run id, state, mode, risk, zone, policy version, method version, pointers to contract and evidence | The durable execution object for the engine |
 | `ArtifactRequirement` | artifact key, file name, format, required sections, mandatory conditions, gate dependencies | Expresses what must exist before progress is allowed |
 | `ArtifactContract` | mode, risk, zone, artifact requirements, required verification, required approvals | Freezes the artifact burden for the run |
@@ -88,7 +88,7 @@ The domain must define all of these as first-class variants:
 | --- | --- | --- |
 | `requirements` | problem framing, constraints, options, tradeoffs, scope cuts, decision checklist | Full |
 | `discovery` | discovery brief, assumptions register, evidence log, unknowns register, discovery summary | ContractOnly |
-| `greenfield` | system intent, domain map, architecture options, boundary decisions, delivery plan | ContractOnly |
+| `system-shaping` | system intent, domain map, architecture options, boundary decisions, delivery plan | ContractOnly |
 | `brownfield-change` | system map or slice, legacy invariants, change surface, implementation plan, validation strategy, decision record | Full |
 | `architecture` | invariants, boundary map, architecture options, tradeoffs, decision record, risk memo | ContractOnly |
 | `implementation` | execution brief, task bundle, contract checklist, change log, verification hooks, completion record | Skeleton |
@@ -136,7 +136,7 @@ Resumability depends on four persisted anchors:
 1. `RunState`
 2. step completion records
 3. gate evaluations
-4. input fingerprints and repository head
+4. input fingerprints, content digests, snapshot refs, and repository head
 
 If any referenced input changes, the engine does not guess. It blocks the run
 and requires one of three explicit actions:

@@ -7,6 +7,31 @@ use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
 
+pub struct DiscoveryGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
+pub struct GreenfieldGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub evidence_complete: bool,
+}
+
+pub struct ArchitectureGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub evidence_complete: bool,
+}
+
 pub struct BrownfieldGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -40,6 +65,113 @@ pub fn evaluate_requirements_gates(
             artifacts,
             denied_invocations,
             evidence_complete,
+        ),
+    ]
+}
+
+pub fn evaluate_discovery_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: DiscoveryGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Exploration,
+            contract,
+            artifacts,
+            &["problem-map.md", "context-boundary.md"],
+            "discovery requires a bounded problem domain and explicit context boundary",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone discovery work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "discovery readiness requires persisted context, critique, and repository validation evidence",
+        ),
+    ]
+}
+
+pub fn evaluate_greenfield_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: GreenfieldGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Exploration,
+            contract,
+            artifacts,
+            &["system-shape.md", "capability-map.md"],
+            "system-shaping requires a bounded system shape and capability map",
+        ),
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["system-shape.md", "architecture-outline.md", "capability-map.md"],
+            "system-shaping architecture review requires bounded structure, capabilities, and rationale",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone system-shaping work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            true,
+            context.evidence_complete,
+            "system-shaping readiness requires persisted context, generation, and critique evidence",
+        ),
+    ]
+}
+
+pub fn evaluate_architecture_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: ArchitectureGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Exploration,
+            contract,
+            artifacts,
+            &["boundary-map.md"],
+            "architecture exploration requires an explicit boundary map",
+        ),
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["architecture-decisions.md", "invariants.md", "tradeoff-matrix.md"],
+            "architecture review requires decisions, invariants, and tradeoff scoring",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone architecture work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            true,
+            context.evidence_complete,
+            "architecture readiness requires persisted context, generation, and critique evidence",
         ),
     ]
 }
@@ -149,6 +281,15 @@ fn requirements_release_readiness_gate(
 ) -> GateEvaluation {
     let mut blockers = validate_release_bundle(contract, artifacts);
 
+    if artifacts.iter().any(|(file_name, contents)| {
+        file_name == "problem-statement.md" && contents.contains("## Input:")
+    }) {
+        blockers.push(
+            "requirements problem statement must synthesize the bounded need instead of replaying raw input labels"
+                .to_string(),
+        );
+    }
+
     if !evidence_complete {
         blockers.push(
             "requirements release readiness needs explicit generation and validation evidence"
@@ -168,6 +309,35 @@ fn requirements_release_readiness_gate(
 
     GateEvaluation {
         gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn analysis_release_readiness_gate(
+    gate: GateKind,
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    validation_independence_satisfied: bool,
+    evidence_complete: bool,
+    missing_evidence_message: &str,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(missing_evidence_message.to_string());
+    }
+
+    if !validation_independence_satisfied {
+        blockers.push(
+            "analysis readiness requires an independently recorded repository validation path"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate,
         status: gate_status_from_blockers(&blockers),
         blockers,
         evaluated_at: OffsetDateTime::now_utc(),
@@ -461,7 +631,16 @@ fn named_artifact_gate(
                 .iter()
                 .find(|(file_name, _)| file_name == &requirement.file_name)
                 .map(|(_, contents)| {
-                    crate::artifacts::contract::validate_artifact(requirement, contents)
+                    let mut blockers =
+                        crate::artifacts::contract::validate_artifact(requirement, contents);
+                    if contents.contains("Insufficient evidence:") {
+                        blockers.push(format!(
+                            "{} lacks sufficient evidence for `{}` gate review",
+                            requirement.file_name,
+                            gate.as_str()
+                        ));
+                    }
+                    blockers
                 })
                 .unwrap_or_else(|| {
                     vec![format!("missing required artifact `{}`", requirement.file_name)]
@@ -552,6 +731,27 @@ mod tests {
                 .blockers
                 .iter()
                 .any(|blocker| blocker.contains("runtime-disabled invocation attempts"))
+        );
+    }
+
+    #[test]
+    fn requirements_release_readiness_blocks_raw_input_replay_in_problem_statement() {
+        let contract = contract_for_mode(Mode::Requirements);
+        let mut artifacts = valid_artifacts(&contract);
+        let problem_statement = artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "problem-statement.md")
+            .expect("problem statement artifact");
+        problem_statement
+            .1
+            .push_str("\n\n## Input: canon-input/requirements/source.md\n\nRaw dump");
+
+        let evaluations = evaluate_requirements_gates(&contract, &artifacts, "Owner", &[], true);
+        let release = gate(&evaluations, GateKind::ReleaseReadiness);
+
+        assert_eq!(release.status, GateStatus::Blocked);
+        assert!(
+            release.blockers.iter().any(|blocker| blocker.contains("replaying raw input labels"))
         );
     }
 

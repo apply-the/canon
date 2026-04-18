@@ -199,6 +199,15 @@ than it is.
 - **FR-012**: Repo-aware guidance MAY suggest obvious canonical values when the
   repo context makes them clear, but the frontend MUST still require explicit
   user confirmation before using a value that changes command intent.
+- **FR-013**: File-backed runnable skills MUST only auto-bind authored input
+  from the active mode's canonical `canon-input/<mode>.md` file or
+  `canon-input/<mode>/` folder, and MUST ask explicitly when neither exists.
+- **FR-014**: Runnable skills MUST NOT infer authored inputs from the active
+  editor file, open tabs, generated `.canon/` artifacts, or other incidental
+  workspace files.
+- **FR-015**: When a canonical mode input is a folder, Canon must treat the
+  folder as an authored input set and carry its files into runtime context
+  deterministically rather than collapsing the folder path into a raw string.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -249,6 +258,9 @@ Runnable skills collect missing inputs incrementally.
 - **File path**:
   ask for one missing file path at a time; confirm existence relative to repo
   context before retry.
+- **Canonical mode inputs**:
+  auto-bind only from the active mode's `canon-input/` file or folder; never
+  substitute the currently open editor file or a generated `.canon/` path.
 - **Base ref / Head ref**:
   treat the pair as a coordinated typed input; preserve the valid side if only
   one ref is missing or invalid.
@@ -301,6 +313,11 @@ Runnable skills collect missing inputs incrementally.
   location.
 - **Normalization**: preserve repo-relative intent; canonicalize only enough to
   remove avoidable ambiguity.
+- **Canonical binding**: file-backed modes may auto-bind only from
+  `canon-input/<mode>.md` or `canon-input/<mode>/`.
+- **Forbidden inference**: active editor files, open tabs, generated `.canon/`
+  artifacts, and other incidental workspace files must not be treated as the
+  current authored input.
 - **Retry rendering**: render as a path input and never as a ref.
 
 ### RefInput

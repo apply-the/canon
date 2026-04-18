@@ -36,26 +36,207 @@ pub fn render_requirements_artifact_from_evidence(
     critique_summary: &str,
     denied_summary: &str,
 ) -> String {
+    let generation_normalized = generation_summary.to_lowercase();
+    let critique_normalized = critique_summary.to_lowercase();
+    let problem = extract_marker(generation_summary, &generation_normalized, "problem")
+        .unwrap_or_else(|| generation_summary.to_string());
+    let outcome = extract_marker(generation_summary, &generation_normalized, "outcome")
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Outcome` section in the requirements input.".to_string()
+        });
+    let constraints = extract_marker(generation_summary, &generation_normalized, "constraints")
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Constraints` section in the requirements input."
+                .to_string()
+        });
+    let tradeoffs = extract_marker(generation_summary, &generation_normalized, "tradeoffs")
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Tradeoffs` section in the requirements input.".to_string()
+        });
+    let scope_cuts = extract_marker(generation_summary, &generation_normalized, "scope cuts")
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Out of Scope` or `## Scope Cuts` section in the requirements input."
+                .to_string()
+        });
+    let options = extract_marker(generation_summary, &generation_normalized, "options")
+        .unwrap_or_else(|| {
+            "1. Review the packet with the named owner before downstream planning.".to_string()
+        });
+    let recommended_path =
+        extract_marker(generation_summary, &generation_normalized, "recommended path")
+            .unwrap_or_else(|| {
+                "Review the packet and choose the smallest downstream mode that preserves the current boundary."
+                    .to_string()
+            });
+    let open_questions =
+        extract_marker(generation_summary, &generation_normalized, "open questions")
+            .unwrap_or_else(|| {
+                "NOT CAPTURED - No open questions were recorded for this requirements packet."
+                    .to_string()
+            });
+    let coverage = extract_marker(critique_summary, &critique_normalized, "coverage")
+        .unwrap_or_else(|| "- Requirements critique coverage was not recorded.".to_string());
+    let missing_context = extract_marker(critique_summary, &critique_normalized, "missing context")
+        .unwrap_or_else(|| "- Missing-context critique was not recorded.".to_string());
+    let risk_notes = extract_marker(critique_summary, &critique_normalized, "risk notes")
+        .unwrap_or_else(|| "- Risk notes were not recorded.".to_string());
+    let recommended_focus =
+        extract_marker(critique_summary, &critique_normalized, "recommended focus").unwrap_or_else(
+            || "Review the packet before choosing the next governed mode.".to_string(),
+        );
+
     match file_name {
         "problem-statement.md" => format!(
-            "# Problem Statement\n\n## Summary\n\n{idea_summary}\n\n## Problem\n\n{generation_summary}\n\n## Boundary\n\nThe governed execution path stays in requirements mode and does not mutate the workspace.\n\n## Success Signal\n\nThe next step can proceed using bounded problem framing backed by recorded invocation evidence.\n"
+            "# Problem Statement\n\n## Summary\n\n{idea_summary}\n\n## Problem\n\n{problem}\n\n## Boundary\n\n{}\n\n## Success Signal\n\n{outcome}\n",
+            render_requirements_boundary(&scope_cuts)
         ),
         "constraints.md" => format!(
-            "# Constraints\n\n## Summary\n\n{idea_summary}\n\n## Constraints\n\n- Govern execution before generation.\n- Preserve durable evidence under `.canon/`.\n- Keep validation challenge separate from generation.\n\n## Non-Negotiables\n\n- {critique_summary}\n"
+            "# Constraints\n\n## Summary\n\n{idea_summary}\n\n## Constraints\n\n{constraints}\n\n## Non-Negotiables\n\n{coverage}\n{risk_notes}\n"
         ),
         "options.md" => format!(
-            "# Options\n\n## Summary\n\n{idea_summary}\n\n## Options\n\n1. Continue with a bounded governed change plan.\n2. Reframe the problem if critique evidence shows scope drift.\n\n## Recommended Path\n\nUse the generated framing plus critique evidence to choose the smallest governed next move.\n"
+            "# Options\n\n## Summary\n\n{idea_summary}\n\n## Options\n\n{options}\n\n## Recommended Path\n\n{recommended_path}\n"
         ),
         "tradeoffs.md" => format!(
-            "# Tradeoffs\n\n## Summary\n\n{idea_summary}\n\n## Tradeoffs\n\n- Governed execution adds structure before speed.\n- Evidence-first runs are heavier than freeform prompting.\n- Denied mutation requests keep requirements mode bounded.\n\n## Consequences\n\n- {denied_summary}\n"
+            "# Tradeoffs\n\n## Summary\n\n{idea_summary}\n\n## Tradeoffs\n\n{tradeoffs}\n- Governed execution adds structure before speed.\n- Denied mutation requests keep requirements mode bounded.\n\n## Consequences\n\n- {denied_summary}\n{risk_notes}\n"
         ),
         "scope-cuts.md" => format!(
-            "# Scope Cuts\n\n## Summary\n\n{idea_summary}\n\n## Scope Cuts\n\n- No workspace mutation in requirements mode.\n- No runtime MCP execution in this tranche.\n- No code edits are authorized from this run.\n\n## Deferred Work\n\nMove from framing to execution only after the next mode is chosen explicitly.\n"
+            "# Scope Cuts\n\n## Summary\n\n{idea_summary}\n\n## Scope Cuts\n\n{scope_cuts}\n\n## Deferred Work\n\n{recommended_focus}\n"
         ),
         "decision-checklist.md" => format!(
-            "# Decision Checklist\n\n## Summary\n\n{idea_summary}\n\n## Decision Checklist\n\n- [x] Governed context capture ran before generation.\n- [x] Generation and critique were recorded as separate invocations.\n- [x] Denied mutation attempts remain visible as evidence.\n- [x] The artifact bundle links back to execution evidence.\n\n## Open Questions\n\n- Which downstream mode should consume this evidence bundle?\n- Does the current critique require a narrower scope before planning continues?\n"
+            "# Decision Checklist\n\n## Summary\n\n{idea_summary}\n\n## Decision Checklist\n\n{}\n\n## Open Questions\n\n{}\n",
+            render_requirements_checklist(&problem, &outcome, &constraints, &scope_cuts),
+            render_open_questions(&open_questions, &missing_context)
         ),
         other => render_requirements_artifact(other, idea_summary),
+    }
+}
+
+pub fn render_discovery_artifact(file_name: &str, brief_summary: &str) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let problem = extract_marker(brief_summary, &normalized, "problem")
+        .or_else(|| extract_marker(brief_summary, &normalized, "problem domain"))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Problem` section in the discovery brief.".to_string()
+        });
+    let constraints = extract_marker(brief_summary, &normalized, "constraints")
+        .or_else(|| extract_marker(brief_summary, &normalized, "constraint"))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Constraints` section in the discovery brief.".to_string()
+        });
+    let repo_focus = extract_marker(brief_summary, &normalized, "repo focus")
+        .or_else(|| extract_marker(brief_summary, &normalized, "boundary"))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Repo Focus` section in the discovery brief.".to_string()
+        });
+    let repo_surface = extract_marker(brief_summary, &normalized, "repo surface")
+        .unwrap_or_else(|| "NOT CAPTURED - No repository surfaces were mapped.".to_string());
+    let unknowns = extract_marker(brief_summary, &normalized, "unknowns").unwrap_or_else(|| {
+        "NOT CAPTURED - Provide an `## Unknowns` section in the discovery brief.".to_string()
+    });
+    let next_phase =
+        extract_marker(brief_summary, &normalized, "next phase").unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Next Phase` section in the discovery brief.".to_string()
+        });
+    let generation_summary = extract_marker(brief_summary, &normalized, "generated framing")
+        .unwrap_or_else(|| "NOT CAPTURED - Generated framing was absent.".to_string());
+    let critique_summary = extract_marker(brief_summary, &normalized, "critique evidence")
+        .unwrap_or_else(|| "NOT CAPTURED - Critique evidence is missing.".to_string());
+    let validation_summary = extract_marker(brief_summary, &normalized, "validation evidence")
+        .unwrap_or_else(|| "NOT CAPTURED - Repository validation evidence is missing.".to_string());
+    let summary = render_discovery_bundle_summary(file_name, &problem, &constraints, &next_phase);
+
+    match file_name {
+        "problem-map.md" => format!(
+            "# Problem Map\n\n## Summary\n\n{summary}\n\n## Repo Signals\n\n{repo_surface}\n\n## Problem Domain\n\n{generation_summary}\n\n## Immediate Tensions\n\n{critique_summary}\n\n## Downstream Handoff\n\n{next_phase}\n"
+        ),
+        "unknowns-and-assumptions.md" => format!(
+            "# Unknowns And Assumptions\n\n## Summary\n\n{summary}\n\n## Unknowns\n\n{unknowns}\n\n## Assumptions\n\n- {constraints}\n- Discovery should stay tied to the named repository surface instead of generic product framing.\n\n## Validation Targets\n\n{validation_summary}\n\n## Confidence Levels\n\n{critique_summary}\n"
+        ),
+        "context-boundary.md" => format!(
+            "# Context Boundary\n\n## Summary\n\n{summary}\n\n## In-Scope Context\n\n{problem}\n\n{repo_focus}\n\n## Repo Surface\n\n{repo_surface}\n\n## Out-of-Scope Context\n\n- Workspace mutation and implementation edits remain out of scope for discovery.\n- Do not expand beyond the named repository signals until the next governed mode is chosen.\n\n## Translation Trigger\n\n{next_phase}\n"
+        ),
+        "exploration-options.md" => format!(
+            "# Exploration Options\n\n## Summary\n\n{summary}\n\n## Options\n\n1. Stay in discovery only to close the highest-risk unknowns tied to the current repository surface.\n2. Translate this packet into requirements mode if the main need is bounded problem framing and scope cuts.\n3. Translate this packet into architecture or brownfield planning if the repository signals already point to concrete boundaries or preserved behavior.\n\n## Constraints\n\n- {constraints}\n- Preserve explicit repository anchoring in the next phase.\n\n## Recommended Direction\n\n{generation_summary}\n\n## Next-Phase Shape\n\n{next_phase}\n"
+        ),
+        "decision-pressure-points.md" => format!(
+            "# Decision Pressure Points\n\n## Summary\n\n{summary}\n\n## Pressure Points\n\n{critique_summary}\n\n## Blocking Decisions\n\n{validation_summary}\n\n## Open Questions\n\n{unknowns}\n\n## Recommended Owner\n\n- The named discovery owner should route this packet into the next governed mode with explicit boundary ownership.\n"
+        ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
+pub fn render_greenfield_artifact(
+    file_name: &str,
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+) -> String {
+    let normalized = context_summary.to_lowercase();
+    let intent = extract_marker(context_summary, &normalized, "intent");
+    let constraint = extract_marker(context_summary, &normalized, "constraint")
+        .or_else(|| extract_marker(context_summary, &normalized, "constraints"));
+    let greenfield_gap = greenfield_context_gap(intent.as_deref(), constraint.as_deref());
+    let system_shape = if let Some(gap) = greenfield_gap.as_deref() {
+        gap.to_string()
+    } else {
+        format!(
+            "{generation_summary}\n\nEvidence anchors:\n- Intent: {}\n- Constraint: {}",
+            intent.as_deref().unwrap_or_default(),
+            constraint.as_deref().unwrap_or_default()
+        )
+    };
+    let structural_rationale = if let Some(gap) = greenfield_gap.as_deref() {
+        gap.to_string()
+    } else {
+        format!(
+            "{critique_summary}\n\nConstraint anchor: {}",
+            constraint.as_deref().unwrap_or_default()
+        )
+    };
+
+    match file_name {
+        "system-shape.md" => format!(
+            "# System Shape\n\n## Summary\n\n{context_summary}\n\n## System Shape\n\n{system_shape}\n\n## Boundary Decisions\n\n{structural_rationale}\n\n## Domain Responsibilities\n\n- Responsibilities remain bounded to the capability described in the supplied context.\n"
+        ),
+        "architecture-outline.md" => format!(
+            "# Architecture Outline\n\n## Summary\n\n{context_summary}\n\n## Structural Options\n\n{system_shape}\n\n## Selected Boundaries\n\n{structural_rationale}\n\n## Rationale\n\nThe selected boundaries favor explicit ownership and staged delivery over unbounded system growth.\n"
+        ),
+        "capability-map.md" => format!(
+            "# Capability Map\n\n## Summary\n\n{context_summary}\n\n## Capabilities\n\n{system_shape}\n\n## Dependencies\n\n- Dependencies remain limited to the bounded capability described in the run context.\n\n## Gaps\n\n{structural_rationale}\n"
+        ),
+        "delivery-options.md" => format!(
+            "# Delivery Options\n\n## Summary\n\n{context_summary}\n\n## Delivery Phases\n\n{generation_summary}\n\n## Sequencing Rationale\n\n{critique_summary}\n\n## Risk per Phase\n\n- Each phase should preserve bounded delivery slices and visible rollback points.\n"
+        ),
+        "risk-hotspots.md" => format!(
+            "# Risk Hotspots\n\n## Summary\n\n{context_summary}\n\n## Hotspots\n\n{critique_summary}\n\n## Mitigation Status\n\n- Mitigations remain proposed until downstream modes or reviewers accept them.\n\n## Unresolved Risks\n\n{generation_summary}\n"
+        ),
+        other => render_markdown(other, context_summary),
+    }
+}
+
+pub fn render_architecture_artifact(
+    file_name: &str,
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+) -> String {
+    match file_name {
+        "architecture-decisions.md" => format!(
+            "# Architecture Decisions\n\n## Summary\n\n{context_summary}\n\n## Decisions\n\n{generation_summary}\n\n## Tradeoffs\n\n{critique_summary}\n\n## Consequences\n\nThe recorded decisions constrain later implementation and review work.\n\n## Unresolved Questions\n\n- Which structural assumptions still need explicit acceptance?\n"
+        ),
+        "invariants.md" => format!(
+            "# Invariants\n\n## Summary\n\n{context_summary}\n\n## Invariants\n\n{generation_summary}\n\n## Rationale\n\n{critique_summary}\n\n## Verification Hooks\n\n- Downstream modes must be able to validate these invariants against emitted evidence.\n"
+        ),
+        "tradeoff-matrix.md" => format!(
+            "# Tradeoff Matrix\n\n## Summary\n\n{context_summary}\n\n## Options\n\n{generation_summary}\n\n## Evaluation Criteria\n\n- Boundary preservation\n- Invariant clarity\n- Reversibility\n\n## Scores\n\n{critique_summary}\n\n## Selected Option\n\nThe preferred option is the one that best preserves explicit boundaries and reviewable tradeoffs.\n"
+        ),
+        "boundary-map.md" => format!(
+            "# Boundary Map\n\n## Summary\n\n{context_summary}\n\n## Boundaries\n\n{generation_summary}\n\n## Ownership\n\n- Ownership must remain explicit for each named boundary before implementation begins.\n\n## Crossing Rules\n\n{critique_summary}\n"
+        ),
+        "readiness-assessment.md" => format!(
+            "# Readiness Assessment\n\n## Summary\n\n{context_summary}\n\n## Readiness Status\n\nArchitecture analysis is ready for downstream consumption once approvals and unresolved questions are addressed.\n\n## Blockers\n\n{critique_summary}\n\n## Accepted Risks\n\n{generation_summary}\n"
+        ),
+        other => render_markdown(other, context_summary),
     }
 }
 
@@ -166,6 +347,68 @@ fn render_brownfield_bundle_summary(
 
 fn compact_summary_line(value: &str) -> String {
     value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn render_discovery_bundle_summary(
+    current_file: &str,
+    problem: &str,
+    constraints: &str,
+    next_phase: &str,
+) -> String {
+    let detail_links = [
+        "problem-map.md",
+        "unknowns-and-assumptions.md",
+        "context-boundary.md",
+        "exploration-options.md",
+        "decision-pressure-points.md",
+    ]
+    .into_iter()
+    .filter(|file_name| *file_name != current_file)
+    .map(|file_name| format!("[{file_name}]({file_name})"))
+    .collect::<Vec<_>>()
+    .join(", ");
+
+    let format_field = |label: &str, content: &str| {
+        let trimmed = content.trim();
+        if trimmed.is_empty() {
+            return String::new();
+        }
+        if trimmed.contains('\n') || trimmed.starts_with('-') || trimmed.len() > 100 {
+            format!("- **{label}:**\n\n  {}", trimmed.replace("\n", "\n  "))
+        } else {
+            format!("- **{label}:** {trimmed}")
+        }
+    };
+
+    let mut parts = Vec::new();
+    let prob = format_field("Problem", problem);
+    if !prob.is_empty() {
+        parts.push(prob);
+    }
+
+    let con = format_field("Constraints", constraints);
+    if !con.is_empty() {
+        parts.push(con);
+    }
+
+    let phase = format_field("Next phase", next_phase);
+    if !phase.is_empty() {
+        parts.push(phase);
+    }
+
+    parts.push(format!("- **Details:** {detail_links}"));
+    parts.join("\n")
+}
+
+fn greenfield_context_gap(intent: Option<&str>, constraint: Option<&str>) -> Option<String> {
+    if intent.is_some() && constraint.is_some() {
+        None
+    } else {
+        Some(
+            "Insufficient evidence: supply explicit `Intent:` and `Constraint:` markers in the system-shaping brief before system shaping can proceed."
+                .to_string(),
+        )
+    }
 }
 
 pub fn render_pr_review_artifact(
@@ -340,6 +583,7 @@ fn is_section_boundary(line: &str) -> bool {
     let trimmed = line.trim();
     trimmed.starts_with('#')
         || trimmed.starts_with("Generated framing:")
+        || trimmed.starts_with("Critique evidence:")
         || trimmed.starts_with("Validation evidence:")
         || trimmed.starts_with("Mutation posture:")
 }
@@ -364,6 +608,45 @@ fn render_string_list(values: &[String], empty_message: &str) -> String {
         empty_message.to_string()
     } else {
         values.iter().map(|value| format!("- {value}")).collect::<Vec<_>>().join("\n")
+    }
+}
+
+fn render_requirements_boundary(scope_cuts: &str) -> String {
+    if scope_cuts.contains("NOT CAPTURED") {
+        "The packet remains bounded to explicit requirements framing and does not authorize implementation changes."
+            .to_string()
+    } else {
+        format!("The current packet is bounded by these explicit scope cuts:\n\n{scope_cuts}")
+    }
+}
+
+fn render_requirements_checklist(
+    problem: &str,
+    outcome: &str,
+    constraints: &str,
+    scope_cuts: &str,
+) -> String {
+    let items = [
+        ("The problem statement is explicit.", !problem.contains("NOT CAPTURED")),
+        ("The desired outcome is explicit.", !outcome.contains("NOT CAPTURED")),
+        ("The packet names concrete constraints.", !constraints.contains("NOT CAPTURED")),
+        ("The packet names explicit scope cuts.", !scope_cuts.contains("NOT CAPTURED")),
+    ];
+
+    items
+        .into_iter()
+        .map(|(label, complete)| format!("- [{}] {label}", if complete { "x" } else { " " }))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn render_open_questions(open_questions: &str, missing_context: &str) -> String {
+    if missing_context.contains("No additional missing context")
+        || missing_context.contains("Missing-context critique was not recorded")
+    {
+        open_questions.to_string()
+    } else {
+        format!("{open_questions}\n{missing_context}")
     }
 }
 
@@ -403,7 +686,8 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_marker, render_brownfield_artifact, render_pr_review_artifact,
+        extract_marker, render_architecture_artifact, render_brownfield_artifact,
+        render_discovery_artifact, render_greenfield_artifact, render_pr_review_artifact,
         render_requirements_artifact, render_requirements_artifact_from_evidence,
     };
     use crate::review::findings::{FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket};
@@ -540,5 +824,33 @@ mod tests {
         assert!(summary.contains("Overall severity: must-fix"));
         assert!(summary.contains("Status: accepted-with-approval"));
         assert!(summary.contains("- Decision note"));
+    }
+
+    #[test]
+    fn render_analysis_mode_artifacts_include_required_sections() {
+        let discovery = render_discovery_artifact(
+            "context-boundary.md",
+            "# Discovery Brief\n\n## Problem\nExplore a bounded notification routing problem.\n\n## Constraints\nPreserve the current routing ownership boundaries.\n\n## Repo Surface\n- src/router.rs\n- tests/router_contract.rs\n\n## Unknowns\n- Which caller owns retry policy?\n\n## Next Phase\nTranslate this discovery packet into architecture mode with named boundaries.\n\nGenerated framing: Map the known constraints and unresolved actors.\n\nCritique evidence: Challenge scope drift around retry ownership.\n\nValidation evidence: Validation tool reviewed tracked repository surfaces: src/router.rs, tests/router_contract.rs",
+        );
+        let greenfield = render_greenfield_artifact(
+            "system-shape.md",
+            "Shape a new notification delivery capability.",
+            "Separate ingest, routing, and delivery responsibilities.",
+            "Keep delivery phase boundaries explicit and reversible.",
+        );
+        let architecture = render_architecture_artifact(
+            "tradeoff-matrix.md",
+            "Evaluate architectural boundaries for routing state.",
+            "Compare centralized and partitioned routing designs.",
+            "Partitioned routing better preserves ownership boundaries.",
+        );
+
+        assert!(discovery.contains("## In-Scope Context"));
+        assert!(discovery.contains("## Repo Surface"));
+        assert!(discovery.contains("## Translation Trigger"));
+        assert!(greenfield.contains("## System Shape"));
+        assert!(greenfield.contains("## Boundary Decisions"));
+        assert!(architecture.contains("## Evaluation Criteria"));
+        assert!(architecture.contains("## Selected Option"));
     }
 }

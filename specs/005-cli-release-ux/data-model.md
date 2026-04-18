@@ -15,7 +15,7 @@ architecture.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `version` | string | Semantic version such as `0.5.0` |
+| `version` | string | Semantic version such as `0.6.0` |
 | `os` | enum | `macos`, `linux`, `windows` |
 | `arch` | enum | `arm64`, `x86_64` |
 | `rust_target` | string | Internal build target such as `aarch64-apple-darwin` |
@@ -40,7 +40,7 @@ Represents the complete release surface for one Canon version.
 | Field | Type | Notes |
 | --- | --- | --- |
 | `version` | string | Canon version for the release |
-| `git_tag` | string | Expected public tag such as `v0.5.0` |
+| `git_tag` | string | Expected public tag such as `v0.6.0` |
 | `artifacts` | list of `ReleaseArtifact` | Complete platform matrix for the release |
 | `checksum_manifest_name` | string | `canon-<VERSION>-SHA256SUMS.txt` |
 | `release_notes_ref` | string | Link or artifact for public release notes |

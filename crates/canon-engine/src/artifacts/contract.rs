@@ -37,6 +37,78 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::Discovery => vec![
+            requirement(
+                "problem-map.md",
+                &[
+                    "Summary",
+                    "Repo Signals",
+                    "Problem Domain",
+                    "Immediate Tensions",
+                    "Downstream Handoff",
+                ],
+                &[GateKind::Exploration, GateKind::Risk],
+            ),
+            requirement(
+                "unknowns-and-assumptions.md",
+                &["Summary", "Unknowns", "Assumptions", "Validation Targets", "Confidence Levels"],
+                &[GateKind::Exploration, GateKind::Risk],
+            ),
+            requirement(
+                "context-boundary.md",
+                &[
+                    "Summary",
+                    "In-Scope Context",
+                    "Repo Surface",
+                    "Out-of-Scope Context",
+                    "Translation Trigger",
+                ],
+                &[GateKind::Exploration, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "exploration-options.md",
+                &["Summary", "Options", "Constraints", "Recommended Direction", "Next-Phase Shape"],
+                &[GateKind::Exploration, GateKind::Risk],
+            ),
+            requirement(
+                "decision-pressure-points.md",
+                &[
+                    "Summary",
+                    "Pressure Points",
+                    "Blocking Decisions",
+                    "Open Questions",
+                    "Recommended Owner",
+                ],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Greenfield => vec![
+            requirement(
+                "system-shape.md",
+                &["Summary", "System Shape", "Boundary Decisions", "Domain Responsibilities"],
+                &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
+                "architecture-outline.md",
+                &["Summary", "Structural Options", "Selected Boundaries", "Rationale"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "capability-map.md",
+                &["Summary", "Capabilities", "Dependencies", "Gaps"],
+                &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
+                "delivery-options.md",
+                &["Summary", "Delivery Phases", "Sequencing Rationale", "Risk per Phase"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "risk-hotspots.md",
+                &["Summary", "Hotspots", "Mitigation Status", "Unresolved Risks"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+        ],
         Mode::BrownfieldChange => vec![
             requirement(
                 "system-slice.md",
@@ -71,6 +143,33 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 "decision-record.md",
                 &["Summary", "Decision", "Consequences", "Unresolved Questions"],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Architecture => vec![
+            requirement(
+                "architecture-decisions.md",
+                &["Summary", "Decisions", "Tradeoffs", "Consequences", "Unresolved Questions"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "invariants.md",
+                &["Summary", "Invariants", "Rationale", "Verification Hooks"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "tradeoff-matrix.md",
+                &["Summary", "Options", "Evaluation Criteria", "Scores", "Selected Option"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "boundary-map.md",
+                &["Summary", "Boundaries", "Ownership", "Crossing Rules"],
+                &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
+                "readiness-assessment.md",
+                &["Summary", "Readiness Status", "Blockers", "Accepted Risks"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
         ],
         Mode::PrReview => vec![

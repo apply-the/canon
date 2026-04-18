@@ -15,7 +15,8 @@ If you are here to use Canon rather than build it, the path is simple:
 
 1. install the right release archive for your machine
 2. verify `canon --version` and the resolved PATH location
-3. initialize Canon in a repo and start a governed run
+3. initialize Canon in a repo for plain CLI use or for Codex, Copilot, or Claude
+4. start a governed run and inspect the evidence it leaves behind
 
 ## What Canon Is
 
@@ -132,7 +133,9 @@ mkdir -p ~/tmp/canon-demo
 cd ~/tmp/canon-demo
 git init
 
-cat > idea.md <<'EOF'
+mkdir -p canon-input
+
+cat > canon-input/requirements.md <<'EOF'
 # Idea
 
 Define requirements for a bounded internal CLI without letting scope drift.
@@ -145,7 +148,7 @@ canon run \
   --risk bounded-impact \
   --zone yellow \
   --owner product-lead \
-  --input idea.md
+  --input canon-input/requirements.md
 ```
 
 Take the `run_id` from the output, then inspect what Canon actually did:
@@ -169,6 +172,86 @@ What you get:
 
 That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
 
+## Initialize Your Repo
+
+Run `canon init` inside the repository you want Canon to govern.
+
+### Plain CLI Only
+
+If you only want the Canon runtime and plan to use the CLI directly:
+
+```bash
+canon init
+```
+
+This creates `.canon/` and no editor-specific integration files.
+
+### Codex
+
+If you want repo-local Canon skills for Codex:
+
+```bash
+canon init --ai codex
+```
+
+This creates `.canon/` and `.agents/skills/`.
+
+### Copilot
+
+If you want repo-local Canon skills for GitHub Copilot:
+
+```bash
+canon init --ai copilot
+```
+
+This also creates `.canon/` and `.agents/skills/`. Copilot and Codex use the same repo-local skills surface.
+
+### Claude
+
+If you want repo-local Canon skills for Claude:
+
+```bash
+canon init --ai claude
+```
+
+This creates `.canon/`, `.claude/skills/`, and `CLAUDE.md`.
+
+### Refreshing Materialized Skills
+
+If you already initialized Canon and want to refresh the repo-local skill files from the current embedded set:
+
+```bash
+canon skills update --ai codex
+canon skills update --ai copilot
+canon skills update --ai claude
+```
+
+Use the target that matches the surface you materialized.
+
+## Canonical Authored Inputs
+
+For file-backed modes, the canonical authored-input locations are under
+`canon-input/`:
+
+- `canon-input/requirements.md` or `canon-input/requirements/`
+- `canon-input/discovery.md` or `canon-input/discovery/`
+- `canon-input/system-shaping.md` or `canon-input/system-shaping/`
+- `canon-input/architecture.md` or `canon-input/architecture/`
+- `canon-input/brownfield-change.md` or `canon-input/brownfield-change/`
+
+Repo-local skills may auto-bind only from those mode-specific canonical
+locations. They must not infer `--input` from the active editor file, open
+tabs, or anything under `.canon/`.
+
+When a canonical directory such as `canon-input/requirements/` exists, prefer
+passing the directory itself to `canon inspect clarity` so Canon reads the full
+authored input set recursively instead of a single child file. A single
+`--input` group can also carry multiple explicit paths and still produce one
+aggregated inspection result.
+
+`pr-review` stays explicit and ref-based. It does not auto-bind from
+`canon-input/`.
+
 ## How To Contribute
 
 This README is written for end users first.
@@ -178,18 +261,15 @@ If you want to compile, test, or develop Canon itself, use
 setup, build commands, validation commands, and repository development
 guidance.
 
-## Use Canon From Codex or Copilot
+## Use Canon From Codex, Copilot, or Claude
 
-To materialize repo-local skills for Codex or compatible Copilot environments,
-run:
+Canon supports three end-user integration targets today:
 
-```bash
-canon init --ai codex
-```
+- `canon init --ai codex`
+- `canon init --ai copilot`
+- `canon init --ai claude`
 
-Use `--ai copilot` if you want the explicit Copilot label instead. Both targets
-materialize the same `.agents/skills/` surface. The CLI is still the engine.
-The skills are just a sharper way to invoke it.
+Codex and Copilot both materialize `.agents/skills/`. Claude materializes `.claude/skills/` and `CLAUDE.md`. In every case, the Canon CLI remains the engine and the repo-local files are a guided surface on top.
 
 Those skills assume a real `canon` binary is already on PATH. If they report a
 missing or incompatible Canon installation, return to the install guide above
@@ -198,7 +278,10 @@ and update the shared binary before retrying.
 High-value available-now skills:
 
 - `$canon-init`
+- `$canon-discovery`
 - `$canon-requirements`
+- `$canon-system-shaping`
+- `$canon-architecture`
 - `$canon-status`
 - `$canon-inspect-invocations`
 - `$canon-inspect-evidence`
@@ -215,7 +298,7 @@ $canon-init
 Initialize Canon in this repository.
 
 $canon-requirements
-Start a requirements run with owner staff-engineer, risk bounded-impact, zone yellow, input idea.md.
+Start a requirements run with owner staff-engineer, risk bounded-impact, zone yellow, input canon-input/requirements.md.
 
 $canon-status
 Show status for run <RUN_ID>.
@@ -230,10 +313,9 @@ readable `.canon/artifacts/...` or `.canon/runs/...` files that explain it,
 list the valid actions, and recommend one next step without auto-executing it.
 
 In environments that support repo-local skill discovery, Canon skills are
-discoverable through `$`. Not all are runnable yet. The non-runnable ones are
-still visible, but they must say so explicitly and must not fabricate runs,
-run ids, approvals, or evidence. Claude materialization is separate and only
-happens when you explicitly run `canon init --ai claude`.
+discoverable through `$`. Some are runnable wrappers and some remain honest
+support-state wrappers. Claude materialization is separate and only happens when
+you explicitly run `canon init --ai claude`.
 
 ## Example Workflows
 
@@ -247,7 +329,7 @@ canon run \
   --risk bounded-impact \
   --zone yellow \
   --owner product-lead \
-  --input idea.md
+  --input canon-input/requirements.md
 ```
 
 Canon will:
@@ -273,7 +355,7 @@ canon run \
   --risk bounded-impact \
   --zone yellow \
   --owner staff-engineer \
-  --input brownfield.md
+  --input canon-input/brownfield-change.md
 ```
 
 Canon will:
@@ -360,6 +442,7 @@ Canon writes local runtime state under `.canon/` in the current repo:
 │       ├── context.toml
 │       ├── evidence.toml
 │       ├── gates/
+│       ├── inputs/
 │       ├── invocations/
 │       │   └── <request-id>/
 │       │       ├── attempt-01.toml
@@ -383,6 +466,9 @@ Why that matters:
 - run-scoped analysis and review artifacts belong under `.canon/`, not as ad-hoc files in the repository root
 
 Canon is not trying to preserve every prompt transcript. It preserves the durable parts of consequential work: requests, policy outcomes, attempts, traces, evidence bundles, artifacts, and decisions.
+For authored file-backed inputs, Canon also snapshots the exact files used for
+the run under `.canon/runs/<RUN_ID>/inputs/` and records digest-backed input
+provenance in `context.toml`.
 
 ## Why This Is Different
 
@@ -411,20 +497,26 @@ Available now:
 - `init`
 - `run`
 - `status`
-- `inspect modes|methods|policies|artifacts|invocations|evidence`
+- `inspect modes|methods|policies|risk-zone|clarity|artifacts|invocations|evidence`
 - `approve`
 - `resume`
 
 Implemented end to end today:
 
-- `requirements`
-- `brownfield-change`
-- `pr-review`
+- [discovery](#discovery-mode)
+- [requirements](#requirements-mode)
+- [system-shaping](#system-shaping-mode)
+- [architecture](#architecture-mode)
+- [brownfield-change](#brownfield-change-mode)
+- [pr-review](#pr-review-mode)
 
-Available-now Codex skills backed by the real Canon CLI:
+Available-now repo-local skills backed by the real Canon CLI:
 
 - `canon-init`
+- `canon-discovery`
 - `canon-requirements`
+- `canon-system-shaping`
+- `canon-architecture`
 - `canon-status`
 - `canon-inspect-invocations`
 - `canon-inspect-evidence`
@@ -436,21 +528,91 @@ Available-now Codex skills backed by the real Canon CLI:
 
 Modeled but not fully implemented end to end yet:
 
-- `discovery`
-- `greenfield`
-- `architecture`
-- `implementation`
-- `refactor`
-- `verification`
-- `review`
-- `incident`
-- `migration`
+- [implementation](#implementation-mode)
+- [refactor](#refactor-mode)
+- [verification](#verification-mode)
+- [review](#review-mode)
+- [incident](#incident-mode)
+- [migration](#migration-mode)
 
-Discoverable Codex skills that are honest support-state wrappers:
+## What Each Mode Does
 
-- `canon-discovery`
-- `canon-greenfield`
-- `canon-architecture`
+Need detailed input templates, mode-selection guidance, and explicit
+"questions answered" boundaries? See
+[`MODE_GUIDE.md`](MODE_GUIDE.md).
+
+### Discovery Mode
+
+Use this when you do not yet have a trustworthy problem statement and need to
+explore the problem space before committing to requirements, system shape, or
+architecture decisions. Discovery maps the problem domain, unknowns,
+assumptions, context boundaries, exploration options, and decision pressure
+points from a short discovery brief. The resulting packet is grounded against
+live repository surfaces, records critique plus repository validation evidence,
+and names a concrete downstream handoff into the next governed mode.
+
+### Requirements Mode
+
+Use this when you need to bound the problem before code, design, or scope drift starts.
+Canon turns raw intent into a governed requirements packet with explicit scope,
+constraints, open questions, and decision checkpoints.
+
+### System-Shaping Mode
+
+Use this when the intent is bounded but the system does not exist yet. The
+canonical CLI name is `system-shaping`.
+Canon shapes a new capability into a first governed structure: system shape,
+architecture outline, capability map, delivery options, and risk hotspots.
+This mode includes mandatory critique before the artifact set is finalized.
+
+### Architecture Mode
+
+Use this when you are choosing boundaries, invariants, and tradeoffs for a real
+design decision. Canon produces architecture decisions, invariants, a tradeoff
+matrix, a boundary map, and a readiness assessment. This mode includes
+mandatory critique and can stop for explicit approval when the run is
+systemic-impact or in a red zone.
+
+### Brownfield-Change Mode
+
+Use this when you need to change an existing system without losing important
+behavior. Canon constrains the change surface, records legacy invariants,
+captures a bounded implementation plan, and makes the validation strategy part
+of the governed output.
+
+### PR-Review Mode
+
+Use this on a real diff or worktree when you want review output backed by
+governed inspection instead of a loose summary. Canon inspects the change,
+runs critique as a separate governed path, and leaves behind a review packet
+with explicit evidence and disposition.
+
+### Implementation Mode
+
+TODO: planned mode surface, not implemented end to end yet.
+
+### Refactor Mode
+
+TODO: planned mode surface, not implemented end to end yet.
+
+### Verification Mode
+
+TODO: planned mode surface, not implemented end to end yet.
+
+### Review Mode
+
+TODO: planned mode surface, not implemented end to end yet.
+
+### Incident Mode
+
+TODO: planned mode surface, not implemented end to end yet.
+
+### Migration Mode
+
+TODO: planned mode surface, not implemented end to end yet.
+
+Discoverable support-state wrappers that are still intentionally limited:
+
 - `canon-implementation`
 - `canon-refactor`
 - `canon-review`
@@ -467,12 +629,16 @@ Current limitations:
 
 ## Command Overview
 
-- `canon init [--ai codex|copilot|claude]`: materialize `.canon/` and optionally the requested AI-facing repo-local surface
+- `canon init`: materialize `.canon/` for plain CLI use
+- `canon init --ai codex`: materialize `.canon/` and `.agents/skills/` for Codex
+- `canon init --ai copilot`: materialize `.canon/` and `.agents/skills/` for Copilot
+- `canon init --ai claude`: materialize `.canon/`, `.claude/skills/`, and `CLAUDE.md` for Claude
 - `canon run`: start a governed run with explicit mode, risk, zone, owner, and inputs
 - `canon status --run <RUN_ID>`: inspect run state, pending approvals, and evidence summary
 - `canon inspect modes`: inspect the typed mode catalog
 - `canon inspect methods`: inspect available method definitions
 - `canon inspect policies`: inspect loaded policy definitions
+- `canon inspect clarity --mode <MODE> --input <INPUT_PATH> [<INPUT_PATH> ...]`: derive Canon-backed missing-context findings and clarification questions from one or more authored analysis inputs; any folder input is read recursively
 - `canon inspect artifacts --run <RUN_ID>`: list emitted artifact paths in Markdown by default
 - `canon inspect invocations --run <RUN_ID>`: inspect request-level decisions and outcomes in Markdown by default
 - `canon inspect evidence --run <RUN_ID>`: inspect readable artifact links, generation paths, validation paths, and evidence linkage in Markdown by default
@@ -484,16 +650,3 @@ Current limitations:
 
 Contributor setup, build-from-source instructions, local validation, and repo
 rules live in [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-## Deeper Docs
-
-- Contributor guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
-- Core product spec: [`specs/001-canon-spec/spec.md`](specs/001-canon-spec/spec.md)
-- Core implementation plan: [`specs/001-canon-spec/plan.md`](specs/001-canon-spec/plan.md)
-- Governed execution spec: [`specs/002-governed-execution-adapters/spec.md`](specs/002-governed-execution-adapters/spec.md)
-- Governed execution plan: [`specs/002-governed-execution-adapters/plan.md`](specs/002-governed-execution-adapters/plan.md)
-- Governed execution validation: [`specs/002-governed-execution-adapters/validation-report.md`](specs/002-governed-execution-adapters/validation-report.md)
-- Codex skills frontend spec: [`specs/003-codex-skills-frontend/spec.md`](specs/003-codex-skills-frontend/spec.md)
-- Codex skills frontend plan: [`specs/003-codex-skills-frontend/plan.md`](specs/003-codex-skills-frontend/plan.md)
-- Codex skills frontend validation: [`specs/003-codex-skills-frontend/validation-report.md`](specs/003-codex-skills-frontend/validation-report.md)

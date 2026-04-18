@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-30
+Auto-generated from all feature plans. Last updated: 2026-04-13
 
 ## Governing Constitution
 
@@ -19,6 +19,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-30
 - repo-local skill files under `.agents/skills`; no new persistent storage beyond existing `.canon/` (004-ref-safe-binding)
 - Rust 1.94.1 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`, (005-cli-release-ux)
 - repository files for workflow and documentation changes, GitHub (005-cli-release-ux)
+- Rust 1.94.1, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror, (006-analysis-expansion)
+- Local filesystem under `.canon/` (TOML for manifests, Markdown for (006-analysis-expansion)
 
 - Rust 1.94.1, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -69,9 +71,9 @@ tests/
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 006-analysis-expansion: Added Rust 1.94.1, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror,
 - 005-cli-release-ux: Added Rust 1.94.1 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`,
 - 004-ref-safe-binding: Added Markdown `SKILL.md` files, repo-local Bash and PowerShell + installed `canon` binary, Git command-line ref
-- 003-codex-skills-frontend: Added Markdown `SKILL.md` files, repo-local shell helpers + installed `canon` binary, existing repo-local
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->
@@ -79,9 +81,10 @@ tests/
 
 - Repo-local Canon skills are authored for Codex and also usable in compatible
   Copilot environments that load `.agents/skills/`.
-- Available-now Codex skills: `canon-init`, `canon-requirements`,
+- Available-now Codex skills: `canon-init`, `canon-discovery`,
+  `canon-requirements`, `canon-system-shaping`, `canon-architecture`,
   `canon-status`, `canon-inspect-invocations`, `canon-inspect-evidence`,
-  `canon-inspect-artifacts`, `canon-approve`, `canon-resume`,
+  `canon-inspect-artifacts`, `canon-inspect-clarity`, `canon-approve`, `canon-resume`,
   `canon-brownfield`, `canon-pr-review`.
 - Discoverable support-state skills MUST NOT fabricate Canon runs, run ids,
   approvals, evidence, or CLI output.

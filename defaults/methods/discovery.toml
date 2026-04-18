@@ -1,12 +1,12 @@
 version = 1
 mode = "discovery"
 emphasis = "analysis-heavy"
-implementation_depth = "contract-only"
+implementation_depth = "full"
 gate_profile = ["Exploration", "Risk", "ReleaseReadiness"]
 artifacts = [
-    "discovery-brief.md",
-    "assumptions-register.md",
-    "evidence-log.md",
-    "unknowns-register.md",
-    "discovery-summary.md",
+    "problem-map.md",
+    "unknowns-and-assumptions.md",
+    "context-boundary.md",
+    "exploration-options.md",
+    "decision-pressure-points.md",
 ]

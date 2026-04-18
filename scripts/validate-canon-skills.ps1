@@ -21,17 +21,18 @@ $AvailableNow = @(
   "canon-inspect-invocations",
   "canon-inspect-evidence",
   "canon-inspect-artifacts",
+  "canon-inspect-clarity",
   "canon-approve",
   "canon-resume",
   "canon-requirements",
+  "canon-discovery",
+  "canon-system-shaping",
+  "canon-architecture",
   "canon-brownfield",
   "canon-pr-review"
 )
 
 $ModeledOnly = @(
-  "canon-discovery",
-  "canon-greenfield",
-  "canon-architecture",
   "canon-implementation",
   "canon-refactor",
   "canon-review",
@@ -114,10 +115,22 @@ if ($CanonInitText -match "Run ID:|State:") { Fail "canon-init: must not describ
 $RequirementsPath = Join-Path $SkillsDir "canon-requirements/SKILL.md"
 $BrownfieldPath = Join-Path $SkillsDir "canon-brownfield/SKILL.md"
 $PrReviewPath = Join-Path $SkillsDir "canon-pr-review/SKILL.md"
+$ClarityPath = Join-Path $SkillsDir "canon-inspect-clarity/SKILL.md"
 
 Require-Text $RequirementsPath '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
 Require-Text $BrownfieldPath '--input <INPUT_PATH>' 'canon-brownfield: preflight must keep file-path input binding'
 Require-Text $PrReviewPath '--ref <BASE_REF> --ref <HEAD_REF>' 'canon-pr-review: preflight must use --ref for base/head binding'
+Require-Text $ClarityPath 'canon inspect clarity --mode <MODE> --input <INPUT_PATH> [<INPUT_PATH> ...]' 'canon-inspect-clarity: must promise the exact Canon CLI form'
+Require-Text $ClarityPath '.canon/` is not required for this inspection surface' 'canon-inspect-clarity: must stay honest that this inspect surface is pre-run and does not require runtime state'
+Require-Text $ClarityPath 'Preserve the already valid mode or input selection' 'canon-inspect-clarity: must preserve valid mode or input slots across retry'
+Require-Text $ClarityPath 'Do not fabricate a started run, pending approval, or emitted artifact set' 'canon-inspect-clarity: must forbid fake run state'
+Require-Text $ClarityPath 'prefer the directory when both exist' 'canon-inspect-clarity: must prefer canonical directories over a single child file when both canonical surfaces exist'
+Require-Text $ClarityPath 'whole directory recursively' 'canon-inspect-clarity: must promise recursive folder inspection'
+Require-Text $ClarityPath 'multiple explicit files or folders' 'canon-inspect-clarity: must describe aggregated multi-path inspection'
+
+if ((Get-Content -Raw $ClarityPath) -match 'Run ID:|--run <RUN_ID>|AwaitingApproval') {
+  Fail 'canon-inspect-clarity: must not describe run-scoped output or approval-gated state'
+}
 
 Forbid-Text $PrReviewPath 'check-runtime.sh --command pr-review --repo-root "$PWD" --require-init --owner <OWNER> --risk <RISK> --zone <ZONE> --input <BASE_REF> --input <HEAD_REF>' 'canon-pr-review: preflight must not send base/head refs through --input'
 

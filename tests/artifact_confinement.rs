@@ -7,7 +7,7 @@ use canon_engine::domain::artifact::{
 };
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
-use canon_engine::domain::run::{RunContext, RunState};
+use canon_engine::domain::run::{ClassificationProvenance, RunContext, RunState};
 use canon_engine::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use canon_engine::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 use tempfile::TempDir;
@@ -23,6 +23,7 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
             mode,
             risk: RiskClass::BoundedImpact,
             zone: UsageZone::Yellow,
+            classification: ClassificationProvenance::explicit(),
             owner: "owner@example.com".to_string(),
             created_at: OffsetDateTime::UNIX_EPOCH,
         },
