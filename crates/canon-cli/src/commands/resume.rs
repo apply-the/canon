@@ -17,6 +17,7 @@ mod tests {
         EngineService, RunRequest,
         domain::mode::Mode,
         domain::policy::{RiskClass, UsageZone},
+        domain::run::ClassificationProvenance,
     };
     use tempfile::tempdir;
 
@@ -33,6 +34,7 @@ mod tests {
                 mode: Mode::Requirements,
                 risk: RiskClass::SystemicImpact,
                 zone: UsageZone::Green,
+                classification: ClassificationProvenance::explicit(),
                 owner: "Owner <owner@example.com>".to_string(),
                 inputs: vec!["idea.md".to_string()],
                 excluded_paths: Vec::new(),

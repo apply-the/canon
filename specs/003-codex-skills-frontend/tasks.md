@@ -54,7 +54,7 @@
 - [X] T028 [P] Create new file to be created intentionally `.agents/skills/canon-brownfield/SKILL.md`; acceptance: initial skill file exists with required sections and `available-now` state.
 - [X] T029 [P] Create new file to be created intentionally `.agents/skills/canon-pr-review/SKILL.md`; acceptance: initial skill file exists with required sections and `available-now` state.
 - [X] T030 [P] Create new file to be created intentionally `.agents/skills/canon-discovery/SKILL.md`; acceptance: initial skill file exists with required sections, `modeled-only` state, and no runnable Canon binding.
-- [X] T031 [P] Create new file to be created intentionally `.agents/skills/canon-greenfield/SKILL.md`; acceptance: initial skill file exists with required sections, `modeled-only` state, and no runnable Canon binding.
+- [X] T031 [P] Create new file to be created intentionally `.agents/skills/canon-system-shaping/SKILL.md`; acceptance: initial skill file exists with required sections, `modeled-only` state, and no runnable Canon binding.
 - [X] T032 [P] Create new file to be created intentionally `.agents/skills/canon-architecture/SKILL.md`; acceptance: initial skill file exists with required sections, `modeled-only` state, and no runnable Canon binding.
 - [X] T033 [P] Create new file to be created intentionally `.agents/skills/canon-implementation/SKILL.md`; acceptance: initial skill file exists with required sections, `modeled-only` state, and no runnable Canon binding.
 - [X] T034 [P] Create new file to be created intentionally `.agents/skills/canon-refactor/SKILL.md`; acceptance: initial skill file exists with required sections, `modeled-only` state, and no runnable Canon binding.
@@ -156,7 +156,7 @@
 - [X] T063 [US3] Refine `.agents/skills/canon-architecture/SKILL.md`; acceptance: skill is discoverable, labeled `modeled-only`, explains what Canon knows and what is missing, and never starts a run.
 - [X] T064 [US3] Refine `.agents/skills/canon-review/SKILL.md`; acceptance: skill is discoverable, labeled `modeled-only`, distinguishes itself from `canon-pr-review`, and never starts a run.
 - [X] T065 [US3] Refine `.agents/skills/canon-verification/SKILL.md`; acceptance: skill is discoverable, labeled `intentionally-limited`, explains the `verify` backlog, and never fabricates `canon verify` behavior.
-- [X] T066 [US3] Refine `.agents/skills/canon-discovery/SKILL.md` and `.agents/skills/canon-greenfield/SKILL.md`; acceptance: both skills stay discoverable, labeled `modeled-only`, and route honestly to nearest runnable workflows where appropriate.
+- [X] T066 [US3] Refine `.agents/skills/canon-discovery/SKILL.md` and `.agents/skills/canon-system-shaping/SKILL.md`; acceptance: both skills stay discoverable, labeled `modeled-only`, and route honestly to nearest runnable workflows where appropriate.
 - [X] T067 [US3] Refine `.agents/skills/canon-implementation/SKILL.md` and `.agents/skills/canon-refactor/SKILL.md`; acceptance: both skills explain why the workflow is not runnable and preserve boundaries between implementation and refactor versus delivered modes.
 - [X] T068 [US3] Refine `.agents/skills/canon-incident/SKILL.md` and `.agents/skills/canon-migration/SKILL.md`; acceptance: both skills are discoverable, labeled `modeled-only`, and provide honest nearest alternatives when useful.
 - [X] T069 [US3] Update `.agents/skills/canon-shared/references/support-states.md`, `.agents/skills/canon-shared/references/output-shapes.md`, and `.agents/skills/canon-shared/references/skill-index.md`; acceptance: every non-runnable skill has a canonical support-state response and nearest-runnable guidance.
@@ -241,7 +241,7 @@ Task: "Refine .agents/skills/canon-inspect-artifacts/SKILL.md"
 # After support-state wording and overlap cases are fixed:
 Task: "Refine .agents/skills/canon-architecture/SKILL.md"
 Task: "Refine .agents/skills/canon-review/SKILL.md"
-Task: "Refine .agents/skills/canon-discovery/SKILL.md and .agents/skills/canon-greenfield/SKILL.md"
+Task: "Refine .agents/skills/canon-discovery/SKILL.md and .agents/skills/canon-system-shaping/SKILL.md"
 ```
 
 ## Implementation Strategy

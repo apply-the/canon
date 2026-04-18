@@ -39,13 +39,18 @@ Optional:
 - Verify `canon` is on PATH. If missing, point to the install guide.
 - Verify `.canon/` exists. If missing, point to `$canon-init`.
 - Verify risk and zone are present.
+- Never infer base/head refs from the active editor file, recent `.canon/` artifacts, or any file-backed input path.
+- `pr-review` does not auto-bind from `canon-input/`; it requires explicit base/head refs or `WORKTREE`.
 - `OWNER` is optional. If omitted, Canon should try repository-local or global Git identity before asking for explicit owner input.
-- If risk is missing or invalid, ask with guided fixed choices: `low-impact`, `bounded-impact`, or `systemic-impact`.
-- If zone is missing or invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 - Verify both --ref <BASE_REF> --ref <HEAD_REF> resolve in the local Git repository.
 - Canon accepts local refs plus resolved remote-tracking refs such as `origin/main`.
 - If base and head refs resolve to the same commit, check for uncommitted changes with `git status --porcelain`. If uncommitted changes exist, ask with a guided choice whether to review them by using `WORKTREE` as the head ref or to provide a different head ref. If no uncommitted changes exist, report that the ref pair has no diff.
 - `WORKTREE` is a valid head ref value — it tells Canon to diff the working tree against the base ref.
+- If risk and/or zone are missing after the base/head pair is known, use `canon inspect risk-zone --mode pr-review --input <BASE_REF> --input <HEAD_REF>` to infer a provisional pair, explain the Canon rationale and confidence, and ask the user to confirm or override before invoking Canon.
+- If the inferred classification returns `low` confidence, present it as provisional and invite override rather than treating it as final.
+- Classification confirmation is intake confirmation only, not Canon approval.
+- If risk is invalid, ask with guided fixed choices: `low-impact`, `bounded-impact`, or `systemic-impact`.
+- If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 - Do not show preflight checks to the user. Report only the specific missing input.
 
 ## Canon Command Contract
@@ -56,10 +61,11 @@ Optional:
 
 ## Expected Output Shape
 
-- concise run-start or gated review summary
+- concise result-first review summary or gated review-disposition summary
 - Canon-backed run state
 - direct statement of what happened or what is blocking the review
 - concrete `.canon/artifacts/...` review packet paths when available
+- when Canon emitted a readable review result in the run summary, treat that summary as the happy path and keep artifact inspection as drill-down
 - ordered possible actions
 - one recommended next step that preserves the run context
 
@@ -68,6 +74,7 @@ Optional:
 - If `.canon/` is missing, point to `$canon-init`.
 - For `RISK`, use guided fixed choices with the exact allowed values `low-impact`, `bounded-impact`, and `systemic-impact`.
 - For `ZONE`, use guided fixed choices with the exact allowed values `green`, `yellow`, and `red`.
+- If preflight returns classification confirmation instead of readiness, treat that as missing intake confirmation rather than as a Canon approval gate.
 - The ref pair flow preserves the valid side of the pair when only one ref is missing or invalid.
 - If base or head ref is missing, require only the missing ref explicitly and show the exact Canon CLI form after the semantic prompt.
 - If a ref is invalid, keep ref wording specific to refs and never blur it into file-path guidance.
@@ -79,7 +86,7 @@ Optional:
 
 ## Next-Step Guidance
 
-- When Canon emitted a review packet, recommend `$canon-inspect-artifacts` first so the user can read `review-summary.md` and related findings before deciding.
+- When Canon emitted a readable review result in the run summary, treat that summary as the happy path and keep `$canon-inspect-artifacts` as drill-down into `review-summary.md` and the detailed findings.
 - Use `$canon-inspect-evidence` when the user needs the lineage, request history, or policy rationale behind the review packet.
 - Use `$canon-approve` only after the user has reviewed the packet or explicitly wants to record disposition.
 - After approval, recommend `$canon-status` first and use `$canon-resume` only if Canon still leaves the run incomplete.

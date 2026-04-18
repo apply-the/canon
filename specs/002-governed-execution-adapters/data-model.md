@@ -90,6 +90,8 @@
 
 - `.canon/traces/<run-id>.jsonl` remains append-only and contains one event per
   decision or attempt transition
+- `.canon/runs/<run-id>/inputs/` stores authored file-backed input snapshots;
+  this is distinct from invocation payload retention
 - `.canon/runs/<run-id>/invocations/<request-id>/` stores request, decision,
   attempt manifests, and optional payload refs
 - `.canon/runs/<run-id>/evidence.toml` stores path summaries and links

@@ -165,7 +165,7 @@ state.
   `canon-resume`, `canon-requirements`, `canon-brownfield`,
   `canon-pr-review`
 - **`modeled-only` and discoverable**:
-  `canon-discovery`, `canon-greenfield`, `canon-architecture`,
+  `canon-discovery`, `canon-system-shaping`, `canon-architecture`,
   `canon-implementation`, `canon-refactor`, `canon-review`,
   `canon-incident`, `canon-migration`
 - **`intentionally-limited` and discoverable**:
@@ -227,7 +227,7 @@ specs/003-codex-skills-frontend/
     │   └── SKILL.md
     ├── canon-discovery/
     │   └── SKILL.md
-    ├── canon-greenfield/
+    ├── canon-system-shaping/
     │   └── SKILL.md
     ├── canon-brownfield/
     │   └── SKILL.md
@@ -319,7 +319,7 @@ Used for modeled-only or intentionally limited skills.
 Applies to:
 
 - `canon-discovery`
-- `canon-greenfield`
+- `canon-system-shaping`
 - `canon-architecture`
 - `canon-implementation`
 - `canon-refactor`
@@ -502,7 +502,7 @@ is stable:
 - `canon-review`
 - `canon-verification`
 - `canon-discovery`
-- `canon-greenfield`
+- `canon-system-shaping`
 - `canon-implementation`
 - `canon-refactor`
 - `canon-incident`

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use crate::domain::run::InputFingerprint;
 
@@ -18,6 +19,14 @@ pub fn input_fingerprints_match(
             return Ok(false);
         }
 
+        if let Some(stored_digest) = &fingerprint.content_digest_sha256 {
+            let current_digest = sha256_hex(&std::fs::read(&resolved)?);
+            if &current_digest != stored_digest {
+                return Ok(false);
+            }
+            continue;
+        }
+
         let metadata = std::fs::metadata(resolved)?;
         let modified = metadata
             .modified()
@@ -33,4 +42,14 @@ pub fn input_fingerprints_match(
     }
 
     Ok(true)
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    let mut encoded = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(&mut encoded, "{byte:02x}");
+    }
+    encoded
 }

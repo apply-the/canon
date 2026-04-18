@@ -1,7 +1,13 @@
 use canon_engine::domain::mode::{ImplementationDepth, Mode, all_mode_profiles};
 
 #[test]
-fn all_modes_have_typed_profiles_and_non_mvp_modes_remain_staged() {
+fn greenfield_alias_is_no_longer_accepted_for_mode_parsing() {
+    assert_eq!("system-shaping".parse::<Mode>(), Ok(Mode::Greenfield));
+    assert!("greenfield".parse::<Mode>().is_err());
+}
+
+#[test]
+fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
     let profiles = all_mode_profiles();
     assert_eq!(profiles.len(), Mode::all().len(), "every mode should have a profile");
 
@@ -13,10 +19,7 @@ fn all_modes_have_typed_profiles_and_non_mvp_modes_remain_staged() {
         );
     }
 
-    let non_mvp_modes = [
-        Mode::Discovery,
-        Mode::Greenfield,
-        Mode::Architecture,
+    let staged_modes = [
         Mode::Implementation,
         Mode::Refactor,
         Mode::Verification,
@@ -25,7 +28,7 @@ fn all_modes_have_typed_profiles_and_non_mvp_modes_remain_staged() {
         Mode::Migration,
     ];
 
-    for mode in non_mvp_modes {
+    for mode in staged_modes {
         let profile =
             profiles.iter().find(|profile| profile.mode == mode).expect("profile should exist");
         assert!(
@@ -33,7 +36,7 @@ fn all_modes_have_typed_profiles_and_non_mvp_modes_remain_staged() {
                 profile.implementation_depth,
                 ImplementationDepth::ContractOnly | ImplementationDepth::Skeleton
             ),
-            "non-MVP mode `{}` should remain staged in v0.1",
+            "staged mode `{}` should remain limited in v0.1",
             mode.as_str()
         );
         assert!(
@@ -53,7 +56,14 @@ fn all_modes_have_typed_profiles_and_non_mvp_modes_remain_staged() {
         );
     }
 
-    for mode in [Mode::Requirements, Mode::BrownfieldChange, Mode::PrReview] {
+    for mode in [
+        Mode::Requirements,
+        Mode::Discovery,
+        Mode::Greenfield,
+        Mode::BrownfieldChange,
+        Mode::Architecture,
+        Mode::PrReview,
+    ] {
         let profile = profiles
             .iter()
             .find(|profile| profile.mode == mode)

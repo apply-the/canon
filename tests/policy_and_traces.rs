@@ -3,6 +3,7 @@ use std::fs;
 use canon_engine::EngineService;
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::ClassificationProvenance;
 use canon_engine::orchestrator::service::RunRequest;
 use canon_engine::persistence::store::WorkspaceStore;
 use tempfile::TempDir;
@@ -111,6 +112,7 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
             mode: Mode::Requirements,
             risk: RiskClass::BoundedImpact,
             zone: UsageZone::Yellow,
+            classification: ClassificationProvenance::explicit(),
             owner: "product-lead".to_string(),
             inputs: vec!["idea.md".to_string()],
             excluded_paths: Vec::new(),

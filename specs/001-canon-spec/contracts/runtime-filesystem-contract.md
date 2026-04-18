@@ -47,6 +47,11 @@ Required directories:
 - `gates/`
 - `approvals/`
 - `verification/`
+- `invocations/`
+
+Conditional directories:
+
+- `inputs/` when the run captured one or more authored file-backed inputs
 
 ### `.canon/artifacts/<run-id>/<mode>/`
 
@@ -80,6 +85,8 @@ Required directories:
 - no override may exist without both an approval record and a linked decision
   record
 - reruns create new run directories; they do not overwrite prior run state
+- authored file-backed inputs, when present, are snapshotted under
+  `.canon/runs/<run-id>/inputs/` and referenced from `context.toml`
 
 ## Compatibility Expectations
 

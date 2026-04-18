@@ -18,7 +18,7 @@ resolver = "2"
 edition = "2024"
 license = "MIT"
 rust-version = "1.94.1"
-version = "0.5.0"
+version = "0.6.0"
 
 [workspace.dependencies]
 assert_cmd = "2"
@@ -28,6 +28,7 @@ predicates = "3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
+sha2 = "0.10"
 strum = "0.27"
 strum_macros = "0.27"
 tempfile = "3"

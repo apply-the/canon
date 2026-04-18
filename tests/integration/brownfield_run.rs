@@ -69,6 +69,17 @@ fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("brownfield-change");
 
     assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Change Surface"));
+    assert!(
+        json["mode_result"]["primary_artifact_path"]
+            .as_str()
+            .is_some_and(|value| value.ends_with("/brownfield-change/change-surface.md"))
+    );
+    assert!(
+        json["mode_result"]["headline"]
+            .as_str()
+            .is_some_and(|value| value.contains("missing-context marker"))
+    );
     assert!(run_root.join("run.toml").exists(), "run manifest should exist");
     assert!(run_root.join("artifact-contract.toml").exists(), "artifact contract should exist");
     assert!(
@@ -95,6 +106,10 @@ fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json output");
     assert_eq!(status_json["state"], "Blocked");
+    assert_eq!(
+        status_json["mode_result"]["primary_artifact_title"].as_str(),
+        Some("Change Surface")
+    );
 }
 
 #[test]
@@ -130,10 +145,22 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
 
+    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("brownfield-change");
 
     assert_eq!(json["state"], "Completed");
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Change Surface"));
+    assert!(
+        json["mode_result"]["primary_artifact_path"]
+            .as_str()
+            .is_some_and(|value| value.ends_with("/brownfield-change/change-surface.md"))
+    );
+    assert!(run_root.join("inputs").is_dir(), "input snapshot directory should exist");
+    assert!(
+        run_root.join("inputs").join("input-00-brownfield.md").exists(),
+        "authored input snapshot should exist"
+    );
 
     for artifact in [
         "system-slice.md",
@@ -148,6 +175,39 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
             "{artifact} should exist in the brownfield bundle"
         );
     }
+
+    let context_toml = fs::read_to_string(run_root.join("context.toml")).expect("context file");
+    let context: toml::Value = toml::from_str(&context_toml).expect("context toml");
+    let fingerprint = context["input_fingerprints"]
+        .as_array()
+        .and_then(|entries| entries.first())
+        .expect("input fingerprint");
+    let expected_snapshot_ref = format!("runs/{run_id}/inputs/input-00-brownfield.md");
+    assert!(
+        fingerprint["content_digest_sha256"].as_str().is_some_and(|value| !value.is_empty()),
+        "input fingerprint should include a content digest"
+    );
+    assert_eq!(
+        fingerprint["snapshot_ref"].as_str(),
+        Some(expected_snapshot_ref.as_str()),
+        "input fingerprint should reference the persisted snapshot"
+    );
+
+    let status_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_json: serde_json::Value =
+        serde_json::from_slice(&status_output).expect("status json output");
+    assert_eq!(status_json["state"], "Completed");
+    assert_eq!(
+        status_json["mode_result"]["primary_artifact_title"].as_str(),
+        Some("Change Surface")
+    );
 }
 
 #[test]

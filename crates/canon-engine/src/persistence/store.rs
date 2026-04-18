@@ -30,7 +30,7 @@ use crate::persistence::traces::{TraceEvent, TraceEventKind, parse_trace_events}
 const METHOD_FILES: &[(&str, &str)] = &[
     ("requirements.toml", include_str!("../../../../defaults/methods/requirements.toml")),
     ("discovery.toml", include_str!("../../../../defaults/methods/discovery.toml")),
-    ("greenfield.toml", include_str!("../../../../defaults/methods/greenfield.toml")),
+    ("system-shaping.toml", include_str!("../../../../defaults/methods/system-shaping.toml")),
     ("brownfield-change.toml", include_str!("../../../../defaults/methods/brownfield-change.toml")),
     ("architecture.toml", include_str!("../../../../defaults/methods/architecture.toml")),
     ("implementation.toml", include_str!("../../../../defaults/methods/implementation.toml")),
@@ -90,6 +90,10 @@ const SKILL_FILES: &[(&str, &str)] = &[
         ),
     ),
     (
+        "canon-inspect-clarity/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-inspect-clarity/skill-source.md"),
+    ),
+    (
         "canon-approve/SKILL.md",
         include_str!("../../../../defaults/embedded-skills/canon-approve/skill-source.md"),
     ),
@@ -102,8 +106,8 @@ const SKILL_FILES: &[(&str, &str)] = &[
         include_str!("../../../../defaults/embedded-skills/canon-discovery/skill-source.md"),
     ),
     (
-        "canon-greenfield/SKILL.md",
-        include_str!("../../../../defaults/embedded-skills/canon-greenfield/skill-source.md"),
+        "canon-system-shaping/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-system-shaping/skill-source.md"),
     ),
     (
         "canon-architecture/SKILL.md",
@@ -374,6 +378,7 @@ impl WorkspaceStore {
         let approvals_dir = self.layout.run_approvals_dir(&bundle.run.run_id);
         let verification_dir = self.layout.run_verification_dir(&bundle.run.run_id);
         let invocations_dir = self.layout.run_invocations_dir(&bundle.run.run_id);
+        let inputs_dir = self.layout.run_inputs_dir(&bundle.run.run_id);
         let artifact_dir = self.layout.run_artifact_dir(&bundle.run.run_id, bundle.run.mode);
         let mut trace_invocations = Vec::new();
         let mut trace_events = Vec::new();
@@ -395,6 +400,13 @@ impl WorkspaceStore {
                     .map_err(adapter_error_to_io)?,
             );
         }
+
+        let persisted_context = self.persist_run_inputs(
+            &bundle.run.run_id,
+            &inputs_dir,
+            &bundle.context,
+            &mut trace_invocations,
+        )?;
 
         let trace_relative_path = format!("traces/{}.jsonl", bundle.run.run_id);
         let mut links = bundle.links.clone();
@@ -419,7 +431,7 @@ impl WorkspaceStore {
         write_toml_file(run_toml.clone(), &bundle.run)?;
         trace_invocations.push(self.filesystem.trace_write(&run_toml, "persist run manifest"));
         let context_toml = run_dir.join("context.toml");
-        write_toml_file(context_toml.clone(), &bundle.context)?;
+        write_toml_file(context_toml.clone(), &persisted_context)?;
         trace_invocations.push(self.filesystem.trace_write(&context_toml, "persist run context"));
         let contract_toml = run_dir.join("artifact-contract.toml");
         write_toml_file(contract_toml.clone(), &bundle.artifact_contract)?;
@@ -552,6 +564,39 @@ impl WorkspaceStore {
         self.append_trace_events(&bundle.run.run_id, &trace_events)?;
 
         Ok(())
+    }
+
+    fn persist_run_inputs(
+        &self,
+        run_id: &str,
+        inputs_dir: &Path,
+        context: &RunContext,
+        trace_invocations: &mut Vec<AdapterInvocation>,
+    ) -> Result<RunContext, Error> {
+        if context.input_fingerprints.is_empty() {
+            return Ok(context.clone());
+        }
+
+        trace_invocations.push(
+            self.filesystem
+                .create_dir_all_traced(inputs_dir, &format!("materialize {}", inputs_dir.display()))
+                .map_err(adapter_error_to_io)?,
+        );
+
+        let mut persisted_context = context.clone();
+        for (index, fingerprint) in persisted_context.input_fingerprints.iter_mut().enumerate() {
+            let source = resolve_context_input_path(&self.layout.repo_root, &fingerprint.path);
+            let snapshot_name = snapshot_file_name(index, &source);
+            let snapshot_path = inputs_dir.join(&snapshot_name);
+            fs::write(&snapshot_path, fs::read(&source)?)?;
+            trace_invocations.push(self.filesystem.trace_write(
+                &snapshot_path,
+                &format!("persist input snapshot {}", fingerprint.path),
+            ));
+            fingerprint.snapshot_ref = Some(format!("runs/{run_id}/inputs/{snapshot_name}"));
+        }
+
+        Ok(persisted_context)
     }
 
     pub fn list_artifact_files(&self, run_id: &str) -> Result<Vec<String>, Error> {
@@ -1096,6 +1141,16 @@ fn adapter_error_to_io(error: canon_adapters::AdapterError) -> Error {
             Error::other("filesystem adapter unexpectedly blocked")
         }
     }
+}
+
+fn resolve_context_input_path(repo_root: &Path, input: &str) -> PathBuf {
+    let path = PathBuf::from(input);
+    if path.is_absolute() { path } else { repo_root.join(path) }
+}
+
+fn snapshot_file_name(index: usize, source: &Path) -> String {
+    let file_name = source.file_name().and_then(|value| value.to_str()).unwrap_or("input.txt");
+    format!("input-{index:02}-{file_name}")
 }
 
 fn validate_run_artifact_record(

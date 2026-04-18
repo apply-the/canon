@@ -1,7 +1,11 @@
-use canon_engine::{EngineService, InspectTarget};
+use canon_engine::{
+    EngineService, InspectTarget,
+    domain::mode::Mode,
+    domain::policy::{RiskClass, UsageZone},
+};
 
 use crate::app::InspectCommand;
-use crate::error::CliResult;
+use crate::error::{CliError, CliResult};
 use crate::output;
 
 pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i32> {
@@ -9,6 +13,34 @@ pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i3
         InspectCommand::Modes { output } => (InspectTarget::Modes, "modes", None, output),
         InspectCommand::Methods { output } => (InspectTarget::Methods, "methods", None, output),
         InspectCommand::Policies { output } => (InspectTarget::Policies, "policies", None, output),
+        InspectCommand::RiskZone { mode, risk, zone, inputs, output } => (
+            InspectTarget::RiskZone {
+                mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
+                risk: risk
+                    .as_deref()
+                    .map(str::parse::<RiskClass>)
+                    .transpose()
+                    .map_err(CliError::InvalidInput)?,
+                zone: zone
+                    .as_deref()
+                    .map(str::parse::<UsageZone>)
+                    .transpose()
+                    .map_err(CliError::InvalidInput)?,
+                inputs,
+            },
+            "risk-zone",
+            None,
+            output,
+        ),
+        InspectCommand::Clarity { mode, inputs, output } => (
+            InspectTarget::Clarity {
+                mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
+                inputs,
+            },
+            "clarity",
+            None,
+            output,
+        ),
         InspectCommand::Artifacts { run, output } => {
             (InspectTarget::Artifacts { run_id: run.clone() }, "artifacts", Some(run), output)
         }
@@ -34,6 +66,7 @@ mod tests {
         RunRequest,
         domain::mode::Mode,
         domain::policy::{RiskClass, UsageZone},
+        domain::run::ClassificationProvenance,
     };
     use tempfile::tempdir;
 
@@ -64,6 +97,54 @@ mod tests {
     }
 
     #[test]
+    fn execute_supports_risk_zone_inspection() {
+        let workspace = tempdir().expect("create temp workspace");
+        fs::write(
+            workspace.path().join("discovery.md"),
+            "# Discovery Brief\n\nProblem: production boundary drift.\nConstraints: preserve repo-local evidence.\n",
+        )
+        .expect("write discovery brief");
+        let service = EngineService::new(workspace.path());
+
+        let code = execute(
+            &service,
+            InspectCommand::RiskZone {
+                mode: "discovery".to_string(),
+                risk: None,
+                zone: None,
+                inputs: vec!["discovery.md".to_string()],
+                output: OutputFormat::Json,
+            },
+        )
+        .expect("inspect risk-zone should succeed");
+
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn execute_supports_clarity_inspection() {
+        let workspace = tempdir().expect("create temp workspace");
+        fs::write(
+            workspace.path().join("requirements.md"),
+            "# Requirements Brief\n\n## Problem\n\nBound the problem space.\n",
+        )
+        .expect("write requirements brief");
+        let service = EngineService::new(workspace.path());
+
+        let code = execute(
+            &service,
+            InspectCommand::Clarity {
+                mode: "requirements".to_string(),
+                inputs: vec!["requirements.md".to_string()],
+                output: OutputFormat::Json,
+            },
+        )
+        .expect("inspect clarity should succeed");
+
+        assert_eq!(code, 0);
+    }
+
+    #[test]
     fn execute_supports_run_scoped_artifacts_invocations_and_evidence_inspection() {
         let workspace = tempdir().expect("create temp workspace");
         fs::write(workspace.path().join("idea.md"), "# Idea\n\nInspect wrapper coverage.\n")
@@ -74,6 +155,7 @@ mod tests {
                 mode: Mode::Requirements,
                 risk: RiskClass::LowImpact,
                 zone: UsageZone::Green,
+                classification: ClassificationProvenance::explicit(),
                 owner: "Owner <owner@example.com>".to_string(),
                 inputs: vec!["idea.md".to_string()],
                 excluded_paths: Vec::new(),

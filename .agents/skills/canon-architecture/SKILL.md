@@ -1,19 +1,19 @@
 ---
 name: canon-architecture
-description: Use when the user wants architecture mode context in Canon without pretending the architecture workflow is runnable end to end today.
+description: Use when you need a governed Canon architecture run to record decisions, tradeoffs, and risk-gated approvals.
 ---
 
 # Canon Architecture
 
 ## Support State
 
-- `modeled-only`
+- `available-now`
 - `default visibility`: `discoverable-standard`
 
 ## Purpose
 
-Keep architecture visible as a first-class Canon mode while preserving honest
-support-state messaging.
+Start a real Canon architecture run from Codex without making the user
+memorize the raw CLI.
 
 ## When To Trigger
 
@@ -21,42 +21,78 @@ support-state messaging.
 
 ## When It Must Not Trigger
 
-- The user expects a real Canon run or evidence bundle today.
-- The user is ready to start a runnable workflow; use `$canon-requirements` or `$canon-brownfield`.
+- The user already has a run id and wants inspection, approval, or continuation actions.
+- The architecture question is actually a brownfield change-planning request tied to a live bounded slice; use `$canon-brownfield`.
 
 ## Required Inputs
 
-- none required for support-state guidance
+- `RISK`
+- `ZONE`
+- at least one input file, input folder, or note
+
+Optional:
+
+- `OWNER` when the user wants to override Git-derived ownership explicitly
 
 ## Preflight Profile
 
-- Optional taxonomy confirmation: `canon inspect modes`
-- Do not start a Canon run.
+- Verify `canon` is on PATH. If missing, point to the install guide.
+- Verify `.canon/` exists. If missing, point to `$canon-init`.
+- Verify risk, zone, and --input <INPUT_PATH> are present before invoking Canon.
+- For auto-binding only, treat `canon-input/architecture.md` or `canon-input/architecture/` as the canonical authored-input locations for this mode.
+- Never infer `--input` from the active editor file, open tabs, recent `.canon/` artifacts, or any other path under `.canon/`.
+- If neither canonical location exists and the user did not provide an explicit input, ask explicitly for the input path.
+- `OWNER` is optional. If omitted, Canon should try repository-local or global Git identity before asking for explicit owner input.
+- If the user is starting from a short note instead of a structured brief, guide them to include explicit architectural decision focus and constraints before invoking Canon.
+- If risk and/or zone are missing after the authored input surface is known, use `canon inspect risk-zone --mode architecture --input <INPUT_PATH>` to infer a provisional pair, explain the Canon rationale and confidence, and ask the user to confirm or override before invoking Canon.
+- If the inferred classification returns `low` confidence, present it as provisional and invite override rather than treating it as final.
+- Classification confirmation is intake confirmation only, not Canon approval.
+- If risk is invalid, ask with guided fixed choices: `low-impact`, `bounded-impact`, or `systemic-impact`.
+- If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
+- Do not show preflight checks to the user. Report only the specific missing input.
 
 ## Canon Command Contract
 
-- Support-state only.
-- Explain that Canon already models `architecture` as a typed mode with risk and zone semantics.
-- Explain that Canon does not yet deliver architecture-specific execution, gates, or evidence end to end.
+- Canon command: `canon run --mode architecture --risk <RISK> --zone <ZONE> [--owner <OWNER>] --input <INPUT_PATH>`
+- Return the real Canon run id, state, and any approval target Canon emits.
 
 ## Expected Output Shape
 
-- explicit modeled-only notice
-- what Canon knows today about architecture mode
-- what is missing before runnable delivery
-- nearest honest alternative
+- concise run-start or gated summary
+- real run id
+- real run state
+- direct statement of the architecture result when a readable packet exists
+- primary artifact path and short excerpt when available
+- concrete `.canon/artifacts/...` paths when Canon emitted them
+- next steps pointing to `$canon-status`, `$canon-inspect-artifacts`, and `$canon-inspect-evidence`
 
 ## Failure Handling Guidance
 
-- If `canon` is missing, show the supported install path from README.
+- If `.canon/` is missing, point to `$canon-init`.
+- The preflight asks only for the missing slot and must preserve valid ownership fields inside the current interaction.
+- If risk, zone, or input are missing, name the missing input, keep the already valid fields, and show the exact Canon CLI retry form after the semantic prompt.
+- If preflight returns classification confirmation instead of readiness, treat that as missing intake confirmation rather than as a Canon approval gate.
+- If Canon fails because no owner could be resolved, ask for `--owner <OWNER>` explicitly or tell the user to configure `git user.name` and `git user.email`.
+- For `RISK`, use guided fixed choices with the exact allowed values `low-impact`, `bounded-impact`, and `systemic-impact`.
+- For `ZONE`, use guided fixed choices with the exact allowed values `green`, `yellow`, and `red`.
+- If an input is invalid, tell the user which typed slot failed and retry only that slot.
+- If the input file is missing, ask only for the missing path and do not restate already valid ownership metadata.
+- If Canon fails after preflight succeeds, state that the failure happened inside Canon execution rather than before Canon execution.
+- If Canon returns `AwaitingApproval`, surface the exact target Canon produced, typically `gate:risk`, and do not imply the run is complete.
 - Never emit fabricated Canon runtime state.
 
 ## Next-Step Guidance
 
-- Use `$canon-requirements` for runnable bounded framing.
-- Use `$canon-brownfield` when the architecture question is attached to a live-codebase change.
+- When Canon emitted readable artifacts, recommend `$canon-inspect-artifacts` first.
+- When Canon emitted a readable architecture result in the run summary, treat that summary as the happy path and keep `$canon-inspect-artifacts` as drill-down.
+- Use `$canon-inspect-evidence` when the user needs lineage, critique rationale, or approval context behind the packet.
+- Use `$canon-approve` only after the user has reviewed the packet or explicitly wants to record approval.
+- After approval, recommend `$canon-status` first and use `$canon-resume` only if Canon still leaves the run incomplete.
 
 ## Related Skills
 
-- `$canon-requirements`
-- `$canon-brownfield`
+- `$canon-status`
+- `$canon-inspect-artifacts`
+- `$canon-inspect-evidence`
+- `$canon-approve`
+- `$canon-resume`
