@@ -31,16 +31,16 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
     assert_eq!(
         json["entries"],
         serde_json::json!([
-            "requirements",
             "discovery",
-            "greenfield",
-            "brownfield-change",
+            "requirements",
+            "system-shaping",
             "architecture",
+            "brownfield-change",
+            "pr-review",
             "implementation",
             "refactor",
             "verification",
             "review",
-            "pr-review",
             "incident",
             "migration",
         ])

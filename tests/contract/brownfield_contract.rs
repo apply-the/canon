@@ -99,6 +99,7 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
         run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
         "blocked brownfield runs should expose all readable artifact paths"
     );
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Change Surface");
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
 
     let blocked_gates = run_json["blocked_gates"].as_array().expect("blocked gates");
@@ -130,7 +131,17 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
         status_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
         "blocked artifact runs should not advertise approval targets"
     );
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Change Surface");
     assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "markdown"])
+        .assert()
+        .success()
+        .stdout(contains("## Result"))
+        .stdout(contains("Change Surface"))
+        .stdout(contains("missing-context marker"));
 }
 
 #[test]

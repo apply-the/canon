@@ -3,6 +3,7 @@ use time::OffsetDateTime;
 
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
+use crate::domain::run::ClassificationProvenance;
 use crate::domain::run::RunState;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -20,6 +21,8 @@ pub struct RunManifest {
     pub mode: Mode,
     pub risk: RiskClass,
     pub zone: UsageZone,
+    #[serde(default)]
+    pub classification: ClassificationProvenance,
     pub owner: String,
     pub created_at: OffsetDateTime,
 }

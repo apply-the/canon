@@ -1,12 +1,12 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, IntoStaticStr};
 
 use canon_adapters::AdapterKind;
 
 use crate::domain::gate::GateKind;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
-#[strum(serialize_all = "kebab-case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Mode {
     Requirements,
     Discovery,
@@ -49,24 +49,43 @@ pub struct ModeProfile {
 
 impl Mode {
     pub fn as_str(self) -> &'static str {
-        self.into()
+        match self {
+            Self::Requirements => "requirements",
+            Self::Discovery => "discovery",
+            Self::Greenfield => "system-shaping",
+            Self::BrownfieldChange => "brownfield-change",
+            Self::Architecture => "architecture",
+            Self::Implementation => "implementation",
+            Self::Refactor => "refactor",
+            Self::Verification => "verification",
+            Self::Review => "review",
+            Self::PrReview => "pr-review",
+            Self::Incident => "incident",
+            Self::Migration => "migration",
+        }
     }
 
     pub fn all() -> &'static [Mode] {
         &[
-            Self::Requirements,
             Self::Discovery,
+            Self::Requirements,
             Self::Greenfield,
-            Self::BrownfieldChange,
             Self::Architecture,
+            Self::BrownfieldChange,
+            Self::PrReview,
             Self::Implementation,
             Self::Refactor,
             Self::Verification,
             Self::Review,
-            Self::PrReview,
             Self::Incident,
             Self::Migration,
         ]
+    }
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -77,7 +96,7 @@ impl std::str::FromStr for Mode {
         match value {
             "requirements" => Ok(Self::Requirements),
             "discovery" => Ok(Self::Discovery),
-            "greenfield" => Ok(Self::Greenfield),
+            "system-shaping" => Ok(Self::Greenfield),
             "brownfield-change" => Ok(Self::BrownfieldChange),
             "architecture" => Ok(Self::Architecture),
             "implementation" => Ok(Self::Implementation),
@@ -107,6 +126,21 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
 
     vec![
         ModeProfile {
+            mode: Discovery,
+            purpose: "Explore unknowns without turning exploration into solution drift.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Exploration, Risk, ReleaseReadiness],
+            artifact_families: vec![
+                "problem map",
+                "unknowns and assumptions",
+                "context boundary",
+                "exploration options",
+                "decision pressure points",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
+        },
+        ModeProfile {
             mode: Requirements,
             purpose: "Bound an initiative before generation expands it into platform sprawl.",
             emphasis: AnalysisHeavy,
@@ -123,32 +157,32 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
         ModeProfile {
-            mode: Discovery,
-            purpose: "Explore unknowns without turning exploration into solution drift.",
-            emphasis: AnalysisHeavy,
-            implementation_depth: ContractOnly,
-            gate_profile: vec![Exploration, Risk, ReleaseReadiness],
-            artifact_families: vec![
-                "discovery brief",
-                "assumptions register",
-                "evidence log",
-                "unknowns register",
-                "discovery summary",
-            ],
-            allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
-        },
-        ModeProfile {
             mode: Greenfield,
-            purpose: "Define a new capability from bounded intent through early delivery structure.",
+            purpose: "Shape a new capability from bounded intent through early delivery structure.",
             emphasis: AnalysisHeavy,
-            implementation_depth: ContractOnly,
+            implementation_depth: Full,
             gate_profile: vec![Exploration, Architecture, Risk, ReleaseReadiness],
             artifact_families: vec![
-                "system intent",
-                "domain map",
-                "architecture options",
-                "boundary decisions",
-                "delivery plan",
+                "system shape",
+                "architecture outline",
+                "capability map",
+                "delivery options",
+                "risk hotspots",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
+        },
+        ModeProfile {
+            mode: ArchitectureMode,
+            purpose: "Evaluate boundaries, invariants, and structural decisions.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Exploration, Architecture, Risk, ReleaseReadiness],
+            artifact_families: vec![
+                "architecture decisions",
+                "invariants",
+                "tradeoff matrix",
+                "boundary map",
+                "readiness assessment",
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
@@ -171,22 +205,6 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
                 "implementation plan",
                 "validation strategy",
                 "decision record",
-            ],
-            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
-        },
-        ModeProfile {
-            mode: ArchitectureMode,
-            purpose: "Evaluate boundaries, invariants, and structural decisions.",
-            emphasis: AnalysisHeavy,
-            implementation_depth: ContractOnly,
-            gate_profile: vec![Exploration, Architecture, Risk, ReleaseReadiness],
-            artifact_families: vec![
-                "invariants",
-                "boundary map",
-                "architecture options",
-                "tradeoffs",
-                "decision record",
-                "risk memo",
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },

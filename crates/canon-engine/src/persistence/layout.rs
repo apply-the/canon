@@ -62,6 +62,10 @@ impl ProjectLayout {
         self.run_dir(run_id).join("invocations")
     }
 
+    pub fn run_inputs_dir(&self, run_id: &str) -> PathBuf {
+        self.run_dir(run_id).join("inputs")
+    }
+
     pub fn run_invocation_dir(&self, run_id: &str, request_id: &str) -> PathBuf {
         self.run_invocations_dir(run_id).join(request_id)
     }

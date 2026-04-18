@@ -241,9 +241,9 @@ specific workflows instead of one overloaded wrapper.
 - **Approval expectations**: none until the underlying runtime exists.
 - **Support state**: modeled-only.
 
-#### `canon-greenfield`
+#### `canon-system-shaping`
 
-- **Purpose**: represent greenfield delivery framing in Codex.
+- **Purpose**: represent system-shaping delivery framing in Codex.
 - **Trigger**: use when the user wants to start net-new system work.
 - **Must not trigger**: for existing-repo changes or review flows.
 - **Required inputs**: initiative description, expected scope boundary.
@@ -258,7 +258,7 @@ specific workflows instead of one overloaded wrapper.
 - **Purpose**: start a governed `brownfield-change` run from Codex.
 - **Trigger**: use when the user wants to modify a live codebase while
   preserving invariants.
-- **Must not trigger**: for greenfield ideation, PR review, or broad
+- **Must not trigger**: for system-shaping ideation, PR review, or broad
   implementation execution.
 - **Required inputs**: change brief, owner, risk, zone, optional repo scope.
 - **Canon commands it drives**: `canon init` if needed, then
@@ -554,7 +554,7 @@ Phase 1 should live entirely in the repo:
       SKILL.md
     canon-discovery/
       SKILL.md
-    canon-greenfield/
+    canon-system-shaping/
       SKILL.md
     canon-brownfield/
       SKILL.md
@@ -657,7 +657,7 @@ The default policy for this increment is:
 | `canon-brownfield` | `run --mode brownfield-change` | Available now | Prominent | Starts a real governed brownfield run with approval guidance. |
 | `canon-pr-review` | `run --mode pr-review` | Available now | Prominent | Starts a real governed review run against a diff or ref pair. |
 | `canon-discovery` | modeled mode only | Modeled, not runnable end to end | Hidden by default | Reports modeled-only state and routes to nearest supported workflow. |
-| `canon-greenfield` | modeled mode only | Modeled, not runnable end to end | Hidden by default | Reports modeled-only state and routes to nearest supported workflow. |
+| `canon-system-shaping` | modeled mode only | Modeled, not runnable end to end | Hidden by default | Reports modeled-only state and routes to nearest supported workflow. |
 | `canon-architecture` | modeled mode only | Modeled, not runnable end to end | Hidden by default | Reports modeled-only state and does not fabricate a run. |
 | `canon-implementation` | modeled mode only | Modeled, not runnable end to end | Hidden by default | Reports modeled-only state and nearest supported workflow. |
 | `canon-refactor` | modeled mode only | Modeled, not runnable end to end | Hidden by default | Reports modeled-only state and possible `canon-brownfield` substitute. |

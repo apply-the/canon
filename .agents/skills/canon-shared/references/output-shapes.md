@@ -5,8 +5,10 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 ## Optional Frontend Affordance: Action Chips
 
 - `Action Chips:` optional host-rendered actions that mirror already-valid textual next steps.
+- `Primary Artifact Action:` optional host-rendered direct-open affordance for a Canon-backed primary artifact path when Canon returned one in `mode_result`.
 - Each chip must expose: `id`, `label`, `skill`, `prefilled_args`, `required_user_inputs`, `visibility_condition`, and `recommended`.
-- Chips are progressive enhancement only. `Possible Actions:` and `Recommended Next Step:` remain mandatory text fallback in every host.
+- `Primary Artifact Action` must expose: `id`, `label`, `host_action`, `target`, and `text_fallback`.
+- Chips are progressive enhancement only. `Possible Actions:` remains mandatory text fallback in every host. `Recommended Next Step:` may be omitted, or rendered as `None`, when Canon already returned a self-explanatory completed `mode_result`.
 - Use only these initial labels for governed run actions: `Approve generation...`, `Resume run`, and `Inspect evidence`.
 - Never label an approval chip `Proceed with generation` or any equivalent that hides the approval decision.
 - Never prefill `RUN_ID`, `TARGET`, or other chip arguments unless Canon already returned those exact values for the active run.
@@ -23,6 +25,31 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 - `Possible Actions:` one or two concrete follow-ups only.
 - `Recommended Next Step:` `$canon-requirements` or `$canon-status` when useful, but never automatic follow-up execution.
 
+## Runnable Skill: Classification Confirmation
+
+- `Summary:` one sentence stating that Canon inferred a provisional risk/zone pair and needs explicit confirmation before run start.
+- `Inferred Risk:` the provisional Canon-backed risk value.
+- `Inferred Zone:` the provisional Canon-backed zone value.
+- `Confidence:` `low`, `moderate`, or `high` from Canon.
+- `Why:` short Canon-backed rationale plus the strongest signals.
+- `Possible Actions:` confirm the pair, override one field, or provide both values manually.
+- `Recommended Next Step:` confirm or override the inferred classification.
+- Never emit a run id, approval target, or resumed state from this shape.
+- Never describe this step as Canon approval. It is intake confirmation only.
+
+## Runnable Skill: Clarity Inspection
+
+- `Summary:` one sentence stating whether the authored inputs still require clarification.
+- `Mode:` the analyzed Canon mode.
+- `Source Inputs:` the exact authored paths Canon inspected.
+- `Missing Context:` the highest-priority authored gaps Canon found.
+- `Reasoning Signals:` the strongest Canon-backed signals behind those gaps.
+- `Clarification Questions:` the prioritized follow-up questions Canon wants answered.
+- `Recommended Focus:` optional. Surface Canon's top follow-up area when one exists.
+- `Possible Actions:` answer the top clarification questions, refine the authored note, or continue into the relevant run-start skill when the gaps are closed.
+- `Recommended Next Step:` one action only, usually answer the top question first and start the governed run second.
+- Never emit a run id, approval target, or evidence bundle from this pre-run inspection shape.
+
 ## Runnable Skill: Run Started
 
 - `Summary:` one sentence naming the workflow and whether the run started.
@@ -30,6 +57,7 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 - `Owner:` persisted run owner when Canon resolved and recorded one.
 - `State:` real Canon run state if available.
 - `What Happened:` plain-language statement of the current Canon outcome.
+- If Canon returns `mode_result`, surface that result directly with the primary artifact path, `Primary Artifact Action`, and excerpt before any inspect-oriented drill-down.
 - `Readable Evidence:` concrete `.canon/artifacts/<run-id>/...` paths when Canon emitted them.
 - `Action Chips:` optional chips only when Canon already makes the corresponding next step valid for this run.
 - `Possible Actions:` ordered next moves that are valid from the current state.
@@ -46,10 +74,11 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 - `Owner:` persisted run owner when Canon recorded one.
 - `State:` real Canon run state.
 - `What Happened:` direct statement that the run is complete and what surface is now worth reading.
+- If Canon returns `mode_result`, treat it as the happy-path result, surface `Primary Artifact Action` when present, and keep inspection as optional drill-down.
 - `Readable Evidence:` concrete artifact paths when available.
 - `Action Chips:` optional inspection chips only; never show approval or resume chips for a completed ungated run.
 - `Possible Actions:` inspection options that make sense for the completed run.
-- `Recommended Next Step:` one inspection action only.
+- `Recommended Next Step:` optional. Omit it, or render `None`, when the completed result is already self-explanatory.
 - Do not suggest `$canon-approve` or `$canon-resume` when Canon reports no pending approvals and no gated state.
 
 ## Runnable Skill: Status Gated
@@ -75,7 +104,7 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 - `Readable Evidence:` point to `.canon/artifacts/<run-id>/...` only.
 - `Action Chips:` optional chips that preserve the same run context, such as `Inspect evidence` for lineage-first follow-up or `Approve generation...` after review when Canon already exposed the target.
 - `Possible Actions:` the valid follow-ups from the current run state.
-- `Recommended Next Step:` one action only, keeping the same run context.
+- `Recommended Next Step:` optional. Omit it, or render `None`, when the current inspection output is already sufficient.
 - Never infer missing artifact paths from run summaries or expected contracts; only report paths returned by Canon-backed output.
 
 ## Runnable Skill: Approval Recorded
@@ -112,7 +141,7 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 - `Evidence:` do not expose internal run-state files in standard user-facing output.
 - `Action Chips:` optional `Approve generation...` chip only after the user has a real packet to review and Canon already exposed the exact approval target.
 - `Possible Actions:` valid follow-ups from the current run state.
-- `Recommended Next Step:` one action only.
+- `Recommended Next Step:` optional. Omit it, or render `None`, when the packet already answers the user request and only drill-down remains.
 - If the artifact list is empty, say so directly and recommend `$canon-inspect-evidence` or `$canon-status` instead of pretending a packet exists.
 
 ## Runnable Skill: Gated
@@ -158,6 +187,7 @@ In the first shipped slice, the primary runnable shapes are:
 Later slices extend the same Canon-backed shapes to:
 
 - `canon-inspect-artifacts`
+- `canon-inspect-clarity`
 - `canon-approve`
 - `canon-resume`
 - `canon-brownfield`

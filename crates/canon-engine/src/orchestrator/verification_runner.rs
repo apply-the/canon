@@ -59,6 +59,22 @@ pub fn pr_review_verification_records(
     layers: &[VerificationLayer],
     target_paths: &[String],
 ) -> Vec<VerificationRecord> {
+    mode_verification_records("pr-review", layers, target_paths)
+}
+
+pub fn analysis_verification_records(
+    mode_name: &str,
+    layers: &[VerificationLayer],
+    target_paths: &[String],
+) -> Vec<VerificationRecord> {
+    mode_verification_records(mode_name, layers, target_paths)
+}
+
+fn mode_verification_records(
+    mode_name: &str,
+    layers: &[VerificationLayer],
+    target_paths: &[String],
+) -> Vec<VerificationRecord> {
     layers
         .iter()
         .copied()
@@ -66,8 +82,9 @@ pub fn pr_review_verification_records(
             layer,
             target_paths: target_paths.to_vec(),
             disposition: format!(
-                "{} recorded against the pr-review artifact bundle.",
-                layer_summary(layer)
+                "{} recorded against the {} artifact bundle.",
+                layer_summary(layer),
+                mode_name
             ),
             recorded_at: OffsetDateTime::now_utc(),
             request_ids: Vec::new(),
@@ -91,8 +108,8 @@ mod tests {
     use crate::domain::verification::VerificationLayer;
 
     use super::{
-        brownfield_verification_records, pr_review_verification_records,
-        requirements_verification_records,
+        analysis_verification_records, brownfield_verification_records,
+        pr_review_verification_records, requirements_verification_records,
     };
 
     #[test]
@@ -119,5 +136,16 @@ mod tests {
         assert!(brownfield[0].disposition.contains("Peer review"));
         assert!(pr_review[1].disposition.contains("Architectural review"));
         assert_eq!(pr_review[0].target_paths, targets);
+    }
+
+    #[test]
+    fn analysis_verification_records_use_the_supplied_mode_name() {
+        let layers = vec![VerificationLayer::SelfCritique];
+        let targets = vec!["artifacts/run-1/discovery/problem-map.md".to_string()];
+
+        let records = analysis_verification_records("discovery", &layers, &targets);
+
+        assert_eq!(records.len(), 1);
+        assert!(records[0].disposition.contains("discovery artifact bundle"));
     }
 }

@@ -1,3 +1,4 @@
+use canon_engine::{RunSummary, StatusSummary};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -23,6 +24,26 @@ pub fn print_value<T: Serialize>(value: &T, format: OutputFormat) -> CliResult<(
     Ok(())
 }
 
+pub fn print_run_summary(summary: &RunSummary, format: OutputFormat) -> CliResult<()> {
+    match format {
+        OutputFormat::Markdown => {
+            println!("{}", render_run_summary_markdown(summary));
+            Ok(())
+        }
+        other => print_value(summary, other),
+    }
+}
+
+pub fn print_status_summary(summary: &StatusSummary, format: OutputFormat) -> CliResult<()> {
+    match format {
+        OutputFormat::Markdown => {
+            println!("{}", render_status_summary_markdown(summary));
+            Ok(())
+        }
+        other => print_value(summary, other),
+    }
+}
+
 pub fn print_inspect<T: Serialize>(
     value: &T,
     target_name: &str,
@@ -30,6 +51,11 @@ pub fn print_inspect<T: Serialize>(
     format: OutputFormat,
 ) -> CliResult<()> {
     match format {
+        OutputFormat::Text if target_name == "risk-zone" => {
+            let json = serde_json::to_value(value)?;
+            println!("{}", render_risk_zone_text(&json));
+            Ok(())
+        }
         OutputFormat::Markdown => {
             let json = serde_json::to_value(value)?;
             println!("{}", render_markdown_from_json(&json, target_name, run_id));
@@ -44,9 +70,130 @@ fn render_markdown_from_json(value: &Value, target_name: &str, run_id: Option<&s
 
     match target_name {
         "artifacts" => render_artifacts_markdown(&entries, run_id),
+        "clarity" => render_clarity_markdown(&entries),
         "evidence" => render_evidence_markdown(&entries, run_id),
         "invocations" => render_invocations_markdown(&entries, run_id),
+        "risk-zone" => render_risk_zone_markdown(&entries),
         _ => render_list_markdown(target_name, &entries),
+    }
+}
+
+fn render_risk_zone_text(value: &Value) -> String {
+    let entries = value.get("entries").and_then(Value::as_array).cloned().unwrap_or_default();
+    let Some(entry) = entries.first().and_then(Value::as_object) else {
+        return "TARGET=risk-zone".to_string();
+    };
+
+    let mut lines = vec!["TARGET=risk-zone".to_string()];
+    render_kv_field(&mut lines, "MODE", entry.get("mode"));
+    render_kv_field(&mut lines, "INFERRED_RISK", entry.get("risk"));
+    render_kv_field(&mut lines, "INFERRED_ZONE", entry.get("zone"));
+    render_kv_field(&mut lines, "RISK_WAS_SUPPLIED", entry.get("risk_was_supplied"));
+    render_kv_field(&mut lines, "ZONE_WAS_SUPPLIED", entry.get("zone_was_supplied"));
+    render_kv_field(&mut lines, "INFERENCE_CONFIDENCE", entry.get("confidence"));
+    render_kv_field(&mut lines, "NEEDS_CONFIRMATION", entry.get("requires_confirmation"));
+    render_kv_field(&mut lines, "INFERENCE_HEADLINE", entry.get("headline"));
+    render_kv_field(&mut lines, "INFERENCE_RATIONALE", entry.get("rationale"));
+    render_kv_field(&mut lines, "RISK_RATIONALE", entry.get("risk_rationale"));
+    render_kv_field(&mut lines, "ZONE_RATIONALE", entry.get("zone_rationale"));
+
+    for (index, signal) in string_list(entry.get("signals")).into_iter().enumerate() {
+        lines.push(format!("SIGNAL_{}={signal}", index + 1));
+    }
+    for (index, signal) in string_list(entry.get("risk_signals")).into_iter().enumerate() {
+        lines.push(format!("RISK_SIGNAL_{}={signal}", index + 1));
+    }
+    for (index, signal) in string_list(entry.get("zone_signals")).into_iter().enumerate() {
+        lines.push(format!("ZONE_SIGNAL_{}={signal}", index + 1));
+    }
+
+    lines.join("\n")
+}
+
+fn render_run_summary_markdown(summary: &RunSummary) -> String {
+    let mut lines = vec!["# run".to_string(), String::new()];
+    lines.push(format!("Run ID: {}", summary.run_id));
+    lines.push(format!("Mode: {}", summary.mode));
+    lines.push(format!("State: {}", summary.state));
+    lines.push(format!("Risk: {}", summary.risk));
+    lines.push(format!("Zone: {}", summary.zone));
+
+    render_mode_result(&mut lines, summary.mode_result.as_ref());
+    render_runtime_blockers(&mut lines, &summary.blocked_gates);
+    render_recommended_next_step(&mut lines, summary.recommended_next_action.as_ref());
+
+    lines.join("\n")
+}
+
+fn render_status_summary_markdown(summary: &StatusSummary) -> String {
+    let mut lines = vec!["# status".to_string(), String::new()];
+    lines.push(format!("Run ID: {}", summary.run));
+    lines.push(format!("State: {}", summary.state));
+
+    render_mode_result(&mut lines, summary.mode_result.as_ref());
+    render_runtime_blockers(&mut lines, &summary.blocked_gates);
+    render_recommended_next_step(&mut lines, summary.recommended_next_action.as_ref());
+
+    lines.join("\n")
+}
+
+fn render_mode_result(
+    lines: &mut Vec<String>,
+    mode_result: Option<&canon_engine::ModeResultSummary>,
+) {
+    let Some(mode_result) = mode_result else {
+        return;
+    };
+
+    lines.push(String::new());
+    lines.push("## Result".to_string());
+    lines.push(String::new());
+    lines.push(mode_result.headline.clone());
+    lines.push(String::new());
+    lines.push(mode_result.artifact_packet_summary.clone());
+    lines.push(String::new());
+    lines.push(format!("Primary Artifact: {}", humanize_path(&mode_result.primary_artifact_path)));
+    lines.push(format!(
+        "Primary Artifact Action: {} ({})",
+        mode_result.primary_artifact_action.label,
+        humanize_path(&mode_result.primary_artifact_action.target)
+    ));
+    lines.push(String::new());
+    lines.push("Excerpt:".to_string());
+    lines.push(mode_result.result_excerpt.clone());
+}
+
+fn render_runtime_blockers(
+    lines: &mut Vec<String>,
+    blocked_gates: &[canon_engine::GateInspectSummary],
+) {
+    if blocked_gates.is_empty() {
+        return;
+    }
+
+    lines.push(String::new());
+    lines.push("## Blockers".to_string());
+    lines.push(String::new());
+    for gate in blocked_gates {
+        lines.push(format!("- {}: {}", gate.gate, gate.blockers.join(" | ")));
+    }
+}
+
+fn render_recommended_next_step(
+    lines: &mut Vec<String>,
+    action: Option<&canon_engine::RecommendedActionSummary>,
+) {
+    let Some(action) = action else {
+        return;
+    };
+
+    lines.push(String::new());
+    lines.push("## Recommended Next Step".to_string());
+    lines.push(String::new());
+    lines.push(format!("Action: {}", action.action));
+    lines.push(format!("Why: {}", action.rationale));
+    if let Some(target) = &action.target {
+        lines.push(format!("Target: {target}"));
     }
 }
 
@@ -205,6 +352,144 @@ fn render_invocations_markdown(entries: &[Value], run_id: Option<&str>) -> Strin
     lines.join("\n")
 }
 
+fn render_risk_zone_markdown(entries: &[Value]) -> String {
+    let mut lines = vec!["# risk-zone".to_string()];
+
+    let Some(entry) = entries.first().and_then(Value::as_object) else {
+        lines.push(String::new());
+        lines.push("- No classification suggestion recorded.".to_string());
+        return lines.join("\n");
+    };
+
+    lines.push(String::new());
+    render_scalar_field(&mut lines, "Mode", entry.get("mode"));
+    lines.push(String::new());
+    lines.push("## Suggested Classification".to_string());
+    lines.push(String::new());
+    lines.push(format!(
+        "Risk: {}{}",
+        scalar_value(entry.get("risk")).unwrap_or_else(|| "unknown".to_string()),
+        supplied_suffix(entry.get("risk_was_supplied"))
+    ));
+    lines.push(format!(
+        "Zone: {}{}",
+        scalar_value(entry.get("zone")).unwrap_or_else(|| "unknown".to_string()),
+        supplied_suffix(entry.get("zone_was_supplied"))
+    ));
+    render_scalar_field(&mut lines, "Confidence", entry.get("confidence"));
+    lines.push(format!("Needs Confirmation: {}", yes_no(entry.get("requires_confirmation"))));
+
+    lines.push(String::new());
+    lines.push("## Why".to_string());
+    lines.push(String::new());
+    if let Some(headline) = scalar_value(entry.get("headline")) {
+        lines.push(headline);
+    }
+    if let Some(rationale) = scalar_value(entry.get("rationale")) {
+        lines.push(String::new());
+        lines.push(rationale);
+    }
+
+    let signals = string_list(entry.get("signals"));
+    if !signals.is_empty() {
+        lines.push(String::new());
+        lines.push("## Signals".to_string());
+        lines.push(String::new());
+        for signal in signals {
+            lines.push(format!("- {signal}"));
+        }
+    }
+
+    lines.join("\n")
+}
+
+fn render_clarity_markdown(entries: &[Value]) -> String {
+    let mut lines = vec!["# clarity".to_string()];
+
+    let Some(entry) = entries.first().and_then(Value::as_object) else {
+        lines.push(String::new());
+        lines.push("- No clarity inspection recorded.".to_string());
+        return lines.join("\n");
+    };
+
+    lines.push(String::new());
+    render_scalar_field(&mut lines, "Mode", entry.get("mode"));
+    lines.push(format!("Requires Clarification: {}", yes_no(entry.get("requires_clarification"))));
+
+    if let Some(summary) = scalar_value(entry.get("summary")) {
+        lines.push(String::new());
+        lines.push("## Document Summary".to_string());
+        lines.push(String::new());
+        lines.push(summary);
+    }
+
+    let source_inputs = string_list(entry.get("source_inputs"));
+    if !source_inputs.is_empty() {
+        lines.push(String::new());
+        lines.push("## Source Inputs".to_string());
+        lines.push(String::new());
+        for input in source_inputs {
+            lines.push(format!("- {}", humanize_path(&input)));
+        }
+    }
+
+    let reasoning_signals = string_list(entry.get("reasoning_signals"));
+    if !reasoning_signals.is_empty() {
+        lines.push(String::new());
+        lines.push("## Reasoning Signals".to_string());
+        lines.push(String::new());
+        for signal in reasoning_signals {
+            lines.push(format!("- {signal}"));
+        }
+    }
+
+    let missing_context = string_list(entry.get("missing_context"));
+    if !missing_context.is_empty() {
+        lines.push(String::new());
+        lines.push("## Missing Context".to_string());
+        lines.push(String::new());
+        for gap in missing_context {
+            lines.push(format!("- {gap}"));
+        }
+    }
+
+    let clarification_questions =
+        entry.get("clarification_questions").and_then(Value::as_array).cloned().unwrap_or_default();
+    if !clarification_questions.is_empty() {
+        lines.push(String::new());
+        lines.push("## Clarification Questions".to_string());
+        lines.push(String::new());
+
+        for (index, question) in clarification_questions.iter().enumerate() {
+            let Some(question) = question.as_object() else {
+                continue;
+            };
+
+            let prompt = scalar_value(question.get("prompt"))
+                .unwrap_or_else(|| "Missing clarification prompt".to_string());
+            lines.push(format!("{}. {prompt}", index + 1));
+            if let Some(rationale) = scalar_value(question.get("rationale")) {
+                lines.push(format!("Why: {rationale}"));
+            }
+            if let Some(evidence) = scalar_value(question.get("evidence")) {
+                lines.push(format!("Evidence: {evidence}"));
+            }
+            if index + 1 < clarification_questions.len() {
+                lines.push(String::new());
+            }
+        }
+    }
+
+    if let Some(recommended_focus) = scalar_value(entry.get("recommended_focus")) {
+        lines.push(String::new());
+        lines.push("## Recommended Focus".to_string());
+        lines.push(String::new());
+        lines.push(recommended_focus);
+    }
+
+    lines.join("\n")
+}
+
 fn render_scalar_field(lines: &mut Vec<String>, label: &str, value: Option<&Value>) {
     let Some(value) = value else {
         return;
@@ -218,6 +503,33 @@ fn render_scalar_field(lines: &mut Vec<String>, label: &str, value: Option<&Valu
             serde_json::to_string(other).unwrap_or_else(|_| "{}".to_string())
         )),
     }
+}
+
+fn render_kv_field(lines: &mut Vec<String>, label: &str, value: Option<&Value>) {
+    let Some(value) = scalar_value(value) else {
+        return;
+    };
+
+    lines.push(format!("{label}={value}"));
+}
+
+fn scalar_value(value: Option<&Value>) -> Option<String> {
+    let value = value?;
+    match value {
+        Value::Null => None,
+        Value::String(text) => Some(text.clone()),
+        Value::Bool(flag) => Some(flag.to_string()),
+        Value::Number(number) => Some(number.to_string()),
+        other => serde_json::to_string(other).ok(),
+    }
+}
+
+fn supplied_suffix(value: Option<&Value>) -> &'static str {
+    if value.and_then(Value::as_bool).unwrap_or(false) { " (provided)" } else { " (inferred)" }
+}
+
+fn yes_no(value: Option<&Value>) -> &'static str {
+    if value.and_then(Value::as_bool).unwrap_or(false) { "yes" } else { "no" }
 }
 
 fn string_list(value: Option<&Value>) -> Vec<String> {
@@ -241,9 +553,47 @@ fn humanize_path(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use canon_engine::{
+        GateInspectSummary, ModeResultSummary, RecommendedActionSummary, ResultActionSummary,
+        RunSummary,
+    };
     use serde_json::json;
 
-    use super::render_markdown_from_json;
+    use super::{render_markdown_from_json, render_risk_zone_text, render_run_summary_markdown};
+
+    #[test]
+    fn clarity_markdown_surfaces_questions_and_signals() {
+        let value = json!({
+            "entries": [{
+                "mode": "requirements",
+                "summary": "Problem framing: Build a bounded USB flashing CLI.\nDesired outcome: Operators can flash firmware safely over USB with explicit logs.\nSource inputs: idea.md",
+                "source_inputs": ["idea.md"],
+                "requires_clarification": true,
+                "missing_context": [
+                    "Constraints are incomplete; downstream shaping would lack explicit non-negotiables."
+                ],
+                "clarification_questions": [{
+                    "id": "clarify-constraints",
+                    "prompt": "Which constraints are non-negotiable for this work?",
+                    "rationale": "Constraints determine whether downstream shaping stays repo-specific instead of becoming generic planning advice.",
+                    "evidence": "No authored `## Constraints`, `## Constraint`, or `## Non-Negotiables` section was detected in the supplied inputs."
+                }],
+                "reasoning_signals": [
+                    "Detected 1 authored input surface(s): idea.md."
+                ],
+                "recommended_focus": "Resolve the missing context items before starting a requirements run or handing the packet to downstream design work."
+            }]
+        });
+
+        let markdown = render_markdown_from_json(&value, "clarity", None);
+
+        assert!(markdown.contains("# clarity"));
+        assert!(markdown.contains("Mode: requirements"));
+        assert!(markdown.contains("Requires Clarification: yes"));
+        assert!(markdown.contains("## Clarification Questions"));
+        assert!(markdown.contains("1. Which constraints are non-negotiable for this work?"));
+        assert!(markdown.contains("## Recommended Focus"));
+    }
 
     #[test]
     fn artifacts_markdown_humanizes_artifact_paths() {
@@ -321,5 +671,150 @@ mod tests {
         assert!(markdown.contains("# methods"));
         assert!(markdown.contains("- one"));
         assert!(markdown.contains("- {\"two\":2}"));
+    }
+
+    #[test]
+    fn risk_zone_markdown_surfaces_provisional_classification() {
+        let value = json!({
+            "entries": [{
+                "mode": "discovery",
+                "risk": "bounded-impact",
+                "zone": "yellow",
+                "risk_was_supplied": false,
+                "zone_was_supplied": true,
+                "confidence": "moderate",
+                "requires_confirmation": true,
+                "headline": "Canon inferred the missing risk class as `bounded-impact` from the supplied intake.",
+                "rationale": "Use the inferred pair as a provisional starting point.",
+                "signals": ["Detected bounded-impact signal `boundary` in the intake."],
+                "risk_signals": ["Detected bounded-impact signal `boundary` in the intake."],
+                "zone_signals": ["User or caller already supplied the usage zone explicitly."]
+            }]
+        });
+
+        let markdown = render_markdown_from_json(&value, "risk-zone", None);
+
+        assert!(markdown.contains("# risk-zone"));
+        assert!(markdown.contains("Risk: bounded-impact (inferred)"));
+        assert!(markdown.contains("Zone: yellow (provided)"));
+        assert!(markdown.contains("Needs Confirmation: yes"));
+        assert!(markdown.contains("## Signals"));
+    }
+
+    #[test]
+    fn risk_zone_text_is_machine_parsable() {
+        let value = json!({
+            "entries": [{
+                "mode": "requirements",
+                "risk": "low-impact",
+                "zone": "green",
+                "risk_was_supplied": false,
+                "zone_was_supplied": false,
+                "confidence": "low",
+                "requires_confirmation": true,
+                "headline": "Canon inferred `low-impact` risk and `green` zone from the supplied intake.",
+                "rationale": "Use the inferred pair as a provisional starting point.",
+                "risk_rationale": "The intake looks exploratory.",
+                "zone_rationale": "The intake reads like isolated planning work.",
+                "signals": ["Mode `requirements` stays read-only and exploratory at this stage."],
+                "risk_signals": ["Mode `requirements` stays read-only and exploratory at this stage."],
+                "zone_signals": ["Mode `requirements` can stay in green when the intake is still isolated to planning or analysis."]
+            }]
+        });
+
+        let text = render_risk_zone_text(&value);
+
+        assert!(text.contains("TARGET=risk-zone"));
+        assert!(text.contains("INFERRED_RISK=low-impact"));
+        assert!(text.contains("INFERRED_ZONE=green"));
+        assert!(text.contains("NEEDS_CONFIRMATION=true"));
+        assert!(text.contains(
+            "RISK_SIGNAL_1=Mode `requirements` stays read-only and exploratory at this stage."
+        ));
+    }
+
+    #[test]
+    fn run_summary_markdown_surfaces_mode_result_without_mandatory_next_step() {
+        let summary = RunSummary {
+            run_id: "run-123".to_string(),
+            owner: "Owner".to_string(),
+            mode: "requirements".to_string(),
+            risk: "bounded-impact".to_string(),
+            zone: "yellow".to_string(),
+            state: "Completed".to_string(),
+            artifact_count: 6,
+            invocations_total: 3,
+            invocations_denied: 1,
+            invocations_pending_approval: 0,
+            blocking_classification: None,
+            blocked_gates: vec![GateInspectSummary {
+                gate: "release-readiness".to_string(),
+                status: "Blocked".to_string(),
+                blockers: vec!["missing approval".to_string()],
+            }],
+            approval_targets: Vec::new(),
+            artifact_paths: vec![".canon/artifacts/run-123/requirements/problem-statement.md".to_string()],
+            mode_result: Some(ModeResultSummary {
+                headline: "Requirements packet ready for downstream review.".to_string(),
+                artifact_packet_summary: "Primary artifact is ready.".to_string(),
+                primary_artifact_title: "Problem Statement".to_string(),
+                primary_artifact_path: ".canon/artifacts/run-123/requirements/problem-statement.md".to_string(),
+                primary_artifact_action: ResultActionSummary {
+                    id: "open-primary-artifact".to_string(),
+                    label: "Open primary artifact".to_string(),
+                    host_action: "open-file".to_string(),
+                    target: ".canon/artifacts/run-123/requirements/problem-statement.md"
+                        .to_string(),
+                    text_fallback:
+                        "Open the primary artifact at .canon/artifacts/run-123/requirements/problem-statement.md."
+                            .to_string(),
+                },
+                result_excerpt: "Build a bounded USB flashing CLI.".to_string(),
+            }),
+            recommended_next_action: None,
+        };
+
+        let markdown = render_run_summary_markdown(&summary);
+
+        assert!(markdown.contains("## Result"));
+        assert!(markdown.contains("Requirements packet ready for downstream review."));
+        assert!(markdown.contains(
+            "Primary Artifact: .canon/artifacts/run-123/requirements/problem-statement.md"
+        ));
+        assert!(markdown.contains("Primary Artifact Action: Open primary artifact (.canon/artifacts/run-123/requirements/problem-statement.md)"));
+        assert!(!markdown.contains("## Recommended Next Step"));
+        assert!(markdown.contains("## Blockers"));
+    }
+
+    #[test]
+    fn run_summary_markdown_keeps_mandatory_next_step_for_gated_runs() {
+        let summary = RunSummary {
+            run_id: "run-456".to_string(),
+            owner: "Owner".to_string(),
+            mode: "brownfield-change".to_string(),
+            risk: "systemic-impact".to_string(),
+            zone: "yellow".to_string(),
+            state: "AwaitingApproval".to_string(),
+            artifact_count: 0,
+            invocations_total: 2,
+            invocations_denied: 0,
+            invocations_pending_approval: 1,
+            blocking_classification: Some("approval-gated".to_string()),
+            blocked_gates: Vec::new(),
+            approval_targets: vec!["invocation:req-1".to_string()],
+            artifact_paths: Vec::new(),
+            mode_result: None,
+            recommended_next_action: Some(RecommendedActionSummary {
+                action: "inspect-evidence".to_string(),
+                rationale: "Approval is required; inspect the evidence lineage before deciding."
+                    .to_string(),
+                target: None,
+            }),
+        };
+
+        let markdown = render_run_summary_markdown(&summary);
+
+        assert!(markdown.contains("## Recommended Next Step"));
+        assert!(markdown.contains("Action: inspect-evidence"));
     }
 }

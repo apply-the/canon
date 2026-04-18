@@ -1,6 +1,7 @@
 use std::fs;
 
 use assert_cmd::Command;
+use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use tempfile::TempDir;
 
@@ -101,4 +102,42 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         contract_toml.trim(),
         include_str!("snapshots/requirements_artifact_contract.toml").trim()
     );
+}
+
+#[test]
+fn run_requirements_markdown_surfaces_primary_result_without_raw_json() {
+    let workspace = TempDir::new().expect("temp dir");
+    let idea_path = workspace.path().join("idea.md");
+    fs::write(
+        &idea_path,
+        "# Requirements Brief\n\n## Problem\nBuild a bounded USB flashing CLI for the Bird device.\n\n## Outcome\nOperators can flash firmware safely over USB with explicit logs.\n\n## Constraints\n- USB only\n- No Bluetooth in v1\n\n## Out of Scope\n- GUI\n\n## Open Questions\n- How is bootloader mode entered?\n",
+    )
+    .expect("idea file");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "requirements",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "product-lead",
+            "--input",
+            idea_path.file_name().expect("file name").to_str().expect("utf8"),
+            "--output",
+            "markdown",
+        ])
+        .assert()
+        .success()
+        .stdout(contains("# run"))
+        .stdout(contains("## Result"))
+        .stdout(contains("Primary Artifact: .canon/artifacts/"))
+        .stdout(contains("Primary Artifact Action: Open primary artifact (.canon/artifacts/"))
+        .stdout(contains("Build a bounded USB flashing CLI"))
+        .stdout(predicates::str::contains("## Recommended Next Step").not())
+        .stdout(predicates::str::is_match("\\\"run_id\\\"").expect("regex").not());
 }

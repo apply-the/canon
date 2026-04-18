@@ -127,6 +127,35 @@ function Normalize-InputPath([string]$Value) {
   return $Value
 }
 
+function Resolve-ExistingInputPath([string]$Value) {
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    return $null
+  }
+
+  $Candidate = $Value
+  if (-not [System.IO.Path]::IsPathRooted($Candidate)) {
+    $Candidate = Join-Path $RepoRoot $Candidate
+  }
+
+  if (-not (Test-Path -LiteralPath $Candidate)) {
+    return $null
+  }
+
+  return (Resolve-Path -LiteralPath $Candidate).Path
+}
+
+function Get-CanonicalModeInputHint([string]$CommandName) {
+  switch ($CommandName) {
+    'requirements' { return 'canon-input/requirements.md or canon-input/requirements/' }
+    'discovery' { return 'canon-input/discovery.md or canon-input/discovery/' }
+    'system-shaping' { return 'canon-input/system-shaping.md or canon-input/system-shaping/' }
+    'greenfield' { return 'canon-input/system-shaping.md or canon-input/system-shaping/' }
+    'architecture' { return 'canon-input/architecture.md or canon-input/architecture/' }
+    'brownfield-change' { return 'canon-input/brownfield-change.md or canon-input/brownfield-change/' }
+    default { return $null }
+  }
+}
+
 function Test-LocalBranchExists([string]$RefName) {
   & git -C $RepoRoot show-ref --verify --quiet $RefName *> $null
   return ($LASTEXITCODE -eq 0)
@@ -262,16 +291,81 @@ if ($RequireInit -and -not (Test-Path (Join-Path $RepoRoot ".canon"))) {
   Emit-Failure "repo-not-initialized" 13 "This workflow requires an initialized .canon/ directory." "Run `$canon-init or canon init in $RepoRoot first."
 }
 
-$RunStartCommands = @('requirements', 'brownfield-change', 'pr-review')
+$RunStartCommands = @('requirements', 'discovery', 'system-shaping', 'greenfield', 'architecture', 'brownfield-change', 'pr-review')
 $RunIdCommands = @('status', 'inspect-invocations', 'inspect-evidence', 'inspect-artifacts', 'approve', 'resume')
 $RunStartCommand = $RunStartCommands -contains $Command
 $RunIdCommand = $RunIdCommands -contains $Command
 $PrReviewCommand = ($Command -eq 'pr-review')
 
 $NormalizedRunId = ''
+$NormalizedRisk = ''
+$NormalizedZone = ''
 $NormalizedInput1 = ''
 $NormalizedRef1 = ''
 $NormalizedRef2 = ''
+$InferredRisk = ''
+$InferredZone = ''
+$InferenceConfidence = ''
+$InferenceHeadline = ''
+$InferenceRationale = ''
+$RiskRationale = ''
+$ZoneRationale = ''
+$RiskWasSupplied = ''
+$ZoneWasSupplied = ''
+$InferenceSignals = @()
+$RiskSignals = @()
+$ZoneSignals = @()
+
+function Invoke-ClassificationInference {
+  param([string]$ModeName, [string[]]$InputValues)
+
+  $Arguments = @('inspect', 'risk-zone', '--mode', $ModeName, '--output', 'text')
+  if ($NormalizedRisk) { $Arguments += @('--risk', $NormalizedRisk) }
+  if ($NormalizedZone) { $Arguments += @('--zone', $NormalizedZone) }
+  foreach ($InputValue in $InputValues) {
+    $Arguments += @('--input', $InputValue)
+  }
+
+  $Output = & canon @Arguments 2>$null
+  if ($LASTEXITCODE -ne 0) {
+    Emit-Failure 'classification-unavailable' 20 'Canon could not infer risk and zone from the supplied intake.' 'Provide --risk and --zone explicitly, or fix the authored input surface before retrying.' @{ FAILED_KIND = 'ClassificationInference' }
+  }
+
+  $script:InferredRisk = ''
+  $script:InferredZone = ''
+  $script:InferenceConfidence = ''
+  $script:InferenceHeadline = ''
+  $script:InferenceRationale = ''
+  $script:RiskRationale = ''
+  $script:ZoneRationale = ''
+  $script:RiskWasSupplied = ''
+  $script:ZoneWasSupplied = ''
+  $script:InferenceSignals = @()
+  $script:RiskSignals = @()
+  $script:ZoneSignals = @()
+
+  foreach ($Line in @($Output | Where-Object { $_ -and $_ -match '=' })) {
+    $Key, $Value = $Line -split '=', 2
+    switch -Wildcard ($Key) {
+      'INFERRED_RISK' { $script:InferredRisk = $Value }
+      'INFERRED_ZONE' { $script:InferredZone = $Value }
+      'INFERENCE_CONFIDENCE' { $script:InferenceConfidence = $Value }
+      'INFERENCE_HEADLINE' { $script:InferenceHeadline = $Value }
+      'INFERENCE_RATIONALE' { $script:InferenceRationale = $Value }
+      'RISK_RATIONALE' { $script:RiskRationale = $Value }
+      'ZONE_RATIONALE' { $script:ZoneRationale = $Value }
+      'RISK_WAS_SUPPLIED' { $script:RiskWasSupplied = $Value }
+      'ZONE_WAS_SUPPLIED' { $script:ZoneWasSupplied = $Value }
+      'SIGNAL_*' { $script:InferenceSignals += $Value }
+      'RISK_SIGNAL_*' { $script:RiskSignals += $Value }
+      'ZONE_SIGNAL_*' { $script:ZoneSignals += $Value }
+    }
+  }
+
+  if (-not $InferredRisk -or -not $InferredZone) {
+    Emit-Failure 'classification-unavailable' 20 'Canon returned an incomplete risk/zone inference payload.' 'Provide --risk and --zone explicitly, or inspect the authored intake before retrying.' @{ FAILED_KIND = 'ClassificationInference' }
+  }
+}
 
 if ($RunIdCommand) {
   $NormalizedRunId = Trim-Value $RunId
@@ -287,24 +381,6 @@ if ($RunStartCommand) {
   $Owner = Trim-Value $Owner
   $Risk = Trim-Value $Risk
   $Zone = Trim-Value $Zone
-
-  if (Test-MissingValue $Risk) {
-    Emit-Failure 'missing-input' 14 "Risk class is required for $Command." 'Retry with --risk <RISK>.' @{ FAILED_SLOT = 'risk'; FAILED_KIND = 'RiskField' }
-  }
-
-  $NormalizedRisk = Normalize-Risk $Risk
-  if (-not $NormalizedRisk) {
-    Emit-Failure 'invalid-input' 17 "Risk class $Risk is not supported by the Canon runtime contract." 'Retry with low-impact, bounded-impact, systemic-impact, or the runtime-recognized aliases LowImpact, BoundedImpact, SystemicImpact.' @{ FAILED_SLOT = 'risk'; FAILED_KIND = 'RiskField' }
-  }
-
-  if (Test-MissingValue $Zone) {
-    Emit-Failure 'missing-input' 14 "Usage zone is required for $Command." 'Retry with --zone <ZONE>.' @{ FAILED_SLOT = 'zone'; FAILED_KIND = 'ZoneField' }
-  }
-
-  $NormalizedZone = Normalize-Zone $Zone
-  if (-not $NormalizedZone) {
-    Emit-Failure 'invalid-input' 17 "Usage zone $Zone is not supported by the Canon runtime contract." 'Retry with green, yellow, red, or the runtime-recognized aliases Green, Yellow, Red.' @{ FAILED_SLOT = 'zone'; FAILED_KIND = 'ZoneField' }
-  }
 
   if ($PrReviewCommand) {
     if ($RefName.Count -eq 0) {
@@ -337,7 +413,75 @@ if ($RunStartCommand) {
       Emit-Failure 'missing-file' 15 "Input $LocalInput was not found from $RepoRoot." 'Retry with an existing file path.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
     }
 
+    $ResolvedInput = Resolve-ExistingInputPath $LocalInput
+    $CanonRoot = Resolve-ExistingInputPath '.canon'
+    if ($ResolvedInput -and $CanonRoot -and ($ResolvedInput -eq $CanonRoot -or $ResolvedInput.StartsWith($CanonRoot + [System.IO.Path]::DirectorySeparatorChar) -or $ResolvedInput.StartsWith($CanonRoot + [System.IO.Path]::AltDirectorySeparatorChar))) {
+      $InputHint = Get-CanonicalModeInputHint $Command
+      $InputAction = if ($InputHint) {
+        "Retry with $InputHint or another authored file path outside .canon/."
+      }
+      else {
+        'Retry with an authored file path outside .canon/.'
+      }
+      Emit-Failure 'invalid-input' 17 "Input $LocalInput points inside .canon/ and cannot be used as authored input for $Command." $InputAction @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+    }
+
     $NormalizedInput1 = Normalize-InputPath $LocalInput
+  }
+
+  if (-not (Test-MissingValue $Risk)) {
+    $NormalizedRisk = Normalize-Risk $Risk
+    if (-not $NormalizedRisk) {
+      Emit-Failure 'invalid-input' 17 "Risk class $Risk is not supported by the Canon runtime contract." 'Retry with low-impact, bounded-impact, systemic-impact, or the runtime-recognized aliases LowImpact, BoundedImpact, SystemicImpact.' @{ FAILED_SLOT = 'risk'; FAILED_KIND = 'RiskField' }
+    }
+  }
+
+  if (-not (Test-MissingValue $Zone)) {
+    $NormalizedZone = Normalize-Zone $Zone
+    if (-not $NormalizedZone) {
+      Emit-Failure 'invalid-input' 17 "Usage zone $Zone is not supported by the Canon runtime contract." 'Retry with green, yellow, red, or the runtime-recognized aliases Green, Yellow, Red.' @{ FAILED_SLOT = 'zone'; FAILED_KIND = 'ZoneField' }
+    }
+  }
+
+  if (-not $NormalizedRisk -or -not $NormalizedZone) {
+    if ($PrReviewCommand) {
+      Invoke-ClassificationInference -ModeName $Command -InputValues @($NormalizedRef1, $NormalizedRef2)
+    }
+    else {
+      Invoke-ClassificationInference -ModeName $Command -InputValues @($NormalizedInput1)
+    }
+
+    $Extra = @{
+      VERSION_KIND = $VersionKind
+      DETECTED_VERSION = $DetectedVersion
+      NEEDS_CONFIRMATION = 'true'
+      INFERRED_RISK = $InferredRisk
+      INFERRED_ZONE = $InferredZone
+      INFERENCE_CONFIDENCE = $InferenceConfidence
+      INFERENCE_HEADLINE = $InferenceHeadline
+      INFERENCE_RATIONALE = $InferenceRationale
+      RISK_RATIONALE = $RiskRationale
+      ZONE_RATIONALE = $ZoneRationale
+      RISK_WAS_SUPPLIED = if ($RiskWasSupplied) { $RiskWasSupplied } else { 'false' }
+      ZONE_WAS_SUPPLIED = if ($ZoneWasSupplied) { $ZoneWasSupplied } else { 'false' }
+    }
+
+    if ($NormalizedInput1) { $Extra['NORMALIZED_INPUT_1'] = $NormalizedInput1 }
+    if ($NormalizedRef1) { $Extra['NORMALIZED_REF_1'] = $NormalizedRef1 }
+    if ($NormalizedRef2) { $Extra['NORMALIZED_REF_2'] = $NormalizedRef2 }
+
+    for ($Index = 0; $Index -lt $InferenceSignals.Count; $Index++) {
+      $Extra["SIGNAL_$($Index + 1)"] = $InferenceSignals[$Index]
+    }
+    for ($Index = 0; $Index -lt $RiskSignals.Count; $Index++) {
+      $Extra["RISK_SIGNAL_$($Index + 1)"] = $RiskSignals[$Index]
+    }
+    for ($Index = 0; $Index -lt $ZoneSignals.Count; $Index++) {
+      $Extra["ZONE_SIGNAL_$($Index + 1)"] = $ZoneSignals[$Index]
+    }
+
+    Write-Result -Status 'needs-classification-confirmation' -Code 19 -Phase 'preflight' -Message $InferenceHeadline -Action 'Confirm or override the inferred classification, then invoke Canon with explicit --risk and --zone.' -Extra $Extra
+    exit 19
   }
 }
 
@@ -350,5 +494,7 @@ if ($NormalizedRunId) { $Extra['NORMALIZED_RUN_ID'] = $NormalizedRunId }
 if ($NormalizedInput1) { $Extra['NORMALIZED_INPUT_1'] = $NormalizedInput1 }
 if ($NormalizedRef1) { $Extra['NORMALIZED_REF_1'] = $NormalizedRef1 }
 if ($NormalizedRef2) { $Extra['NORMALIZED_REF_2'] = $NormalizedRef2 }
+if ($NormalizedRisk) { $Extra['NORMALIZED_RISK'] = $NormalizedRisk }
+if ($NormalizedZone) { $Extra['NORMALIZED_ZONE'] = $NormalizedZone }
 
 Write-Result -Status 'ready' -Code 0 -Phase 'preflight' -Message 'Typed preflight checks passed.' -Action 'Invoke Canon using the normalized contract for this command.' -Extra $Extra
