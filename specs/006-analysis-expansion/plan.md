@@ -54,7 +54,7 @@ standard review.
 
 ## 2. Technical Context
 
-**Language/Version**: Rust 1.94.1, Edition 2024  
+**Language/Version**: Rust 1.95.0, Edition 2024  
 **Primary Dependencies**: clap, serde, serde_json, serde_yaml, toml, thiserror,
 tracing, tracing-subscriber, uuid, time  
 **Storage**: Local filesystem under `.canon/` (TOML for manifests, Markdown for

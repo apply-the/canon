@@ -1556,9 +1556,9 @@ mod tests {
         );
 
         assert!(
-            review.contains("## Contradictions\n- First contradiction\n- Second contradiction")
+            review.contains("## Contradictions\n\n- First contradiction\n- Second contradiction")
         );
-        assert!(invariants.contains("## Claims Under Test\n- Claim one\n- Claim two"));
+        assert!(invariants.contains("## Claims Under Test\n\n- Claim one\n- Claim two"));
         assert!(!review.contains("- First contradiction - Second contradiction"));
     }
 

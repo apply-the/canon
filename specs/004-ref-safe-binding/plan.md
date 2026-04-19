@@ -65,7 +65,7 @@ binding contracts, shared preflight status codes, or the accepted ref forms for
 ## 1. Technical Context
 
 **Language/Version**: Markdown `SKILL.md` files, repo-local Bash and PowerShell
-helper scripts, existing Canon Rust 1.94.1 CLI/runtime  
+helper scripts, existing Canon Rust 1.95.0 CLI/runtime  
 **Primary Dependencies**: installed `canon` binary, Git command-line ref
 inspection (`git rev-parse`, `git show-ref`, `git for-each-ref`, `git remote`),
 existing `.agents/skills/canon-shared/scripts/check-runtime.*`, and current

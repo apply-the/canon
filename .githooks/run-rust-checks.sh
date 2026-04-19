@@ -6,8 +6,18 @@ hook_name=${1:-hook}
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$repo_root"
 
+if [ -f rust-toolchain.toml ]; then
+  repo_toolchain=$(awk -F'"' '/^channel = / { print $2; exit }' rust-toolchain.toml)
+  if [ -n "$repo_toolchain" ]; then
+    export RUSTUP_TOOLCHAIN="$repo_toolchain"
+  fi
+fi
+
 step_index=1
 step_total=3
+if [ "$hook_name" = "pre-push" ]; then
+  step_total=4
+fi
 
 run_step() {
   step_label=$1
@@ -43,5 +53,12 @@ run_step \
   "cargo test" \
   "Run 'cargo test' and fix the failing test or regression before retrying." \
   cargo test
+
+if [ "$hook_name" = "pre-push" ]; then
+  run_step \
+    "cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info" \
+    "Install 'cargo-llvm-cov' if needed, then run 'cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info' and fix the failing test or coverage regression before retrying." \
+    cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+fi
 
 printf '%s\n' "[$hook_name] All Rust quality checks passed."

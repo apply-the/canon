@@ -35,7 +35,7 @@ Promote `review` and `verification` from contract-only taxonomy entries into run
 
 ## Technical Context
 
-**Language/Version**: Rust 1.94.1  
+**Language/Version**: Rust 1.95.0  
 **Primary Dependencies**: existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: local filesystem under `.canon/`, Markdown artifacts, TOML manifests and policies  
 **Testing**: `cargo test`, `cargo nextest run`, contract tests under `tests/contract`, integration tests under `tests/integration`  
