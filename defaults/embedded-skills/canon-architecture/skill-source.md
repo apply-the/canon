@@ -29,7 +29,7 @@ memorize the raw CLI.
 
 - `RISK`
 - `ZONE`
-- at least one input file, input folder, or note
+- at least one input file, input folder, or inline note
 
 Optional:
 
@@ -39,12 +39,14 @@ Optional:
 
 - Verify `canon` is on PATH. If missing, point to the install guide.
 - Verify `.canon/` exists. If missing, point to `$canon-init`.
-- Verify risk, zone, and --input <INPUT_PATH> are present before invoking Canon.
+- Verify risk, zone, and at least one authored input are present before invoking Canon.
 - For auto-binding only, treat `canon-input/architecture.md` or `canon-input/architecture/` as the canonical authored-input locations for this mode.
+- For an explicit inline note, pass it through `--input-text` instead of materializing a repo file automatically.
 - Never infer `--input` from the active editor file, open tabs, recent `.canon/` artifacts, or any other path under `.canon/`.
-- If neither canonical location exists and the user did not provide an explicit input, ask explicitly for the input path.
+- If neither canonical location exists and the user did not provide an explicit input or inline note, ask explicitly for the input path or inline note.
 - `OWNER` is optional. If omitted, Canon should try repository-local or global Git identity before asking for explicit owner input.
 - If the user is starting from a short note instead of a structured brief, guide them to include explicit architectural decision focus and constraints before invoking Canon.
+- If the selected file, folder, or inline note is empty, whitespace-only, or structurally insufficient, surface that as invalid authored input and retry only that slot.
 - If risk and/or zone are missing after the authored input surface is known, use `canon inspect risk-zone --mode architecture --input <INPUT_PATH>` to infer a provisional pair, explain the Canon rationale and confidence, and ask the user to confirm or override before invoking Canon.
 - If the inferred classification returns `low` confidence, present it as provisional and invite override rather than treating it as final.
 - Classification confirmation is intake confirmation only, not Canon approval.
@@ -54,7 +56,7 @@ Optional:
 
 ## Canon Command Contract
 
-- Canon command: `canon run --mode architecture --risk <RISK> --zone <ZONE> [--owner <OWNER>] --input <INPUT_PATH>`
+- Canon command: `canon run --mode architecture --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any approval target Canon emits.
 
 ## Expected Output Shape
@@ -78,6 +80,7 @@ Optional:
 - For `ZONE`, use guided fixed choices with the exact allowed values `green`, `yellow`, and `red`.
 - If an input is invalid, tell the user which typed slot failed and retry only that slot.
 - If the input file is missing, ask only for the missing path and do not restate already valid ownership metadata.
+- If an explicit inline note is empty or whitespace-only, ask only for non-empty `--input-text` content and do not restate already valid ownership metadata.
 - If Canon fails after preflight succeeds, state that the failure happened inside Canon execution rather than before Canon execution.
 - If Canon returns `AwaitingApproval`, surface the exact target Canon produced, typically `gate:risk`, and do not imply the run is complete.
 - Never emit fabricated Canon runtime state.

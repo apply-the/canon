@@ -19,15 +19,15 @@ fn cli_command() -> Command {
     command
 }
 
-fn complete_greenfield_brief() -> &'static str {
+fn complete_system_shaping_brief() -> &'static str {
     "# System Shaping Brief\n\nIntent: shape a new governed Canon workflow surface for incomplete analysis modes.\nConstraint: keep the runtime adapters, policy gates, and evidence model intact.\n"
 }
 
 #[test]
-fn run_greenfield_persists_completed_artifacts_and_validation_evidence() {
+fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("system-shaping.md");
-    fs::write(&brief_path, complete_greenfield_brief()).expect("brief file");
+    fs::write(&brief_path, complete_system_shaping_brief()).expect("brief file");
 
     let output = cli_command()
         .current_dir(workspace.path())
@@ -76,7 +76,7 @@ fn run_greenfield_persists_completed_artifacts_and_validation_evidence() {
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
-            "{artifact} should exist in the greenfield bundle"
+            "{artifact} should exist in the system-shaping bundle"
         );
     }
 
@@ -96,11 +96,11 @@ fn run_greenfield_persists_completed_artifacts_and_validation_evidence() {
         .expect("evidence entry");
     assert!(
         entry["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "greenfield should persist generation evidence"
+        "system-shaping should persist generation evidence"
     );
     assert!(
         entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "greenfield should persist critique validation evidence"
+        "system-shaping should persist critique validation evidence"
     );
 
     let status_output = cli_command()
@@ -119,7 +119,7 @@ fn run_greenfield_persists_completed_artifacts_and_validation_evidence() {
 }
 
 #[test]
-fn run_greenfield_blocks_when_context_is_missing_intent_and_constraint_markers() {
+fn run_system_shaping_blocks_when_context_is_missing_intent_and_constraint_markers() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("system-shaping.md");
     fs::write(
@@ -166,6 +166,6 @@ fn run_greenfield_blocks_when_context_is_missing_intent_and_constraint_markers()
                 .as_str()
                 .is_some_and(|text| text.contains("lacks sufficient evidence"))
         )),
-        "greenfield runs with underspecified context should block on evidence quality"
+        "system-shaping runs with underspecified context should block on evidence quality"
     );
 }

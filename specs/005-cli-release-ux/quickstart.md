@@ -5,7 +5,7 @@ This quickstart exercises the Phase 1 release UX defined for
 
 ## Prerequisites
 
-- a Canon release candidate version, such as `0.6.0`
+- a Canon release candidate version, such as `0.7.0`
 - a GitHub Actions run or draft GitHub Release that produced the Phase 1
   artifact set
 - Git available on the validation machine
@@ -34,7 +34,7 @@ The release notes must also state:
 Example for macOS or Linux:
 
 ```bash
-VERSION=0.6.0
+VERSION=0.7.0
 ARCHIVE="canon-${VERSION}-linux-x86_64.tar.gz"
 
 curl -LO "https://github.com/apply-the/canon/releases/download/v${VERSION}/${ARCHIVE}"
@@ -59,7 +59,7 @@ Expected result:
 Example in PowerShell:
 
 ```powershell
-$Version = "0.6.0"
+$Version = "0.7.0"
 $Archive = "canon-$Version-windows-x86_64.zip"
 
 Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/v$Version/$Archive" -OutFile $Archive

@@ -10,7 +10,7 @@ use crate::domain::gate::GateKind;
 pub enum Mode {
     Requirements,
     Discovery,
-    Greenfield,
+    SystemShaping,
     BrownfieldChange,
     Architecture,
     Implementation,
@@ -52,7 +52,7 @@ impl Mode {
         match self {
             Self::Requirements => "requirements",
             Self::Discovery => "discovery",
-            Self::Greenfield => "system-shaping",
+            Self::SystemShaping => "system-shaping",
             Self::BrownfieldChange => "brownfield-change",
             Self::Architecture => "architecture",
             Self::Implementation => "implementation",
@@ -69,7 +69,7 @@ impl Mode {
         &[
             Self::Discovery,
             Self::Requirements,
-            Self::Greenfield,
+            Self::SystemShaping,
             Self::Architecture,
             Self::BrownfieldChange,
             Self::PrReview,
@@ -96,7 +96,7 @@ impl std::str::FromStr for Mode {
         match value {
             "requirements" => Ok(Self::Requirements),
             "discovery" => Ok(Self::Discovery),
-            "system-shaping" => Ok(Self::Greenfield),
+            "system-shaping" => Ok(Self::SystemShaping),
             "brownfield-change" => Ok(Self::BrownfieldChange),
             "architecture" => Ok(Self::Architecture),
             "implementation" => Ok(Self::Implementation),
@@ -119,8 +119,8 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     };
     use ImplementationDepth::{ContractOnly, Full, Skeleton};
     use Mode::{
-        Architecture as ArchitectureMode, BrownfieldChange, Discovery, Greenfield, Implementation,
-        Incident, Migration, PrReview, Refactor, Requirements, Review, Verification,
+        Architecture as ArchitectureMode, BrownfieldChange, Discovery, Implementation, Incident,
+        Migration, PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -157,7 +157,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
         ModeProfile {
-            mode: Greenfield,
+            mode: SystemShaping,
             purpose: "Shape a new capability from bounded intent through early delivery structure.",
             emphasis: AnalysisHeavy,
             implementation_depth: Full,
@@ -243,7 +243,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             mode: Verification,
             purpose: "Challenge claims, invariants, contracts, and evidence directly.",
             emphasis: ReviewHeavy,
-            implementation_depth: ContractOnly,
+            implementation_depth: Full,
             gate_profile: vec![Risk, ReleaseReadiness],
             artifact_families: vec![
                 "invariants checklist",
@@ -258,7 +258,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             mode: Review,
             purpose: "Review a change package or artifact bundle outside pull request semantics.",
             emphasis: ReviewHeavy,
-            implementation_depth: ContractOnly,
+            implementation_depth: Full,
             gate_profile: vec![Risk, Architecture, ReviewDisposition, ReleaseReadiness],
             artifact_families: vec![
                 "review brief",

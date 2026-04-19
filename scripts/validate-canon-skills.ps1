@@ -29,18 +29,19 @@ $AvailableNow = @(
   "canon-system-shaping",
   "canon-architecture",
   "canon-brownfield",
+  "canon-review",
+  "canon-verification",
   "canon-pr-review"
 )
 
 $ModeledOnly = @(
   "canon-implementation",
   "canon-refactor",
-  "canon-review",
   "canon-incident",
   "canon-migration"
 )
 
-$IntentionallyLimited = @("canon-verification")
+$IntentionallyLimited = @()
 $Errors = 0
 
 function Fail([string]$Message) {
@@ -114,11 +115,19 @@ if ($CanonInitText -match "Run ID:|State:") { Fail "canon-init: must not describ
 
 $RequirementsPath = Join-Path $SkillsDir "canon-requirements/SKILL.md"
 $BrownfieldPath = Join-Path $SkillsDir "canon-brownfield/SKILL.md"
+$ReviewPath = Join-Path $SkillsDir "canon-review/SKILL.md"
+$VerificationPath = Join-Path $SkillsDir "canon-verification/SKILL.md"
 $PrReviewPath = Join-Path $SkillsDir "canon-pr-review/SKILL.md"
 $ClarityPath = Join-Path $SkillsDir "canon-inspect-clarity/SKILL.md"
 
 Require-Text $RequirementsPath '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
+Require-Text $RequirementsPath '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
 Require-Text $BrownfieldPath '--input <INPUT_PATH>' 'canon-brownfield: preflight must keep file-path input binding'
+Require-Text $BrownfieldPath '--input-text <INPUT_TEXT>' 'canon-brownfield: must document inline authored input binding'
+Require-Text $ReviewPath '--input <INPUT_PATH>' 'canon-review: preflight must keep file-path input binding'
+Require-Text $ReviewPath '--input-text <INPUT_TEXT>' 'canon-review: must document inline authored input binding'
+Require-Text $VerificationPath '--input <INPUT_PATH>' 'canon-verification: preflight must keep file-path input binding'
+Require-Text $VerificationPath '--input-text <INPUT_TEXT>' 'canon-verification: must document inline authored input binding'
 Require-Text $PrReviewPath '--ref <BASE_REF> --ref <HEAD_REF>' 'canon-pr-review: preflight must use --ref for base/head binding'
 Require-Text $ClarityPath 'canon inspect clarity --mode <MODE> --input <INPUT_PATH> [<INPUT_PATH> ...]' 'canon-inspect-clarity: must promise the exact Canon CLI form'
 Require-Text $ClarityPath '.canon/` is not required for this inspection surface' 'canon-inspect-clarity: must stay honest that this inspect surface is pre-run and does not require runtime state'
@@ -141,6 +150,7 @@ Require-Text $RequirementsPath 'inside Canon execution rather than before Canon 
 Require-Text $RequirementsPath 'guided fixed choices' 'canon-requirements: must require guided choices for enum fields'
 Require-Text $RequirementsPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-requirements: must list canonical risk choices'
 Require-Text $RequirementsPath 'green`, `yellow`, or `red' 'canon-requirements: must list canonical zone choices'
+Require-Text $RequirementsPath 'empty, whitespace-only, or structurally insufficient' 'canon-requirements: must describe fail-fast authored-input validation'
 
 Require-Text $BrownfieldPath 'preserve valid ownership fields' 'canon-brownfield: must describe preserving valid ownership fields across retry'
 Require-Text $BrownfieldPath 'asks only for the missing brief path or missing ownership slot' 'canon-brownfield: must describe targeted retry behavior'
@@ -150,6 +160,28 @@ Require-Text $BrownfieldPath 'preflight failure' 'canon-brownfield: must disting
 Require-Text $BrownfieldPath 'guided fixed choices' 'canon-brownfield: must require guided choices for enum fields'
 Require-Text $BrownfieldPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-brownfield: must list canonical risk choices'
 Require-Text $BrownfieldPath 'green`, `yellow`, or `red' 'canon-brownfield: must list canonical zone choices'
+Require-Text $BrownfieldPath 'empty, whitespace-only, or structurally insufficient' 'canon-brownfield: must describe fail-fast authored-input validation'
+
+Require-Text $ReviewPath 'preserve valid ownership fields' 'canon-review: must describe preserving valid ownership fields across retry'
+Require-Text $ReviewPath 'asks only for the missing slot' 'canon-review: must describe single-slot retry behavior'
+Require-Text $ReviewPath 'exact Canon CLI retry form' 'canon-review: must promise the exact CLI retry form'
+Require-Text $ReviewPath 'inside Canon execution rather than before Canon execution' 'canon-review: must distinguish preflight failures from Canon-execution failures'
+Require-Text $ReviewPath 'guided fixed choices' 'canon-review: must require guided choices for enum fields'
+Require-Text $ReviewPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-review: must list canonical risk choices'
+Require-Text $ReviewPath 'green`, `yellow`, or `red' 'canon-review: must list canonical zone choices'
+Require-Text $ReviewPath 'canon-input/review.md` or `canon-input/review/' 'canon-review: must document canonical review input locations'
+Require-Text $ReviewPath 'do not accept arbitrary code folders such as `src/`' 'canon-review: must reject arbitrary code folders as review inputs'
+Require-Text $ReviewPath 'empty, whitespace-only, or structurally insufficient' 'canon-review: must describe fail-fast authored-input validation'
+
+Require-Text $VerificationPath 'preserve valid ownership fields' 'canon-verification: must describe preserving valid ownership fields across retry'
+Require-Text $VerificationPath 'asks only for the missing slot' 'canon-verification: must describe single-slot retry behavior'
+Require-Text $VerificationPath 'exact Canon CLI retry form' 'canon-verification: must promise the exact CLI retry form'
+Require-Text $VerificationPath 'inside Canon execution rather than before Canon execution' 'canon-verification: must distinguish preflight failures from Canon-execution failures'
+Require-Text $VerificationPath 'guided fixed choices' 'canon-verification: must require guided choices for enum fields'
+Require-Text $VerificationPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-verification: must list canonical risk choices'
+Require-Text $VerificationPath 'green`, `yellow`, or `red' 'canon-verification: must list canonical zone choices'
+Require-Text $VerificationPath 'canon-input/verification.md` or `canon-input/verification/' 'canon-verification: must document canonical verification input locations'
+Require-Text $VerificationPath 'empty, whitespace-only, or structurally insufficient' 'canon-verification: must describe fail-fast authored-input validation'
 
 Require-Text $PrReviewPath 'preserves the valid side of the pair' 'canon-pr-review: must describe preserving the valid ref side across retry'
 Require-Text $PrReviewPath 'exact Canon CLI form' 'canon-pr-review: must promise the exact CLI form'

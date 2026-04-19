@@ -1,9 +1,8 @@
 use canon_engine::domain::mode::{ImplementationDepth, Mode, all_mode_profiles};
 
 #[test]
-fn greenfield_alias_is_no_longer_accepted_for_mode_parsing() {
-    assert_eq!("system-shaping".parse::<Mode>(), Ok(Mode::Greenfield));
-    assert!("greenfield".parse::<Mode>().is_err());
+fn system_shaping_mode_parses_through_the_public_name() {
+    assert_eq!("system-shaping".parse::<Mode>(), Ok(Mode::SystemShaping));
 }
 
 #[test]
@@ -19,14 +18,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    let staged_modes = [
-        Mode::Implementation,
-        Mode::Refactor,
-        Mode::Verification,
-        Mode::Review,
-        Mode::Incident,
-        Mode::Migration,
-    ];
+    let staged_modes = [Mode::Implementation, Mode::Refactor, Mode::Incident, Mode::Migration];
 
     for mode in staged_modes {
         let profile =
@@ -59,9 +51,11 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
     for mode in [
         Mode::Requirements,
         Mode::Discovery,
-        Mode::Greenfield,
+        Mode::SystemShaping,
         Mode::BrownfieldChange,
         Mode::Architecture,
+        Mode::Verification,
+        Mode::Review,
         Mode::PrReview,
     ] {
         let profile = profiles

@@ -70,6 +70,19 @@ pub fn analysis_verification_records(
     mode_verification_records(mode_name, layers, target_paths)
 }
 
+pub fn attach_runtime_lineage(
+    records: &mut [VerificationRecord],
+    request_ids: &[String],
+    validation_path_id: &str,
+    evidence_bundle: &str,
+) {
+    for record in records {
+        record.request_ids = request_ids.to_vec();
+        record.validation_path_id = Some(validation_path_id.to_string());
+        record.evidence_bundle = Some(evidence_bundle.to_string());
+    }
+}
+
 fn mode_verification_records(
     mode_name: &str,
     layers: &[VerificationLayer],
@@ -108,7 +121,7 @@ mod tests {
     use crate::domain::verification::VerificationLayer;
 
     use super::{
-        analysis_verification_records, brownfield_verification_records,
+        analysis_verification_records, attach_runtime_lineage, brownfield_verification_records,
         pr_review_verification_records, requirements_verification_records,
     };
 
@@ -147,5 +160,30 @@ mod tests {
 
         assert_eq!(records.len(), 1);
         assert!(records[0].disposition.contains("discovery artifact bundle"));
+    }
+
+    #[test]
+    fn attach_runtime_lineage_populates_request_and_evidence_metadata() {
+        let layers = vec![VerificationLayer::SelfCritique, VerificationLayer::AdversarialCritique];
+        let targets = vec!["artifacts/run-1/review/review-disposition.md".to_string()];
+        let mut records = analysis_verification_records("review", &layers, &targets);
+        let request_ids = vec![
+            "run-1-generate".to_string(),
+            "run-1-critique".to_string(),
+            "run-1-validate".to_string(),
+        ];
+
+        attach_runtime_lineage(
+            &mut records,
+            &request_ids,
+            "validation:run-1-validate",
+            "runs/run-1/evidence.toml",
+        );
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].request_ids, request_ids);
+        assert_eq!(records[0].validation_path_id.as_deref(), Some("validation:run-1-validate"));
+        assert_eq!(records[0].evidence_bundle.as_deref(), Some("runs/run-1/evidence.toml"));
+        assert_eq!(records[1].request_ids.len(), 3);
     }
 }

@@ -33,6 +33,7 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
             inputs: vec!["brief.md".to_string()],
             excluded_paths: Vec::new(),
             input_fingerprints: Vec::new(),
+            inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         },
         state: RunStateManifest {

@@ -23,7 +23,7 @@
 
 **Context**: All three new modes share the same 13-step orchestration shape as requirements. A shared `run_analysis_mode()` helper could reduce duplication.
 
-**Decision**: Use per-mode `run_discovery()`, `run_greenfield()`, `run_architecture()` methods in service.rs, matching the existing pattern.
+**Decision**: Use per-mode `run_discovery()`, `run_system_shaping()`, `run_architecture()` methods in service.rs, matching the existing pattern.
 
 **Alternatives**:
 - Shared `run_analysis_mode(mode, config)` — rejected; only 3 modes is not enough to justify the abstraction, and the existing pattern is well-tested
@@ -65,7 +65,7 @@
 
 **Context**: Gate evaluation needs mode-specific logic. Options are per-mode functions or a generic dispatcher.
 
-**Decision**: Create `evaluate_discovery_gates()`, `evaluate_greenfield_gates()`, `evaluate_architecture_gates()` in gatekeeper.rs, each with a mode-specific context struct.
+**Decision**: Create `evaluate_discovery_gates()`, `evaluate_system_shaping_gates()`, `evaluate_architecture_gates()` in gatekeeper.rs, each with a mode-specific context struct.
 
 **Alternatives**:
 - Single `evaluate_analysis_gates(mode, ...)` — rejected; masks mode-specific gate semantics

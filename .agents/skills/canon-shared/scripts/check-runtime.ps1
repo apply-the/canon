@@ -8,6 +8,8 @@ param(
   [string]$Zone = "",
   [Alias("Input")]
   [string[]]$InputPath = @(),
+  [Alias("InputText")]
+  [string[]]$InlineInputText = @(),
   [Alias("Ref")]
   [string[]]$RefName = @()
 )
@@ -144,14 +146,63 @@ function Resolve-ExistingInputPath([string]$Value) {
   return (Resolve-Path -LiteralPath $Candidate).Path
 }
 
+function Get-AuthoredInputRetryAction([string]$CommandName) {
+  $InputHint = Get-CanonicalModeInputHint $CommandName
+
+  if ($CommandName -eq 'review') {
+    if ($InputHint) {
+      return "Retry with $InputHint, or pass exactly one non-empty --input-text note."
+    }
+
+    return 'Retry with exactly one non-empty authored input or exactly one non-empty --input-text note.'
+  }
+
+  if ($InputHint) {
+    return "Retry with $InputHint, another non-empty authored path, or non-empty --input-text."
+  }
+
+  return 'Retry with a non-empty authored file path or non-empty --input-text.'
+}
+
+function Get-AuthoredInputContentStatus([string]$ResolvedPath) {
+  if ([string]::IsNullOrWhiteSpace($ResolvedPath)) {
+    return 'missing'
+  }
+
+  $Item = Get-Item -LiteralPath $ResolvedPath -ErrorAction Stop
+  if ($Item.PSIsContainer) {
+    $Files = @(Get-ChildItem -LiteralPath $ResolvedPath -Recurse -File -ErrorAction SilentlyContinue)
+    if ($Files.Count -eq 0) {
+      return 'empty-dir'
+    }
+
+    foreach ($File in $Files) {
+      $Content = Get-Content -LiteralPath $File.FullName -Raw -ErrorAction SilentlyContinue
+      if (-not [string]::IsNullOrWhiteSpace($Content)) {
+        return 'usable'
+      }
+    }
+
+    return 'whitespace-only'
+  }
+
+  $Content = Get-Content -LiteralPath $ResolvedPath -Raw -ErrorAction SilentlyContinue
+  if ([string]::IsNullOrWhiteSpace($Content)) {
+    return 'whitespace-only'
+  }
+
+  return 'usable'
+}
+
 function Get-CanonicalModeInputHint([string]$CommandName) {
   switch ($CommandName) {
     'requirements' { return 'canon-input/requirements.md or canon-input/requirements/' }
     'discovery' { return 'canon-input/discovery.md or canon-input/discovery/' }
+    'review' { return 'canon-input/review.md or canon-input/review/' }
     'system-shaping' { return 'canon-input/system-shaping.md or canon-input/system-shaping/' }
-    'greenfield' { return 'canon-input/system-shaping.md or canon-input/system-shaping/' }
     'architecture' { return 'canon-input/architecture.md or canon-input/architecture/' }
     'brownfield-change' { return 'canon-input/brownfield-change.md or canon-input/brownfield-change/' }
+    'verification' { return 'canon-input/verification.md or canon-input/verification/' }
     default { return $null }
   }
 }
@@ -273,7 +324,7 @@ try {
 } catch {
   $ProbeOutput = & canon inspect modes --output json 2>$null
   $ProbeText = ($ProbeOutput | Out-String)
-  if ($LASTEXITCODE -ne 0 -or $ProbeText -notmatch "requirements" -or $ProbeText -notmatch "brownfield-change" -or $ProbeText -notmatch "pr-review") {
+  if ($LASTEXITCODE -ne 0 -or $ProbeText -notmatch "requirements" -or $ProbeText -notmatch "brownfield-change" -or $ProbeText -notmatch "review" -or $ProbeText -notmatch "verification" -or $ProbeText -notmatch "pr-review") {
     Emit-Failure "version-incompatible" 11 "Canon is present, but it does not satisfy the expected CLI command contract for this repo." (Get-InstallAction -Update)
   }
 }
@@ -291,7 +342,7 @@ if ($RequireInit -and -not (Test-Path (Join-Path $RepoRoot ".canon"))) {
   Emit-Failure "repo-not-initialized" 13 "This workflow requires an initialized .canon/ directory." "Run `$canon-init or canon init in $RepoRoot first."
 }
 
-$RunStartCommands = @('requirements', 'discovery', 'system-shaping', 'greenfield', 'architecture', 'brownfield-change', 'pr-review')
+$RunStartCommands = @('requirements', 'discovery', 'system-shaping', 'architecture', 'brownfield-change', 'review', 'verification', 'pr-review')
 $RunIdCommands = @('status', 'inspect-invocations', 'inspect-evidence', 'inspect-artifacts', 'approve', 'resume')
 $RunStartCommand = $RunStartCommands -contains $Command
 $RunIdCommand = $RunIdCommands -contains $Command
@@ -301,6 +352,7 @@ $NormalizedRunId = ''
 $NormalizedRisk = ''
 $NormalizedZone = ''
 $NormalizedInput1 = ''
+$NormalizedInlineInput1 = ''
 $NormalizedRef1 = ''
 $NormalizedRef2 = ''
 $InferredRisk = ''
@@ -317,13 +369,20 @@ $RiskSignals = @()
 $ZoneSignals = @()
 
 function Invoke-ClassificationInference {
-  param([string]$ModeName, [string[]]$InputValues)
+  param(
+    [string]$ModeName,
+    [string[]]$InputValues = @(),
+    [string[]]$InlineInputValues = @()
+  )
 
   $Arguments = @('inspect', 'risk-zone', '--mode', $ModeName, '--output', 'text')
   if ($NormalizedRisk) { $Arguments += @('--risk', $NormalizedRisk) }
   if ($NormalizedZone) { $Arguments += @('--zone', $NormalizedZone) }
   foreach ($InputValue in $InputValues) {
     $Arguments += @('--input', $InputValue)
+  }
+  foreach ($InlineInputValue in $InlineInputValues) {
+    $Arguments += @('--input-text', $InlineInputValue)
   }
 
   $Output = & canon @Arguments 2>$null
@@ -400,33 +459,74 @@ if ($RunStartCommand) {
     }
   }
   else {
-    if ($InputPath.Count -eq 0) {
-      Emit-Failure 'missing-input' 14 "Input path is required for $Command." 'Retry with --input <INPUT_PATH>.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+    $AuthoredInputCount = $InputPath.Count + $InlineInputText.Count
+    if ($AuthoredInputCount -eq 0) {
+      Emit-Failure 'missing-input' 14 "Authored input is required for $Command." 'Retry with --input <INPUT_PATH> or --input-text <INPUT_TEXT>.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
     }
 
-    $LocalInput = Trim-Value $InputPath[0]
-    if (Test-MissingValue $LocalInput) {
-      Emit-Failure 'missing-input' 14 "Input path is required for $Command." 'Retry with --input <INPUT_PATH>.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+    if ($Command -eq 'review' -and $AuthoredInputCount -ne 1) {
+      Emit-Failure 'invalid-input' 17 'Review requires exactly one authored input at canon-input/review.md or canon-input/review/, or exactly one explicit --input-text note.' 'Retry with canon-input/review.md or canon-input/review/, or pass exactly one --input-text note.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
     }
 
-    if (-not (Test-Path (Join-Path $RepoRoot $LocalInput)) -and -not (Test-Path $LocalInput)) {
-      Emit-Failure 'missing-file' 15 "Input $LocalInput was not found from $RepoRoot." 'Retry with an existing file path.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
-    }
-
-    $ResolvedInput = Resolve-ExistingInputPath $LocalInput
-    $CanonRoot = Resolve-ExistingInputPath '.canon'
-    if ($ResolvedInput -and $CanonRoot -and ($ResolvedInput -eq $CanonRoot -or $ResolvedInput.StartsWith($CanonRoot + [System.IO.Path]::DirectorySeparatorChar) -or $ResolvedInput.StartsWith($CanonRoot + [System.IO.Path]::AltDirectorySeparatorChar))) {
-      $InputHint = Get-CanonicalModeInputHint $Command
-      $InputAction = if ($InputHint) {
-        "Retry with $InputHint or another authored file path outside .canon/."
+    foreach ($InlineInput in $InlineInputText) {
+      $TrimmedInlineInput = Trim-Value $InlineInput
+      if (Test-MissingValue $TrimmedInlineInput) {
+        Emit-Failure 'invalid-input' 17 "Inline authored input for $Command is empty or whitespace-only." 'Retry with non-empty --input-text content.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
       }
-      else {
-        'Retry with an authored file path outside .canon/.'
+
+      if (-not $NormalizedInlineInput1) {
+        $NormalizedInlineInput1 = $TrimmedInlineInput
       }
-      Emit-Failure 'invalid-input' 17 "Input $LocalInput points inside .canon/ and cannot be used as authored input for $Command." $InputAction @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
     }
 
-    $NormalizedInput1 = Normalize-InputPath $LocalInput
+    foreach ($Input in $InputPath) {
+      $LocalInput = Trim-Value $Input
+      if (Test-MissingValue $LocalInput) {
+        Emit-Failure 'missing-input' 14 "Input path is required for $Command." 'Retry with --input <INPUT_PATH> or --input-text <INPUT_TEXT>.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+      }
+
+      if (-not (Test-Path (Join-Path $RepoRoot $LocalInput)) -and -not (Test-Path $LocalInput)) {
+        if ($Command -eq 'review') {
+          Emit-Failure 'missing-file' 15 "Review input $LocalInput was not found from $RepoRoot." 'Retry with canon-input/review.md or canon-input/review/, or pass exactly one --input-text note.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+        }
+        Emit-Failure 'missing-file' 15 "Input $LocalInput was not found from $RepoRoot." 'Retry with an existing file path or non-empty --input-text.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+      }
+
+      $ResolvedInput = Resolve-ExistingInputPath $LocalInput
+      $CanonRoot = Resolve-ExistingInputPath '.canon'
+      if ($ResolvedInput -and $CanonRoot -and ($ResolvedInput -eq $CanonRoot -or $ResolvedInput.StartsWith($CanonRoot + [System.IO.Path]::DirectorySeparatorChar) -or $ResolvedInput.StartsWith($CanonRoot + [System.IO.Path]::AltDirectorySeparatorChar))) {
+        $InputHint = Get-CanonicalModeInputHint $Command
+        $InputAction = if ($InputHint) {
+          "Retry with $InputHint, another authored file path outside .canon/, or non-empty --input-text."
+        }
+        else {
+          'Retry with an authored file path outside .canon/ or non-empty --input-text.'
+        }
+        Emit-Failure 'invalid-input' 17 "Input $LocalInput points inside .canon/ and cannot be used as authored input for $Command." $InputAction @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+      }
+
+      if ($Command -eq 'review') {
+        $ResolvedReviewFile = Resolve-ExistingInputPath 'canon-input/review.md'
+        $ResolvedReviewDir = Resolve-ExistingInputPath 'canon-input/review'
+        if ($ResolvedInput -ne $ResolvedReviewFile -and $ResolvedInput -ne $ResolvedReviewDir) {
+          Emit-Failure 'invalid-input' 17 "Review accepts only canon-input/review.md or canon-input/review/, not $LocalInput." 'Move or author the review packet at canon-input/review.md or canon-input/review/, or pass exactly one --input-text note, then retry.' @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+        }
+      }
+
+      $InputContentStatus = Get-AuthoredInputContentStatus $ResolvedInput
+      switch ($InputContentStatus) {
+        'empty-dir' {
+          Emit-Failure 'invalid-input' 17 "Input $LocalInput expands to files with no usable authored content." (Get-AuthoredInputRetryAction $Command) @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+        }
+        'whitespace-only' {
+          Emit-Failure 'invalid-input' 17 "Input $LocalInput is empty or whitespace-only." (Get-AuthoredInputRetryAction $Command) @{ FAILED_SLOT = 'input-path'; FAILED_KIND = 'FilePathInput' }
+        }
+      }
+
+      if (-not $NormalizedInput1) {
+        $NormalizedInput1 = Normalize-InputPath $LocalInput
+      }
+    }
   }
 
   if (-not (Test-MissingValue $Risk)) {
@@ -447,8 +547,11 @@ if ($RunStartCommand) {
     if ($PrReviewCommand) {
       Invoke-ClassificationInference -ModeName $Command -InputValues @($NormalizedRef1, $NormalizedRef2)
     }
-    else {
+    elseif ($NormalizedInput1) {
       Invoke-ClassificationInference -ModeName $Command -InputValues @($NormalizedInput1)
+    }
+    else {
+      Invoke-ClassificationInference -ModeName $Command -InlineInputValues @($NormalizedInlineInput1)
     }
 
     $Extra = @{

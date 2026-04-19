@@ -265,7 +265,7 @@ fn infer_risk(mode: Mode, intake_summary: &str, inputs: &[String]) -> FieldInfer
 
     let mode_defaults_to_bounded = matches!(
         mode,
-        Mode::Greenfield | Mode::Architecture | Mode::BrownfieldChange | Mode::PrReview
+        Mode::SystemShaping | Mode::Architecture | Mode::BrownfieldChange | Mode::PrReview
     );
     if mode_defaults_to_bounded || !bounded_hits.is_empty() {
         let mut signals = bounded_hits

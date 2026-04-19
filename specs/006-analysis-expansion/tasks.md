@@ -59,16 +59,16 @@ can deliver a runnable mode
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [X] T008 Add `Mode::Discovery` match arm to `contract_for_mode()` in `crates/canon-engine/src/artifacts/contract.rs` — 5 `ArtifactRequirement` entries with required sections and gate bindings per spec Artifact Contracts table (Discovery)
-- [X] T009 Add `Mode::Greenfield` match arm to `contract_for_mode()` in `crates/canon-engine/src/artifacts/contract.rs` — 5 `ArtifactRequirement` entries with required sections and gate bindings per spec Artifact Contracts table (System-Shaping)
+- [X] T009 Add `Mode::SystemShaping` match arm to `contract_for_mode()` in `crates/canon-engine/src/artifacts/contract.rs` — 5 `ArtifactRequirement` entries with required sections and gate bindings per spec Artifact Contracts table (System-Shaping)
 - [X] T010 Add `Mode::Architecture` match arm to `contract_for_mode()` in `crates/canon-engine/src/artifacts/contract.rs` — 5 `ArtifactRequirement` entries with required sections and gate bindings per spec Artifact Contracts table (Architecture)
 - [X] T011 Add `DiscoveryGateContext` struct to `crates/canon-engine/src/orchestrator/gatekeeper.rs` with fields: `owner`, `risk`, `zone`, `approvals`, `evidence_complete`
-- [X] T012 Add `GreenfieldGateContext` struct to `crates/canon-engine/src/orchestrator/gatekeeper.rs` with fields: `owner`, `risk`, `zone`, `approvals`, `evidence_complete`
+- [X] T012 Add `SystemShapingGateContext` struct to `crates/canon-engine/src/orchestrator/gatekeeper.rs` with fields: `owner`, `risk`, `zone`, `approvals`, `evidence_complete`
 - [X] T013 Add `ArchitectureGateContext` struct to `crates/canon-engine/src/orchestrator/gatekeeper.rs` with fields: `owner`, `risk`, `zone`, `approvals`, `evidence_complete`
 - [X] T014 Implement `evaluate_discovery_gates()` in `crates/canon-engine/src/orchestrator/gatekeeper.rs` returning `[Exploration, Risk, ReleaseReadiness]` — Exploration gate checks `problem-map.md` + `context-boundary.md` for problem domain boundedness
-- [X] T015 Implement `evaluate_greenfield_gates()` in `crates/canon-engine/src/orchestrator/gatekeeper.rs` returning `[Exploration, Architecture, Risk, ReleaseReadiness]` — Architecture gate checks `system-shape.md`, `architecture-outline.md`, `capability-map.md`
+- [X] T015 Implement `evaluate_system_shaping_gates()` in `crates/canon-engine/src/orchestrator/gatekeeper.rs` returning `[Exploration, Architecture, Risk, ReleaseReadiness]` — Architecture gate checks `system-shape.md`, `architecture-outline.md`, `capability-map.md`
 - [X] T016 Implement `evaluate_architecture_gates()` in `crates/canon-engine/src/orchestrator/gatekeeper.rs` returning `[Exploration, Architecture, Risk, ReleaseReadiness]` — Architecture gate checks `architecture-decisions.md`, `invariants.md`, `tradeoff-matrix.md`
 - [X] T017 [P] Expand `crates/canon-engine/src/modes/discovery.rs` from stub: add `STEP_SEQUENCE`, `REQUIRED_GATES` (`[Exploration, Risk, ReleaseReadiness]`), `GOVERNED_CAPABILITIES` (`[ReadRepository, GenerateContent, CritiqueContent]`)
-- [X] T018 [P] Expand `crates/canon-engine/src/modes/greenfield.rs` from stub: add `STEP_SEQUENCE`, `REQUIRED_GATES` (`[Exploration, Architecture, Risk, ReleaseReadiness]`), `GOVERNED_CAPABILITIES` (`[ReadRepository, GenerateContent, CritiqueContent]`)
+- [X] T018 [P] Expand `crates/canon-engine/src/modes/system_shaping.rs` from stub: add `STEP_SEQUENCE`, `REQUIRED_GATES` (`[Exploration, Architecture, Risk, ReleaseReadiness]`), `GOVERNED_CAPABILITIES` (`[ReadRepository, GenerateContent, CritiqueContent]`)
 - [X] T019 [P] Expand `crates/canon-engine/src/modes/architecture.rs` from stub: add `STEP_SEQUENCE`, `REQUIRED_GATES` (`[Exploration, Architecture, Risk, ReleaseReadiness]`), `GOVERNED_CAPABILITIES` (`[ReadRepository, GenerateContent, CritiqueContent]`)
 - [X] T020 Run `cargo check --workspace` and `cargo clippy --workspace --all-targets --all-features -- -D warnings` to confirm all foundational additions compile cleanly
 
@@ -115,17 +115,17 @@ Canon creates system shape artifacts passing governed critique before emission.
 
 ### Validation for US2 (MANDATORY)
 
-- [X] T031 [P] [US2] Write contract test in `tests/greenfield_contract.rs`: verify `contract_for_mode(Mode::Greenfield)` returns 5 `ArtifactRequirement` entries with correct file names, required sections, and gate bindings matching the spec
-- [X] T032 [P] [US2] Write contract test in `tests/greenfield_contract.rs`: verify `evaluate_greenfield_gates()` returns `Blocked` when Architecture gate artifacts are missing (`system-shape.md`, `architecture-outline.md`, `capability-map.md`)
-- [X] T033 [P] [US2] Write contract test in `tests/greenfield_contract.rs`: verify system-shaping run includes mandatory critique evidence in the evidence bundle
+- [X] T031 [P] [US2] Write contract test in `tests/system_shaping_contract.rs`: verify `contract_for_mode(Mode::SystemShaping)` returns 5 `ArtifactRequirement` entries with correct file names, required sections, and gate bindings matching the spec
+- [X] T032 [P] [US2] Write contract test in `tests/system_shaping_contract.rs`: verify `evaluate_system_shaping_gates()` returns `Blocked` when Architecture gate artifacts are missing (`system-shape.md`, `architecture-outline.md`, `capability-map.md`)
+- [X] T033 [P] [US2] Write contract test in `tests/system_shaping_contract.rs`: verify system-shaping run includes mandatory critique evidence in the evidence bundle
 
 ### Implementation for US2
 
-- [X] T034 [US2] Implement `render_greenfield_artifact()` in `crates/canon-engine/src/orchestrator/service.rs` — renders evidence-backed content for each of the 5 system-shaping artifacts with their required section headers
-- [X] T035 [US2] Implement `run_greenfield()` in `crates/canon-engine/src/orchestrator/service.rs` following the common runtime flow with mandatory critique: context capture → generation → critique (mandatory) → build paths → render artifacts → evaluate gates → derive state → build evidence → persist
-- [X] T036 [US2] Add `Mode::Greenfield => self.run_greenfield(&store, request, policy_set)` dispatch arm to the `run()` match in `crates/canon-engine/src/orchestrator/service.rs`
-- [X] T037 [US2] Write integration test in `tests/greenfield_run.rs`: end-to-end `canon run --mode system-shaping` emits 5 artifacts under `.canon/artifacts/{run_id}/system-shaping/`, persists run manifests, gates, and evidence
-- [X] T038 [US2] Write integration test in `tests/greenfield_run.rs`: verify Architecture gate blocks when insufficient context is supplied
+- [X] T034 [US2] Implement `render_system_shaping_artifact()` in `crates/canon-engine/src/orchestrator/service.rs` — renders evidence-backed content for each of the 5 system-shaping artifacts with their required section headers
+- [X] T035 [US2] Implement `run_system_shaping()` in `crates/canon-engine/src/orchestrator/service.rs` following the common runtime flow with mandatory critique: context capture → generation → critique (mandatory) → build paths → render artifacts → evaluate gates → derive state → build evidence → persist
+- [X] T036 [US2] Add `Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set)` dispatch arm to the `run()` match in `crates/canon-engine/src/orchestrator/service.rs`
+- [X] T037 [US2] Write integration test in `tests/system_shaping_run.rs`: end-to-end `canon run --mode system-shaping` emits 5 artifacts under `.canon/artifacts/{run_id}/system-shaping/`, persists run manifests, gates, and evidence
+- [X] T038 [US2] Write integration test in `tests/system_shaping_run.rs`: verify Architecture gate blocks when insufficient context is supplied
 - [X] T039 [US2] Capture US2 validation evidence in `specs/006-analysis-expansion/validation-report.md`
 
 **Checkpoint**: System-shaping mode is fully functional and independently validated

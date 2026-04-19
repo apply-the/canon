@@ -255,3 +255,72 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
         "primary requirements artifact should not replay raw input labels"
     );
 }
+
+#[test]
+fn run_requirements_persists_inline_input_only_under_run_snapshots() {
+    let workspace = TempDir::new().expect("temp dir");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "requirements",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "product-lead",
+            "--input-text",
+            "# Requirements Brief\n\n## Problem\nBound inline authored input handling.\n\n## Constraints\n- Keep evidence local\n- Preserve explicit approvals",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let text = String::from_utf8(output).expect("utf8 stdout");
+    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let snapshot_path = run_root.join("inputs").join("input-00-inline-input-01.md");
+
+    assert!(snapshot_path.exists(), "inline authored input should be snapshotted");
+    assert!(
+        !workspace.path().join("canon-input").exists(),
+        "inline input should not materialize canon-input files in the repo"
+    );
+
+    let context_toml = fs::read_to_string(run_root.join("context.toml")).expect("context file");
+    let context: toml::Value = toml::from_str(&context_toml).expect("context toml");
+    let inputs = context["inputs"].as_array().expect("context inputs");
+    let fingerprint = context["input_fingerprints"]
+        .as_array()
+        .and_then(|entries| entries.first())
+        .expect("input fingerprint");
+
+    assert_eq!(inputs.len(), 1);
+    assert_eq!(inputs[0].as_str(), Some("inline-input-01.md"));
+    assert_eq!(fingerprint["path"].as_str(), Some("inline-input-01.md"));
+    assert_eq!(fingerprint["source_kind"].as_str(), Some("inline"));
+    assert_eq!(
+        fingerprint["snapshot_ref"].as_str(),
+        Some(format!("runs/{run_id}/inputs/input-00-inline-input-01.md").as_str())
+    );
+
+    let invocation_root = run_root.join("invocations");
+    for entry in fs::read_dir(&invocation_root).expect("invocation dir") {
+        let entry = entry.expect("invocation entry");
+        let request_toml =
+            fs::read_to_string(entry.path().join("request.toml")).expect("invocation request file");
+        let request: toml::Value = toml::from_str(&request_toml).expect("request toml");
+        let requested_scope = request["requested_scope"].as_array().expect("requested scope array");
+
+        assert_eq!(requested_scope.len(), 1);
+        assert_eq!(requested_scope[0].as_str(), Some("inline-input-01.md"));
+    }
+}
