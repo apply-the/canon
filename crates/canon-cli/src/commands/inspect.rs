@@ -13,7 +13,7 @@ pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i3
         InspectCommand::Modes { output } => (InspectTarget::Modes, "modes", None, output),
         InspectCommand::Methods { output } => (InspectTarget::Methods, "methods", None, output),
         InspectCommand::Policies { output } => (InspectTarget::Policies, "policies", None, output),
-        InspectCommand::RiskZone { mode, risk, zone, inputs, output } => (
+        InspectCommand::RiskZone { mode, risk, zone, inputs, inline_inputs, output } => (
             InspectTarget::RiskZone {
                 mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
                 risk: risk
@@ -27,6 +27,7 @@ pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i3
                     .transpose()
                     .map_err(CliError::InvalidInput)?,
                 inputs,
+                inline_inputs,
             },
             "risk-zone",
             None,
@@ -113,6 +114,7 @@ mod tests {
                 risk: None,
                 zone: None,
                 inputs: vec!["discovery.md".to_string()],
+                inline_inputs: Vec::new(),
                 output: OutputFormat::Json,
             },
         )
@@ -158,6 +160,7 @@ mod tests {
                 classification: ClassificationProvenance::explicit(),
                 owner: "Owner <owner@example.com>".to_string(),
                 inputs: vec!["idea.md".to_string()],
+                inline_inputs: Vec::new(),
                 excluded_paths: Vec::new(),
                 policy_root: None,
                 method_root: None,

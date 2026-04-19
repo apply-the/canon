@@ -16,7 +16,7 @@ use crate::domain::policy::{
     AdapterPolicyMatrix, GatePolicy, InvocationConstraintProfile, PolicySet, PolicySetOverrides,
     RiskPolicyClass, ValidationIndependencePolicy, ZonePolicy,
 };
-use crate::domain::run::RunContext;
+use crate::domain::run::{InputSourceKind, RunContext};
 use crate::domain::verification::VerificationRecord;
 use crate::persistence::atomic::write_text_file;
 use crate::persistence::invocations::{
@@ -585,16 +585,42 @@ impl WorkspaceStore {
 
         let mut persisted_context = context.clone();
         for (index, fingerprint) in persisted_context.input_fingerprints.iter_mut().enumerate() {
-            let source = resolve_context_input_path(&self.layout.repo_root, &fingerprint.path);
-            let snapshot_name = snapshot_file_name(index, &source);
+            let snapshot_source = PathBuf::from(&fingerprint.path);
+            let snapshot_name = snapshot_file_name(index, &snapshot_source);
             let snapshot_path = inputs_dir.join(&snapshot_name);
-            fs::write(&snapshot_path, fs::read(&source)?)?;
+
+            match fingerprint.source_kind {
+                InputSourceKind::Path => {
+                    let source =
+                        resolve_context_input_path(&self.layout.repo_root, &fingerprint.path);
+                    fs::write(&snapshot_path, fs::read(&source)?)?;
+                }
+                InputSourceKind::Inline => {
+                    let inline_input = persisted_context
+                        .inline_inputs
+                        .iter()
+                        .find(|input| input.label == fingerprint.path)
+                        .ok_or_else(|| {
+                            Error::new(
+                                ErrorKind::InvalidData,
+                                format!(
+                                    "missing transient inline input contents for `{}` during snapshot persistence",
+                                    fingerprint.path
+                                ),
+                            )
+                        })?;
+                    fs::write(&snapshot_path, inline_input.contents.as_bytes())?;
+                }
+            }
+
             trace_invocations.push(self.filesystem.trace_write(
                 &snapshot_path,
                 &format!("persist input snapshot {}", fingerprint.path),
             ));
             fingerprint.snapshot_ref = Some(format!("runs/{run_id}/inputs/{snapshot_name}"));
         }
+
+        persisted_context.inline_inputs.clear();
 
         Ok(persisted_context)
     }

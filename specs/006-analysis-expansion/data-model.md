@@ -9,7 +9,7 @@
 
 #### Mode (enum, `domain/mode.rs`)
 
-No enum changes — `Discovery`, `Greenfield`, `Architecture` already exist internally. Public naming now exposes `system-shaping` for `Mode::Greenfield`.
+The mode enum uses `Discovery`, `SystemShaping`, and `Architecture` internally. Public naming exposes `system-shaping` for `Mode::SystemShaping`.
 
 **ModeProfile changes** (in `all_mode_profiles()`):
 
@@ -29,7 +29,7 @@ Architecture artifact_families:
 
 #### ArtifactContract (struct, `artifacts/contract.rs`)
 
-New match arms in `contract_for_mode()` for `Mode::Discovery`, `Mode::Greenfield`, `Mode::Architecture`.
+New match arms in `contract_for_mode()` for `Mode::Discovery`, `Mode::SystemShaping`, `Mode::Architecture`.
 
 Each returns `ArtifactContract { version: 1, artifact_requirements: [...], required_verification_layers: [...] }` with mode-specific `ArtifactRequirement` entries per the spec's Artifact Contracts tables.
 
@@ -51,10 +51,10 @@ DiscoveryGateContext {
 
 Used by `evaluate_discovery_gates()`. Simpler than brownfield context — no mutation or preservation fields.
 
-#### GreenfieldGateContext
+#### SystemShapingGateContext
 
 ```
-GreenfieldGateContext {
+SystemShapingGateContext {
     owner: &str,
     risk: RiskClass,
     zone: UsageZone,
@@ -63,7 +63,7 @@ GreenfieldGateContext {
 }
 ```
 
-Used by `evaluate_greenfield_gates()`. Same shape as discovery but evaluated against different artifact expectations (includes Architecture gate).
+Used by `evaluate_system_shaping_gates()`. Same shape as discovery but evaluated against different artifact expectations (includes Architecture gate).
 
 #### ArchitectureGateContext
 
@@ -96,7 +96,7 @@ GOVERNED_CAPABILITIES: &[CapabilityKind] = &[
 ]
 ```
 
-#### greenfield.rs
+#### system_shaping.rs
 
 ```
 MODE_FILE: &str = "system-shaping.toml"
@@ -131,7 +131,7 @@ GOVERNED_CAPABILITIES: &[CapabilityKind] = &[
 New functions in `service.rs` or a dedicated rendering module:
 
 - `render_discovery_artifact(file_name: &str, evidence: &DiscoveryEvidence) -> String`
-- `render_greenfield_artifact(file_name: &str, evidence: &GreenfieldEvidence) -> String`
+- `render_system_shaping_artifact(file_name: &str, evidence: &SystemShapingEvidence) -> String`
 - `render_architecture_artifact(file_name: &str, evidence: &ArchitectureEvidence) -> String`
 
 These parallel existing `render_requirements_artifact_from_evidence()` and `render_brownfield_artifact()`.
@@ -177,8 +177,8 @@ Mode::Discovery  ──uses──▶ ArtifactContract (5 artifacts)
                  ──uses──▶ DiscoveryGateContext
                  ──evaluates──▶ [Exploration, Risk, ReleaseReadiness]
 
-Mode::Greenfield (`system-shaping`) ──uses──▶ ArtifactContract (5 artifacts)
-                 ──uses──▶ GreenfieldGateContext
+Mode::SystemShaping (`system-shaping`) ──uses──▶ ArtifactContract (5 artifacts)
+                 ──uses──▶ SystemShapingGateContext
                  ──evaluates──▶ [Exploration, Architecture, Risk, ReleaseReadiness]
 
 Mode::Architecture ──uses──▶ ArtifactContract (5 artifacts)

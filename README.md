@@ -172,6 +172,12 @@ What you get:
 
 That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
 
+Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `brownfield-change`, `review`, `verification`, and `pr-review`.
+
+Use `review` for bounded non-PR change packages or artifact bundles, `verification` to challenge claims and invariants directly, and `pr-review` only when the target is a real diff or `WORKTREE`.
+
+In practice, `review` sits after authored packets such as `requirements`, `architecture`, `brownfield-change`, or another non-PR proposal bundle. It is packet-backed, so do not point it at `src/` or a repository snapshot; use `pr-review` for diffs and `WORKTREE`.
+
 ## Initialize Your Repo
 
 Run `canon init` inside the repository you want Canon to govern.
@@ -238,10 +244,22 @@ For file-backed modes, the canonical authored-input locations are under
 - `canon-input/system-shaping.md` or `canon-input/system-shaping/`
 - `canon-input/architecture.md` or `canon-input/architecture/`
 - `canon-input/brownfield-change.md` or `canon-input/brownfield-change/`
+- `canon-input/review.md` or `canon-input/review/`
+- `canon-input/verification.md` or `canon-input/verification/`
 
 Repo-local skills may auto-bind only from those mode-specific canonical
 locations. They must not infer `--input` from the active editor file, open
 tabs, or anything under `.canon/`.
+
+`canon run` and `canon inspect risk-zone` also accept explicit inline authored
+input through `--input-text` when you do not want to materialize a repo file
+first. Inline input is snapshotted only under `.canon/runs/<RUN_ID>/inputs/`
+for real runs; it does not create `canon-input/*` files for you.
+
+Modes that expect authored input now fail fast when the supplied input is
+missing, empty, whitespace-only, or structurally insufficient. An empty file,
+an empty directory, or a directory that expands to only whitespace content is a
+validation error, not a completed run.
 
 When a canonical directory such as `canon-input/requirements/` exists, prefer
 passing the directory itself to `canon inspect clarity` so Canon reads the full

@@ -165,7 +165,7 @@ pub fn render_discovery_artifact(file_name: &str, brief_summary: &str) -> String
     }
 }
 
-pub fn render_greenfield_artifact(
+pub fn render_system_shaping_artifact(
     file_name: &str,
     context_summary: &str,
     generation_summary: &str,
@@ -175,8 +175,8 @@ pub fn render_greenfield_artifact(
     let intent = extract_marker(context_summary, &normalized, "intent");
     let constraint = extract_marker(context_summary, &normalized, "constraint")
         .or_else(|| extract_marker(context_summary, &normalized, "constraints"));
-    let greenfield_gap = greenfield_context_gap(intent.as_deref(), constraint.as_deref());
-    let system_shape = if let Some(gap) = greenfield_gap.as_deref() {
+    let system_shaping_gap = system_shaping_context_gap(intent.as_deref(), constraint.as_deref());
+    let system_shape = if let Some(gap) = system_shaping_gap.as_deref() {
         gap.to_string()
     } else {
         format!(
@@ -185,7 +185,7 @@ pub fn render_greenfield_artifact(
             constraint.as_deref().unwrap_or_default()
         )
     };
-    let structural_rationale = if let Some(gap) = greenfield_gap.as_deref() {
+    let structural_rationale = if let Some(gap) = system_shaping_gap.as_deref() {
         gap.to_string()
     } else {
         format!(
@@ -349,6 +349,559 @@ fn compact_summary_line(value: &str) -> String {
     value.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+fn preserve_markdown_block(value: &str) -> String {
+    let mut lines = Vec::new();
+    let mut previous_blank = false;
+
+    for raw_line in value.lines() {
+        let line = raw_line.split_whitespace().collect::<Vec<_>>().join(" ");
+        if line.is_empty() {
+            if !previous_blank && !lines.is_empty() {
+                lines.push(String::new());
+            }
+            previous_blank = true;
+        } else {
+            lines.push(line);
+            previous_blank = false;
+        }
+    }
+
+    lines.join("\n").trim().to_string()
+}
+
+fn render_verification_summary(
+    claims_under_test: &str,
+    evidence_basis: Option<&str>,
+    contract_assumptions: &str,
+    challenge_focus: Option<&str>,
+    validation_summary: &str,
+    verdict: &str,
+    has_open_findings: bool,
+) -> String {
+    let mut lines = Vec::new();
+
+    if let Some(line) = verification_summary_field("Claims under test", Some(claims_under_test)) {
+        lines.push(line);
+    }
+    if let Some(line) = verification_summary_field("Evidence basis", evidence_basis) {
+        lines.push(line);
+    }
+    if let Some(line) = verification_summary_field("Contract surface", Some(contract_assumptions)) {
+        lines.push(line);
+    }
+    if has_open_findings
+        && let Some(line) = verification_summary_field("Challenge focus", challenge_focus)
+    {
+        lines.push(line);
+    }
+
+    lines.push(format!("- Verdict: {verdict}"));
+    lines.push(if has_open_findings {
+        "- Open findings: unresolved follow-up remains recorded in this packet.".to_string()
+    } else {
+        "- Open findings: none recorded.".to_string()
+    });
+
+    if let Some(line) = verification_summary_field("Validation evidence", Some(validation_summary))
+    {
+        lines.push(line);
+    }
+
+    lines.join("\n")
+}
+
+fn verification_summary_field(label: &str, value: Option<&str>) -> Option<String> {
+    let summary = verification_summary_excerpt(value?)?;
+    Some(format!("- {label}: {summary}"))
+}
+
+fn verification_summary_excerpt(value: &str) -> Option<String> {
+    let items = value.lines().filter_map(verification_summary_line).collect::<Vec<_>>();
+
+    if items.is_empty() {
+        let compact = compact_summary_line(value);
+        if compact.is_empty() { None } else { Some(compact) }
+    } else {
+        let mut summary = items.iter().take(2).cloned().collect::<Vec<_>>().join("; ");
+        if items.len() > 2 {
+            summary.push_str(&format!("; +{} more", items.len() - 2));
+        }
+        Some(summary)
+    }
+}
+
+fn verification_summary_line(line: &str) -> Option<String> {
+    let trimmed = trim_markdown_list_prefix(line.trim());
+    if trimmed.is_empty() || trimmed.starts_with('#') {
+        return None;
+    }
+
+    let lowered = trimmed.to_ascii_lowercase();
+    if lowered.starts_with("status:") || lowered.starts_with("rationale:") {
+        return None;
+    }
+
+    let compact = compact_summary_line(trimmed);
+    if compact.is_empty() { None } else { Some(compact) }
+}
+
+fn trim_markdown_list_prefix(value: &str) -> &str {
+    let trimmed = value.trim_start();
+
+    for prefix in ["- ", "* ", "+ "] {
+        if let Some(stripped) = trimmed.strip_prefix(prefix) {
+            return stripped.trim_start();
+        }
+    }
+
+    let digit_count = trimmed.bytes().take_while(|byte| byte.is_ascii_digit()).count();
+    if digit_count > 0
+        && trimmed.as_bytes().get(digit_count) == Some(&b'.')
+        && trimmed.as_bytes().get(digit_count + 1) == Some(&b' ')
+    {
+        return trimmed[digit_count + 2..].trim_start();
+    }
+
+    trimmed
+}
+
+pub fn render_review_artifact(
+    file_name: &str,
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> String {
+    let status = review_disposition_status(
+        context_summary,
+        generation_summary,
+        critique_summary,
+        validation_summary,
+    );
+    let missing_evidence_open = review_missing_evidence_open(
+        context_summary,
+        generation_summary,
+        critique_summary,
+        validation_summary,
+    );
+    let evidence_basis = if context_summary.contains("## Input:") {
+        "- Review grounded in explicit authored inputs captured for this run.\n- Validation evidence remains linked from the persisted run bundle.".to_string()
+    } else {
+        "- Review grounded in the bounded authored packet supplied to this run.\n- Validation evidence remains linked from the persisted run bundle.".to_string()
+    };
+    let boundary_findings = if contains_case_insensitive(critique_summary, "scope drift")
+        || contains_case_insensitive(context_summary, "boundary")
+        || contains_case_insensitive(generation_summary, "boundary")
+    {
+        preserve_markdown_block(critique_summary)
+    } else {
+        "- No boundary expansion beyond the authored review target was detected.".to_string()
+    };
+    let ownership_notes = if contains_case_insensitive(context_summary, "owner") {
+        "- Ownership remains anchored to the named run owner and supplied review target."
+            .to_string()
+    } else {
+        "- Confirm the accountable reviewer before downstream acceptance.".to_string()
+    };
+    let missing_evidence = if missing_evidence_open {
+        format!(
+            "Status: missing-evidence-open\n\n{}\n\n{}",
+            preserve_markdown_block(critique_summary),
+            preserve_markdown_block(validation_summary)
+        )
+    } else {
+        "Status: evidence-bounded\n\n- No critical evidence gaps were detected from the authored package.".to_string()
+    };
+    let collection_priorities = if missing_evidence_open {
+        "- Capture the missing evidence before accepting the packet as release-ready.\n- Keep any remaining accepted risk explicit in the disposition artifact.".to_string()
+    } else {
+        "- Preserve the current evidence bundle for any later approval or downstream implementation review.".to_string()
+    };
+    let decision_impact = if generation_summary.trim().is_empty() {
+        "- No decision impact summary was generated for this packet.".to_string()
+    } else {
+        preserve_markdown_block(generation_summary)
+    };
+    let reversibility = if status == "awaiting-disposition" {
+        "- Downstream work should stop until the remaining review concerns receive explicit disposition.".to_string()
+    } else {
+        "- The packet remains reversible because the current concerns are recorded as bounded review notes.".to_string()
+    };
+    let accepted_risks = if status == "awaiting-disposition" {
+        "- No accepted risks recorded while disposition is still pending.".to_string()
+    } else {
+        "- Residual review notes remain bounded to the current package and can be inspected through the emitted artifacts.".to_string()
+    };
+    let rationale = if status == "awaiting-disposition" {
+        "The review packet records unresolved concerns or missing evidence that require explicit human disposition before release-readiness can pass.".to_string()
+    } else {
+        "The review packet is bounded enough for downstream inspection and no unresolved must-fix concerns require disposition approval.".to_string()
+    };
+
+    match file_name {
+        "review-brief.md" => format!(
+            "# Review Brief\n\n## Summary\n\n{}\n\n## Review Target\n\n{}\n\n## Evidence Basis\n\n{}\n",
+            compact_summary_line(context_summary),
+            preserve_markdown_block(generation_summary),
+            evidence_basis,
+        ),
+        "boundary-assessment.md" => format!(
+            "# Boundary Assessment\n\n## Summary\n\n{}\n\n## Boundary Findings\n\n{}\n\n## Ownership Notes\n\n{}\n",
+            compact_summary_line(context_summary),
+            boundary_findings,
+            ownership_notes,
+        ),
+        "missing-evidence.md" => format!(
+            "# Missing Evidence\n\n## Summary\n\n{}\n\n## Missing Evidence\n\n{}\n\n## Collection Priorities\n\n{}\n",
+            compact_summary_line(context_summary),
+            missing_evidence,
+            collection_priorities,
+        ),
+        "decision-impact.md" => format!(
+            "# Decision Impact\n\n## Summary\n\n{}\n\n## Decision Impact\n\n{}\n\n## Reversibility Concerns\n\n{}\n",
+            compact_summary_line(context_summary),
+            decision_impact,
+            reversibility,
+        ),
+        "review-disposition.md" => format!(
+            "# Review Disposition\n\n## Summary\n\n{}\n\n## Final Disposition\n\nStatus: {}\n\nRationale: {}\n\n## Accepted Risks\n\n{}\n",
+            compact_summary_line(context_summary),
+            status,
+            rationale,
+            accepted_risks,
+        ),
+        other => render_markdown(other, context_summary),
+    }
+}
+
+pub fn render_verification_artifact(
+    file_name: &str,
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> String {
+    let has_open_findings = verification_has_open_findings(
+        context_summary,
+        generation_summary,
+        critique_summary,
+        validation_summary,
+    );
+    let verdict = verification_verdict(
+        context_summary,
+        generation_summary,
+        critique_summary,
+        validation_summary,
+    );
+    let claims_under_test = verification_section_from_sources(
+        generation_summary,
+        Some(context_summary),
+        &["claims under test"],
+    )
+    .unwrap_or_else(|| {
+        "- No explicit claims under test were captured for this verification packet.".to_string()
+    });
+    let evidence_basis = verification_section_from_sources(
+        generation_summary,
+        Some(context_summary),
+        &["evidence basis"],
+    );
+    let contract_assumptions = verification_section_from_sources(
+        generation_summary,
+        Some(context_summary),
+        &["contract assumptions", "contract surface"],
+    )
+    .unwrap_or_else(|| {
+        "- Contract assumptions were not explicitly authored for this verification packet."
+            .to_string()
+    });
+    let challenge_findings = append_markdown_blocks(
+        verification_section_from_sources(
+            critique_summary,
+            Some(context_summary),
+            &["challenge findings", "challenge focus"],
+        )
+        .unwrap_or_else(|| {
+            if has_open_findings {
+                "- The verification packet still carries challenge findings that require explicit follow-up."
+                    .to_string()
+            } else {
+                "- No additional challenge findings were recorded beyond the authored verification packet."
+                    .to_string()
+            }
+        }),
+        Some(preserve_markdown_block(validation_summary)),
+    );
+    let contradictions = verification_section_from_sources(
+        critique_summary,
+        Some(context_summary),
+        &["contradictions"],
+    )
+    .unwrap_or_else(|| {
+        if has_open_findings {
+            "- The verification packet still contains contradictions or evidence gaps that keep the verdict open."
+                .to_string()
+        } else {
+            "- No direct contradictions were identified from the current verification packet."
+                .to_string()
+        }
+    });
+    let verified_claims = verification_section_from_sources(
+        critique_summary,
+        Some(generation_summary),
+        &["verified claims"],
+    )
+    .unwrap_or_else(|| {
+        if has_open_findings {
+            "- The packet captures explicit claims and evidence basis, but the strongest assurances remain under challenge."
+                .to_string()
+        } else {
+            claims_under_test.clone()
+        }
+    });
+    let rejected_claims =
+        verification_section_from_sources(critique_summary, None, &["rejected claims"])
+            .unwrap_or_else(|| {
+                if has_open_findings {
+                    contradictions.clone()
+                } else {
+                    "- No rejected claims were inferred from the current verification target."
+                        .to_string()
+                }
+            });
+    let open_findings = verification_section_from_sources(
+        critique_summary,
+        None,
+        &["open findings"],
+    )
+    .unwrap_or_else(|| {
+        if has_open_findings {
+            format!("Status: unresolved-findings-open\n\n{contradictions}")
+        } else {
+            "Status: no-open-findings\n\n- No unresolved findings remain from the current verification target."
+                .to_string()
+        }
+    });
+    let required_follow_up = verification_section_from_sources(
+        critique_summary,
+        None,
+        &["required follow-up"],
+    )
+    .unwrap_or_else(|| {
+        if has_open_findings {
+            "- Resolve or explicitly challenge the open contradictions before treating the packet as release-ready.\n- Preserve the unresolved findings for downstream inspection."
+                .to_string()
+        } else {
+            "- Keep the verification packet attached to any downstream release or approval discussion."
+                .to_string()
+        }
+    });
+    let overall_verdict = verification_section_from_sources(
+        critique_summary,
+        None,
+        &["overall verdict"],
+    )
+    .unwrap_or_else(|| {
+        format!(
+            "Status: {verdict}\nRationale: Verification verdict was derived from the current packet because no explicit overall verdict section was emitted."
+        )
+    });
+    let challenge_focus = verification_section_from_sources(
+        context_summary,
+        Some(critique_summary),
+        &["challenge focus", "challenge findings"],
+    );
+    let verification_summary = render_verification_summary(
+        &claims_under_test,
+        evidence_basis.as_deref(),
+        &contract_assumptions,
+        challenge_focus.as_deref(),
+        validation_summary,
+        verdict,
+        has_open_findings,
+    );
+
+    match file_name {
+        "invariants-checklist.md" => format!(
+            "# Invariants Checklist\n\n## Summary\n\n{}\n\n## Claims Under Test\n\n{}\n\n## Invariant Checks\n\n{}\n",
+            verification_summary,
+            claims_under_test,
+            if has_open_findings {
+                "- Some invariant checks remain unresolved against the current evidence bundle."
+            } else {
+                "- The current invariants are bounded enough for recorded verification."
+            },
+        ),
+        "contract-matrix.md" => format!(
+            "# Contract Matrix\n\n## Summary\n\n{}\n\n## Contract Assumptions\n\n{}\n\n## Verification Outcome\n\nStatus: {}\n",
+            verification_summary, contract_assumptions, verdict,
+        ),
+        "adversarial-review.md" => format!(
+            "# Adversarial Review\n\n## Summary\n\n{}\n\n## Challenge Findings\n\n{}\n\n## Contradictions\n\n{}\n",
+            verification_summary, challenge_findings, contradictions,
+        ),
+        "verification-report.md" => format!(
+            "# Verification Report\n\n## Summary\n\n{}\n\n## Verified Claims\n\n{}\n\n## Rejected Claims\n\n{}\n\n## Overall Verdict\n\n{}\n",
+            verification_summary, verified_claims, rejected_claims, overall_verdict,
+        ),
+        "unresolved-findings.md" => format!(
+            "# Unresolved Findings\n\n## Summary\n\n{}\n\n## Open Findings\n\n{}\n\n## Required Follow-up\n\n{}\n",
+            verification_summary, open_findings, required_follow_up,
+        ),
+        other => render_markdown(other, context_summary),
+    }
+}
+
+fn review_disposition_status(
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> &'static str {
+    if review_missing_evidence_open(
+        context_summary,
+        generation_summary,
+        critique_summary,
+        validation_summary,
+    ) || contains_case_insensitive(critique_summary, "must-fix")
+        || contains_case_insensitive(generation_summary, "must-fix")
+        || contains_case_insensitive(critique_summary, "blocking")
+    {
+        "awaiting-disposition"
+    } else {
+        "ready-with-review-notes"
+    }
+}
+
+fn review_missing_evidence_open(
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> bool {
+    [context_summary, generation_summary, critique_summary, validation_summary].into_iter().any(
+        |value| {
+            value.contains("NOT CAPTURED")
+                || contains_case_insensitive(value, "missing evidence")
+                || contains_case_insensitive(value, "insufficient evidence")
+        },
+    )
+}
+
+fn verification_has_open_findings(
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> bool {
+    let critique_normalized = critique_summary.to_lowercase();
+    if let Some(open_findings) =
+        extract_marker(critique_summary, &critique_normalized, "open findings")
+        && let Some(status) = extract_labeled_block_value(&open_findings, "Status")
+    {
+        return status.eq_ignore_ascii_case("unresolved-findings-open");
+    }
+
+    [context_summary, generation_summary, critique_summary, validation_summary].into_iter().any(
+        |value| {
+            value.contains("NOT CAPTURED")
+                || contains_case_insensitive(value, "unsupported")
+                || contains_case_insensitive(value, "contradiction")
+                || contains_case_insensitive(value, "unresolved")
+                || contains_case_insensitive(value, "insufficient evidence")
+        },
+    )
+}
+
+fn verification_verdict(
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> &'static str {
+    let critique_normalized = critique_summary.to_lowercase();
+    if let Some(overall_verdict) =
+        extract_marker(critique_summary, &critique_normalized, "overall verdict")
+        && let Some(status) = extract_labeled_block_value(&overall_verdict, "Status")
+    {
+        return match status.to_ascii_lowercase().as_str() {
+            "supported" => "supported",
+            "unsupported" => "unsupported",
+            "mixed" => "mixed",
+            _ => "mixed",
+        };
+    }
+
+    if !verification_has_open_findings(
+        context_summary,
+        generation_summary,
+        critique_summary,
+        validation_summary,
+    ) {
+        "supported"
+    } else if context_summary.contains("NOT CAPTURED")
+        || contains_case_insensitive(critique_summary, "contradiction")
+        || contains_case_insensitive(validation_summary, "contradiction")
+    {
+        "unsupported"
+    } else {
+        "mixed"
+    }
+}
+
+fn verification_section_from_sources(
+    primary_source: &str,
+    secondary_source: Option<&str>,
+    markers: &[&str],
+) -> Option<String> {
+    extract_any_marker(primary_source, markers)
+        .or_else(|| secondary_source.and_then(|source| extract_any_marker(source, markers)))
+}
+
+fn extract_any_marker(source: &str, markers: &[&str]) -> Option<String> {
+    let normalized = source.to_lowercase();
+
+    markers.iter().find_map(|marker| {
+        extract_marker(source, &normalized, marker)
+            .map(|value| preserve_markdown_block(&value))
+            .filter(|value| !value.is_empty())
+    })
+}
+
+fn append_markdown_blocks(primary: String, secondary: Option<String>) -> String {
+    let Some(secondary) =
+        secondary.map(|value| value.trim().to_string()).filter(|value| !value.is_empty())
+    else {
+        return primary;
+    };
+
+    if primary.trim().is_empty() {
+        secondary
+    } else if primary.contains(&secondary) {
+        primary
+    } else {
+        format!("{primary}\n\n{secondary}")
+    }
+}
+
+fn extract_labeled_block_value(block: &str, label: &str) -> Option<String> {
+    let prefix = format!("{}:", label.to_ascii_lowercase());
+
+    block.lines().find_map(|line| {
+        let trimmed = line.trim();
+        if !trimmed.to_ascii_lowercase().starts_with(&prefix) {
+            return None;
+        }
+
+        let value = trimmed[trimmed.find(':')? + 1..].trim();
+        if value.is_empty() { None } else { Some(value.to_string()) }
+    })
+}
+
+fn contains_case_insensitive(value: &str, needle: &str) -> bool {
+    value.to_lowercase().contains(&needle.to_lowercase())
+}
+
 fn render_discovery_bundle_summary(
     current_file: &str,
     problem: &str,
@@ -400,7 +953,7 @@ fn render_discovery_bundle_summary(
     parts.join("\n")
 }
 
-fn greenfield_context_gap(intent: Option<&str>, constraint: Option<&str>) -> Option<String> {
+fn system_shaping_context_gap(intent: Option<&str>, constraint: Option<&str>) -> Option<String> {
     if intent.is_some() && constraint.is_some() {
         None
     } else {
@@ -687,8 +1240,10 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 mod tests {
     use super::{
         extract_marker, render_architecture_artifact, render_brownfield_artifact,
-        render_discovery_artifact, render_greenfield_artifact, render_pr_review_artifact,
-        render_requirements_artifact, render_requirements_artifact_from_evidence,
+        render_discovery_artifact, render_pr_review_artifact, render_requirements_artifact,
+        render_requirements_artifact_from_evidence, render_review_artifact,
+        render_system_shaping_artifact, render_verification_artifact, trim_markdown_list_prefix,
+        verification_summary_excerpt,
     };
     use crate::review::findings::{FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket};
     use crate::review::summary::{ReviewDisposition, ReviewSummary};
@@ -827,12 +1382,193 @@ mod tests {
     }
 
     #[test]
+    fn render_review_artifacts_distinguish_ready_and_pending_disposition_packets() {
+        let ready = render_review_artifact(
+            "review-disposition.md",
+            "# Review Brief\n\nReview target stays bounded to a named service boundary.",
+            "Review packet preserved evidence basis, boundary findings, and decision impact.",
+            "Challenge the proposed review packet for evidence coverage, hidden scope growth, ownership clarity, and acceptance rationale.",
+            "Validation tool reviewed tracked repository surfaces: src/lib.rs, tests/lib_test.rs",
+        );
+        let pending = render_review_artifact(
+            "review-disposition.md",
+            "# Review Brief\n\nMissing evidence remains for rollback coverage on this package.",
+            "Must-fix review note remains open for the release boundary.",
+            "Scope drift introduced a must-fix follow-up before acceptance.",
+            "Validation tool reviewed tracked repository surfaces: src/lib.rs, tests/lib_test.rs",
+        );
+
+        assert!(ready.contains("Status: ready-with-review-notes"));
+        assert!(pending.contains("Status: awaiting-disposition"));
+    }
+
+    #[test]
+    fn render_verification_artifacts_distinguish_supported_and_blocked_packets() {
+        let supported = render_verification_artifact(
+            "verification-report.md",
+            "# Verification Brief\n\nClaims Under Test: rollback remains bounded and auditable.\nEvidence Basis: contract notes and repository checks.\nContract Surface: rollback metadata stays explicit.",
+            "## Claims Under Test\n\n- rollback remains bounded and auditable\n\n## Evidence Basis\n\n- contract notes\n- repository checks\n\n## Contract Assumptions\n\n- rollback metadata stays explicit",
+            "## Challenge Findings\n\n- No additional challenge findings were recorded beyond the authored verification packet.\n\n## Contradictions\n\n- No direct contradictions were identified from the current verification packet.\n\n## Verified Claims\n\n- rollback remains bounded and auditable\n\n## Rejected Claims\n\n- No rejected claims were inferred from the current verification target.\n\n## Open Findings\n\nStatus: no-open-findings\n\n- No unresolved findings remain from the current verification target.\n\n## Required Follow-up\n\n- Keep the verification packet attached to downstream release or approval discussion.\n\n## Overall Verdict\n\nStatus: supported\nRationale: No explicit contradiction or proof gap remained in the normalized packet.",
+            "Validation tool reviewed tracked repository surfaces: src/lib.rs, tests/lib_test.rs",
+        );
+        let blocked = render_verification_artifact(
+            "verification-report.md",
+            "# Verification Brief\n\nClaims Under Test: an unresolved contradiction remains between the authored claim and the captured contract.\nEvidence Basis: unsupported rollback guarantee still lacks concrete proof.",
+            "## Claims Under Test\n\n- an unresolved contradiction remains between the authored claim and the captured contract\n\n## Evidence Basis\n\n- unsupported rollback guarantee still lacks concrete proof\n\n## Contract Assumptions\n\n- rollback metadata stays explicit",
+            "## Challenge Findings\n\n- The authored claim already signals a contradiction or missing-evidence path.\n\n## Contradictions\n\n- The authored claim under test already records a contradiction or unresolved support gap.\n\n## Verified Claims\n\n- The evidence basis is explicit enough for downstream inspection and follow-up.\n\n## Rejected Claims\n\n- Still unsupported from the current packet: an unresolved contradiction remains between the authored claim and the captured contract\n\n## Open Findings\n\nStatus: unresolved-findings-open\n\n- Resolve the contradiction before treating the packet as supported.\n\n## Required Follow-up\n\n- Resolve the contradictions or proof gaps before treating the packet as supported.\n\n## Overall Verdict\n\nStatus: unsupported\nRationale: The packet still carries unresolved findings against the named claim.",
+            "Validation tool reviewed tracked repository surfaces: src/lib.rs, tests/lib_test.rs",
+        );
+
+        assert!(supported.contains("Status: supported"));
+        assert!(blocked.contains("Status: unsupported"));
+    }
+
+    #[test]
+    fn render_verification_artifacts_map_structured_sections_without_prompt_echo() {
+        let context = "# Verification Brief\n\n## Claims Under Test\n- CSS sanitization blocks hostile style execution\n- CSS URL filtering stays bounded\n\n## Evidence Basis\n- README assertions\n- parser tests\n\n## Contract Surface\n- style attributes and CSS URLs stay conservative\n\n## Challenge Focus\n- look for unsupported jumps from parser coverage to full CSS-XSS coverage";
+        let generation = "## Claims Under Test\n\n- CSS sanitization blocks hostile style execution\n- CSS URL filtering stays bounded\n\n## Evidence Basis\n\n- README assertions\n- parser tests\n\n## Contract Assumptions\n\n- style attributes and CSS URLs stay conservative";
+        let critique = "## Challenge Findings\n\n- Authored challenge focus remains open until explicit evidence answers it: look for unsupported jumps from parser coverage to full CSS-XSS coverage\n\n## Contradictions\n\n- The packet still needs explicit adversarial proof for its broadest CSS-XSS assurances.\n\n## Verified Claims\n\n- The evidence basis is explicit enough for downstream inspection and follow-up.\n\n## Rejected Claims\n\n- Still unsupported from the current packet: CSS sanitization blocks hostile style execution\n\n## Open Findings\n\nStatus: unresolved-findings-open\n\n- Answer this authored challenge focus with explicit evidence or narrow the affected claim: look for unsupported jumps from parser coverage to full CSS-XSS coverage\n\n## Required Follow-up\n\n- Address each authored challenge-focus item with explicit evidence or narrow the affected claim.\n\n## Overall Verdict\n\nStatus: unsupported\nRationale: The packet still carries unresolved CSS evidence gaps.";
+
+        let contract = render_verification_artifact(
+            "contract-matrix.md",
+            context,
+            generation,
+            critique,
+            "Validation tool reviewed tracked repository surfaces: README.md, src/css.rs",
+        );
+        let report = render_verification_artifact(
+            "verification-report.md",
+            context,
+            generation,
+            critique,
+            "Validation tool reviewed tracked repository surfaces: README.md, src/css.rs",
+        );
+
+        assert!(contract.contains("style attributes and CSS URLs stay conservative"));
+        assert!(report.contains("Still unsupported from the current packet: CSS sanitization blocks hostile style execution"));
+        assert!(
+            report.contains("Rationale: The packet still carries unresolved CSS evidence gaps.")
+        );
+        assert!(!report.contains("Challenge the verification packet for claim support strength"));
+        assert!(!report.contains("# Verification Brief Claims Under Test:"));
+        assert!(report.contains("- Claims under test: CSS sanitization blocks hostile style execution; CSS URL filtering stays bounded"));
+        assert!(report.contains("- Evidence basis: README assertions; parser tests"));
+        assert!(report.contains("- Verdict: unsupported"));
+    }
+
+    #[test]
+    fn verification_summary_excerpt_skips_headings_status_and_rationale() {
+        let summary = verification_summary_excerpt(
+            "# Verification Brief\n\n## Claims Under Test\n- claim one\n- claim two\nStatus: unsupported\nRationale: still open",
+        )
+        .expect("summary excerpt");
+
+        assert_eq!(summary, "claim one; claim two");
+    }
+
+    #[test]
+    fn verification_summary_excerpt_limits_extra_list_items() {
+        let summary = verification_summary_excerpt(
+            "1. first evidence anchor\n2. second evidence anchor\n3. third evidence anchor",
+        )
+        .expect("summary excerpt");
+
+        assert_eq!(summary, "first evidence anchor; second evidence anchor; +1 more");
+    }
+
+    #[test]
+    fn trim_markdown_list_prefix_handles_numbered_and_unordered_lists() {
+        assert_eq!(trim_markdown_list_prefix("- first claim"), "first claim");
+        assert_eq!(trim_markdown_list_prefix("* second claim"), "second claim");
+        assert_eq!(trim_markdown_list_prefix("12. numbered claim"), "numbered claim");
+        assert_eq!(trim_markdown_list_prefix("plain sentence"), "plain sentence");
+    }
+
+    #[test]
+    fn render_verification_artifact_summary_omits_challenge_focus_when_supported() {
+        let report = render_verification_artifact(
+            "verification-report.md",
+            "# Verification Brief\n\n## Claims Under Test\n- rollback remains bounded\n\n## Evidence Basis\n- audit log checks\n\n## Contract Surface\n- rollback metadata stays explicit\n\n## Challenge Focus\n- verify cross-module ownership stays explicit",
+            "## Claims Under Test\n\n- rollback remains bounded\n\n## Evidence Basis\n\n- audit log checks\n\n## Contract Assumptions\n\n- rollback metadata stays explicit",
+            "## Challenge Findings\n\n- No additional challenge findings were recorded beyond the authored verification packet.\n\n## Contradictions\n\n- No direct contradictions were identified from the current verification packet.\n\n## Verified Claims\n\n- rollback remains bounded\n\n## Rejected Claims\n\n- No rejected claims were inferred from the current verification target.\n\n## Open Findings\n\nStatus: no-open-findings\n\n- No unresolved findings remain from the current verification target.\n\n## Required Follow-up\n\n- Keep the verification packet attached to downstream review.\n\n## Overall Verdict\n\nStatus: supported\nRationale: The packet is sufficiently supported.",
+            "Validation tool reviewed tracked repository surfaces: src/lib.rs",
+        );
+
+        assert!(report.contains("- Open findings: none recorded."));
+        assert!(!report.contains("- Challenge focus:"));
+    }
+
+    #[test]
+    fn render_verification_artifact_summary_includes_challenge_focus_when_unresolved() {
+        let report = render_verification_artifact(
+            "verification-report.md",
+            "# Verification Brief\n\n## Claims Under Test\n- css sanitization blocks hostile style execution\n\n## Evidence Basis\n- parser tests\n\n## Contract Surface\n- css URLs stay conservative\n\n## Challenge Focus\n- prove broad css-xss coverage instead of parser-only confidence",
+            "## Claims Under Test\n\n- css sanitization blocks hostile style execution\n\n## Evidence Basis\n\n- parser tests\n\n## Contract Assumptions\n\n- css URLs stay conservative",
+            "## Challenge Findings\n\n- Broad css-xss coverage remains unsupported.\n\n## Contradictions\n\n- Parser coverage does not prove the broader claim.\n\n## Verified Claims\n\n- parser tests are present\n\n## Rejected Claims\n\n- css sanitization blocks hostile style execution\n\n## Open Findings\n\nStatus: unresolved-findings-open\n\n- Explicit contradiction remains open.\n\n## Required Follow-up\n\n- Narrow the claim or add adversarial proof.\n\n## Overall Verdict\n\nStatus: unsupported\nRationale: The broadest claim is still unsupported.",
+            "Validation tool reviewed tracked repository surfaces: README.md, src/css.rs",
+        );
+
+        assert!(report.contains(
+            "- Challenge focus: prove broad css-xss coverage instead of parser-only confidence"
+        ));
+        assert!(
+            report
+                .contains("- Open findings: unresolved follow-up remains recorded in this packet.")
+        );
+    }
+
+    #[test]
+    fn render_review_artifacts_preserve_multiline_bullets() {
+        let artifact = render_review_artifact(
+            "missing-evidence.md",
+            "Review packet remains bounded.",
+            "Decision impact remains bounded.",
+            "Missing evidence:\n- Missing rollback rehearsal\n- Missing owner sign-off",
+            "- Validation confirmed only partial repository coverage\n- Follow-up evidence still required",
+        );
+
+        assert!(
+            artifact.contains(
+                "Missing evidence:\n- Missing rollback rehearsal\n- Missing owner sign-off"
+            )
+        );
+        assert!(artifact.contains(
+            "- Validation confirmed only partial repository coverage\n- Follow-up evidence still required"
+        ));
+        assert!(!artifact.contains("- Missing rollback rehearsal - Missing owner sign-off"));
+    }
+
+    #[test]
+    fn render_verification_artifacts_preserve_multiline_sections() {
+        let invariants = render_verification_artifact(
+            "invariants-checklist.md",
+            "Verification remains bounded.",
+            "## Claims Under Test\n- Claim one\n- Claim two",
+            "## Contradictions\n- First contradiction\n- Second contradiction",
+            "- Validation requires an independent follow-up",
+        );
+        let review = render_verification_artifact(
+            "adversarial-review.md",
+            "Verification remains bounded.",
+            "## Claims Under Test\n- Claim one\n- Claim two",
+            "## Contradictions\n- First contradiction\n- Second contradiction",
+            "- Validation requires an independent follow-up",
+        );
+
+        assert!(
+            review.contains("## Contradictions\n\n- First contradiction\n- Second contradiction")
+        );
+        assert!(invariants.contains("## Claims Under Test\n\n- Claim one\n- Claim two"));
+        assert!(!review.contains("- First contradiction - Second contradiction"));
+    }
+
+    #[test]
     fn render_analysis_mode_artifacts_include_required_sections() {
         let discovery = render_discovery_artifact(
             "context-boundary.md",
             "# Discovery Brief\n\n## Problem\nExplore a bounded notification routing problem.\n\n## Constraints\nPreserve the current routing ownership boundaries.\n\n## Repo Surface\n- src/router.rs\n- tests/router_contract.rs\n\n## Unknowns\n- Which caller owns retry policy?\n\n## Next Phase\nTranslate this discovery packet into architecture mode with named boundaries.\n\nGenerated framing: Map the known constraints and unresolved actors.\n\nCritique evidence: Challenge scope drift around retry ownership.\n\nValidation evidence: Validation tool reviewed tracked repository surfaces: src/router.rs, tests/router_contract.rs",
         );
-        let greenfield = render_greenfield_artifact(
+        let system_shaping = render_system_shaping_artifact(
             "system-shape.md",
             "Shape a new notification delivery capability.",
             "Separate ingest, routing, and delivery responsibilities.",
@@ -848,8 +1584,8 @@ mod tests {
         assert!(discovery.contains("## In-Scope Context"));
         assert!(discovery.contains("## Repo Surface"));
         assert!(discovery.contains("## Translation Trigger"));
-        assert!(greenfield.contains("## System Shape"));
-        assert!(greenfield.contains("## Boundary Decisions"));
+        assert!(system_shaping.contains("## System Shape"));
+        assert!(system_shaping.contains("## Boundary Decisions"));
         assert!(architecture.contains("## Evaluation Criteria"));
         assert!(architecture.contains("## Selected Option"));
     }

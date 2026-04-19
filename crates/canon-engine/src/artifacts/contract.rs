@@ -82,7 +82,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
         ],
-        Mode::Greenfield => vec![
+        Mode::SystemShaping => vec![
             requirement(
                 "system-shape.md",
                 &["Summary", "System Shape", "Boundary Decisions", "Domain Responsibilities"],
@@ -170,6 +170,60 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 "readiness-assessment.md",
                 &["Summary", "Readiness Status", "Blockers", "Accepted Risks"],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Review => vec![
+            requirement(
+                "review-brief.md",
+                &["Summary", "Review Target", "Evidence Basis"],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "boundary-assessment.md",
+                &["Summary", "Boundary Findings", "Ownership Notes"],
+                &[GateKind::Architecture, GateKind::ReviewDisposition],
+            ),
+            requirement(
+                "missing-evidence.md",
+                &["Summary", "Missing Evidence", "Collection Priorities"],
+                &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "decision-impact.md",
+                &["Summary", "Decision Impact", "Reversibility Concerns"],
+                &[GateKind::Architecture, GateKind::ReviewDisposition],
+            ),
+            requirement(
+                "review-disposition.md",
+                &["Summary", "Final Disposition", "Accepted Risks"],
+                &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Verification => vec![
+            requirement(
+                "invariants-checklist.md",
+                &["Summary", "Claims Under Test", "Invariant Checks"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "contract-matrix.md",
+                &["Summary", "Contract Assumptions", "Verification Outcome"],
+                &[GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "adversarial-review.md",
+                &["Summary", "Challenge Findings", "Contradictions"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "verification-report.md",
+                &["Summary", "Verified Claims", "Rejected Claims", "Overall Verdict"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "unresolved-findings.md",
+                &["Summary", "Open Findings", "Required Follow-up"],
+                &[GateKind::ReleaseReadiness],
             ),
         ],
         Mode::PrReview => vec![

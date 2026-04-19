@@ -39,6 +39,7 @@ mod tests {
                 classification: ClassificationProvenance::explicit(),
                 owner: "Owner <owner@example.com>".to_string(),
                 inputs: vec!["idea.md".to_string()],
+                inline_inputs: Vec::new(),
                 excluded_paths: Vec::new(),
                 policy_root: None,
                 method_root: None,

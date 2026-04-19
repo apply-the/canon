@@ -21,16 +21,16 @@
 | Check | Target | Method | Status |
 |-------|--------|--------|--------|
 | LV-01 | Discovery end-to-end run | `tests/discovery_run.rs` | Pass |
-| LV-02 | System-Shaping end-to-end run | `tests/greenfield_run.rs` | Pass |
+| LV-02 | System-Shaping end-to-end run | `tests/system_shaping_run.rs` | Pass |
 | LV-03 | Architecture end-to-end run | `tests/architecture_run.rs` | Pass |
 | LV-04 | Discovery gate blocking | `tests/discovery_contract.rs` — missing `context-boundary.md` blocks Exploration | Pass |
-| LV-05 | System-Shaping gate blocking | `tests/greenfield_contract.rs` and `tests/greenfield_run.rs` — missing architecture evidence or insufficient context blocks | Pass |
+| LV-05 | System-Shaping gate blocking | `tests/system_shaping_contract.rs` and `tests/system_shaping_run.rs` — missing architecture evidence or insufficient context blocks | Pass |
 | LV-06 | Architecture gate blocking | `tests/architecture_contract.rs` — missing `tradeoff-matrix.md` blocks Architecture | Pass |
 | LV-07 | SystemicImpact approval | `tests/architecture_contract.rs`, `tests/architecture_run.rs`, `tests/discovery_contract.rs` | Pass |
 | LV-08 | Artifact section validation | `crates/canon-engine/src/artifacts/markdown.rs` unit test plus contract-backed gate tests | Pass |
-| LV-09 | Evidence bundle linkage | `tests/discovery_run.rs`, `tests/greenfield_contract.rs`, `tests/pr_review_evidence_contract.rs` regression sweep | Pass |
+| LV-09 | Evidence bundle linkage | `tests/discovery_run.rs`, `tests/system_shaping_contract.rs`, `tests/pr_review_evidence_contract.rs` regression sweep | Pass |
 | LV-10 | Discovery without critique | `tests/discovery_contract.rs` and `tests/discovery_run.rs` — only 2 governed invocations persisted | Pass |
-| LV-11 | System-Shaping with critique | `tests/greenfield_contract.rs` and `tests/greenfield_run.rs` | Pass |
+| LV-11 | System-Shaping with critique | `tests/system_shaping_contract.rs` and `tests/system_shaping_run.rs` | Pass |
 
 ## Independent Validation
 

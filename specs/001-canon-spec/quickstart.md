@@ -124,7 +124,7 @@ Expected result:
 Use this only when developing Canon itself.
 
 ```bash
-rustup toolchain install 1.94.1 --profile minimal --component rustfmt --component clippy
+rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
 cargo build
 ./scripts/install-hooks.sh
 ```

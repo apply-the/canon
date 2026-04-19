@@ -54,7 +54,7 @@ runnable behavior.
 ## Next-Step Guidance
 
 - Use `$canon-brownfield` for runnable change planning.
-- Use `$canon-review` only for modeled review context, not runtime execution.
+- Use `$canon-review` for runnable non-PR review packets, not for refactor execution.
 
 ## Related Skills
 
