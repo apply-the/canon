@@ -14,8 +14,8 @@ use uuid::Uuid;
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
     render_architecture_artifact, render_brownfield_artifact, render_discovery_artifact,
-    render_greenfield_artifact, render_pr_review_artifact,
-    render_requirements_artifact_from_evidence,
+    render_pr_review_artifact, render_requirements_artifact_from_evidence, render_review_artifact,
+    render_system_shaping_artifact, render_verification_artifact,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
 use crate::domain::artifact::ArtifactRecord;
@@ -26,7 +26,9 @@ use crate::domain::execution::{
 use crate::domain::gate::{GateKind, GateStatus};
 use crate::domain::mode::{Mode, all_mode_profiles};
 use crate::domain::policy::{RiskClass, UsageZone};
-use crate::domain::run::{ClassificationProvenance, InputFingerprint, RunContext, RunState};
+use crate::domain::run::{
+    ClassificationProvenance, InlineInput, InputFingerprint, InputSourceKind, RunContext, RunState,
+};
 use crate::orchestrator::{classifier, gatekeeper, resume, verification_runner};
 use crate::orchestrator::{evidence as evidence_builder, invocation as invocation_runtime};
 use crate::persistence::invocations::PersistedInvocation;
@@ -55,11 +57,26 @@ pub enum InspectTarget {
     Modes,
     Methods,
     Policies,
-    RiskZone { mode: Mode, risk: Option<RiskClass>, zone: Option<UsageZone>, inputs: Vec<String> },
-    Clarity { mode: Mode, inputs: Vec<String> },
-    Artifacts { run_id: String },
-    Invocations { run_id: String },
-    Evidence { run_id: String },
+    RiskZone {
+        mode: Mode,
+        risk: Option<RiskClass>,
+        zone: Option<UsageZone>,
+        inputs: Vec<String>,
+        inline_inputs: Vec<String>,
+    },
+    Clarity {
+        mode: Mode,
+        inputs: Vec<String>,
+    },
+    Artifacts {
+        run_id: String,
+    },
+    Invocations {
+        run_id: String,
+    },
+    Evidence {
+        run_id: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,9 +87,35 @@ pub struct RunRequest {
     pub classification: ClassificationProvenance,
     pub owner: String,
     pub inputs: Vec<String>,
+    pub inline_inputs: Vec<String>,
     pub excluded_paths: Vec<String>,
     pub policy_root: Option<String>,
     pub method_root: Option<String>,
+}
+
+impl RunRequest {
+    fn authored_input_count(&self) -> usize {
+        self.inputs.len() + self.inline_inputs.len()
+    }
+
+    fn merged_input_sources(&self) -> Vec<String> {
+        let mut sources = self.inputs.clone();
+        sources.extend(
+            self.inline_inputs.iter().enumerate().map(|(index, _)| inline_input_label(index)),
+        );
+        sources
+    }
+
+    fn transient_inline_inputs(&self) -> Vec<InlineInput> {
+        self.inline_inputs
+            .iter()
+            .enumerate()
+            .map(|(index, contents)| InlineInput {
+                label: inline_input_label(index),
+                contents: contents.clone(),
+            })
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -600,14 +643,16 @@ impl EngineService {
                 }
             },
         )?;
-        self.validate_authored_input_paths(request.mode, &request.inputs)?;
+        self.validate_authored_inputs(request.mode, &request.inputs, &request.inline_inputs)?;
 
         match request.mode {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
-            Mode::Greenfield => self.run_greenfield(&store, request, policy_set),
+            Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
             Mode::BrownfieldChange => self.run_brownfield_change(&store, request, policy_set),
             Mode::Architecture => self.run_architecture(&store, request, policy_set),
+            Mode::Review => self.run_review(&store, request, policy_set),
+            Mode::Verification => self.run_verification(&store, request, policy_set),
             Mode::PrReview => self.run_pr_review(&store, request, policy_set),
             other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
         }
@@ -722,11 +767,13 @@ impl EngineService {
                 zone: manifest.zone,
                 classification: manifest.classification.clone(),
                 owner: manifest.owner.clone(),
-                inputs: context.inputs.clone(),
+                inputs: self.resume_inputs(&context),
+                inline_inputs: Vec::new(),
                 excluded_paths: context.excluded_paths.clone(),
                 policy_root: None,
                 method_root: None,
             };
+            let input_scope = request.merged_input_sources();
             let now = OffsetDateTime::now_utc();
             let evidence_path = format!("runs/{run_id}/evidence.toml");
             let context_request = self.requirements_request(RequirementsRequestSpec {
@@ -736,11 +783,12 @@ impl EngineService {
                 owner: &request.owner,
                 capability: CapabilityKind::ReadRepository,
                 summary: "capture repository and idea context",
-                scope: request.inputs.clone(),
+                scope: input_scope.clone(),
             });
             let context_decision =
                 invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-            let context_summary = self.read_requirements_context(&request.inputs)?;
+            let context_summary =
+                self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
             let context_attempt = self.completed_attempt(
                 &context_request,
                 1,
@@ -749,7 +797,7 @@ impl EngineService {
                     kind: ToolOutcomeKind::Succeeded,
                     summary: format!(
                         "Captured requirements context from {} input(s).",
-                        request.inputs.len()
+                        request.authored_input_count()
                     ),
                     exit_code: Some(0),
                     payload_refs: Vec::new(),
@@ -764,7 +812,7 @@ impl EngineService {
                 owner: &request.owner,
                 capability: CapabilityKind::GenerateContent,
                 summary: "generate bounded requirements framing",
-                scope: request.inputs.clone(),
+                scope: input_scope.clone(),
             });
             let generation_decision =
                 invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
@@ -775,7 +823,7 @@ impl EngineService {
                 owner: &request.owner,
                 capability: CapabilityKind::ProposeWorkspaceEdit,
                 summary: "attempt workspace mutation from requirements mode",
-                scope: request.inputs.clone(),
+                scope: input_scope.clone(),
             });
             let denied_edit_decision =
                 invocation_runtime::evaluate_request_policy(&denied_edit_request, &policy_set);
@@ -817,7 +865,7 @@ impl EngineService {
                 owner: &request.owner,
                 capability: CapabilityKind::CritiqueContent,
                 summary: "critique generated requirements framing",
-                scope: request.inputs.clone(),
+                scope: input_scope.clone(),
             });
             let critique_decision =
                 invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
@@ -1046,7 +1094,8 @@ impl EngineService {
                 zone: manifest.zone,
                 classification: manifest.classification.clone(),
                 owner: manifest.owner.clone(),
-                inputs: context.inputs.clone(),
+                inputs: self.resume_inputs(&context),
+                inline_inputs: Vec::new(),
                 excluded_paths: context.excluded_paths.clone(),
                 policy_root: None,
                 method_root: None,
@@ -1094,9 +1143,15 @@ impl EngineService {
                 "policies".to_string(),
                 store.list_policy_files()?.into_iter().map(InspectEntry::Name).collect::<Vec<_>>(),
             ),
-            InspectTarget::RiskZone { mode, risk, zone, inputs } => (
+            InspectTarget::RiskZone { mode, risk, zone, inputs, inline_inputs } => (
                 "risk-zone".to_string(),
-                vec![InspectEntry::RiskZone(self.inspect_risk_zone(mode, risk, zone, &inputs)?)],
+                vec![InspectEntry::RiskZone(self.inspect_risk_zone(
+                    mode,
+                    risk,
+                    zone,
+                    &inputs,
+                    &inline_inputs,
+                )?)],
             ),
             InspectTarget::Clarity { mode, inputs } => (
                 "clarity".to_string(),
@@ -1202,8 +1257,9 @@ impl EngineService {
         risk: Option<RiskClass>,
         zone: Option<UsageZone>,
         inputs: &[String],
+        inline_inputs: &[String],
     ) -> Result<ClassificationInspectSummary, EngineError> {
-        if inputs.is_empty() {
+        if inputs.is_empty() && inline_inputs.is_empty() {
             return Err(EngineError::Validation(format!(
                 "risk-zone inspection requires at least one input for {}",
                 mode.as_str()
@@ -1211,28 +1267,24 @@ impl EngineService {
         }
 
         if matches!(mode, Mode::PrReview) {
+            if !inline_inputs.is_empty() {
+                return Err(EngineError::Validation(
+                    "risk-zone inspection for pr-review does not support --input-text".to_string(),
+                ));
+            }
             if inputs.len() < 2 {
                 return Err(EngineError::Validation(
                     "risk-zone inspection for pr-review requires two refs or inputs".to_string(),
                 ));
             }
         } else {
-            self.validate_authored_input_paths(mode, inputs)?;
-            for input in inputs {
-                let resolved = self.resolve_input_path(input);
-                if !resolved.exists() {
-                    return Err(EngineError::Validation(format!(
-                        "input `{input}` was not found from {}",
-                        self.repo_root.display()
-                    )));
-                }
-            }
+            self.validate_authored_inputs(mode, inputs, inline_inputs)?;
         }
 
         let intake_summary = if matches!(mode, Mode::PrReview) {
-            self.load_input_summary(inputs)?
+            self.load_input_summary(inputs, &[])?
         } else {
-            self.read_requirements_context(inputs)?
+            self.read_requirements_context(inputs, inline_inputs)?
         };
         let repo_surfaces = self.scan_workspace_surface().unwrap_or_default();
         let inferred =
@@ -1294,7 +1346,7 @@ impl EngineService {
         }
 
         let source_inputs = self.clarity_source_inputs(inputs)?;
-        let context_summary = self.read_requirements_context(inputs)?;
+        let context_summary = self.read_requirements_context(inputs, &[])?;
         let brief = RequirementsBrief::from_context(context_summary.clone(), &source_inputs);
         let missing_context = requirements_missing_context(&brief);
         let clarification_questions =
@@ -1338,7 +1390,7 @@ impl EngineService {
         }
 
         let source_inputs = self.clarity_source_inputs(inputs)?;
-        let context_summary = self.read_requirements_context(inputs)?;
+        let context_summary = self.read_requirements_context(inputs, &[])?;
         let repo_surfaces = self.scan_workspace_surface()?;
         let brief = DiscoveryBrief::from_context(context_summary, &repo_surfaces);
         let missing_context = discovery_missing_context(&brief);
@@ -1400,7 +1452,9 @@ impl EngineService {
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
-        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
         let context_request = self.requirements_request(RequirementsRequestSpec {
             run_id: &run_id,
@@ -1409,11 +1463,12 @@ impl EngineService {
             owner: &request.owner,
             capability: CapabilityKind::ReadRepository,
             summary: "capture repository and idea context",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -1422,7 +1477,7 @@ impl EngineService {
                 kind: ToolOutcomeKind::Succeeded,
                 summary: format!(
                     "Captured requirements context from {} input(s).",
-                    request.inputs.len()
+                    request.authored_input_count()
                 ),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
@@ -1438,7 +1493,7 @@ impl EngineService {
             owner: &request.owner,
             capability: CapabilityKind::GenerateContent,
             summary: "generate bounded requirements framing",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
@@ -1450,7 +1505,7 @@ impl EngineService {
             owner: &request.owner,
             capability: CapabilityKind::ProposeWorkspaceEdit,
             summary: "attempt workspace mutation from requirements mode",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let denied_edit_decision =
             invocation_runtime::evaluate_request_policy(&denied_edit_request, &policy_set);
@@ -1503,14 +1558,7 @@ impl EngineService {
                     owner: request.owner.clone(),
                     created_at: now,
                 },
-                context: RunContext {
-                    repo_root: self.repo_root.display().to_string(),
-                    owner: Some(request.owner),
-                    inputs: request.inputs,
-                    excluded_paths: request.excluded_paths,
-                    input_fingerprints,
-                    captured_at: now,
-                },
+                context: self.build_run_context(&request, input_fingerprints, now),
                 state: RunStateManifest { state: RunState::AwaitingApproval, updated_at: now },
                 artifact_contract,
                 links: LinkManifest {
@@ -1573,7 +1621,7 @@ impl EngineService {
             });
         }
 
-        let requirements_brief = RequirementsBrief::from_context(context_summary, &request.inputs);
+        let requirements_brief = RequirementsBrief::from_context(context_summary, &input_scope);
         let brief_summary = requirements_brief.summary();
         let copilot = CopilotCliAdapter;
         let generation_output = copilot.generate_requirements(RequirementsGenerationInput {
@@ -1610,7 +1658,7 @@ impl EngineService {
             owner: &request.owner,
             capability: CapabilityKind::CritiqueContent,
             summary: "critique generated requirements framing",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
@@ -1770,14 +1818,7 @@ impl EngineService {
                 owner: request.owner.clone(),
                 created_at: now,
             },
-            context: RunContext {
-                repo_root: self.repo_root.display().to_string(),
-                owner: Some(request.owner),
-                inputs: request.inputs,
-                excluded_paths: request.excluded_paths,
-                input_fingerprints,
-                captured_at: now,
-            },
+            context: self.build_run_context(&request, input_fingerprints, now),
             state: RunStateManifest { state, updated_at: now },
             artifact_contract,
             links: LinkManifest {
@@ -1872,7 +1913,9 @@ impl EngineService {
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
-        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
 
         let context_request = self.governed_request(GovernedRequestSpec {
@@ -1884,11 +1927,12 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
             summary: "capture discovery context and problem framing",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let repo_surfaces = self.scan_workspace_surface()?;
         let discovery_brief = DiscoveryBrief::from_context(context_summary, &repo_surfaces);
         let context_attempt = self.completed_attempt(
@@ -1899,7 +1943,7 @@ impl EngineService {
                 kind: ToolOutcomeKind::Succeeded,
                 summary: format!(
                     "Captured discovery context from {} input(s) and {} repository surface(s).",
-                    request.inputs.len(),
+                    request.authored_input_count(),
                     repo_surfaces.len()
                 ),
                 exit_code: Some(0),
@@ -1918,7 +1962,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
             summary: "generate bounded discovery analysis",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
@@ -1952,7 +1996,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
             summary: "critique discovery framing against repository evidence",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
@@ -1981,7 +2025,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ValidateWithTool,
             summary: "validate discovery framing against repository context",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
@@ -2126,14 +2170,7 @@ impl EngineService {
                 owner: request.owner.clone(),
                 created_at: now,
             },
-            context: RunContext {
-                repo_root: self.repo_root.display().to_string(),
-                owner: Some(request.owner.clone()),
-                inputs: request.inputs,
-                excluded_paths: request.excluded_paths,
-                input_fingerprints,
-                captured_at: now,
-            },
+            context: self.build_run_context(&request, input_fingerprints, now),
             state: RunStateManifest { state, updated_at: now },
             artifact_contract: artifact_contract.clone(),
             links: LinkManifest {
@@ -2190,7 +2227,7 @@ impl EngineService {
         )
     }
 
-    fn run_greenfield(
+    fn run_system_shaping(
         &self,
         store: &WorkspaceStore,
         request: RunRequest,
@@ -2201,22 +2238,25 @@ impl EngineService {
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
-        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
         let context_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::Greenfield,
+            mode: Mode::SystemShaping,
             risk: request.risk,
             zone: request.zone,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
             summary: "capture system-shaping context and bounded intent",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -2225,7 +2265,7 @@ impl EngineService {
                 kind: ToolOutcomeKind::Succeeded,
                 summary: format!(
                     "Captured system-shaping context from {} input(s).",
-                    request.inputs.len()
+                    request.authored_input_count()
                 ),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
@@ -2236,14 +2276,14 @@ impl EngineService {
 
         let generation_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::Greenfield,
+            mode: Mode::SystemShaping,
             risk: request.risk,
             zone: request.zone,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
             summary: "generate bounded system-shaping analysis",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
@@ -2269,14 +2309,14 @@ impl EngineService {
 
         let critique_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::Greenfield,
+            mode: Mode::SystemShaping,
             risk: request.risk,
             zone: request.zone,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
             summary: "critique bounded system-shaping analysis",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
@@ -2354,7 +2394,7 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_greenfield_artifact(
+                contents: render_system_shaping_artifact(
                     &requirement.file_name,
                     &context_summary,
                     &generation_output.summary,
@@ -2368,10 +2408,10 @@ impl EngineService {
             .iter()
             .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
             .collect::<Vec<_>>();
-        let gates = gatekeeper::evaluate_greenfield_gates(
+        let gates = gatekeeper::evaluate_system_shaping_gates(
             &artifact_contract,
             &gate_inputs,
-            gatekeeper::GreenfieldGateContext {
+            gatekeeper::SystemShapingGateContext {
                 owner: &request.owner,
                 risk: request.risk,
                 zone: request.zone,
@@ -2421,14 +2461,7 @@ impl EngineService {
                 owner: request.owner.clone(),
                 created_at: now,
             },
-            context: RunContext {
-                repo_root: self.repo_root.display().to_string(),
-                owner: Some(request.owner.clone()),
-                inputs: request.inputs,
-                excluded_paths: request.excluded_paths,
-                input_fingerprints,
-                captured_at: now,
-            },
+            context: self.build_run_context(&request, input_fingerprints, now),
             state: RunStateManifest { state, updated_at: now },
             artifact_contract: artifact_contract.clone(),
             links: LinkManifest {
@@ -2490,7 +2523,9 @@ impl EngineService {
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
-        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
         let context_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
@@ -2501,11 +2536,12 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
             summary: "capture architecture context and structural dilemma",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -2514,7 +2550,7 @@ impl EngineService {
                 kind: ToolOutcomeKind::Succeeded,
                 summary: format!(
                     "Captured architecture context from {} input(s).",
-                    request.inputs.len()
+                    request.authored_input_count()
                 ),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
@@ -2532,7 +2568,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
             summary: "generate bounded architecture analysis",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
@@ -2565,7 +2601,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
             summary: "critique bounded architecture decisions and invariants",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
@@ -2710,14 +2746,7 @@ impl EngineService {
                 owner: request.owner.clone(),
                 created_at: now,
             },
-            context: RunContext {
-                repo_root: self.repo_root.display().to_string(),
-                owner: Some(request.owner.clone()),
-                inputs: request.inputs,
-                excluded_paths: request.excluded_paths,
-                input_fingerprints,
-                captured_at: now,
-            },
+            context: self.build_run_context(&request, input_fingerprints, now),
             state: RunStateManifest { state, updated_at: now },
             artifact_contract: artifact_contract.clone(),
             links: LinkManifest {
@@ -2768,6 +2797,410 @@ impl EngineService {
         )
     }
 
+    fn run_review(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        self.run_review_like_mode(store, request, policy_set)
+    }
+
+    fn run_verification(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        self.run_review_like_mode(store, request, policy_set)
+    }
+
+    fn run_review_like_mode(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        let now = OffsetDateTime::now_utc();
+        let run_id = Uuid::now_v7().to_string();
+        let mut artifact_contract = contract_for_mode(request.mode);
+        classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
+
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
+        let evidence_path = format!("runs/{run_id}/evidence.toml");
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
+
+        let (
+            context_request_summary,
+            generation_request_summary,
+            critique_request_summary,
+            validation_request_summary,
+        ) = match request.mode {
+            Mode::Review => (
+                "capture review packet context and authored evidence target",
+                "generate bounded review packet for a non-PR change package",
+                "critique review findings, evidence gaps, and disposition posture",
+                "validate review evidence against the repository surface",
+            ),
+            Mode::Verification => (
+                "capture verification target context and authored evidence basis",
+                "generate bounded verification challenge packet",
+                "critique supported claims, contradictions, and unresolved findings",
+                "validate verification evidence against the repository surface",
+            ),
+            other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
+        };
+
+        let context_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: request.mode,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
+            summary: context_request_summary,
+            scope: input_scope.clone(),
+        });
+        let context_decision =
+            invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
+        let context_attempt = self.completed_attempt(
+            &context_request,
+            1,
+            "filesystem",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: format!(
+                    "Captured {} context from {} input(s).",
+                    request.mode.as_str(),
+                    request.authored_input_count()
+                ),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let generation_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: request.mode,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::GenerateContent,
+            summary: generation_request_summary,
+            scope: input_scope.clone(),
+        });
+        let generation_decision =
+            invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
+        let copilot = CopilotCliAdapter;
+        let generation_output = match request.mode {
+            Mode::Review => copilot.generate_review(&context_summary),
+            Mode::Verification => copilot.generate_verification(&context_summary),
+            _ => unreachable!("unsupported review-like mode"),
+        };
+        let generation_attempt = self.completed_attempt(
+            &generation_request,
+            1,
+            &generation_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: generation_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: artifact_contract
+                    .artifact_requirements
+                    .iter()
+                    .map(|requirement| requirement.file_name.clone())
+                    .collect(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let critique_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: request.mode,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::CopilotCli,
+            capability: CapabilityKind::CritiqueContent,
+            summary: critique_request_summary,
+            scope: input_scope.clone(),
+        });
+        let critique_decision =
+            invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
+        let critique_output = match request.mode {
+            Mode::Review => copilot.critique_review(&generation_output.summary),
+            Mode::Verification => copilot.critique_verification(&generation_output.summary),
+            _ => unreachable!("unsupported review-like mode"),
+        };
+        let critique_attempt = self.completed_attempt(
+            &critique_request,
+            1,
+            &critique_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: critique_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let validation_request = self.governed_request(GovernedRequestSpec {
+            run_id: &run_id,
+            mode: request.mode,
+            risk: request.risk,
+            zone: request.zone,
+            owner: &request.owner,
+            adapter: canon_adapters::AdapterKind::Shell,
+            capability: CapabilityKind::ValidateWithTool,
+            summary: validation_request_summary,
+            scope: input_scope.clone(),
+        });
+        let validation_decision =
+            invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
+        let (validation_summary, validation_attempt) =
+            self.brownfield_validation_attempt(&validation_request)?;
+
+        let artifact_paths = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| {
+                format!("artifacts/{}/{}/{}", run_id, request.mode.as_str(), requirement.file_name)
+            })
+            .collect::<Vec<_>>();
+        let generation_path = GenerationPath {
+            path_id: format!("generation:{}", generation_request.request_id),
+            request_ids: vec![generation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            derived_artifacts: artifact_paths.clone(),
+        };
+        let validation_path = ValidationPath {
+            path_id: format!("validation:{}", validation_request.request_id),
+            request_ids: vec![validation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::NonGenerative],
+            verification_refs: vec![format!(
+                "runs/{run_id}/invocations/{}/attempt-01.toml",
+                validation_request.request_id
+            )],
+            independence: evidence_builder::assess_validation_independence(
+                &generation_path,
+                &ValidationPath {
+                    path_id: format!("validation:{}", validation_request.request_id),
+                    request_ids: vec![validation_request.request_id.clone()],
+                    lineage_classes: vec![LineageClass::NonGenerative],
+                    verification_refs: vec![format!(
+                        "runs/{run_id}/invocations/{}/attempt-01.toml",
+                        validation_request.request_id
+                    )],
+                    independence: evidence_builder::default_independence(&generation_path.path_id),
+                },
+            ),
+        };
+
+        let artifact_disposition = match request.mode {
+            Mode::Review => crate::domain::execution::EvidenceDisposition::NeedsDisposition,
+            Mode::Verification => crate::domain::execution::EvidenceDisposition::Supporting,
+            _ => unreachable!("unsupported review-like mode"),
+        };
+        let artifacts = artifact_contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: requirement.file_name.clone(),
+                    relative_path: format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    ),
+                    format: requirement.format,
+                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                        request_ids: vec![
+                            context_request.request_id.clone(),
+                            generation_request.request_id.clone(),
+                            critique_request.request_id.clone(),
+                            validation_request.request_id.clone(),
+                        ],
+                        evidence_bundle: Some(evidence_path.clone()),
+                        disposition: artifact_disposition,
+                    }),
+                },
+                contents: match request.mode {
+                    Mode::Review => render_review_artifact(
+                        &requirement.file_name,
+                        &context_summary,
+                        &generation_output.summary,
+                        &critique_output.summary,
+                        &validation_summary,
+                    ),
+                    Mode::Verification => render_verification_artifact(
+                        &requirement.file_name,
+                        &context_summary,
+                        &generation_output.summary,
+                        &critique_output.summary,
+                        &validation_summary,
+                    ),
+                    _ => unreachable!("unsupported review-like mode"),
+                },
+            })
+            .collect::<Vec<_>>();
+
+        let approvals = Vec::new();
+        let gate_inputs = artifacts
+            .iter()
+            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
+            .collect::<Vec<_>>();
+        let state = match request.mode {
+            Mode::Review => {
+                let gates = gatekeeper::evaluate_review_gates(
+                    &artifact_contract,
+                    &gate_inputs,
+                    gatekeeper::ReviewGateContext {
+                        owner: &request.owner,
+                        risk: request.risk,
+                        zone: request.zone,
+                        approvals: &approvals,
+                        evidence_complete: true,
+                    },
+                );
+                let state = run_state_from_gates(&gates);
+                (state, gates)
+            }
+            Mode::Verification => {
+                let gates = gatekeeper::evaluate_verification_gates(
+                    &artifact_contract,
+                    &gate_inputs,
+                    gatekeeper::VerificationGateContext {
+                        owner: &request.owner,
+                        risk: request.risk,
+                        zone: request.zone,
+                        approvals: &approvals,
+                        validation_independence_satisfied: validation_path.independence.sufficient,
+                        evidence_complete: true,
+                    },
+                );
+                let state = run_state_from_gates(&gates);
+                (state, gates)
+            }
+            _ => unreachable!("unsupported review-like mode"),
+        };
+        let (state, gates) = state;
+
+        let mut verification_records = verification_runner::analysis_verification_records(
+            request.mode.as_str(),
+            &artifact_contract.required_verification_layers,
+            &artifact_paths,
+        );
+        verification_runner::attach_runtime_lineage(
+            &mut verification_records,
+            &[
+                generation_request.request_id.clone(),
+                critique_request.request_id.clone(),
+                validation_request.request_id.clone(),
+            ],
+            &validation_path.path_id,
+            &evidence_path,
+        );
+
+        let evidence = EvidenceBundle {
+            run_id: run_id.clone(),
+            generation_paths: vec![generation_path],
+            validation_paths: vec![validation_path.clone()],
+            denied_invocations: Vec::new(),
+            trace_refs: vec![format!("traces/{run_id}.jsonl")],
+            artifact_refs: artifact_paths.clone(),
+            decision_refs: vec![
+                format!("runs/{run_id}/invocations/{}/decision.toml", context_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    generation_request.request_id
+                ),
+                format!("runs/{run_id}/invocations/{}/decision.toml", critique_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    validation_request.request_id
+                ),
+            ],
+            approval_refs: Vec::new(),
+        };
+
+        let bundle = PersistedRunBundle {
+            run: RunManifest {
+                run_id: run_id.clone(),
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                classification: request.classification.clone(),
+                owner: request.owner.clone(),
+                created_at: now,
+            },
+            context: self.build_run_context(&request, input_fingerprints, now),
+            state: RunStateManifest { state, updated_at: now },
+            artifact_contract: artifact_contract.clone(),
+            links: LinkManifest {
+                artifacts: artifact_paths.clone(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: Some(evidence_path.clone()),
+            },
+            verification_records,
+            artifacts,
+            gates,
+            approvals,
+            evidence: Some(evidence),
+            invocations: vec![
+                PersistedInvocation {
+                    request: context_request,
+                    decision: context_decision,
+                    attempts: vec![context_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: generation_request,
+                    decision: generation_decision,
+                    attempts: vec![generation_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: critique_request,
+                    decision: critique_decision,
+                    attempts: vec![critique_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: validation_request,
+                    decision: validation_decision,
+                    attempts: vec![validation_attempt],
+                    approvals: Vec::new(),
+                },
+            ],
+        };
+
+        store.persist_run_bundle(&bundle)?;
+        self.summarize_run(
+            store,
+            RunSummarySpec {
+                run_id: &run_id,
+                mode: request.mode,
+                risk: request.risk,
+                zone: request.zone,
+                state,
+                artifact_count: bundle.artifacts.len(),
+            },
+        )
+    }
+
     fn execute_brownfield_change(
         &self,
         store: &WorkspaceStore,
@@ -2780,8 +3213,10 @@ impl EngineService {
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
-        let brief_summary = self.load_input_summary(&request.inputs)?;
-        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let brief_summary = self.load_input_summary(&request.inputs, &request.inline_inputs)?;
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
 
         let context_request = self.governed_request(GovernedRequestSpec {
@@ -2793,11 +3228,12 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
             summary: "capture brownfield brief and repository context",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-        let context_summary = self.read_requirements_context(&request.inputs)?;
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let declared_change_surface = extract_brownfield_change_surface_entries(&context_summary);
         let context_attempt = self.completed_attempt(
             &context_request,
@@ -2822,7 +3258,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
             summary: "generate bounded brownfield change framing",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
@@ -2906,14 +3342,7 @@ impl EngineService {
                     owner: request.owner.clone(),
                     created_at: now,
                 },
-                context: RunContext {
-                    repo_root: self.repo_root.display().to_string(),
-                    owner: Some(request.owner),
-                    inputs: request.inputs,
-                    excluded_paths: request.excluded_paths,
-                    input_fingerprints,
-                    captured_at: now,
-                },
+                context: self.build_run_context(&request, input_fingerprints, now),
                 state: RunStateManifest { state: RunState::AwaitingApproval, updated_at: now },
                 artifact_contract,
                 links: LinkManifest {
@@ -3001,7 +3430,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ValidateWithTool,
             summary: "validate brownfield change framing against repository context",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
@@ -3161,14 +3590,7 @@ impl EngineService {
                 owner: request.owner.clone(),
                 created_at: now,
             },
-            context: RunContext {
-                repo_root: self.repo_root.display().to_string(),
-                owner: Some(request.owner),
-                inputs: request.inputs,
-                excluded_paths: request.excluded_paths,
-                input_fingerprints,
-                captured_at: now,
-            },
+            context: self.build_run_context(&request, input_fingerprints, now),
             state: RunStateManifest { state, updated_at: now },
             artifact_contract: artifact_contract.clone(),
             links: LinkManifest {
@@ -3238,7 +3660,9 @@ impl EngineService {
 
         let (base_ref, head_ref) = self.load_pr_review_refs(&request.inputs)?;
         let is_worktree = head_ref == "WORKTREE";
-        let input_fingerprints = self.capture_input_fingerprints(&request.inputs)?;
+        let input_fingerprints =
+            self.capture_input_fingerprints(&request.inputs, &request.inline_inputs)?;
+        let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
 
         let diff_request = self.governed_request(GovernedRequestSpec {
@@ -3250,7 +3674,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::InspectDiff,
             summary: "inspect diff surfaces and bounded patch context",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let diff_decision = invocation_runtime::evaluate_request_policy(&diff_request, &policy_set);
 
@@ -3306,7 +3730,7 @@ impl EngineService {
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
             summary: "critique the reviewed diff and preserve reviewer-facing evidence",
-            scope: request.inputs.clone(),
+            scope: input_scope.clone(),
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
@@ -3466,14 +3890,7 @@ impl EngineService {
                 owner: request.owner.clone(),
                 created_at: now,
             },
-            context: RunContext {
-                repo_root: self.repo_root.display().to_string(),
-                owner: Some(request.owner),
-                inputs: request.inputs,
-                excluded_paths: request.excluded_paths,
-                input_fingerprints,
-                captured_at: now,
-            },
+            context: self.build_run_context(&request, input_fingerprints, now),
             state: RunStateManifest { state, updated_at: now },
             artifact_contract: artifact_contract.clone(),
             links: LinkManifest {
@@ -3553,10 +3970,10 @@ impl EngineService {
                     evidence_complete,
                 },
             ),
-            Mode::Greenfield => gatekeeper::evaluate_greenfield_gates(
+            Mode::SystemShaping => gatekeeper::evaluate_system_shaping_gates(
                 contract,
                 &artifact_inputs,
-                gatekeeper::GreenfieldGateContext {
+                gatekeeper::SystemShapingGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
                     zone: manifest.zone,
@@ -3568,6 +3985,29 @@ impl EngineService {
                 contract,
                 &artifact_inputs,
                 gatekeeper::BrownfieldGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::Review => gatekeeper::evaluate_review_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::ReviewGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    evidence_complete,
+                },
+            ),
+            Mode::Verification => gatekeeper::evaluate_verification_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::VerificationGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
                     zone: manifest.zone,
@@ -3654,9 +4094,15 @@ impl EngineService {
         }
     }
 
-    fn read_requirements_context(&self, inputs: &[String]) -> Result<String, EngineError> {
+    fn read_requirements_context(
+        &self,
+        inputs: &[String],
+        inline_inputs: &[String],
+    ) -> Result<String, EngineError> {
         let filesystem = FilesystemAdapter;
         let mut fragments = Vec::new();
+        let include_input_labels = inputs.len() + inline_inputs.len() > 1;
+
         for input in inputs {
             let resolved = self.resolve_input_path(input);
             let files = self.collect_input_files(input)?;
@@ -3665,7 +4111,7 @@ impl EngineService {
                 continue;
             }
 
-            let include_labels = resolved.is_dir() || files.len() > 1 || inputs.len() > 1;
+            let include_labels = resolved.is_dir() || files.len() > 1 || include_input_labels;
             for path in files {
                 let (contents, _) = filesystem
                     .read_to_string_traced(&path, "capture requirements context")
@@ -3682,13 +4128,26 @@ impl EngineService {
             }
         }
 
+        for (index, inline_input) in inline_inputs.iter().enumerate() {
+            if include_input_labels || !inputs.is_empty() {
+                fragments.push(format!(
+                    "## Input: {}\n\n{}",
+                    inline_input_label(index),
+                    inline_input
+                ));
+            } else {
+                fragments.push(inline_input.clone());
+            }
+        }
+
         let normalized = preserve_multiline_summary(&fragments.join("\n"));
-        Ok(if normalized.is_empty() {
-            "Capture the bounded engineering need before implementation accelerates drift."
-                .to_string()
+        if normalized.is_empty() {
+            Err(EngineError::Validation(
+                "authored input contained no usable content after normalization".to_string(),
+            ))
         } else {
-            normalized
-        })
+            Ok(normalized)
+        }
     }
 
     fn brownfield_validation_attempt(
@@ -3995,7 +4454,11 @@ impl EngineService {
         })
     }
 
-    fn load_input_summary(&self, inputs: &[String]) -> Result<String, EngineError> {
+    fn load_input_summary(
+        &self,
+        inputs: &[String],
+        inline_inputs: &[String],
+    ) -> Result<String, EngineError> {
         let mut fragments = Vec::new();
 
         for input in inputs {
@@ -4010,6 +4473,8 @@ impl EngineService {
             }
         }
 
+        fragments.extend(inline_inputs.iter().cloned());
+
         let combined = fragments.join("\n");
         let normalized = preserve_multiline_summary(&combined);
         if normalized.is_empty() {
@@ -4020,9 +4485,46 @@ impl EngineService {
         }
     }
 
+    fn build_run_context(
+        &self,
+        request: &RunRequest,
+        input_fingerprints: Vec<InputFingerprint>,
+        captured_at: OffsetDateTime,
+    ) -> RunContext {
+        RunContext {
+            repo_root: self.repo_root.display().to_string(),
+            owner: Some(request.owner.clone()),
+            inputs: request.merged_input_sources(),
+            excluded_paths: request.excluded_paths.clone(),
+            input_fingerprints,
+            inline_inputs: request.transient_inline_inputs(),
+            captured_at,
+        }
+    }
+
+    fn resume_inputs(&self, context: &RunContext) -> Vec<String> {
+        context
+            .inputs
+            .iter()
+            .map(|input| {
+                context
+                    .input_fingerprints
+                    .iter()
+                    .find(|fingerprint| {
+                        fingerprint.source_kind == InputSourceKind::Inline
+                            && fingerprint.path == *input
+                    })
+                    .and_then(|fingerprint| fingerprint.snapshot_ref.as_ref())
+                    .map(|snapshot_ref| format!(".canon/{snapshot_ref}"))
+                    .unwrap_or_else(|| input.clone())
+            })
+            .collect()
+    }
+
     fn capture_input_fingerprints(
         &self,
         inputs: &[String],
+        inline_inputs: &[String],
     ) -> Result<Vec<InputFingerprint>, EngineError> {
         let mut fingerprints = Vec::new();
 
@@ -4038,12 +4540,25 @@ impl EngineService {
 
                 fingerprints.push(InputFingerprint {
                     path: self.persisted_input_path(&resolved),
+                    source_kind: InputSourceKind::Path,
                     size_bytes: metadata.len(),
                     modified_unix_seconds: modified,
                     content_digest_sha256: Some(sha256_hex(&std::fs::read(&resolved)?)),
                     snapshot_ref: None,
                 });
             }
+        }
+
+        let captured_at = OffsetDateTime::now_utc().unix_timestamp();
+        for (index, inline_input) in inline_inputs.iter().enumerate() {
+            fingerprints.push(InputFingerprint {
+                path: inline_input_label(index),
+                source_kind: InputSourceKind::Inline,
+                size_bytes: inline_input.len() as u64,
+                modified_unix_seconds: captured_at,
+                content_digest_sha256: Some(sha256_hex(inline_input.as_bytes())),
+                snapshot_ref: None,
+            });
         }
 
         Ok(fingerprints)
@@ -4087,6 +4602,45 @@ impl EngineService {
         Ok(Vec::new())
     }
 
+    fn validate_review_authored_input_path(&self, inputs: &[String]) -> Result<(), EngineError> {
+        const REVIEW_INPUT_HINT: &str = "canon-input/review.md or canon-input/review/";
+
+        if inputs.len() != 1 {
+            return Err(EngineError::Validation(format!(
+                "review requires exactly one authored input at {REVIEW_INPUT_HINT}"
+            )));
+        }
+
+        let input = &inputs[0];
+        let resolved = self.resolve_input_path(input);
+        if !resolved.exists() {
+            return Err(EngineError::Validation(format!(
+                "review input `{input}` was not found from {}; expected {REVIEW_INPUT_HINT}",
+                self.repo_root.display()
+            )));
+        }
+
+        let resolved_canonical = resolved.canonicalize()?;
+        let canonical_review_file = self.repo_root.join("canon-input").join("review.md");
+        let canonical_review_dir = self.repo_root.join("canon-input").join("review");
+        let mut allowed_paths = Vec::new();
+
+        if canonical_review_file.exists() {
+            allowed_paths.push(canonical_review_file.canonicalize()?);
+        }
+        if canonical_review_dir.exists() {
+            allowed_paths.push(canonical_review_dir.canonicalize()?);
+        }
+
+        if !allowed_paths.iter().any(|path| path == &resolved_canonical) {
+            return Err(EngineError::Validation(format!(
+                "review accepts only {REVIEW_INPUT_HINT}, not `{input}`"
+            )));
+        }
+
+        Ok(())
+    }
+
     fn validate_authored_input_paths(
         &self,
         mode: Mode,
@@ -4096,22 +4650,100 @@ impl EngineService {
             return Ok(());
         }
 
-        let canon_root = self.repo_root.join(".canon");
-        if !canon_root.exists() {
-            return Ok(());
+        if matches!(mode, Mode::Review) && !inputs.is_empty() {
+            self.validate_review_authored_input_path(inputs)?;
         }
-        let canon_root = canon_root.canonicalize()?;
+
+        let canon_root = self
+            .repo_root
+            .join(".canon")
+            .exists()
+            .then(|| self.repo_root.join(".canon").canonicalize())
+            .transpose()?;
 
         for input in inputs {
             let resolved = self.resolve_input_path(input);
             if !resolved.exists() {
-                continue;
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` was not found from {}",
+                    self.repo_root.display()
+                )));
             }
 
             let canonical = resolved.canonicalize()?;
-            if canonical.starts_with(&canon_root) {
+            if canon_root.as_ref().is_some_and(|root| canonical.starts_with(root)) {
                 return Err(EngineError::Validation(format!(
                     "input `{input}` points inside .canon/ and cannot be used as authored input for {}",
+                    mode.as_str()
+                )));
+            }
+
+            let files = self.collect_input_files(input)?;
+            if resolved.is_dir() && files.is_empty() {
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` is an empty directory and does not contain authored content"
+                )));
+            }
+
+            let mut has_usable_content = false;
+            for file in files {
+                let contents = std::fs::read_to_string(&file)?;
+                if !contents.trim().is_empty() {
+                    has_usable_content = true;
+                    break;
+                }
+            }
+
+            if !has_usable_content {
+                let message = if resolved.is_dir() {
+                    format!("input `{input}` expands to files with no usable authored content")
+                } else {
+                    format!("input `{input}` is empty or whitespace-only")
+                };
+                return Err(EngineError::Validation(message));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn validate_authored_inputs(
+        &self,
+        mode: Mode,
+        inputs: &[String],
+        inline_inputs: &[String],
+    ) -> Result<(), EngineError> {
+        if matches!(mode, Mode::PrReview) {
+            if !inline_inputs.is_empty() {
+                return Err(EngineError::Validation(
+                    "pr-review does not support --input-text; pass two refs via --input"
+                        .to_string(),
+                ));
+            }
+            return Ok(());
+        }
+
+        let source_count = inputs.len() + inline_inputs.len();
+        if matches!(mode, Mode::Review) {
+            if source_count != 1 {
+                return Err(EngineError::Validation(
+                    "review requires exactly one authored input at canon-input/review.md or canon-input/review/, or exactly one --input-text value"
+                        .to_string(),
+                ));
+            }
+        } else if source_count == 0 {
+            return Err(EngineError::Validation(format!(
+                "{} requires at least one authored input via --input or --input-text",
+                mode.as_str()
+            )));
+        }
+
+        self.validate_authored_input_paths(mode, inputs)?;
+        for (index, inline_input) in inline_inputs.iter().enumerate() {
+            if inline_input.trim().is_empty() {
+                return Err(EngineError::Validation(format!(
+                    "inline input {} for {} is empty or whitespace-only",
+                    index + 1,
                     mode.as_str()
                 )));
             }
@@ -4262,6 +4894,10 @@ fn preserve_multiline_summary(value: &str) -> String {
     }
 
     lines.join("\n").trim().to_string()
+}
+
+fn inline_input_label(index: usize) -> String {
+    format!("inline-input-{:02}.md", index + 1)
 }
 
 fn default_list(values: Vec<String>, fallback: &str) -> Vec<String> {
@@ -4685,9 +5321,11 @@ fn summarize_mode_result(mode: Mode, artifacts: &[PersistedArtifact]) -> Option<
     match mode {
         Mode::Requirements => summarize_requirements_mode_result(artifacts),
         Mode::Discovery => summarize_discovery_mode_result(artifacts),
-        Mode::Greenfield => summarize_greenfield_mode_result(artifacts),
+        Mode::SystemShaping => summarize_system_shaping_mode_result(artifacts),
         Mode::Architecture => summarize_architecture_mode_result(artifacts),
         Mode::BrownfieldChange => summarize_brownfield_mode_result(artifacts),
+        Mode::Review => summarize_review_mode_result(artifacts),
+        Mode::Verification => summarize_verification_mode_result(artifacts),
         Mode::PrReview => summarize_pr_review_mode_result(artifacts),
         _ => None,
     }
@@ -4748,7 +5386,9 @@ fn summarize_discovery_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
     })
 }
 
-fn summarize_greenfield_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+fn summarize_system_shaping_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
     let primary =
         artifacts.iter().find(|artifact| artifact.record.file_name == "system-shape.md")?;
     let capability_map =
@@ -4956,6 +5596,168 @@ fn summarize_brownfield_mode_result(artifacts: &[PersistedArtifact]) -> Option<M
             primary.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&change_surface, 320),
+    })
+}
+
+fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "review-disposition.md")?;
+    let boundary_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "boundary-assessment.md");
+    let missing_evidence_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "missing-evidence.md");
+
+    let final_disposition = extract_context_section(&primary.contents, "Final Disposition")
+        .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
+    let accepted_risks = extract_context_section(&primary.contents, "Accepted Risks")
+        .unwrap_or_else(|| "NOT CAPTURED - Accepted risks section is missing.".to_string());
+    let boundary_findings = boundary_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Boundary Findings"))
+        .unwrap_or_else(|| "NOT CAPTURED - Boundary findings section is missing.".to_string());
+    let missing_evidence = missing_evidence_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Missing Evidence"))
+        .unwrap_or_else(|| "NOT CAPTURED - Missing evidence section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &final_disposition,
+        &accepted_risks,
+        &boundary_findings,
+        &missing_evidence,
+    ]);
+    let disposition_status = extract_labeled_context_value(&final_disposition, "Status")
+        .unwrap_or_else(|| "unknown-disposition".to_string());
+    let rationale = extract_labeled_context_value(&final_disposition, "Rationale")
+        .unwrap_or_else(|| truncate_context_excerpt(&final_disposition, 320));
+    let boundary_count = count_context_items_without_placeholders(
+        &boundary_findings,
+        &["No boundary expansion beyond the authored review target was detected."],
+    );
+    let accepted_risk_count = count_context_items_without_placeholders(
+        &accepted_risks,
+        &[
+            "No accepted risks recorded while disposition is still pending.",
+            "Residual review notes remain bounded to the current package and can be inspected through the emitted artifacts.",
+        ],
+    );
+
+    let headline = if missing_context_markers == 0 {
+        match disposition_status.as_str() {
+            "awaiting-disposition" => {
+                "Review packet requires explicit disposition before release-readiness can pass."
+                    .to_string()
+            }
+            "accepted-with-approval" => {
+                "Review packet completed with explicit approval for the remaining concerns."
+                    .to_string()
+            }
+            _ => "Review packet ready for downstream inspection and bounded follow-up.".to_string(),
+        }
+    } else {
+        format!(
+            "Review packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact records `{disposition_status}` disposition with {boundary_count} boundary finding set(s) and {accepted_risk_count} accepted-risk or review-note set(s)."
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Boundary findings: {boundary_count}; accepted risks: {accepted_risk_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Review Disposition".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&rationale, 320),
+    })
+}
+
+fn summarize_verification_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "verification-report.md")?;
+    let unresolved_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "unresolved-findings.md");
+    let invariants_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "invariants-checklist.md");
+
+    let verified_claims = extract_context_section(&primary.contents, "Verified Claims")
+        .unwrap_or_else(|| "NOT CAPTURED - Verified claims section is missing.".to_string());
+    let rejected_claims = extract_context_section(&primary.contents, "Rejected Claims")
+        .unwrap_or_else(|| "NOT CAPTURED - Rejected claims section is missing.".to_string());
+    let overall_verdict = extract_context_section(&primary.contents, "Overall Verdict")
+        .unwrap_or_else(|| "NOT CAPTURED - Overall verdict section is missing.".to_string());
+    let open_findings = unresolved_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Open Findings"))
+        .unwrap_or_else(|| "NOT CAPTURED - Open findings section is missing.".to_string());
+    let claims_under_test = invariants_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Claims Under Test"))
+        .unwrap_or_else(|| "NOT CAPTURED - Claims under test section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &verified_claims,
+        &rejected_claims,
+        &overall_verdict,
+        &open_findings,
+        &claims_under_test,
+    ]);
+    let verdict_status = extract_labeled_context_value(&overall_verdict, "Status")
+        .unwrap_or_else(|| "unknown-verdict".to_string());
+    let open_findings_status = extract_labeled_context_value(&open_findings, "Status")
+        .unwrap_or_else(|| "unknown-open-findings".to_string());
+    let claim_count = count_context_items_without_placeholders(
+        &claims_under_test,
+        &["The current invariants are bounded enough for recorded verification."],
+    );
+    let open_finding_count = count_context_items_without_placeholders(
+        &open_findings,
+        &["No unresolved findings remain from the current verification target."],
+    );
+
+    let headline = if missing_context_markers == 0 {
+        if open_findings_status == "unresolved-findings-open" {
+            format!(
+                "Verification found {open_finding_count} unresolved finding(s) and blocked release readiness."
+            )
+        } else {
+            format!(
+                "Verification packet completed with `{verdict_status}` verdict across {claim_count} claim set(s)."
+            )
+        }
+    } else {
+        format!(
+            "Verification packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact records `{verdict_status}` verdict with {claim_count} claim set(s) under test and {open_finding_count} unresolved finding set(s)."
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Claim sets: {claim_count}; open findings: {open_finding_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        primary_artifact_title: "Verification Report".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&overall_verdict, 320),
     })
 }
 
@@ -5292,7 +6094,6 @@ fn infer_discovery_next_phase(source: &str) -> String {
         "Translate this discovery packet into brownfield-change mode with preserved invariants and a bounded change surface."
             .to_string()
     } else if normalized.contains("new capability")
-        || normalized.contains("greenfield")
         || normalized.contains("system-shaping")
         || normalized.contains("system shaping")
         || normalized.contains("new system")

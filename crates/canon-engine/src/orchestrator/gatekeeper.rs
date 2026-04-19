@@ -16,7 +16,7 @@ pub struct DiscoveryGateContext<'a> {
     pub evidence_complete: bool,
 }
 
-pub struct GreenfieldGateContext<'a> {
+pub struct SystemShapingGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
     pub zone: UsageZone,
@@ -33,6 +33,23 @@ pub struct ArchitectureGateContext<'a> {
 }
 
 pub struct BrownfieldGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
+pub struct ReviewGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub evidence_complete: bool,
+}
+
+pub struct VerificationGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
     pub zone: UsageZone,
@@ -100,10 +117,10 @@ pub fn evaluate_discovery_gates(
     ]
 }
 
-pub fn evaluate_greenfield_gates(
+pub fn evaluate_system_shaping_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
-    context: GreenfieldGateContext<'_>,
+    context: SystemShapingGateContext<'_>,
 ) -> Vec<GateEvaluation> {
     vec![
         named_artifact_gate(
@@ -213,6 +230,67 @@ pub fn evaluate_brownfield_gates(
     ]
 }
 
+pub fn evaluate_review_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: ReviewGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    let disposition_approved = context.approvals.iter().any(|approval| {
+        approval.matches_gate(GateKind::ReviewDisposition) && approval.is_approved()
+    });
+
+    vec![
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone review work requires explicit approval before it can proceed",
+        ),
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["boundary-assessment.md", "decision-impact.md"],
+            "review requires explicit boundary assessment and decision impact before disposition",
+        ),
+        review_disposition_gate_for_file(
+            contract,
+            artifacts,
+            "review-disposition.md",
+            disposition_approved,
+        ),
+        review_release_readiness_gate(
+            contract,
+            artifacts,
+            disposition_approved,
+            context.evidence_complete,
+        ),
+    ]
+}
+
+pub fn evaluate_verification_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: VerificationGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone verification work requires explicit approval before it can proceed",
+        ),
+        verification_release_readiness_gate(
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+        ),
+    ]
+}
+
 pub fn evaluate_pr_review_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -231,7 +309,12 @@ pub fn evaluate_pr_review_gates(
             "systemic-impact or red-zone review work requires explicit approval before it can proceed",
         ),
         pr_review_architecture_gate(contract, artifacts),
-        review_disposition_gate(contract, artifacts, disposition_approved),
+        review_disposition_gate_for_file(
+            contract,
+            artifacts,
+            "review-summary.md",
+            disposition_approved,
+        ),
         pr_review_release_readiness_gate(
             contract,
             artifacts,
@@ -514,15 +597,16 @@ fn pr_review_architecture_gate(
     }
 }
 
-fn review_disposition_gate(
+fn review_disposition_gate_for_file(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
+    file_name: &str,
     disposition_approved: bool,
 ) -> GateEvaluation {
     let mut blockers = contract
         .artifact_requirements
         .iter()
-        .filter(|requirement| requirement.file_name == "review-summary.md")
+        .filter(|requirement| requirement.file_name == file_name)
         .flat_map(|requirement| {
             artifacts
                 .iter()
@@ -530,15 +614,13 @@ fn review_disposition_gate(
                 .map(|(_, contents)| {
                     crate::artifacts::contract::validate_artifact(requirement, contents)
                 })
-                .unwrap_or_else(|| {
-                    vec!["missing required artifact `review-summary.md`".to_string()]
-                })
+                .unwrap_or_else(|| vec![format!("missing required artifact `{file_name}`")])
         })
         .collect::<Vec<_>>();
 
     let summary = artifacts
         .iter()
-        .find(|(file_name, _)| file_name == "review-summary.md")
+        .find(|(artifact_file_name, _)| artifact_file_name == file_name)
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
 
@@ -547,7 +629,7 @@ fn review_disposition_gate(
             GateStatus::Overridden
         } else {
             blockers.push(
-                "must-fix review findings require explicit disposition before readiness can pass"
+                "review findings require explicit disposition before readiness can pass"
                     .to_string(),
             );
             GateStatus::NeedsApproval
@@ -559,6 +641,54 @@ fn review_disposition_gate(
     GateEvaluation {
         gate: GateKind::ReviewDisposition,
         status,
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn review_release_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    disposition_approved: bool,
+    evidence_complete: bool,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "review readiness requires persisted context, critique, and validation evidence"
+                .to_string(),
+        );
+    }
+
+    let disposition = artifacts
+        .iter()
+        .find(|(file_name, _)| file_name == "review-disposition.md")
+        .map(|(_, contents)| contents.as_str())
+        .unwrap_or_default();
+    let missing_evidence = artifacts
+        .iter()
+        .find(|(file_name, _)| file_name == "missing-evidence.md")
+        .map(|(_, contents)| contents.as_str())
+        .unwrap_or_default();
+
+    if disposition.contains("Status: awaiting-disposition") && !disposition_approved {
+        blockers.push(
+            "review-disposition.md still records unresolved disposition work without approval"
+                .to_string(),
+        );
+    }
+
+    if missing_evidence.contains("Status: missing-evidence-open") {
+        blockers.push(
+            "review packet still records open evidence gaps that block release readiness"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
         blockers,
         evaluated_at: OffsetDateTime::now_utc(),
     }
@@ -601,6 +731,57 @@ fn pr_review_release_readiness_gate(
             "runtime-disabled pr-review invocation attempts must be resolved before readiness can pass"
                 .to_string(),
         );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn verification_release_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    validation_independence_satisfied: bool,
+    evidence_complete: bool,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "verification readiness requires persisted challenge and validation evidence"
+                .to_string(),
+        );
+    }
+
+    if !validation_independence_satisfied {
+        blockers.push(
+            "verification readiness requires an independently recorded validation path".to_string(),
+        );
+    }
+
+    let unresolved_findings = artifacts
+        .iter()
+        .find(|(file_name, _)| file_name == "unresolved-findings.md")
+        .map(|(_, contents)| contents.as_str())
+        .unwrap_or_default();
+    let verdict = artifacts
+        .iter()
+        .find(|(file_name, _)| file_name == "verification-report.md")
+        .map(|(_, contents)| contents.as_str())
+        .unwrap_or_default();
+
+    if unresolved_findings.contains("Status: unresolved-findings-open") {
+        blockers.push(
+            "verification packet still records unresolved findings that block release readiness"
+                .to_string(),
+        );
+    }
+
+    if verdict.contains("Status: unsupported") {
+        blockers.push("verification-report.md still records an unsupported verdict".to_string());
     }
 
     GateEvaluation {

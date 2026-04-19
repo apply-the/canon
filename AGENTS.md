@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-13
+Auto-generated from all feature plans. Last updated: 2026-04-19
 
 ## Governing Constitution
 
@@ -11,25 +11,27 @@ Auto-generated from all feature plans. Last updated: 2026-04-13
   `.canon/`.
 
 ## Active Technologies
-- Rust 1.94.1, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, (002-governed-execution-adapters)
+- Rust 1.95.0, Edition 2024 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, (002-governed-execution-adapters)
 - local filesystem only under `.canon/`; TOML for run and approval (002-governed-execution-adapters)
 - Markdown `SKILL.md` files, repo-local shell helpers + installed `canon` binary, existing repo-local (003-codex-skills-frontend)
 - repo-local files under `.agents/skills` plus existing `.canon/` (003-codex-skills-frontend)
 - Markdown `SKILL.md` files, repo-local Bash and PowerShell helpers, installed `canon` binary, Git local ref inspection commands (004-ref-safe-binding)
 - repo-local skill files under `.agents/skills`; no new persistent storage beyond existing `.canon/` (004-ref-safe-binding)
-- Rust 1.94.1 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`, (005-cli-release-ux)
+- Rust 1.95.0 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`, (005-cli-release-ux)
 - repository files for workflow and documentation changes, GitHub (005-cli-release-ux)
-- Rust 1.94.1, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror, (006-analysis-expansion)
+- Rust 1.95.0, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror, (006-analysis-expansion)
 - Local filesystem under `.canon/` (TOML for manifests, Markdown for (006-analysis-expansion)
+- Rust 1.95.0 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time` (007-review-mode-completion)
+- local filesystem under `.canon/`, Markdown artifacts, TOML manifests and policies (007-review-mode-completion)
 
-- Rust 1.94.1, Edition 2024
+- Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
 - `thiserror`, `tracing`, `tracing-subscriber`, `uuid`, `time`
 
 ## Active Modes and Risk Profile
 
 - Full v0.1 depth: `requirements`, `brownfield-change`, `pr-review`
-- First-class modeled modes: `discovery`, `greenfield`, `architecture`,
+- First-class modeled modes: `discovery`, `system-shaping`, `architecture`,
   `implementation`, `refactor`, `verification`, `review`, `incident`,
   `migration`
 - Current planning feature risk: `Systemic Impact`
@@ -71,9 +73,9 @@ tests/
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
-- 006-analysis-expansion: Added Rust 1.94.1, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror,
-- 005-cli-release-ux: Added Rust 1.94.1 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`,
-- 004-ref-safe-binding: Added Markdown `SKILL.md` files, repo-local Bash and PowerShell + installed `canon` binary, Git command-line ref
+- 007-review-mode-completion: Added Rust 1.95.0 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
+- 006-analysis-expansion: Added Rust 1.95.0, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror,
+- 005-cli-release-ux: Added Rust 1.95.0 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`,
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->

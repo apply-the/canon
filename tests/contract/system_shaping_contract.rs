@@ -6,7 +6,9 @@ use canon_engine::domain::artifact::{ArtifactContract, ArtifactRequirement};
 use canon_engine::domain::gate::{GateKind, GateStatus};
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
-use canon_engine::orchestrator::gatekeeper::{GreenfieldGateContext, evaluate_greenfield_gates};
+use canon_engine::orchestrator::gatekeeper::{
+    SystemShapingGateContext, evaluate_system_shaping_gates,
+};
 use predicates::str::contains;
 use tempfile::TempDir;
 
@@ -26,7 +28,7 @@ fn cli_command() -> Command {
     command
 }
 
-fn run_greenfield_flow(workspace: &TempDir) -> String {
+fn run_system_shaping_flow(workspace: &TempDir) -> String {
     fs::write(
         workspace.path().join("system-shaping.md"),
         "# System Shaping Brief\n\nIntent: define a clean analysis-mode surface without changing Canon's governance primitives.\nConstraint: preserve the existing policy, gate, and evidence contracts.\n",
@@ -77,8 +79,8 @@ fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
 }
 
 #[test]
-fn greenfield_contract_matches_spec_artifact_names_sections_and_gates() {
-    let contract = contract_for_mode(Mode::Greenfield);
+fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
+    let contract = contract_for_mode(Mode::SystemShaping);
 
     assert_eq!(contract.artifact_requirements.len(), 5);
 
@@ -111,17 +113,17 @@ fn greenfield_contract_matches_spec_artifact_names_sections_and_gates() {
 }
 
 #[test]
-fn greenfield_architecture_gate_blocks_when_required_artifacts_are_missing() {
-    let contract = contract_for_mode(Mode::Greenfield);
+fn system_shaping_architecture_gate_blocks_when_required_artifacts_are_missing() {
+    let contract = contract_for_mode(Mode::SystemShaping);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
         .filter(|(file_name, _)| file_name != "architecture-outline.md")
         .collect::<Vec<_>>();
 
-    let gates = evaluate_greenfield_gates(
+    let gates = evaluate_system_shaping_gates(
         &contract,
         &artifacts,
-        GreenfieldGateContext {
+        SystemShapingGateContext {
             owner: "architect",
             risk: RiskClass::BoundedImpact,
             zone: UsageZone::Yellow,
@@ -140,9 +142,9 @@ fn greenfield_architecture_gate_blocks_when_required_artifacts_are_missing() {
 }
 
 #[test]
-fn greenfield_contract_exposes_artifacts_invocations_and_evidence() {
+fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
     let workspace = TempDir::new().expect("temp dir");
-    let run_id = run_greenfield_flow(&workspace);
+    let run_id = run_system_shaping_flow(&workspace);
 
     cli_command()
         .current_dir(workspace.path())
@@ -163,7 +165,11 @@ fn greenfield_contract_exposes_artifacts_invocations_and_evidence() {
     let invocations_json: serde_json::Value =
         serde_json::from_slice(&invocations_output).expect("json output");
     let entries = invocations_json["entries"].as_array().expect("invocation entries");
-    assert_eq!(entries.len(), 3, "greenfield should persist read, generate, and critique requests");
+    assert_eq!(
+        entries.len(),
+        3,
+        "system-shaping should persist read, generate, and critique requests"
+    );
     assert!(entries.iter().any(|entry| entry["capability"] == "ReadRepository"));
     assert!(entries.iter().any(|entry| entry["capability"] == "GenerateContent"));
     assert!(entries.iter().any(|entry| entry["capability"] == "CritiqueContent"));
@@ -184,11 +190,11 @@ fn greenfield_contract_exposes_artifacts_invocations_and_evidence() {
         .expect("evidence entry");
     assert!(
         entry["artifact_provenance_links"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "greenfield evidence should link to readable artifacts"
+        "system-shaping evidence should link to readable artifacts"
     );
     assert!(
         entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "greenfield evidence should expose validation paths"
+        "system-shaping evidence should expose validation paths"
     );
 
     let contract_path =

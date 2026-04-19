@@ -13,7 +13,7 @@ research]
 
 ## Governance Context
 
-**Execution Mode**: [e.g., greenfield, brownfield, review, debugging or NEEDS
+**Execution Mode**: [e.g., system-shaping, brownfield, review, debugging or NEEDS
 CLARIFICATION]
 **Risk Classification**: [low-impact | bounded-impact | systemic-impact with rationale]
 **Scope In**: [Explicitly included work]

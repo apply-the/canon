@@ -9,12 +9,14 @@ starting template for the `--input` material that Canon consumes.
 
 ## Supported Today
 
-- `discovery`
-- `requirements`
-- `system-shaping`
-- `architecture`
-- `brownfield-change`
-- `pr-review`
+- [`discovery`](#mode-discovery)
+- [`requirements`](#mode-requirements)
+- [`system-shaping`](#mode-system-shaping)
+- [`architecture`](#mode-architecture)
+- [`brownfield-change`](#mode-brownfield-change)
+- [`review`](#mode-review)
+- [`verification`](#mode-verification)
+- [`pr-review`](#mode-pr-review)
 
 Modes that are still modeled but not implemented end to end remain outside the
 scope of this guide.
@@ -29,14 +31,31 @@ convention:
 - `system-shaping`: `canon-input/system-shaping.md` or `canon-input/system-shaping/`
 - `architecture`: `canon-input/architecture.md` or `canon-input/architecture/`
 - `brownfield-change`: `canon-input/brownfield-change.md` or `canon-input/brownfield-change/`
+- `review`: `canon-input/review.md` or `canon-input/review/`
+- `verification`: `canon-input/verification.md` or `canon-input/verification/`
 
 Repo-local skills may auto-bind only from those canonical mode-specific
 locations. They must not treat the active editor file, open tabs, generated
 artifacts under `.canon/`, or any other incidental file as the current run
 input.
 
+`canon run` and `canon inspect risk-zone` also accept explicit inline authored
+input through `--input-text`. Inline input is an explicit alternative, not a
+new canonical location, and real runs snapshot it only under
+`.canon/runs/<RUN_ID>/inputs/`.
+
 If you prefer to keep a mode brief as a folder, Canon expands the files in that
 folder into the run context and fingerprints each authored file separately.
+
+Every mode that expects authored input now fails before execution if the input
+is missing, empty, whitespace-only, or structurally insufficient. That includes
+empty files, empty directories, and directory expansions that produce no usable
+authored content.
+
+`review` is stricter in the current runtime slice: it expects exactly one
+authored review packet at `canon-input/review.md` or `canon-input/review/`.
+Do not point it at arbitrary code folders such as `src/` or the repo root.
+Use `pr-review` when the real target is a diff or `WORKTREE`.
 
 `pr-review` is different. It does not bind from `canon-input/` at all. It only
 accepts explicit base and head refs, or `WORKTREE` as the head ref.
@@ -45,7 +64,7 @@ When a run starts from authored files, Canon snapshots those files under
 `.canon/runs/<RUN_ID>/inputs/` and records digest-backed provenance in
 `.canon/runs/<RUN_ID>/context.toml`.
 
-## Discovery
+## Mode: discovery
 
 ### Use It For
 
@@ -148,7 +167,7 @@ What is the current situation?
 - Question 2
 ```
 
-## Requirements
+## Mode: requirements
 
 ### Use It For
 
@@ -238,7 +257,7 @@ What should be true if this work succeeds?
 - Question 2
 ```
 
-## System Shaping Mode
+## Mode: system-shaping
 
 ### Use It For
 
@@ -345,7 +364,7 @@ Who is this for?
 - Question 2
 ```
 
-## Architecture
+## Mode: architecture
 
 ### Use It For
 
@@ -446,7 +465,7 @@ What structural decision are we making?
 - Risk 2
 ```
 
-## Brownfield-Change
+## Mode: brownfield-change
 
 ### Use It For
 
@@ -535,7 +554,218 @@ Risk Level: bounded-impact
 Zone: yellow
 ```
 
-## PR-Review
+## Mode: review
+
+### Use It For
+
+Review a bounded non-PR packet with governed evidence and explicit disposition
+handling before downstream work proceeds.
+
+### Typical Upstream Sources
+
+- a `requirements` packet that needs acceptance before planning or implementation
+- an `architecture` packet that needs explicit boundary and evidence review
+- a `brownfield-change` packet that needs a go/no-go packet review before implementation
+- a proposal, migration memo, readiness packet, or other non-PR artifact bundle
+
+### Input Shape
+
+A single canonical review brief or review packet under `canon-input/review.md`
+or `canon-input/review/`.
+
+### Important Runtime Constraint
+
+Review is packet-backed, not diff-backed. Point it at an authored packet, not
+at `src/`, the repo root, or a worktree snapshot. If the real target is a
+diff or local code changes, use `pr-review`.
+
+### Good Input Should Include
+
+- what packet is being reviewed
+- which artifacts or evidence are in scope
+- the main boundary or ownership concern
+- the acceptance question or pending decision
+- any missing evidence or open concern that may require explicit disposition
+
+### Questions This Mode Answers
+
+- whether the packet stays within the intended review boundary
+- what evidence is missing or weak
+- what decision impact is implied by the package
+- whether explicit review disposition is still required
+
+### Questions This Mode Does Not Answer Well
+
+- what changed in a real diff or worktree
+- whether a claim is formally supported or contradicted end to end
+- what implementation plan should be executed next
+
+### What Canon Emits
+
+Review produces a governed review packet with these artifacts:
+
+- `review-brief.md`
+- `boundary-assessment.md`
+- `missing-evidence.md`
+- `decision-impact.md`
+- `review-disposition.md`
+
+Use that bundle when you need a durable review record that keeps boundary
+findings, evidence gaps, decision impact, and explicit disposition in one run
+context.
+
+Run and status summaries also surface `review-disposition.md` directly, so the
+happy path or gated path is readable without a mandatory inspect step first.
+
+### Typical Handoff After This Mode
+
+- inspect the review packet when you need the full findings bundle
+- approve `gate:review-disposition` only after the remaining risk is consciously accepted
+- move to `pr-review` only when the real target becomes a diff or worktree instead of a file-backed packet
+
+### Common Mistakes
+
+- using Review for a diff-backed change that should go through `pr-review`
+- treating Review as a substitute for verification of claims or invariants
+- pointing Review at `src/`, the repo root, or another arbitrary code folder instead of authoring a packet under `canon-input/review.*`
+- omitting the evidence basis and expecting Canon to infer it from generated artifacts
+
+### Minimal Template
+
+```md
+# Review Brief
+
+Review Target: The packet or proposal being reviewed.
+Evidence Basis: The artifacts, tests, decision notes, or checks in scope.
+Owner: reviewer
+Boundary Concern: The boundary or ownership edge that must remain explicit.
+Pending Decision: The decision this review is expected to accept, reject, or defer.
+Open Concern: The gap or concern that may still require explicit disposition.
+
+## In Scope Artifacts
+- artifact 1
+- artifact 2
+
+## Acceptance Question
+- Should this packet be accepted for downstream work?
+
+## Out of Scope
+- item 1
+- item 2
+```
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode review \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner reviewer \
+  --input canon-input/review.md
+```
+
+If you keep a multi-file packet instead of a single brief, pass
+`canon-input/review/`.
+
+## Mode: verification
+
+### Use It For
+
+Challenge bounded claims, invariants, contracts, or evidence directly with a
+governed verification packet.
+
+### Input Shape
+
+A file-backed verification packet or short verification brief.
+
+### Good Input Should Include
+
+- the claims or invariants under test
+- the evidence basis Canon should challenge
+- any contract surface that must be checked
+- the contradiction or risk boundary that matters most
+
+### Questions This Mode Answers
+
+- which claims stay supported by the available evidence
+- where contradictions or unsupported assumptions remain
+- which findings still block readiness
+- what follow-up is required before the packet is treated as trustworthy
+
+### Questions This Mode Does Not Answer Well
+
+- what changed in a real diff or worktree
+- whether a non-PR package should be disposition-reviewed rather than challenged
+- what implementation or refactor plan should be executed next
+
+### What Canon Emits
+
+Verification produces a governed challenge packet with these artifacts:
+
+- `invariants-checklist.md`
+- `contract-matrix.md`
+- `adversarial-review.md`
+- `verification-report.md`
+- `unresolved-findings.md`
+
+Use that bundle when you need durable evidence about what is supported, what is
+rejected, and what remains unresolved in the current verification target.
+
+Run and status summaries also surface `verification-report.md` directly, so the
+supported or blocked posture is visible without a mandatory inspect step first.
+
+### Typical Handoff After This Mode
+
+- inspect the verification packet when unresolved findings remain
+- inspect evidence when you need provenance or validation lineage behind the verdict
+- move to `review` only when the next step is disposition over a bounded package, not challenge of claims
+
+### Common Mistakes
+
+- using Verification for diff review instead of `pr-review`
+- using Verification for generic package review instead of `review`
+- expecting Verification to invent new evidence rather than challenge the evidence already supplied
+
+### Minimal Template
+
+```md
+# Verification Brief
+
+## Claims Under Test
+- claim 1
+- claim 2
+
+## Evidence Basis
+- artifact, test, or repository surface 1
+- artifact, test, or repository surface 2
+
+## Contract Surface
+- the interface, invariant, or behavioral contract that must stay true
+
+## Risk Boundary
+- the contradiction, proof gap, or unsupported jump that should block readiness
+
+## Challenge Focus
+- the strongest claim Canon should try to falsify first
+- any adversarial or compatibility angle that still needs evidence
+
+## Out of Scope
+- anything this packet is not trying to prove
+```
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode verification \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner reviewer \
+  --input canon-input/verification/
+```
+
+## Mode: pr-review
 
 ### Use It For
 

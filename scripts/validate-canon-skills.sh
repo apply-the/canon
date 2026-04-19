@@ -32,18 +32,19 @@ available_now=(
   "canon-system-shaping"
   "canon-architecture"
   "canon-brownfield"
+  "canon-review"
+  "canon-verification"
   "canon-pr-review"
 )
 
 modeled_only=(
   "canon-implementation"
   "canon-refactor"
-  "canon-review"
   "canon-incident"
   "canon-migration"
 )
 
-intentionally_limited=("canon-verification")
+intentionally_limited=()
 
 require_text() {
   local path="$1"
@@ -96,12 +97,14 @@ for skill in "${modeled_only[@]}"; do
   fi
 done
 
-for skill in "${intentionally_limited[@]}"; do
-  check_skill "${skill}" "intentionally-limited"
-  if grep -Eq 'canon verify --run|Run ID:' "${SKILLS_DIR}/${skill}/SKILL.md"; then
-    fail "${skill}: intentionally-limited skill appears to fabricate runnable Canon behavior"
-  fi
-done
+if ((${#intentionally_limited[@]} > 0)); then
+  for skill in "${intentionally_limited[@]}"; do
+    check_skill "${skill}" "intentionally-limited"
+    if grep -Eq 'canon verify --run|Run ID:' "${SKILLS_DIR}/${skill}/SKILL.md"; then
+      fail "${skill}: intentionally-limited skill appears to fabricate runnable Canon behavior"
+    fi
+  done
+fi
 
 grep -q 'canon-pr-review' "${SKILLS_DIR}/canon-review/SKILL.md" || fail "canon-review: must distinguish itself from canon-pr-review"
 grep -q 'canon-brownfield' "${SKILLS_DIR}/canon-refactor/SKILL.md" || fail "canon-refactor: must distinguish itself from canon-brownfield"
@@ -113,11 +116,19 @@ fi
 
 requirements_path="${SKILLS_DIR}/canon-requirements/SKILL.md"
 brownfield_path="${SKILLS_DIR}/canon-brownfield/SKILL.md"
+review_path="${SKILLS_DIR}/canon-review/SKILL.md"
+verification_path="${SKILLS_DIR}/canon-verification/SKILL.md"
 pr_review_path="${SKILLS_DIR}/canon-pr-review/SKILL.md"
 clarity_path="${SKILLS_DIR}/canon-inspect-clarity/SKILL.md"
 
 require_text "$requirements_path" '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
+require_text "$requirements_path" '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
 require_text "$brownfield_path" '--input <INPUT_PATH>' 'canon-brownfield: preflight must keep file-path input binding'
+require_text "$brownfield_path" '--input-text <INPUT_TEXT>' 'canon-brownfield: must document inline authored input binding'
+require_text "$review_path" '--input <INPUT_PATH>' 'canon-review: preflight must keep file-path input binding'
+require_text "$review_path" '--input-text <INPUT_TEXT>' 'canon-review: must document inline authored input binding'
+require_text "$verification_path" '--input <INPUT_PATH>' 'canon-verification: preflight must keep file-path input binding'
+require_text "$verification_path" '--input-text <INPUT_TEXT>' 'canon-verification: must document inline authored input binding'
 require_text "$pr_review_path" '--ref <BASE_REF> --ref <HEAD_REF>' 'canon-pr-review: preflight must use --ref for base/head binding'
 require_text "$clarity_path" 'canon inspect clarity --mode <MODE> --input <INPUT_PATH> [<INPUT_PATH> ...]' 'canon-inspect-clarity: must promise the exact Canon CLI form'
 require_text "$clarity_path" '.canon/` is not required for this inspection surface' 'canon-inspect-clarity: must stay honest that this inspect surface is pre-run and does not require runtime state'
@@ -140,6 +151,7 @@ require_text "$requirements_path" 'inside Canon execution rather than before Can
 require_text "$requirements_path" 'guided fixed choices' 'canon-requirements: must require guided choices for enum fields'
 require_text "$requirements_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-requirements: must list canonical risk choices'
 require_text "$requirements_path" 'green`, `yellow`, or `red' 'canon-requirements: must list canonical zone choices'
+require_text "$requirements_path" 'empty, whitespace-only, or structurally insufficient' 'canon-requirements: must describe fail-fast authored-input validation'
 
 require_text "$brownfield_path" 'preserve valid ownership fields' 'canon-brownfield: must describe preserving valid ownership fields across retry'
 require_text "$brownfield_path" 'asks only for the missing brief path or missing ownership slot' 'canon-brownfield: must describe targeted retry behavior'
@@ -149,6 +161,28 @@ require_text "$brownfield_path" 'preflight failure' 'canon-brownfield: must dist
 require_text "$brownfield_path" 'guided fixed choices' 'canon-brownfield: must require guided choices for enum fields'
 require_text "$brownfield_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-brownfield: must list canonical risk choices'
 require_text "$brownfield_path" 'green`, `yellow`, or `red' 'canon-brownfield: must list canonical zone choices'
+require_text "$brownfield_path" 'empty, whitespace-only, or structurally insufficient' 'canon-brownfield: must describe fail-fast authored-input validation'
+
+require_text "$review_path" 'preserve valid ownership fields' 'canon-review: must describe preserving valid ownership fields across retry'
+require_text "$review_path" 'asks only for the missing slot' 'canon-review: must describe single-slot retry behavior'
+require_text "$review_path" 'exact Canon CLI retry form' 'canon-review: must promise the exact CLI retry form'
+require_text "$review_path" 'inside Canon execution rather than before Canon execution' 'canon-review: must distinguish preflight failures from Canon-execution failures'
+require_text "$review_path" 'guided fixed choices' 'canon-review: must require guided choices for enum fields'
+require_text "$review_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-review: must list canonical risk choices'
+require_text "$review_path" 'green`, `yellow`, or `red' 'canon-review: must list canonical zone choices'
+require_text "$review_path" 'canon-input/review.md` or `canon-input/review/' 'canon-review: must document canonical review input locations'
+require_text "$review_path" 'do not accept arbitrary code folders such as `src/`' 'canon-review: must reject arbitrary code folders as review inputs'
+require_text "$review_path" 'empty, whitespace-only, or structurally insufficient' 'canon-review: must describe fail-fast authored-input validation'
+
+require_text "$verification_path" 'preserve valid ownership fields' 'canon-verification: must describe preserving valid ownership fields across retry'
+require_text "$verification_path" 'asks only for the missing slot' 'canon-verification: must describe single-slot retry behavior'
+require_text "$verification_path" 'exact Canon CLI retry form' 'canon-verification: must promise the exact CLI retry form'
+require_text "$verification_path" 'inside Canon execution rather than before Canon execution' 'canon-verification: must distinguish preflight failures from Canon-execution failures'
+require_text "$verification_path" 'guided fixed choices' 'canon-verification: must require guided choices for enum fields'
+require_text "$verification_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-verification: must list canonical risk choices'
+require_text "$verification_path" 'green`, `yellow`, or `red' 'canon-verification: must list canonical zone choices'
+require_text "$verification_path" 'canon-input/verification.md` or `canon-input/verification/' 'canon-verification: must document canonical verification input locations'
+require_text "$verification_path" 'empty, whitespace-only, or structurally insufficient' 'canon-verification: must describe fail-fast authored-input validation'
 
 require_text "$pr_review_path" 'preserves the valid side of the pair' 'canon-pr-review: must describe preserving the valid ref side across retry'
 require_text "$pr_review_path" 'exact Canon CLI form' 'canon-pr-review: must promise the exact CLI form'

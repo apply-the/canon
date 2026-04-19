@@ -49,7 +49,7 @@ named human approvals for `Systemic Impact` or `Red` zone work
 
 ## 1. Technical Context
 
-**Language/Version**: Rust 1.94.1, Edition 2024  
+**Language/Version**: Rust 1.95.0, Edition 2024  
 **Primary Dependencies**: `clap` for CLI parsing; `serde`, `serde_json`,
 `toml`, and `serde_yaml` for manifest and artifact serialization; `sha2` for
 durable authored-input digests;
@@ -88,7 +88,7 @@ completed step and gate
 
 ```toml
 [toolchain]
-channel = "1.94.1"
+channel = "1.95.0"
 profile = "minimal"
 components = ["rustfmt", "clippy"]
 targets = ["x86_64-unknown-linux-musl", "x86_64-unknown-linux-gnu"]
@@ -242,7 +242,7 @@ crates/
 │       ├── modes/
 │       │   ├── requirements.rs
 │       │   ├── discovery.rs
-│       │   ├── greenfield.rs
+│       │   ├── system_shaping.rs
 │       │   ├── brownfield_change.rs
 │       │   ├── architecture.rs
 │       │   ├── implementation.rs
@@ -823,7 +823,7 @@ The initial GitHub Actions pipeline will contain these jobs:
 3. `msrv`
    - prefer `cargo msrv verify`
    - fallback strategy if the tool lags Edition 2024 support:
-     pinned `cargo +1.94.1 test --all-targets --all-features`
+     pinned `cargo +1.95.0 test --all-targets --all-features`
 4. `deny`
    - `cargo deny check licenses advisories bans sources`
 5. `cross-platform-build`

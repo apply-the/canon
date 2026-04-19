@@ -85,7 +85,7 @@ Rationale: risk determines the amount of control the system must apply.
 
 ### V. Mode-driven workflows
 
-Greenfield, brownfield, review, architecture, debugging, and operational work
+System-shaping, brownfield, review, architecture, debugging, and operational work
 MUST use mode-specific workflows. Applying the wrong workflow is a critical
 process failure and MUST be corrected before implementation continues.
 

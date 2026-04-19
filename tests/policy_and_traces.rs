@@ -115,6 +115,7 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
             classification: ClassificationProvenance::explicit(),
             owner: "product-lead".to_string(),
             inputs: vec!["idea.md".to_string()],
+            inline_inputs: Vec::new(),
             excluded_paths: Vec::new(),
             policy_root: None,
             method_root: None,

@@ -24,6 +24,7 @@ zone_rationale=""
 risk_was_supplied=""
 zone_was_supplied=""
 inputs=()
+inline_inputs=()
 refs=()
 inference_signals=()
 risk_signals=()
@@ -108,8 +109,16 @@ infer_classification() {
     cmd+=(--zone "$normalized_zone")
   fi
   while [[ $# -gt 0 ]]; do
-    cmd+=(--input "$1")
-    shift
+    case "$1" in
+      --input|--input-text)
+        cmd+=("$1" "${2:-}")
+        shift 2
+        ;;
+      *)
+        cmd+=(--input "$1")
+        shift
+        ;;
+    esac
   done
 
   local output
@@ -183,12 +192,64 @@ resolve_existing_input_path() {
   printf '%s/%s' "$parent_dir" "$base_name"
 }
 
+authored_input_retry_action() {
+  local input_hint=""
+  input_hint="$(canonical_mode_input_hint 2>/dev/null || true)"
+
+  if [[ "${command_name}" == "review" ]]; then
+    if [[ -n "${input_hint}" ]]; then
+      printf '%s' "Retry with ${input_hint}, or pass exactly one non-empty --input-text note."
+    else
+      printf '%s' 'Retry with exactly one non-empty authored input or exactly one non-empty --input-text note.'
+    fi
+    return
+  fi
+
+  if [[ -n "${input_hint}" ]]; then
+    printf '%s' "Retry with ${input_hint}, another non-empty authored path, or non-empty --input-text."
+    return
+  fi
+
+  printf '%s' 'Retry with a non-empty authored file path or non-empty --input-text.'
+}
+
+authored_input_content_state() {
+  local resolved="$1"
+
+  if [[ -d "$resolved" ]]; then
+    local found_file="false"
+    while IFS= read -r -d '' file; do
+      found_file="true"
+      if grep -q '[^[:space:]]' "$file" 2>/dev/null; then
+        printf '%s' 'usable'
+        return 0
+      fi
+    done < <(find "$resolved" -type f -print0 2>/dev/null)
+
+    if [[ "$found_file" == "true" ]]; then
+      printf '%s' 'whitespace-only'
+    else
+      printf '%s' 'empty-dir'
+    fi
+    return 0
+  fi
+
+  if grep -q '[^[:space:]]' "$resolved" 2>/dev/null; then
+    printf '%s' 'usable'
+  else
+    printf '%s' 'whitespace-only'
+  fi
+}
+
 canonical_mode_input_hint() {
   case "$command_name" in
     requirements|discovery|architecture)
       printf '%s' "canon-input/${command_name}.md or canon-input/${command_name}/"
       ;;
-    system-shaping|greenfield)
+    review|verification)
+      printf '%s' "canon-input/${command_name}.md or canon-input/${command_name}/"
+      ;;
+    system-shaping)
       printf '%s' 'canon-input/system-shaping.md or canon-input/system-shaping/'
       ;;
     brownfield-change)
@@ -359,6 +420,10 @@ while [[ $# -gt 0 ]]; do
       inputs+=("${2:-}")
       shift 2
       ;;
+    --input-text)
+      inline_inputs+=("${2:-}")
+      shift 2
+      ;;
     --ref)
       refs+=("${2:-}")
       shift 2
@@ -433,7 +498,7 @@ if canon --version >/dev/null 2>&1; then
   fi
 else
   probe_output="$(canon inspect modes --output json 2>/dev/null || true)"
-  if [[ -z "${probe_output}" ]] || [[ "${probe_output}" != *"requirements"* ]] || [[ "${probe_output}" != *"brownfield-change"* ]] || [[ "${probe_output}" != *"pr-review"* ]]; then
+  if [[ -z "${probe_output}" ]] || [[ "${probe_output}" != *"requirements"* ]] || [[ "${probe_output}" != *"brownfield-change"* ]] || [[ "${probe_output}" != *"review"* ]] || [[ "${probe_output}" != *"verification"* ]] || [[ "${probe_output}" != *"pr-review"* ]]; then
     emit_failure "version-incompatible" 11 \
       "Canon is present, but it does not satisfy the expected CLI command contract for this repo." \
       "$(reinstall_action)"
@@ -457,7 +522,7 @@ run_id_command="false"
 pr_review_command="false"
 
 case "${command_name}" in
-  requirements|discovery|system-shaping|greenfield|architecture|brownfield-change)
+  requirements|discovery|system-shaping|architecture|brownfield-change|review|verification)
     run_start_command="true"
     ;;
   pr-review)
@@ -471,6 +536,7 @@ esac
 
 normalized_run_id=""
 normalized_input_1=""
+normalized_inline_input_1=""
 normalized_ref_1=""
 normalized_ref_2=""
 RESOLVED_REF=""
@@ -532,52 +598,127 @@ if [[ "${run_start_command}" == "true" ]]; then
         "NORMALIZED_REF_2=${normalized_ref_2}"
     fi
   else
-    if (( ${#inputs[@]} == 0 )); then
+    authored_input_count=$(( ${#inputs[@]} + ${#inline_inputs[@]} ))
+    if (( authored_input_count == 0 )); then
       emit_failure "missing-input" 14 \
-        "Input path is required for ${command_name}." \
-        "Retry with --input <INPUT_PATH>." \
+        "Authored input is required for ${command_name}." \
+        "Retry with --input <INPUT_PATH> or --input-text <INPUT_TEXT>." \
         "FAILED_SLOT=input-path" \
         "FAILED_KIND=FilePathInput"
     fi
 
-    local_input="$(trim "${inputs[0]}")"
-    if is_missing_value "$local_input"; then
-      emit_failure "missing-input" 14 \
-        "Input path is required for ${command_name}." \
-        "Retry with --input <INPUT_PATH>." \
-        "FAILED_SLOT=input-path" \
-        "FAILED_KIND=FilePathInput"
-    fi
-
-    if [[ ! -e "${repo_root}/${local_input}" ]] && [[ ! -e "${local_input}" ]]; then
-      emit_failure "missing-file" 15 \
-        "Input ${local_input} was not found from ${repo_root}." \
-        "Retry with an existing file path." \
-        "FAILED_SLOT=input-path" \
-        "FAILED_KIND=FilePathInput"
-    fi
-
-    resolved_input="$(resolve_existing_input_path "$local_input")"
-    canon_root=""
-    if [[ -d "${repo_root}/.canon" ]]; then
-      canon_root="$(cd "${repo_root}/.canon" && pwd -P)"
-    fi
-    if [[ -n "${canon_root}" ]] && \
-      ([[ "${resolved_input}" == "${canon_root}" ]] || [[ "${resolved_input}" == "${canon_root}/"* ]]); then
-      input_hint=""
-      if input_hint="$(canonical_mode_input_hint 2>/dev/null)"; then
-        input_action="Retry with ${input_hint} or another authored file path outside .canon/."
-      else
-        input_action="Retry with an authored file path outside .canon/."
-      fi
+    if [[ "${command_name}" == "review" ]] && (( authored_input_count != 1 )); then
       emit_failure "invalid-input" 17 \
-        "Input ${local_input} points inside .canon/ and cannot be used as authored input for ${command_name}." \
-        "${input_action}" \
+        "Review requires exactly one authored input at canon-input/review.md or canon-input/review/, or exactly one explicit --input-text note." \
+        "Retry with canon-input/review.md or canon-input/review/, or pass exactly one --input-text note." \
         "FAILED_SLOT=input-path" \
         "FAILED_KIND=FilePathInput"
     fi
 
-    normalized_input_1="$(normalize_input_path "$local_input")"
+    if (( ${#inline_inputs[@]} > 0 )); then
+      for inline_input in "${inline_inputs[@]}"; do
+        trimmed_inline_input="$(trim "${inline_input}")"
+        if is_missing_value "$trimmed_inline_input"; then
+          emit_failure "invalid-input" 17 \
+            "Inline authored input for ${command_name} is empty or whitespace-only." \
+            "Retry with non-empty --input-text content." \
+            "FAILED_SLOT=input-path" \
+            "FAILED_KIND=FilePathInput"
+        fi
+
+        if [[ -z "${normalized_inline_input_1}" ]]; then
+          normalized_inline_input_1="$trimmed_inline_input"
+        fi
+      done
+    fi
+
+    if (( ${#inputs[@]} > 0 )); then
+      for input in "${inputs[@]}"; do
+        local_input="$(trim "${input}")"
+        if is_missing_value "$local_input"; then
+          emit_failure "missing-input" 14 \
+            "Input path is required for ${command_name}." \
+            "Retry with --input <INPUT_PATH> or --input-text <INPUT_TEXT>." \
+            "FAILED_SLOT=input-path" \
+            "FAILED_KIND=FilePathInput"
+        fi
+
+      if [[ ! -e "${repo_root}/${local_input}" ]] && [[ ! -e "${local_input}" ]]; then
+        if [[ "${command_name}" == "review" ]]; then
+          emit_failure "missing-file" 15 \
+            "Review input ${local_input} was not found from ${repo_root}." \
+            "Retry with canon-input/review.md or canon-input/review/, or pass exactly one --input-text note." \
+            "FAILED_SLOT=input-path" \
+            "FAILED_KIND=FilePathInput"
+        fi
+        emit_failure "missing-file" 15 \
+          "Input ${local_input} was not found from ${repo_root}." \
+          "Retry with an existing file path or non-empty --input-text." \
+          "FAILED_SLOT=input-path" \
+          "FAILED_KIND=FilePathInput"
+      fi
+
+      resolved_input="$(resolve_existing_input_path "$local_input")"
+      canon_root=""
+      if [[ -d "${repo_root}/.canon" ]]; then
+        canon_root="$(cd "${repo_root}/.canon" && pwd -P)"
+      fi
+      if [[ -n "${canon_root}" ]] && \
+        ([[ "${resolved_input}" == "${canon_root}" ]] || [[ "${resolved_input}" == "${canon_root}/"* ]]); then
+        input_hint=""
+        if input_hint="$(canonical_mode_input_hint 2>/dev/null)"; then
+          input_action="Retry with ${input_hint}, another authored file path outside .canon/, or non-empty --input-text."
+        else
+          input_action="Retry with an authored file path outside .canon/ or non-empty --input-text."
+        fi
+        emit_failure "invalid-input" 17 \
+          "Input ${local_input} points inside .canon/ and cannot be used as authored input for ${command_name}." \
+          "${input_action}" \
+          "FAILED_SLOT=input-path" \
+          "FAILED_KIND=FilePathInput"
+      fi
+
+      if [[ "${command_name}" == "review" ]]; then
+        resolved_review_file=""
+        resolved_review_dir=""
+        if [[ -e "${repo_root}/canon-input/review.md" ]]; then
+          resolved_review_file="$(resolve_existing_input_path "canon-input/review.md")"
+        fi
+        if [[ -e "${repo_root}/canon-input/review" ]]; then
+          resolved_review_dir="$(resolve_existing_input_path "canon-input/review")"
+        fi
+        if [[ "${resolved_input}" != "${resolved_review_file}" ]] && [[ "${resolved_input}" != "${resolved_review_dir}" ]]; then
+          emit_failure "invalid-input" 17 \
+            "Review accepts only canon-input/review.md or canon-input/review/, not ${local_input}." \
+            "Move or author the review packet at canon-input/review.md or canon-input/review/, or pass exactly one --input-text note, then retry." \
+            "FAILED_SLOT=input-path" \
+            "FAILED_KIND=FilePathInput"
+        fi
+      fi
+
+      input_content_state="$(authored_input_content_state "$resolved_input")"
+      case "$input_content_state" in
+        empty-dir)
+          emit_failure "invalid-input" 17 \
+            "Input ${local_input} expands to files with no usable authored content." \
+            "$(authored_input_retry_action)" \
+            "FAILED_SLOT=input-path" \
+            "FAILED_KIND=FilePathInput"
+          ;;
+        whitespace-only)
+          emit_failure "invalid-input" 17 \
+            "Input ${local_input} is empty or whitespace-only." \
+            "$(authored_input_retry_action)" \
+            "FAILED_SLOT=input-path" \
+            "FAILED_KIND=FilePathInput"
+          ;;
+      esac
+
+        if [[ -z "${normalized_input_1}" ]]; then
+          normalized_input_1="$(normalize_input_path "$local_input")"
+        fi
+      done
+    fi
   fi
 
   if ! is_missing_value "$risk"; then
@@ -603,8 +744,10 @@ if [[ "${run_start_command}" == "true" ]]; then
   if [[ -z "${normalized_risk}" || -z "${normalized_zone}" ]]; then
     if [[ "${pr_review_command}" == "true" ]]; then
       infer_classification "$command_name" "$normalized_ref_1" "$normalized_ref_2"
+    elif [[ -n "${normalized_input_1}" ]]; then
+      infer_classification "$command_name" --input "$normalized_input_1"
     else
-      infer_classification "$command_name" "$normalized_input_1"
+      infer_classification "$command_name" --input-text "$normalized_inline_input_1"
     fi
 
     extras=(

@@ -1,4 +1,5 @@
 use std::process::Command as ProcessCommand;
+use std::sync::OnceLock;
 
 fn script_path(relative_path: &str) -> String {
     format!("{}/{}", env!("CARGO_MANIFEST_DIR"), relative_path)
@@ -35,9 +36,17 @@ fn run_powershell(
     run_id: &str,
     target: &str,
     primary_artifact_path: &str,
-) -> String {
+) -> Option<String> {
+    if let Err(reason) = ensure_powershell_available() {
+        eprintln!("skipping PowerShell renderer assertions: {reason}");
+        return None;
+    }
+
     let mut command = ProcessCommand::new("pwsh");
     command.args([
+        "-NoLogo",
+        "-NoProfile",
+        "-NonInteractive",
         "-File",
         &script_path(".agents/skills/canon-shared/scripts/render-next-steps.ps1"),
         "-Profile",
@@ -60,7 +69,38 @@ fn run_powershell(
         String::from_utf8_lossy(&output.stderr)
     );
 
-    String::from_utf8(output.stdout).expect("powershell output utf8")
+    Some(String::from_utf8(output.stdout).expect("powershell output utf8"))
+}
+
+fn ensure_powershell_available() -> Result<(), String> {
+    static POWERSHELL_STATUS: OnceLock<Result<(), String>> = OnceLock::new();
+
+    POWERSHELL_STATUS
+        .get_or_init(|| {
+            let output = ProcessCommand::new("pwsh")
+                .args(["-NoLogo", "-NoProfile", "-NonInteractive", "-Command", "Write-Output ok"])
+                .output()
+                .map_err(|error| format!("pwsh is not available: {error}"))?;
+
+            if !output.status.success() {
+                return Err(format!(
+                    "pwsh startup failed: stdout=`{}` stderr=`{}`",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                ));
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.trim() != "ok" {
+                return Err(format!(
+                    "pwsh startup returned unexpected output: `{}`",
+                    stdout.trim()
+                ));
+            }
+
+            Ok(())
+        })
+        .clone()
 }
 
 #[test]
@@ -77,9 +117,11 @@ fn gated_renderers_emit_recommended_then_possible_actions_in_order() {
     let shell_output = run_shell("gated", "run-123", "gate:review-disposition", "");
     assert_eq!(shell_output, expected);
 
-    let powershell_output =
-        run_powershell("gated", "run-123", "gate:review-disposition", "").replace("\r\n", "\n");
-    assert_eq!(powershell_output, expected);
+    if let Some(powershell_output) =
+        run_powershell("gated", "run-123", "gate:review-disposition", "")
+    {
+        assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
+    }
 }
 
 #[test]
@@ -95,9 +137,9 @@ fn approval_recorded_renderers_prioritize_resume_over_status() {
     let shell_output = run_shell("approval-recorded", "run-456", "", "");
     assert_eq!(shell_output, expected);
 
-    let powershell_output =
-        run_powershell("approval-recorded", "run-456", "", "").replace("\r\n", "\n");
-    assert_eq!(powershell_output, expected);
+    if let Some(powershell_output) = run_powershell("approval-recorded", "run-456", "", "") {
+        assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
+    }
 }
 
 #[test]
@@ -120,12 +162,12 @@ fn completed_renderers_do_not_force_evidence_follow_up() {
     );
     assert_eq!(shell_output, expected);
 
-    let powershell_output = run_powershell(
+    if let Some(powershell_output) = run_powershell(
         "status-completed",
         "run-789",
         "",
         ".canon/artifacts/run-789/requirements/problem-statement.md",
-    )
-    .replace("\r\n", "\n");
-    assert_eq!(powershell_output, expected);
+    ) {
+        assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
+    }
 }

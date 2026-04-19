@@ -115,7 +115,7 @@ still requires adversarial and human review artifacts.
 
 ## 8. Platform Support Strategy
 
-**Decision**: pin the contributor toolchain to Rust 1.94.1 with the requested
+**Decision**: pin the contributor toolchain to Rust 1.95.0 with the requested
 Linux targets, then stage Apple, Windows, and Linux ARM support in CI and
 release jobs.
 
