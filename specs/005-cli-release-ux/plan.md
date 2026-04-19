@@ -69,7 +69,7 @@ as follow-on runtime UX decisions, not as implementation scope for this plan
 
 ## 1. Technical Context
 
-**Language/Version**: Rust 1.94.1 workspace, Markdown documentation,
+**Language/Version**: Rust 1.95.0 workspace, Markdown documentation,
 GitHub Actions YAML, repo-local Bash and PowerShell helper scripts  
 **Primary Dependencies**: existing `clap`, `serde`, `serde_json`,
 `serde_yaml`, `toml`, GitHub Releases, `.github/workflows/ci.yml`, planned

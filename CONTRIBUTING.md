@@ -17,18 +17,19 @@ guide instead.
 
 ## Prerequisites
 
-- Rust `1.94.1` via `rustup`
+- Rust `1.95.0` via `rustup`
 - Git
 -`cargo-deny`
 - optional but recommended: `cargo-nextest`
+- `cargo-llvm-cov` if you use the installed `pre-push` hook
 - PowerShell (`pwsh`) for the PowerShell skill validator on macOS or Linux
 -If you are on Windows, you can install Cygwin to test Shell (`sh`) scripts.
 
 Recommended tool installation:
 
 ```bash
-rustup toolchain install 1.94.1 --profile minimal --component rustfmt --component clippy
-cargo install cargo-nextest cargo-deny
+rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+cargo install cargo-nextest cargo-deny cargo-llvm-cov
 ```
 
 ## First-Time Setup
@@ -43,7 +44,7 @@ cargo build
 If you want a locally installed contributor binary:
 
 ```bash
-cargo +1.94.1 install --path crates/canon-cli --bin canon
+cargo +1.95.0 install --path crates/canon-cli --bin canon
 canon --help
 ```
 
@@ -76,7 +77,7 @@ cargo build --release -p canon-cli --bin canon
 Install the locally built CLI into your Cargo bin directory:
 
 ```bash
-cargo +1.94.1 install --path crates/canon-cli --bin canon
+cargo +1.95.0 install --path crates/canon-cli --bin canon
 ```
 
 ## Test and Validation Commands
@@ -87,11 +88,14 @@ Run these before opening or updating a pull request:
 cargo fmt --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --locked
+cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
 cargo nextest run --locked
 cargo deny check licenses advisories bans sources
 git diff --check
 ```
 _Important!_ We accept zero warnings/errors policy with Clippy.
+
+After `./scripts/install-hooks.sh`, `pre-commit` runs fmt, clippy, and `cargo test`; `pre-push` runs those checks plus `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
 
 Validate Canon skill structure and shared runtime behavior:
 

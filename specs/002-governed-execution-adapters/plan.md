@@ -56,7 +56,7 @@ systemic or red-zone actions where policy requires it
 
 ## 1. Technical Context
 
-**Language/Version**: Rust 1.94.1, Edition 2024  
+**Language/Version**: Rust 1.95.0, Edition 2024  
 **Primary Dependencies**: existing `clap`, `serde`, `serde_json`, `serde_yaml`,
 `toml`, `thiserror`, `time`, `uuid`, `tracing`, `tracing-subscriber`, and
 test-only `assert_cmd`, `predicates`, `tempfile`, `insta`; add `blake3` for
