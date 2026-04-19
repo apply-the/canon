@@ -1,7 +1,7 @@
 version = 1
 mode = "review"
 emphasis = "review-heavy"
-implementation_depth = "contract-only"
+implementation_depth = "full"
 gate_profile = ["Risk", "Architecture", "ReviewDisposition", "ReleaseReadiness"]
 artifacts = [
     "review-brief.md",

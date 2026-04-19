@@ -242,7 +242,7 @@ crates/
 │       ├── modes/
 │       │   ├── requirements.rs
 │       │   ├── discovery.rs
-│       │   ├── greenfield.rs
+│       │   ├── system_shaping.rs
 │       │   ├── brownfield_change.rs
 │       │   ├── architecture.rs
 │       │   ├── implementation.rs

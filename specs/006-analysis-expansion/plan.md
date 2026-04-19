@@ -73,7 +73,7 @@ canon-adapters)
 | `crates/canon-engine/src/orchestrator/service.rs` | Add 3 run methods + 3 dispatch arms | Core orchestration |
 | `crates/canon-engine/src/orchestrator/gatekeeper.rs` | Add 3 eval functions + 3 context structs | Gate evaluation |
 | `crates/canon-engine/src/modes/discovery.rs` | Expand from stub | Constants |
-| `crates/canon-engine/src/modes/greenfield.rs` | Expand from stub | Constants |
+| `crates/canon-engine/src/modes/system_shaping.rs` | Expand from stub | Constants |
 | `crates/canon-engine/src/modes/architecture.rs` | Expand from stub | Constants |
 | `crates/canon-engine/src/domain/mode.rs` | Update 3 ModeProfiles | Depth + names |
 | `defaults/methods/discovery.toml` | Update fields | Method metadata |
@@ -180,7 +180,7 @@ match request.mode {
     Mode::BrownfieldChange => self.run_brownfield_change(&store, request, policy_set),
     Mode::PrReview => self.run_pr_review(&store, request, policy_set),
     Mode::Discovery => self.run_discovery(&store, request, policy_set),
-    Mode::Greenfield => self.run_greenfield(&store, request, policy_set),
+   Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
     Mode::Architecture => self.run_architecture(&store, request, policy_set),
     other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
 }
@@ -360,7 +360,7 @@ Existing reusable primitives:
 - Risk: reuse existing risk gate logic (owner, risk class, zone, approvals)
 - ReleaseReadiness: reuse existing release readiness logic
 
-**`evaluate_greenfield_gates(contract, artifacts, context: GreenfieldGateContext) -> Vec<GateEvaluation>`**
+**`evaluate_system_shaping_gates(contract, artifacts, context: SystemShapingGateContext) -> Vec<GateEvaluation>`**
 - Exploration: check `system-shape.md` + `capability-map.md` for bounded intent
 - Architecture: named artifact gate on `system-shape.md`, `architecture-outline.md`, `capability-map.md`
 - Risk: reuse existing risk gate logic
@@ -404,7 +404,7 @@ No changes to the critique pipeline are needed (research.md RT-006).
   steps 11-12 if the generation already produces bounded exploration. If
   critique is skipped, the evidence bundle omits the validation path for
   critique but still records the generation path.
-- **System-Shaping**: Critique is mandatory. The `run_greenfield()` method always
+- **System-Shaping**: Critique is mandatory. The `run_system_shaping()` method always
   executes the critique invocation.
 - **Architecture**: Critique is mandatory. The `run_architecture()` method
   always executes the critique invocation with the highest challenge intensity.
@@ -533,8 +533,8 @@ skill claiming runnability before the runtime supports it violates the
 |-----------|------|------|-----------|
 | `tests/discovery_run.rs` | Discovery | Integration | End-to-end run emits 5 artifacts, gates persist |
 | `tests/discovery_contract.rs` | Discovery | Contract | Artifact contracts match spec, gate evaluation |
-| `tests/greenfield_run.rs` | System-Shaping | Integration | End-to-end run emits 5 artifacts, critique mandatory |
-| `tests/greenfield_contract.rs` | System-Shaping | Contract | Artifact contracts, Architecture gate blocking |
+| `tests/system_shaping_run.rs` | System-Shaping | Integration | End-to-end run emits 5 artifacts, critique mandatory |
+| `tests/system_shaping_contract.rs` | System-Shaping | Contract | Artifact contracts, Architecture gate blocking |
 | `tests/architecture_run.rs` | Architecture | Integration | End-to-end run emits 5 artifacts, challenge evidence |
 | `tests/architecture_contract.rs` | Architecture | Contract | Artifact contracts, approval for systemic-impact |
 
@@ -622,7 +622,7 @@ crates/
 │       │   └── mode.rs              # Update 3 ModeProfiles
 │       ├── modes/
 │       │   ├── discovery.rs         # Expand: STEP_SEQUENCE, REQUIRED_GATES, GOVERNED_CAPABILITIES
-│       │   ├── greenfield.rs        # Expand: STEP_SEQUENCE, REQUIRED_GATES, GOVERNED_CAPABILITIES
+│       │   ├── system_shaping.rs    # Expand: STEP_SEQUENCE, REQUIRED_GATES, GOVERNED_CAPABILITIES
 │       │   └── architecture.rs      # Expand: STEP_SEQUENCE, REQUIRED_GATES, GOVERNED_CAPABILITIES
 │       └── orchestrator/
 │           ├── service.rs           # +3 run methods + dispatch arms + rendering functions
@@ -643,8 +643,8 @@ defaults/
 tests/
 ├── discovery_run.rs                 # New: integration
 ├── discovery_contract.rs            # New: contract
-├── greenfield_run.rs                # New: integration
-├── greenfield_contract.rs           # New: contract
+├── system_shaping_run.rs            # New: integration
+├── system_shaping_contract.rs       # New: contract
 ├── architecture_run.rs              # New: integration
 └── architecture_contract.rs         # New: contract
 ```

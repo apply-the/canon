@@ -80,7 +80,7 @@ The gates themselves share evaluation primitives:
 
 **Decision**: Create three new evaluation functions:
 - `evaluate_discovery_gates()` → [Exploration, Risk, ReleaseReadiness]
-- `evaluate_greenfield_gates()` → [Exploration, Architecture, Risk, ReleaseReadiness]  
+- `evaluate_system_shaping_gates()` → [Exploration, Architecture, Risk, ReleaseReadiness]  
 - `evaluate_architecture_gates()` → [Exploration, Architecture, Risk, ReleaseReadiness]
 
 Each with a mode-specific context struct carrying the relevant evaluation state.

@@ -1,5 +1,5 @@
 use canon_engine::{AiTool, EngineService};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use strum_macros::Display;
 
 use crate::commands;
@@ -38,6 +38,8 @@ pub enum InspectCommand {
         zone: Option<String>,
         #[arg(long = "input", num_args = 1..)]
         inputs: Vec<String>,
+        #[arg(long = "input-text")]
+        inline_inputs: Vec<String>,
         #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
@@ -106,6 +108,64 @@ impl From<AiTarget> for AiTool {
     }
 }
 
+#[derive(Debug, Clone, Args)]
+pub struct RunCommand {
+    #[arg(long)]
+    mode: String,
+    #[arg(long)]
+    risk: String,
+    #[arg(long)]
+    zone: String,
+    #[arg(long, hide = true)]
+    risk_source: Option<String>,
+    #[arg(long, hide = true)]
+    risk_rationale: Option<String>,
+    #[arg(long = "risk-signal", hide = true)]
+    risk_signals: Vec<String>,
+    #[arg(long, hide = true)]
+    zone_source: Option<String>,
+    #[arg(long, hide = true)]
+    zone_rationale: Option<String>,
+    #[arg(long = "zone-signal", hide = true)]
+    zone_signals: Vec<String>,
+    #[arg(
+        long,
+        help = "Human owner for the run. If omitted, Canon tries git user.name and user.email."
+    )]
+    owner: Option<String>,
+    #[arg(long = "input", num_args = 1..)]
+    inputs: Vec<String>,
+    #[arg(long = "input-text")]
+    inline_inputs: Vec<String>,
+    #[arg(long = "exclude")]
+    excluded_paths: Vec<String>,
+    #[arg(long)]
+    policy_root: Option<String>,
+    #[arg(long)]
+    method_root: Option<String>,
+    #[arg(long, default_value_t)]
+    output: OutputFormat,
+}
+
+#[derive(Debug, Clone, Args)]
+pub struct ApproveCommand {
+    #[arg(long)]
+    run: String,
+    #[arg(long, help = "Approval target in the form gate:<gate-kind> or invocation:<request-id>")]
+    target: Option<String>,
+    #[arg(long, hide = true)]
+    gate: Option<String>,
+    #[arg(
+        long,
+        help = "Human approver for the decision. If omitted, Canon tries git user.name and user.email."
+    )]
+    by: Option<String>,
+    #[arg(long)]
+    decision: String,
+    #[arg(long)]
+    rationale: String,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum Command {
     Init {
@@ -114,41 +174,7 @@ pub enum Command {
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
-    Run {
-        #[arg(long)]
-        mode: String,
-        #[arg(long)]
-        risk: String,
-        #[arg(long)]
-        zone: String,
-        #[arg(long, hide = true)]
-        risk_source: Option<String>,
-        #[arg(long, hide = true)]
-        risk_rationale: Option<String>,
-        #[arg(long = "risk-signal", hide = true)]
-        risk_signals: Vec<String>,
-        #[arg(long, hide = true)]
-        zone_source: Option<String>,
-        #[arg(long, hide = true)]
-        zone_rationale: Option<String>,
-        #[arg(long = "zone-signal", hide = true)]
-        zone_signals: Vec<String>,
-        #[arg(
-            long,
-            help = "Human owner for the run. If omitted, Canon tries git user.name and user.email."
-        )]
-        owner: Option<String>,
-        #[arg(long = "input", num_args = 1..)]
-        inputs: Vec<String>,
-        #[arg(long = "exclude")]
-        excluded_paths: Vec<String>,
-        #[arg(long)]
-        policy_root: Option<String>,
-        #[arg(long)]
-        method_root: Option<String>,
-        #[arg(long, default_value_t)]
-        output: OutputFormat,
-    },
+    Run(Box<RunCommand>),
     Resume {
         #[arg(long)]
         run: String,
@@ -159,26 +185,7 @@ pub enum Command {
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
-    Approve {
-        #[arg(long)]
-        run: String,
-        #[arg(
-            long,
-            help = "Approval target in the form gate:<gate-kind> or invocation:<request-id>"
-        )]
-        target: Option<String>,
-        #[arg(long, hide = true)]
-        gate: Option<String>,
-        #[arg(
-            long,
-            help = "Human approver for the decision. If omitted, Canon tries git user.name and user.email."
-        )]
-        by: Option<String>,
-        #[arg(long)]
-        decision: String,
-        #[arg(long)]
-        rationale: String,
-    },
+    Approve(ApproveCommand),
     Verify {
         #[arg(long)]
         run: String,
@@ -213,43 +220,49 @@ pub fn run() -> CliResult<i32> {
         Command::Init { ai, output } => {
             commands::init::execute(&service, ai.map(Into::into), output)
         }
-        Command::Run {
-            mode,
-            risk,
-            zone,
-            risk_source,
-            risk_rationale,
-            risk_signals,
-            zone_source,
-            zone_rationale,
-            zone_signals,
-            owner,
-            inputs,
-            excluded_paths,
-            policy_root,
-            method_root,
-            output,
-        } => commands::run::execute(
-            &service,
-            mode,
-            risk,
-            zone,
-            risk_source,
-            risk_rationale,
-            risk_signals,
-            zone_source,
-            zone_rationale,
-            zone_signals,
-            owner,
-            inputs,
-            excluded_paths,
-            policy_root,
-            method_root,
-            output,
-        ),
+        Command::Run(run_command) => {
+            let RunCommand {
+                mode,
+                risk,
+                zone,
+                risk_source,
+                risk_rationale,
+                risk_signals,
+                zone_source,
+                zone_rationale,
+                zone_signals,
+                owner,
+                inputs,
+                inline_inputs,
+                excluded_paths,
+                policy_root,
+                method_root,
+                output,
+            } = *run_command;
+
+            commands::run::execute(
+                &service,
+                mode,
+                risk,
+                zone,
+                risk_source,
+                risk_rationale,
+                risk_signals,
+                zone_source,
+                zone_rationale,
+                zone_signals,
+                owner,
+                inputs,
+                inline_inputs,
+                excluded_paths,
+                policy_root,
+                method_root,
+                output,
+            )
+        }
         Command::Resume { run } => commands::resume::execute(&service, &run),
         Command::Status { run, output } => commands::status::execute(&service, &run, output),
-        Command::Approve { run, target, gate, by, decision, rationale } => {
+        Command::Approve(ApproveCommand { run, target, gate, by, decision, rationale }) => {
             commands::approve::execute(&service, &run, target, gate, by, decision, rationale)
         }
         Command::Verify { .. } => commands::verify::execute(),
@@ -262,7 +275,10 @@ pub fn run() -> CliResult<i32> {
 mod tests {
     use clap::Parser;
 
-    use super::{AiTarget, Cli, Command, InspectCommand, OutputFormat, SkillsCommand};
+    use super::{
+        AiTarget, ApproveCommand, Cli, Command, InspectCommand, OutputFormat, RunCommand,
+        SkillsCommand,
+    };
     use canon_engine::AiTool;
 
     #[test]
@@ -331,18 +347,21 @@ mod tests {
         ]);
 
         match cli.command {
-            Command::Run {
-                mode,
-                risk,
-                zone,
-                risk_source,
-                risk_rationale,
-                risk_signals,
-                owner,
-                inputs,
-                excluded_paths,
-                ..
-            } => {
+            Command::Run(run) => {
+                let RunCommand {
+                    mode,
+                    risk,
+                    zone,
+                    risk_source,
+                    risk_rationale,
+                    risk_signals,
+                    owner,
+                    inputs,
+                    inline_inputs,
+                    excluded_paths,
+                    ..
+                } = *run;
+
                 assert_eq!(mode, "requirements");
                 assert_eq!(risk, "low-impact");
                 assert_eq!(zone, "green");
@@ -351,6 +370,7 @@ mod tests {
                 assert_eq!(risk_signals, vec!["Detected boundary keyword"]);
                 assert_eq!(owner.as_deref(), Some("Owner <owner@example.com>"));
                 assert_eq!(inputs, vec!["idea.md"]);
+                assert!(inline_inputs.is_empty());
                 assert_eq!(excluded_paths, vec!["target/"]);
             }
             other => panic!("unexpected command parsed: {other:?}"),
@@ -379,9 +399,39 @@ mod tests {
         ]);
 
         match cli.command {
-            Command::Run { inputs, output, .. } => {
+            Command::Run(run) => {
+                let RunCommand { inputs, inline_inputs, output, .. } = *run;
+
                 assert_eq!(inputs, vec!["idea.md", "constraints.md", "canon-input/requirements"]);
+                assert!(inline_inputs.is_empty());
                 assert_eq!(output, OutputFormat::Json);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn run_command_accepts_inline_authored_input() {
+        let cli = Cli::parse_from([
+            "canon",
+            "run",
+            "--mode",
+            "requirements",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--input-text",
+            "# Requirements Brief\n\n## Problem\nNeed explicit governance.",
+        ]);
+
+        match cli.command {
+            Command::Run(run) => {
+                let RunCommand { inputs, inline_inputs, .. } = *run;
+
+                assert!(inputs.is_empty());
+                assert_eq!(inline_inputs.len(), 1);
+                assert!(inline_inputs[0].contains("Need explicit governance"));
             }
             other => panic!("unexpected command parsed: {other:?}"),
         }
@@ -432,7 +482,7 @@ mod tests {
             "looks good",
         ]);
         match approve_cli.command {
-            Command::Approve { run, target, gate, by, decision, rationale } => {
+            Command::Approve(ApproveCommand { run, target, gate, by, decision, rationale }) => {
                 assert_eq!(run, "run-123");
                 assert_eq!(target.as_deref(), Some("gate:risk"));
                 assert_eq!(gate, None);
@@ -456,12 +506,38 @@ mod tests {
             "canon-input/discovery.md",
         ]);
         match classification.command {
-            Command::Inspect { command: InspectCommand::RiskZone { mode, inputs, output, .. } } => {
+            Command::Inspect {
+                command: InspectCommand::RiskZone { mode, inputs, inline_inputs, output, .. },
+            } => {
                 assert_eq!(mode, "discovery");
                 assert_eq!(inputs, vec!["canon-input/discovery.md"]);
+                assert!(inline_inputs.is_empty());
                 assert_eq!(output, OutputFormat::Markdown);
             }
             other => panic!("unexpected risk-zone inspect command parsed: {other:?}"),
+        }
+
+        let inline_classification = Cli::parse_from([
+            "canon",
+            "inspect",
+            "risk-zone",
+            "--mode",
+            "requirements",
+            "--input-text",
+            "# Requirements Brief\n\n## Problem\nNeed bounded runtime governance.",
+            "--output",
+            "json",
+        ]);
+        match inline_classification.command {
+            Command::Inspect {
+                command: InspectCommand::RiskZone { mode, inputs, inline_inputs, output, .. },
+            } => {
+                assert_eq!(mode, "requirements");
+                assert!(inputs.is_empty());
+                assert_eq!(inline_inputs.len(), 1);
+                assert_eq!(output, OutputFormat::Json);
+            }
+            other => panic!("unexpected inline risk-zone command parsed: {other:?}"),
         }
 
         let clarity = Cli::parse_from([

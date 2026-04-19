@@ -29,12 +29,30 @@ pub struct RunContext {
     pub inputs: Vec<String>,
     pub excluded_paths: Vec<String>,
     pub input_fingerprints: Vec<InputFingerprint>,
+    #[serde(default, skip)]
+    pub inline_inputs: Vec<InlineInput>,
     pub captured_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InlineInput {
+    pub label: String,
+    pub contents: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum InputSourceKind {
+    #[default]
+    Path,
+    Inline,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InputFingerprint {
     pub path: String,
+    #[serde(default)]
+    pub source_kind: InputSourceKind,
     pub size_bytes: u64,
     pub modified_unix_seconds: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -30,6 +30,7 @@ fn request(
         classification: ClassificationProvenance::explicit(),
         owner: owner.to_string(),
         inputs: inputs.into_iter().map(ToString::to_string).collect(),
+        inline_inputs: Vec::new(),
         excluded_paths: Vec::new(),
         policy_root: None,
         method_root: None,
@@ -266,7 +267,7 @@ fn discovery_direct_run_persists_completed_artifacts_and_evidence() {
 }
 
 #[test]
-fn greenfield_direct_run_covers_completed_and_blocked_paths() {
+fn system_shaping_direct_run_covers_completed_and_blocked_paths() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("system-shaping.md"),
@@ -277,13 +278,13 @@ fn greenfield_direct_run_covers_completed_and_blocked_paths() {
     let service = EngineService::new(workspace.path());
     let completed = service
         .run(request(
-            Mode::Greenfield,
+            Mode::SystemShaping,
             RiskClass::BoundedImpact,
             UsageZone::Yellow,
             "architect",
             vec!["system-shaping.md"],
         ))
-        .expect("greenfield run");
+        .expect("system-shaping run");
 
     assert_eq!(completed.state, "Completed");
     assert_eq!(completed.invocations_total, 3);
@@ -302,13 +303,13 @@ fn greenfield_direct_run_covers_completed_and_blocked_paths() {
     let blocked_service = EngineService::new(blocked_workspace.path());
     let blocked = blocked_service
         .run(request(
-            Mode::Greenfield,
+            Mode::SystemShaping,
             RiskClass::BoundedImpact,
             UsageZone::Yellow,
             "architect",
             vec!["system-shaping.md"],
         ))
-        .expect("blocked greenfield run");
+        .expect("blocked system-shaping run");
 
     assert_eq!(blocked.state, "Blocked");
     assert_eq!(blocked.blocking_classification.as_deref(), Some("artifact-blocked"));
@@ -495,7 +496,7 @@ fn shell_adapter_reports_worktree_diff_and_enforces_mutation_policy() {
 
 #[test]
 fn artifact_contract_helpers_cover_analysis_profiles_and_validation_failures() {
-    for mode in [Mode::Discovery, Mode::Greenfield, Mode::Architecture, Mode::Implementation] {
+    for mode in [Mode::Discovery, Mode::SystemShaping, Mode::Architecture, Mode::Implementation] {
         let contract = contract_for_mode(mode);
         assert!(!contract.artifact_requirements.is_empty());
 

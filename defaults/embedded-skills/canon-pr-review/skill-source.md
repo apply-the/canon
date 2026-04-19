@@ -21,7 +21,7 @@ Expose the delivered Canon pr-review workflow through a named Codex skill.
 ## When It Must Not Trigger
 
 - The user wants generic review discussion without a real diff.
-- The user is asking for the modeled-only `canon-review` workflow.
+- The user is asking for the file-backed `canon-review` workflow instead of a diff-backed review.
 
 ## Required Inputs
 

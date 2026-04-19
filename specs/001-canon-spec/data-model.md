@@ -8,7 +8,7 @@ The domain must define all of these as first-class variants:
 
 - `requirements`
 - `discovery`
-- `system-shaping` (internal enum variant: `Greenfield`)
+- `system-shaping` (internal enum variant: `SystemShaping`)
 - `brownfield-change`
 - `architecture`
 - `implementation`

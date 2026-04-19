@@ -4,47 +4,10 @@ This file captures candidate product features that are intentionally beyond the
 current implementation slice.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
-`greenfield`, `architecture`, `brownfield-change`, and `pr-review`. The next
-roadmap should prioritize completing the remaining modeled modes before
-widening Canon's surface area further.
-
-## Feature: Review Mode Completion
-
-### Outcome
-
-Canon supports both pull-request review and non-PR review workflows with full
-governed evidence, plus explicit verification-oriented challenge flows.
-
-### Modes In Scope
-
-- `review`
-- `verification`
-
-### Why These Modes Belong Together
-
-- They are both review-heavy, evidence-heavy, and oriented around challenging
-  claims instead of producing implementation.
-- They should reuse the `pr-review` pipeline, findings model, review
-  disposition handling, and verification records instead of branching into a
-  separate subsystem.
-
-### First Slice
-
-- Promote `review` from contract-only to full depth for artifact-bundle or
-  change-package review outside PR semantics.
-- Promote `verification` from contract-only to full depth for adversarial review
-  of claims, invariants, contracts, and evidence bundles.
-- Keep their output compatible with the existing inspection and approval
-  surfaces.
-
-### Why This Feature Comes Next
-
-- Canon has already completed the main analysis-heavy front end through
-  `requirements`, `discovery`, `greenfield`, and `architecture`.
-- Canon already has the beginnings of the review model through `pr-review`.
-- Completing the broader review surface is a more natural next step than adding
-  new protocols.
-- It increases trust in the governed system before widening execution.
+`system-shaping`, `architecture`, `brownfield-change`, `review`,
+`verification`, and `pr-review`. The next roadmap should prioritize
+completing the remaining modeled modes before widening Canon's surface area
+further.
 
 ## Feature: Controlled Execution Modes
 
@@ -76,12 +39,12 @@ preserving evidence, approvals, and rollback visibility.
 - Reuse brownfield preservation and release-readiness machinery where behavior
   preservation matters.
 
-### Why This Feature Comes After Review Completion
+### Why This Feature Comes Next
 
 - Execution-heavy modes raise the risk profile of Canon more than analysis or
   review modes.
-- The system should finish more of its critique and verification depth before it
-  expands deeper into mutation.
+- The next roadmap step should finish the remaining modeled modes before it
+  deepens already-shipped outputs or expands into new external surfaces.
 
 ## Feature: High-Risk Operational Programs
 
@@ -112,11 +75,96 @@ compatibility, and containment matter more than ordinary implementation flow.
 - Keep approval and release-readiness expectations stricter than in ordinary
   implementation flows.
 
-### Why This Feature Is Later
+### Why This Feature Comes After Controlled Execution
 
-- These modes benefit from nearly every earlier roadmap improvement.
-- They are important, but they should not be the proving ground for unfinished
-  execution semantics.
+- These are the remaining unfinished modeled modes after `implementation` and
+  `refactor`.
+- They benefit from nearly every earlier roadmap improvement, but they still
+  belong ahead of output-polish, packaging, and protocol expansion.
+
+## Feature: Stronger Review And Architecture Outputs
+
+### Outcome
+
+Canon makes already-delivered critique modes more directly reusable in real
+engineering workflows by emitting `pr-review` feedback in a Conventional
+Comments shape and extending `architecture` packets with C4 model documents.
+
+### Modes In Scope
+
+- `pr-review`
+- `architecture`
+
+### Why These Modes Belong Together
+
+- They are already delivered end to end, so the next value step is output
+  quality and interoperability with human workflows.
+- Both produce artifacts that are read outside Canon and benefit from stronger
+  standardization.
+- They improve downstream handoff into pull request review and architecture
+  communication without widening Canon into new runtime domains.
+
+### First Slice
+
+- Teach `pr-review` to structure review findings so they can be consumed as
+  Conventional Comments for code review.
+- Extend `architecture` output contracts to include C4 model documents,
+  starting with system context, container, and component views when the
+  authored input supports them.
+- Keep the existing decision, invariants, boundary, and tradeoff artifacts so
+  architecture remains critique-first instead of collapsing into diagram-only
+  output.
+
+### Why This Feature Comes After Mode Completion
+
+- It deepens the usefulness of modes Canon already ships instead of increasing
+  mode coverage.
+- It should follow completion of the remaining modeled modes because it is
+  output-quality work, not closure of a missing workflow.
+
+## Feature: Domain Modeling And Boundary Design
+
+### Outcome
+
+Canon strengthens the already-delivered shaping and architecture modes by
+making Domain-Driven Design outputs first-class: explicit ubiquitous language,
+bounded contexts, context relationships, and domain invariants that can flow
+into later architecture, brownfield planning, and review.
+
+### Modes In Scope
+
+- `system-shaping`
+- `architecture`
+- `brownfield-change`
+
+### Why These Modes Belong Together
+
+- They are the modes where domain boundaries, ownership, and invariants matter
+  more than raw implementation sequencing.
+- They benefit from a shared language for bounded contexts, context crossings,
+  and preserved business rules.
+- They reduce downstream drift by making the domain model explicit before
+  execution-heavy modes begin.
+
+### First Slice
+
+- Extend `system-shaping` to emit a candidate domain map, core-domain
+  hypotheses, and a ubiquitous-language seed.
+- Extend `architecture` to emit bounded-context and context-relationship
+  artifacts, including integration seams and anti-corruption candidates where
+  the decision surface warrants them.
+- Extend `brownfield-change` to tie the change surface to an explicit domain
+  slice, preserved invariants, and ownership boundaries instead of treating the
+  system as one undifferentiated code surface.
+- Keep the existing critique-first posture so Canon challenges weak or blurry
+  domain boundaries instead of rubber-stamping them.
+
+### Why This Feature Comes After Mode Completion
+
+- It improves the quality of modes Canon already ships before the roadmap
+  expands into packaging or protocol work.
+- It should follow completion of the remaining modeled modes because it
+  strengthens existing workflows instead of closing a missing one.
 
 ## Feature: Distribution Channels Beyond GitHub Releases
 

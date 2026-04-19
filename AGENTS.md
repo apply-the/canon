@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-13
+Auto-generated from all feature plans. Last updated: 2026-04-19
 
 ## Governing Constitution
 
@@ -21,6 +21,8 @@ Auto-generated from all feature plans. Last updated: 2026-04-13
 - repository files for workflow and documentation changes, GitHub (005-cli-release-ux)
 - Rust 1.94.1, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror, (006-analysis-expansion)
 - Local filesystem under `.canon/` (TOML for manifests, Markdown for (006-analysis-expansion)
+- Rust 1.94.1 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time` (007-review-mode-completion)
+- local filesystem under `.canon/`, Markdown artifacts, TOML manifests and policies (007-review-mode-completion)
 
 - Rust 1.94.1, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -29,7 +31,7 @@ Auto-generated from all feature plans. Last updated: 2026-04-13
 ## Active Modes and Risk Profile
 
 - Full v0.1 depth: `requirements`, `brownfield-change`, `pr-review`
-- First-class modeled modes: `discovery`, `greenfield`, `architecture`,
+- First-class modeled modes: `discovery`, `system-shaping`, `architecture`,
   `implementation`, `refactor`, `verification`, `review`, `incident`,
   `migration`
 - Current planning feature risk: `Systemic Impact`
@@ -71,9 +73,9 @@ tests/
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 007-review-mode-completion: Added Rust 1.94.1 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 006-analysis-expansion: Added Rust 1.94.1, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror,
 - 005-cli-release-ux: Added Rust 1.94.1 workspace, Markdown documentation, + existing `clap`, `serde`, `serde_json`,
-- 004-ref-safe-binding: Added Markdown `SKILL.md` files, repo-local Bash and PowerShell + installed `canon` binary, Git command-line ref
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->

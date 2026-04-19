@@ -78,6 +78,14 @@ fn init_with_codex_materializes_agents_skills_only() {
         "canon-requirements/SKILL.md should exist in .agents/skills"
     );
     assert!(
+        skills.join("canon-review").join("SKILL.md").exists(),
+        "canon-review/SKILL.md should exist in .agents/skills"
+    );
+    assert!(
+        skills.join("canon-verification").join("SKILL.md").exists(),
+        "canon-verification/SKILL.md should exist in .agents/skills"
+    );
+    assert!(
         skills.join("canon-shared").join("scripts").join("check-runtime.sh").exists(),
         "check-runtime.sh should exist in .agents/skills"
     );
@@ -111,6 +119,14 @@ fn init_with_claude_materializes_claude_skills_only() {
     assert!(
         claude_skills.join("canon-requirements").join("SKILL.md").exists(),
         "canon-requirements/SKILL.md should exist in .claude/skills"
+    );
+    assert!(
+        claude_skills.join("canon-review").join("SKILL.md").exists(),
+        "canon-review/SKILL.md should exist in .claude/skills"
+    );
+    assert!(
+        claude_skills.join("canon-verification").join("SKILL.md").exists(),
+        "canon-verification/SKILL.md should exist in .claude/skills"
     );
     assert!(
         claude_skills.join("canon-shared").join("scripts").join("check-runtime.sh").exists(),
@@ -287,6 +303,8 @@ fn skills_list_returns_all_embedded_skills() {
     assert!(names.contains(&"canon-inspect-clarity"), "should list canon-inspect-clarity");
     assert!(names.contains(&"canon-requirements"), "should list canon-requirements");
     assert!(names.contains(&"canon-brownfield"), "should list canon-brownfield");
+    assert!(names.contains(&"canon-review"), "should list canon-review");
+    assert!(names.contains(&"canon-verification"), "should list canon-verification");
     assert!(names.contains(&"canon-pr-review"), "should list canon-pr-review");
     assert!(names.contains(&"canon-discovery"), "should list canon-discovery");
 }
@@ -416,6 +434,145 @@ fn pr_review_preflight_accepts_remote_tracking_refs() {
         "preflight should normalize remote ref: {stdout}"
     );
     assert!(stdout.contains("NORMALIZED_REF_2=HEAD"), "preflight should keep HEAD: {stdout}");
+}
+
+#[cfg(unix)]
+#[test]
+fn review_preflight_accepts_single_inline_input_text() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let workspace = TempDir::new().expect("temp dir");
+    git(&workspace, &["init", "-b", "main"]);
+
+    let mut init = cli_command();
+    init.current_dir(workspace.path()).args(["init", "--ai", "codex"]).assert().success();
+
+    let bin_dir = workspace.path().join("bin");
+    std::fs::create_dir_all(&bin_dir).expect("bin dir");
+    let wrapper = bin_dir.join("canon");
+    std::fs::write(
+        &wrapper,
+        format!(
+            "#!/usr/bin/env bash\nexec cargo run --quiet --manifest-path '{}' -p canon-cli --bin canon -- \"$@\"\n",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml")
+        ),
+    )
+    .expect("write canon wrapper");
+    std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755))
+        .expect("chmod wrapper");
+
+    let script = workspace
+        .path()
+        .join(".agents")
+        .join("skills")
+        .join("canon-shared")
+        .join("scripts")
+        .join("check-runtime.sh");
+
+    let path = format!("{}:{}", bin_dir.display(), std::env::var("PATH").expect("PATH"));
+
+    let output = ProcessCommand::new("/bin/bash")
+        .arg(&script)
+        .args([
+            "--command",
+            "review",
+            "--repo-root",
+            workspace.path().to_str().expect("workspace path"),
+            "--require-init",
+            "--owner",
+            "reviewer",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--input-text",
+            "# Review Packet\n\n## Decision\nAccept the bounded packet.",
+        ])
+        .env("PATH", path)
+        .current_dir(workspace.path())
+        .output()
+        .expect("run preflight script");
+
+    assert!(
+        output.status.success(),
+        "preflight failed: stdout=`{}` stderr=`{}`",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("STATUS=ready"), "preflight should be ready: {stdout}");
+}
+
+#[cfg(unix)]
+#[test]
+fn requirements_preflight_rejects_whitespace_only_authored_input() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let workspace = TempDir::new().expect("temp dir");
+    git(&workspace, &["init", "-b", "main"]);
+
+    std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
+    std::fs::write(workspace.path().join("canon-input").join("requirements.md"), "   \n\n")
+        .expect("write whitespace requirements file");
+
+    let mut init = cli_command();
+    init.current_dir(workspace.path()).args(["init", "--ai", "codex"]).assert().success();
+
+    let bin_dir = workspace.path().join("bin");
+    std::fs::create_dir_all(&bin_dir).expect("bin dir");
+    let wrapper = bin_dir.join("canon");
+    std::fs::write(
+        &wrapper,
+        format!(
+            "#!/usr/bin/env bash\nexec cargo run --quiet --manifest-path '{}' -p canon-cli --bin canon -- \"$@\"\n",
+            concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml")
+        ),
+    )
+    .expect("write canon wrapper");
+    std::fs::set_permissions(&wrapper, std::fs::Permissions::from_mode(0o755))
+        .expect("chmod wrapper");
+
+    let script = workspace
+        .path()
+        .join(".agents")
+        .join("skills")
+        .join("canon-shared")
+        .join("scripts")
+        .join("check-runtime.sh");
+
+    let path = format!("{}:{}", bin_dir.display(), std::env::var("PATH").expect("PATH"));
+
+    let output = ProcessCommand::new("/bin/bash")
+        .arg(&script)
+        .args([
+            "--command",
+            "requirements",
+            "--repo-root",
+            workspace.path().to_str().expect("workspace path"),
+            "--require-init",
+            "--owner",
+            "product-lead",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--input",
+            "canon-input/requirements.md",
+        ])
+        .env("PATH", path)
+        .current_dir(workspace.path())
+        .output()
+        .expect("run preflight script");
+
+    assert_eq!(output.status.code(), Some(17), "preflight should fail with invalid-input");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("STATUS=invalid-input"), "preflight should fail: {stdout}");
+    assert!(
+        stdout.contains("empty or whitespace-only"),
+        "preflight should explain whitespace-only authored input: {stdout}"
+    );
 }
 
 #[cfg(unix)]
