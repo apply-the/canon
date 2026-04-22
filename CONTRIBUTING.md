@@ -8,6 +8,7 @@ guide instead.
 
 ## Contributor Rules
 
+- **Specification First**: Every pull request must be accompanied by a specification created and managed via Speckit. We explicitly use Speckit to solve the canonical "chicken-and-egg" problem: there is no tangible value in using Canon to develop Canon itself. Bootstrapping our own development process with external, reliable specification tools (Speckit) prevents circular dependencies, avoids dogfooding instability during core framework development, and maintains clear boundaries between the product we are building and the tools we use to build it.
 - Keep Canon CLI as the product entrypoint. Do not introduce hidden side paths that bypass the CLI contract.
 - Keep changes bounded. Avoid unrelated refactors while touching a feature.
 - Update user-facing docs when you change install, release, CLI, or skill behavior.
@@ -111,11 +112,12 @@ validation notes.
 
 Use this repo workflow unless a feature calls for something stricter:
 
-1. Create or switch to the feature branch.
-2. Make the smallest coherent change that solves the problem.
-3. Update the relevant docs, specs, or validation artifacts when behavior changes.
-4. Run the validation commands above.
-5. Review your diff for unrelated edits before asking for review.
+1. **Design and Spec:** Create your feature specification using Speckit (`speckit-specify`, `speckit-plan`, `speckit-tasks`) to document the design, constraints, and actionable steps upfront.
+2. Create or switch to the feature branch.
+3. Make the smallest coherent change that solves the problem.
+4. Update the relevant docs, specs, or validation artifacts when behavior changes.
+5. Run the validation commands above.
+6. Review your diff for unrelated edits before asking for review.
 
 ## Working on Release or Install UX
 

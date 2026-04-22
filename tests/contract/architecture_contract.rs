@@ -183,11 +183,8 @@ fn systemic_architecture_run_requires_gate_approval_and_completes_after_approval
         .success()
         .stdout(contains(run_id));
 
-    let approval_record = workspace
-        .path()
-        .join(".canon")
-        .join("runs")
-        .join(run_id)
+    let approval_record = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+        .run_dir(run_id)
         .join("approvals")
         .join("approval-00.toml");
     assert!(approval_record.exists(), "approval record should be persisted");

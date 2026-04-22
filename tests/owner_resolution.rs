@@ -48,7 +48,9 @@ fn git(workspace: &TempDir, global_config: &Path, args: &[&str]) {
 
 fn manifest_owner(workspace: &TempDir, run_id: &str) -> String {
     let manifest = fs::read_to_string(
-        workspace.path().join(".canon").join("runs").join(run_id).join("run.toml"),
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+            .run_dir(run_id)
+            .join("run.toml"),
     )
     .expect("run manifest");
 

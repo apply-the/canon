@@ -138,7 +138,9 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
     );
 
     let links = fs::read_to_string(
-        workspace.path().join(".canon").join("runs").join(&summary.run_id).join("links.toml"),
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+            .run_dir(&summary.run_id)
+            .join("links.toml"),
     )
     .expect("links");
     assert!(

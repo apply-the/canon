@@ -124,6 +124,41 @@ When a run starts from authored files, Canon snapshots those files under
 `.canon/runs/<RUN_ID>/inputs/` and records digest-backed provenance in
 `.canon/runs/<RUN_ID>/context.toml`.
 
+## Publish / Promotion
+
+Canon keeps run artifacts under `.canon/` because they are governed runtime
+evidence, not automatically the repository's living documentation.
+
+When a packet is approved and the run is fully complete, publish it into a
+visible repository folder with:
+
+```bash
+canon publish <RUN_ID>
+canon publish <RUN_ID> --to docs/custom/path
+```
+
+Publishing copies the emitted artifact files out of `.canon/artifacts/` and
+into a visible workspace directory. It never mutates or deletes the governed
+copy under `.canon/`.
+
+Publishing is allowed only for runs whose state is `Completed`. If a run is
+still `AwaitingApproval`, blocked, or otherwise incomplete, do not publish it;
+approve the required targets and resume the run first.
+
+Default publish targets by mode:
+
+- `requirements` -> `specs/<RUN_ID>/`
+- `discovery` -> `docs/discovery/<RUN_ID>/`
+- `system-shaping` -> `docs/architecture/shaping/<RUN_ID>/`
+- `architecture` -> `docs/architecture/decisions/<RUN_ID>/`
+- `change` -> `docs/changes/<RUN_ID>/`
+- `review` -> `docs/reviews/<RUN_ID>/`
+- `verification` -> `docs/verification/<RUN_ID>/`
+- `pr-review` -> `docs/reviews/prs/<RUN_ID>/`
+
+Use `--to <PATH>` when the default destination is not the right public home
+for the packet.
+
 ## Mode: discovery
 
 ### Use It For
@@ -177,6 +212,7 @@ and decision pressure explicit before a later mode becomes trustworthy.
 
 ### Typical Handoff After This Mode
 
+- publish the approved discovery packet with `canon publish <RUN_ID>` to `docs/discovery/<RUN_ID>/`, or use `--to` for a different public destination
 - move to `requirements` when the problem boundary is stable enough for explicit framing
 - move to `system-shaping` when the team now understands the problem and is ready to shape a new capability
 - move to `architecture` when the key remaining work is choosing among structural options
@@ -275,6 +311,7 @@ than inventing content.
 
 ### Typical Handoff After This Mode
 
+- publish the approved requirements packet with `canon publish <RUN_ID>` to `specs/<RUN_ID>/`, or use `--to` to place the PRD elsewhere
 - move to `discovery` if the problem is still too fuzzy and the unknowns are more important than the framing
 - move to `system-shaping` if the problem is bounded and the next step is shaping a new capability
 - move to `change` if the work is clearly about a bounded change in an existing system
@@ -366,6 +403,7 @@ system-shaping result.
 
 ### Typical Handoff After This Mode
 
+- publish the approved system-shaping packet with `canon publish <RUN_ID>` to `docs/architecture/shaping/<RUN_ID>/`, or use `--to` for another public destination
 - move to `architecture` when the next step is to settle structural tradeoffs or invariants
 - move to `change` when the structure is clear and the next step is a bounded modification in an existing system
 - move to `requirements` only if the intent turned out not to be bounded enough after all
@@ -443,6 +481,7 @@ not a failure in the mode itself.
 
 ### Typical Handoff After This Mode
 
+- publish the approved architecture packet with `canon publish <RUN_ID>` to `docs/architecture/decisions/<RUN_ID>/`, or use `--to` for another public destination
 - move to `change` when the structural decision now needs a bounded change plan in an existing system
 - move to later implementation work once the boundaries and invariants are accepted
 - return to `discovery` or `requirements` only if the decision surface itself was not actually bounded
@@ -542,6 +581,7 @@ context explicit instead of pretending the change is well-bounded.
 
 ### Typical Handoff After This Mode
 
+- publish the approved change packet with `canon publish <RUN_ID>` to `docs/changes/<RUN_ID>/`, or use `--to` for another public destination
 - inspect the emitted artifact bundle before approving any consequential follow-up
 - move into later implementation work only after the preserved behavior and allowed change surface are explicit
 - use `pr-review` later when there is a real diff to challenge
@@ -624,6 +664,7 @@ happy path or gated path is readable without a mandatory inspect step first.
 
 ### Typical Handoff After This Mode
 
+- publish the approved review packet with `canon publish <RUN_ID>` to `docs/reviews/<RUN_ID>/`, or use `--to` for another public destination
 - inspect the review packet when you need the full findings bundle
 - approve `gate:review-disposition` only after the remaining risk is consciously accepted
 - move to `pr-review` only when the real target becomes a diff or worktree instead of a file-backed packet
@@ -704,6 +745,7 @@ supported or blocked posture is visible without a mandatory inspect step first.
 
 ### Typical Handoff After This Mode
 
+- publish the approved verification packet with `canon publish <RUN_ID>` to `docs/verification/<RUN_ID>/`, or use `--to` for another public destination
 - inspect the verification packet when unresolved findings remain
 - inspect evidence when you need provenance or validation lineage behind the verdict
 - move to `review` only when the next step is disposition over a bounded package, not challenge of claims
@@ -798,6 +840,7 @@ Or, for uncommitted work:
 
 ### Typical Handoff After This Mode
 
+- publish the approved PR review packet with `canon publish <RUN_ID>` to `docs/reviews/prs/<RUN_ID>/`, or use `--to` for another public destination
 - read the run or status result summary first, then inspect the emitted review packet when you need the full findings bundle
 - approve a review-disposition gate only when the remaining risk is consciously accepted
 - move back to Change or Architecture only if the review shows that the underlying change plan or decision packet is still weak

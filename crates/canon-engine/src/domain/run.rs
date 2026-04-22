@@ -1,9 +1,66 @@
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+use uuid::Uuid;
 
 use crate::domain::artifact::ArtifactContract;
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
+
+/// Canonical identity for a Canon run.
+///
+/// `uuid` is the immutable machine identity (UUIDv7 today).
+/// `run_id` is the human-facing display id `R-YYYYMMDD-SHORTID` derived
+/// deterministically from `uuid` and the UTC date of `created_at`.
+/// `short_id` is the first 8 hex characters of the lowercase canonical
+/// UUID string. See `specs/009-run-id-display/contracts/run-identity-contract.md`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunIdentity {
+    pub uuid: Uuid,
+    pub run_id: String,
+    pub short_id: String,
+    pub created_at: OffsetDateTime,
+}
+
+impl RunIdentity {
+    /// Generate a fresh identity using `Uuid::now_v7()` and `OffsetDateTime::now_utc()`.
+    pub fn new_now_v7() -> Self {
+        Self::from_parts(Uuid::now_v7(), OffsetDateTime::now_utc())
+    }
+
+    /// Build a [`RunIdentity`] from a known UUID and timestamp.
+    /// Used by the manifest read shim to reconstruct identity for legacy runs.
+    pub fn from_parts(uuid: Uuid, created_at: OffsetDateTime) -> Self {
+        let short_id = short_id_from_uuid(&uuid);
+        let date = created_at.to_offset(time::UtcOffset::UTC).date();
+        let run_id = format!(
+            "R-{:04}{:02}{:02}-{}",
+            date.year(),
+            u8::from(date.month()),
+            date.day(),
+            short_id
+        );
+        Self { uuid, run_id, short_id, created_at }
+    }
+}
+
+/// First 8 hex characters of the canonical lowercase UUID string.
+pub fn short_id_from_uuid(uuid: &Uuid) -> String {
+    let buf = uuid.as_simple().to_string();
+    buf[..8].to_string()
+}
+
+/// Validate the canonical display-id shape `^R-\d{8}-[0-9a-f]{8}$`.
+pub fn is_canonical_display_id(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    if bytes.len() != 19 {
+        return false;
+    }
+    if &bytes[..2] != b"R-" || bytes[10] != b'-' {
+        return false;
+    }
+    bytes[2..10].iter().all(|b| b.is_ascii_digit())
+        && bytes[11..].iter().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+}
 
 // Mode names only describe the governed work type; system state stays explicit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

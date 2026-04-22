@@ -9,7 +9,6 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use time::OffsetDateTime;
-use uuid::Uuid;
 
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
@@ -27,9 +26,10 @@ use crate::domain::gate::{GateKind, GateStatus};
 use crate::domain::mode::{Mode, all_mode_profiles};
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::run::{
-    ClassificationProvenance, InlineInput, InputFingerprint, InputSourceKind, RunContext, RunState,
-    SystemContext,
+    ClassificationProvenance, InlineInput, InputFingerprint, InputSourceKind, RunContext,
+    RunIdentity, RunState, SystemContext,
 };
+use crate::orchestrator::publish::{PublishSummary, publish_run};
 use crate::orchestrator::{classifier, gatekeeper, resume, verification_runner};
 use crate::orchestrator::{evidence as evidence_builder, invocation as invocation_runtime};
 use crate::persistence::invocations::PersistedInvocation;
@@ -258,6 +258,8 @@ pub struct ModeResultSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RunSummary {
     pub run_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub uuid: Option<String>,
     pub owner: String,
     pub mode: String,
     pub risk: String,
@@ -603,6 +605,27 @@ impl EngineService {
         Self { repo_root: repo_root.as_ref().to_path_buf() }
     }
 
+    /// Repository root this service operates against.
+    pub fn repo_root(&self) -> &Path {
+        &self.repo_root
+    }
+
+    /// Resolve a user-supplied run reference (`run_id`, full UUID, prefix
+    /// `short_id`, or `@last`) to its canonical filesystem key.
+    ///
+    /// This is the canonical entry point for CLI commands that accept a
+    /// run reference; it surfaces ambiguity, missing-history, and not-found
+    /// errors as `EngineError::Validation`.
+    pub fn resolve_run(&self, query: &str) -> Result<String, EngineError> {
+        use crate::persistence::layout::ProjectLayout;
+        use crate::persistence::lookup::{LookupQuery, resolve};
+        let layout = ProjectLayout::new(&self.repo_root);
+        let parsed = LookupQuery::parse(query);
+        let handle =
+            resolve(&layout, &parsed).map_err(|e| EngineError::Validation(e.to_string()))?;
+        Ok(handle.run_id)
+    }
+
     pub fn init(&self, ai_tool: Option<AiTool>) -> Result<InitSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
         let summary = store.init_runtime_state(ai_tool.map(AiTool::materialization_target))?;
@@ -687,6 +710,8 @@ impl EngineService {
         }
 
         let store = WorkspaceStore::new(&self.repo_root);
+        let canonical = self.resolve_run(run_id)?;
+        let run_id = canonical.as_str();
         let manifest = store.load_run_manifest(run_id)?;
         let contract = store.load_artifact_contract(run_id)?;
         let context = store.load_run_context(run_id)?;
@@ -736,6 +761,8 @@ impl EngineService {
 
     pub fn resume(&self, run_id: &str) -> Result<RunSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
+        let canonical = self.resolve_run(run_id)?;
+        let run_id = canonical.as_str();
         let manifest = store.load_run_manifest(run_id)?;
         let context = store.load_run_context(run_id)?;
 
@@ -1121,7 +1148,11 @@ impl EngineService {
                 &store,
                 request,
                 policy_set,
-                run_id.to_string(),
+                manifest.to_identity().ok_or_else(|| {
+                    EngineError::Validation(format!(
+                        "run `{run_id}` is missing identity metadata; cannot resume"
+                    ))
+                })?,
                 approvals.clone(),
             );
         }
@@ -1180,6 +1211,7 @@ impl EngineService {
                 vec![InspectEntry::Clarity(self.inspect_clarity(mode, &inputs)?)],
             ),
             InspectTarget::Artifacts { run_id } => {
+                let run_id = self.resolve_run(&run_id)?;
                 let system_context =
                     store.load_run_context(&run_id).ok().and_then(|context| context.system_context);
                 (
@@ -1193,6 +1225,7 @@ impl EngineService {
                 )
             }
             InspectTarget::Invocations { run_id } => {
+                let run_id = self.resolve_run(&run_id)?;
                 let system_context =
                     store.load_run_context(&run_id).ok().and_then(|context| context.system_context);
                 let artifacts = store
@@ -1250,6 +1283,7 @@ impl EngineService {
                 ("invocations".to_string(), system_context, entries)
             }
             InspectTarget::Evidence { run_id } => {
+                let run_id = self.resolve_run(&run_id)?;
                 let system_context =
                     store.load_run_context(&run_id).ok().and_then(|context| context.system_context);
                 let entries = store
@@ -1456,6 +1490,8 @@ impl EngineService {
     pub fn status(&self, run: &str) -> Result<StatusSummary, EngineError> {
         let _ = all_mode_profiles();
         let store = WorkspaceStore::new(&self.repo_root);
+        let canonical = self.resolve_run(run)?;
+        let run = canonical.as_str();
         let manifest = store.load_run_manifest(run)?;
         let state = store.load_run_state(run)?;
         let details = self.collect_run_runtime_details(&store, run, manifest.mode, state.state)?;
@@ -1477,14 +1513,22 @@ impl EngineService {
         })
     }
 
+    pub fn publish(&self, run: &str, to: Option<PathBuf>) -> Result<PublishSummary, EngineError> {
+        let canonical = self.resolve_run(run)?;
+        publish_run(&self.repo_root, &canonical, to.as_deref())
+    }
+
     fn run_requirements(
         &self,
         store: &WorkspaceStore,
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
-        let run_id = Uuid::now_v7().to_string();
+        let identity = RunIdentity::new_now_v7();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -1590,6 +1634,10 @@ impl EngineService {
             let bundle = PersistedRunBundle {
                 run: RunManifest {
                     run_id: run_id.clone(),
+                    uuid: Some(run_uuid.clone()),
+                    short_id: Some(run_short_id.clone()),
+                    slug: None,
+                    title: None,
                     mode: request.mode,
                     risk: request.risk,
                     zone: request.zone,
@@ -1643,6 +1691,7 @@ impl EngineService {
             )?;
             return Ok(RunSummary {
                 run_id,
+                uuid: Some(run_uuid.clone()),
                 owner: bundle.run.owner.clone(),
                 mode: bundle.run.mode.as_str().to_string(),
                 risk: bundle.run.risk.as_str().to_string(),
@@ -1856,6 +1905,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -1920,6 +1973,7 @@ impl EngineService {
 
         Ok(RunSummary {
             run_id,
+            uuid: Some(run_uuid.clone()),
             owner: bundle.run.owner.clone(),
             mode: bundle.run.mode.as_str().to_string(),
             risk: bundle.run.risk.as_str().to_string(),
@@ -1945,8 +1999,8 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let run_id = Uuid::now_v7().to_string();
-        self.execute_change(store, request, policy_set, run_id, Vec::new())
+        let identity = RunIdentity::new_now_v7();
+        self.execute_change(store, request, policy_set, identity, Vec::new())
     }
 
     fn run_discovery(
@@ -1955,8 +2009,11 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
-        let run_id = Uuid::now_v7().to_string();
+        let identity = RunIdentity::new_now_v7();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -2214,6 +2271,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -2285,8 +2346,11 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
-        let run_id = Uuid::now_v7().to_string();
+        let identity = RunIdentity::new_now_v7();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -2509,6 +2573,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -2574,8 +2642,11 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
-        let run_id = Uuid::now_v7().to_string();
+        let identity = RunIdentity::new_now_v7();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -2798,6 +2869,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -2881,8 +2956,11 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
-        let run_id = Uuid::now_v7().to_string();
+        let identity = RunIdentity::new_now_v7();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -3201,6 +3279,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -3271,10 +3353,13 @@ impl EngineService {
         store: &WorkspaceStore,
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
-        run_id: String,
+        identity: RunIdentity,
         approvals: Vec<ApprovalRecord>,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -3403,6 +3488,10 @@ impl EngineService {
             let bundle = PersistedRunBundle {
                 run: RunManifest {
                     run_id: run_id.clone(),
+                    uuid: Some(run_uuid.clone()),
+                    short_id: Some(run_short_id.clone()),
+                    slug: None,
+                    title: None,
                     mode: request.mode,
                     risk: request.risk,
                     zone: request.zone,
@@ -3651,6 +3740,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -3722,8 +3815,11 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let now = OffsetDateTime::now_utc();
-        let run_id = Uuid::now_v7().to_string();
+        let identity = RunIdentity::new_now_v7();
+        let now = identity.created_at;
+        let run_id = identity.run_id.clone();
+        let run_uuid = identity.uuid.as_simple().to_string();
+        let run_short_id = identity.short_id.clone();
         let mut artifact_contract = contract_for_mode(request.mode);
         classifier::apply_verification_layers(&policy_set, request.risk, &mut artifact_contract);
 
@@ -3954,6 +4050,10 @@ impl EngineService {
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
+                uuid: Some(run_uuid.clone()),
+                short_id: Some(run_short_id.clone()),
+                slug: None,
+                title: None,
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
@@ -4407,6 +4507,7 @@ impl EngineService {
 
         Ok(RunSummary {
             run_id: spec.run_id.to_string(),
+            uuid: manifest.uuid.clone(),
             owner: manifest.owner,
             mode: spec.mode.as_str().to_string(),
             risk: spec.risk.as_str().to_string(),

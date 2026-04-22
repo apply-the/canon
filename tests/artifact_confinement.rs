@@ -20,6 +20,10 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
     PersistedRunBundle {
         run: RunManifest {
             run_id: run_id.to_string(),
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: None,
             mode,
             risk: RiskClass::BoundedImpact,
             zone: UsageZone::Yellow,

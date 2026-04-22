@@ -200,6 +200,30 @@ pub enum Command {
         #[command(subcommand)]
         command: SkillsCommand,
     },
+    List {
+        #[command(subcommand)]
+        command: ListCommand,
+    },
+    Publish(PublishCommand),
+}
+
+#[derive(Debug, Subcommand, Clone)]
+pub enum ListCommand {
+    /// List all known runs (newest first).
+    Runs {
+        #[arg(long, default_value_t)]
+        output: OutputFormat,
+    },
+}
+
+#[derive(Debug, Clone, clap::Args)]
+pub struct PublishCommand {
+    /// The ID of the run to publish (short ID, UUID, or @last)
+    pub run_id: String,
+
+    /// Optional override for the destination directory
+    #[arg(long)]
+    pub to: Option<std::path::PathBuf>,
 }
 
 #[derive(Debug, Parser)]
@@ -272,6 +296,8 @@ pub fn run() -> CliResult<i32> {
         Command::Verify { .. } => commands::verify::execute(),
         Command::Inspect { command } => commands::inspect::execute(&service, command),
         Command::Skills { command } => commands::skills::execute(&service, command),
+        Command::List { command } => commands::list::execute(&service, command),
+        Command::Publish(cmd) => commands::publish::execute(&service, cmd),
     }
 }
 
@@ -280,8 +306,8 @@ mod tests {
     use clap::Parser;
 
     use super::{
-        AiTarget, ApproveCommand, Cli, Command, InspectCommand, OutputFormat, RunCommand,
-        SkillsCommand,
+        AiTarget, ApproveCommand, Cli, Command, InspectCommand, ListCommand, OutputFormat,
+        PublishCommand, RunCommand, SkillsCommand,
     };
     use canon_engine::AiTool;
 
@@ -320,6 +346,30 @@ mod tests {
             Command::Skills { command: SkillsCommand::Install { ai, output } } => {
                 assert_eq!(ai, AiTarget::Codex);
                 assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn list_runs_defaults_to_text_output() {
+        let cli = Cli::parse_from(["canon", "list", "runs"]);
+
+        match cli.command {
+            Command::List { command: ListCommand::Runs { output } } => {
+                assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn list_runs_accepts_yaml_output() {
+        let cli = Cli::parse_from(["canon", "list", "runs", "--output", "yaml"]);
+
+        match cli.command {
+            Command::List { command: ListCommand::Runs { output } } => {
+                assert_eq!(output, OutputFormat::Yaml);
             }
             other => panic!("unexpected command parsed: {other:?}"),
         }
@@ -473,6 +523,15 @@ mod tests {
         match verify_cli.command {
             Command::Verify { run } => assert_eq!(run, "run-123"),
             other => panic!("unexpected verify command parsed: {other:?}"),
+        }
+
+        let publish_cli = Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public"]);
+        match publish_cli.command {
+            Command::Publish(PublishCommand { run_id, to }) => {
+                assert_eq!(run_id, "run-123");
+                assert_eq!(to, Some(std::path::PathBuf::from("docs/public")));
+            }
+            other => panic!("unexpected publish command parsed: {other:?}"),
         }
 
         let approve_cli = Cli::parse_from([

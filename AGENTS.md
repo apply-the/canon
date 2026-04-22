@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-20
+Auto-generated from all feature plans. Last updated: 2026-04-22
 
 ## Governing Constitution
 
@@ -24,6 +24,8 @@ Auto-generated from all feature plans. Last updated: 2026-04-20
 - Rust 1.95.0 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time` (007-review-mode-completion)
 - local filesystem under `.canon/`, Markdown artifacts, TOML manifests and policies (007-review-mode-completion)
 - local filesystem under `.canon/`, TOML manifests and `context.toml`, Markdown artifacts, repo-local skill source documents under `defaults/` and `.agents/skills/` (008-mode-context-split)
+- Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, (009-run-id-display)
+- Local filesystem under `.canon/` only; TOML manifests, Markdown (009-run-id-display)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -74,9 +76,9 @@ tests/
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 009-run-id-display: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`,
 - 008-mode-context-split: Added Rust 1.95.0 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 007-review-mode-completion: Added Rust 1.95.0 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
-- 006-analysis-expansion: Added Rust 1.95.0, Edition 2024 + clap, serde, serde_json, serde_yaml, toml, thiserror,
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->

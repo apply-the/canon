@@ -199,8 +199,9 @@ fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
         "system-shaping evidence should expose validation paths"
     );
 
-    let contract_path =
-        workspace.path().join(".canon").join("runs").join(&run_id).join("artifact-contract.toml");
+    let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+        .run_dir(&run_id)
+        .join("artifact-contract.toml");
     let contract_toml = fs::read_to_string(contract_path).expect("artifact contract");
     assert!(contract_toml.contains("system-shape.md"));
     assert!(contract_toml.contains("architecture-outline.md"));

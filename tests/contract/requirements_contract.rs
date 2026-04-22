@@ -95,8 +95,9 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         .stdout(contains(format!("Run ID: {run_id}")))
         .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/problem-statement.md")));
 
-    let contract_path =
-        workspace.path().join(".canon").join("runs").join(&run_id).join("artifact-contract.toml");
+    let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+        .run_dir(&run_id)
+        .join("artifact-contract.toml");
     let contract_toml = fs::read_to_string(contract_path).expect("artifact contract");
     assert_eq!(
         contract_toml.trim(),
