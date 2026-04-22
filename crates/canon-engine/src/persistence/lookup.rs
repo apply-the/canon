@@ -237,3 +237,205 @@ fn push_handle_if_present(run_dir: &std::path::Path, handles: &mut Vec<RunHandle
 fn looks_like_uuid(s: &str) -> bool {
     s.parse::<uuid::Uuid>().is_ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::Path;
+
+    use tempfile::tempdir;
+    use time::OffsetDateTime;
+    use uuid::Uuid;
+
+    use super::{LookupError, LookupQuery, resolve, scan_all};
+    use crate::domain::mode::Mode;
+    use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::run::{ClassificationProvenance, SystemContext};
+    use crate::persistence::layout::ProjectLayout;
+    use crate::persistence::manifests::RunManifest;
+
+    fn sample_manifest(
+        run_id: &str,
+        uuid: Option<Uuid>,
+        created_at: OffsetDateTime,
+    ) -> RunManifest {
+        let short_id = uuid.as_ref().map(crate::domain::run::short_id_from_uuid);
+        RunManifest {
+            run_id: run_id.to_string(),
+            uuid: uuid.map(|value| value.as_simple().to_string()),
+            short_id,
+            slug: None,
+            title: Some("Sample run".to_string()),
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: Some(SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "Owner <owner@example.com>".to_string(),
+            created_at,
+        }
+    }
+
+    fn write_manifest(run_dir: &Path, manifest: &RunManifest) {
+        fs::create_dir_all(run_dir).expect("create run dir");
+        fs::write(run_dir.join("run.toml"), toml::to_string(manifest).expect("serialize manifest"))
+            .expect("write run manifest");
+    }
+
+    #[test]
+    fn lookup_query_parse_recognizes_supported_tokens() {
+        let uuid = Uuid::parse_str("abcd1234-0000-7000-8000-000000000001").expect("uuid");
+
+        assert!(matches!(LookupQuery::parse("@last"), LookupQuery::Last));
+        assert!(matches!(
+            LookupQuery::parse("R-20260422-abcd1234"),
+            LookupQuery::FullRunId(value) if value == "R-20260422-abcd1234"
+        ));
+        assert!(matches!(
+            LookupQuery::parse(&uuid.to_string()),
+            LookupQuery::FullUuid(value) if value == uuid.as_simple().to_string()
+        ));
+        assert!(
+            matches!(LookupQuery::parse("AbCd"), LookupQuery::ShortId(value) if value == "abcd")
+        );
+        assert!(matches!(
+            LookupQuery::parse("not-a-run"),
+            LookupQuery::FullRunId(value) if value == "not-a-run"
+        ));
+    }
+
+    #[test]
+    fn scan_all_returns_empty_when_runs_root_is_missing() {
+        let workspace = tempdir().expect("temp workspace");
+        let layout = ProjectLayout::new(workspace.path());
+
+        assert!(scan_all(&layout).expect("scan runs").is_empty());
+    }
+
+    #[test]
+    fn scan_all_discovers_canonical_and_legacy_runs() {
+        let workspace = tempdir().expect("temp workspace");
+        let layout = ProjectLayout::new(workspace.path());
+        let canonical_uuid = Uuid::parse_str("11111111-0000-7000-8000-000000000001").expect("uuid");
+        let legacy_uuid = Uuid::parse_str("019db71e-f1bb-7dc2-b535-213e556d16fe").expect("uuid");
+
+        write_manifest(
+            &layout.new_run_dir("R-20260422-11111111", Some("slugged-run")),
+            &sample_manifest(
+                "R-20260422-11111111",
+                Some(canonical_uuid),
+                OffsetDateTime::from_unix_timestamp(1_700_000_010).expect("timestamp"),
+            ),
+        );
+        write_manifest(
+            &layout.runs_dir().join(legacy_uuid.to_string()),
+            &sample_manifest(
+                &legacy_uuid.to_string(),
+                None,
+                OffsetDateTime::from_unix_timestamp(1_700_000_020).expect("timestamp"),
+            ),
+        );
+
+        let invalid_dir = layout.runs_dir().join("2026").join("04").join("R-20260422-deadbeef");
+        fs::create_dir_all(&invalid_dir).expect("create invalid dir");
+        fs::write(invalid_dir.join("run.toml"), "not = [valid").expect("write invalid manifest");
+        fs::write(layout.runs_dir().join("README.txt"), "skip me").expect("write root file");
+
+        let mut handles = scan_all(&layout).expect("scan runs");
+        handles.sort_by(|left, right| left.run_id.cmp(&right.run_id));
+
+        assert_eq!(handles.len(), 2);
+
+        let canonical = handles
+            .iter()
+            .find(|handle| handle.run_id == "R-20260422-11111111")
+            .expect("canonical run");
+        assert_eq!(canonical.uuid, canonical_uuid.as_simple().to_string());
+        assert_eq!(canonical.short_id, "11111111");
+        assert!(!canonical.is_legacy);
+        assert!(canonical.directory.to_string_lossy().contains("R-20260422-11111111--slugged-run"));
+
+        let legacy = handles
+            .iter()
+            .find(|handle| handle.run_id == legacy_uuid.to_string())
+            .expect("legacy run");
+        assert_eq!(legacy.uuid, legacy_uuid.as_simple().to_string());
+        assert_eq!(legacy.short_id, "019db71e");
+        assert!(legacy.is_legacy);
+    }
+
+    #[test]
+    fn resolve_supports_last_run_id_uuid_and_short_id_queries() {
+        let workspace = tempdir().expect("temp workspace");
+        let layout = ProjectLayout::new(workspace.path());
+        let first_uuid = Uuid::parse_str("11111111-0000-7000-8000-000000000001").expect("uuid");
+        let second_uuid = Uuid::parse_str("22222222-0000-7000-8000-000000000002").expect("uuid");
+        let created_at = OffsetDateTime::from_unix_timestamp(1_700_000_030).expect("timestamp");
+
+        write_manifest(
+            &layout.new_run_dir("R-20260422-11111111", None),
+            &sample_manifest("R-20260422-11111111", Some(first_uuid), created_at),
+        );
+        write_manifest(
+            &layout.new_run_dir("R-20260422-22222222", None),
+            &sample_manifest("R-20260422-22222222", Some(second_uuid), created_at),
+        );
+
+        let last = resolve(&layout, &LookupQuery::Last).expect("resolve last");
+        assert_eq!(last.run_id, "R-20260422-22222222");
+
+        let by_run_id =
+            resolve(&layout, &LookupQuery::FullRunId("R-20260422-11111111".to_string()))
+                .expect("resolve run id");
+        assert_eq!(by_run_id.uuid, first_uuid.as_simple().to_string());
+
+        let by_uuid = resolve(&layout, &LookupQuery::FullUuid(second_uuid.as_simple().to_string()))
+            .expect("resolve uuid");
+        assert_eq!(by_uuid.run_id, "R-20260422-22222222");
+
+        let by_short_id =
+            resolve(&layout, &LookupQuery::ShortId("1111".to_string())).expect("resolve short id");
+        assert_eq!(by_short_id.run_id, "R-20260422-11111111");
+    }
+
+    #[test]
+    fn resolve_reports_empty_history_missing_runs_and_ambiguous_short_ids() {
+        let workspace = tempdir().expect("temp workspace");
+        let layout = ProjectLayout::new(workspace.path());
+
+        assert!(matches!(resolve(&layout, &LookupQuery::Last), Err(LookupError::EmptyHistory)));
+
+        let first_uuid = Uuid::parse_str("abcd1234-0000-7000-8000-000000000001").expect("uuid");
+        let second_uuid = Uuid::parse_str("abcd5678-0000-7000-8000-000000000002").expect("uuid");
+
+        write_manifest(
+            &layout.new_run_dir("R-20260422-abcd1234", None),
+            &sample_manifest(
+                "R-20260422-abcd1234",
+                Some(first_uuid),
+                OffsetDateTime::from_unix_timestamp(1_700_000_040).expect("timestamp"),
+            ),
+        );
+        write_manifest(
+            &layout.new_run_dir("R-20260422-abcd5678", None),
+            &sample_manifest(
+                "R-20260422-abcd5678",
+                Some(second_uuid),
+                OffsetDateTime::from_unix_timestamp(1_700_000_050).expect("timestamp"),
+            ),
+        );
+
+        match resolve(&layout, &LookupQuery::FullRunId("R-20260422-deadbeef".to_string())) {
+            Err(LookupError::NotFound { query }) => assert_eq!(query, "R-20260422-deadbeef"),
+            other => panic!("expected not found error, got {other:?}"),
+        }
+
+        match resolve(&layout, &LookupQuery::ShortId("abcd".to_string())) {
+            Err(LookupError::Ambiguous { query, matches }) => {
+                assert_eq!(query, "abcd");
+                assert_eq!(matches, vec!["R-20260422-abcd1234", "R-20260422-abcd5678"]);
+            }
+            other => panic!("expected ambiguous error, got {other:?}"),
+        }
+    }
+}

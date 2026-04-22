@@ -134,3 +134,99 @@ pub struct RunStateManifest {
     pub state: RunState,
     pub updated_at: OffsetDateTime,
 }
+
+#[cfg(test)]
+mod tests {
+    use time::OffsetDateTime;
+    use uuid::Uuid;
+
+    use super::RunManifest;
+    use crate::domain::mode::Mode;
+    use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::run::{
+        ClassificationProvenance, RunIdentity, SystemContext, short_id_from_uuid,
+    };
+
+    fn sample_manifest(run_id: String) -> RunManifest {
+        RunManifest {
+            run_id,
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: Some("Sample run".to_string()),
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: Some(SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "Owner <owner@example.com>".to_string(),
+            created_at: OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("timestamp"),
+        }
+    }
+
+    #[test]
+    fn from_identity_populates_modern_identity_fields() {
+        let uuid = Uuid::parse_str("019db71e-f1bb-7dc2-b535-213e556d16fe").expect("uuid");
+        let created_at = OffsetDateTime::from_unix_timestamp(1_700_000_100).expect("timestamp");
+        let identity = RunIdentity::from_parts(uuid, created_at);
+        let uuid_string = identity.uuid.as_simple().to_string();
+
+        let manifest = RunManifest::from_identity(
+            &identity,
+            Mode::Requirements,
+            RiskClass::LowImpact,
+            UsageZone::Green,
+            Some(SystemContext::Existing),
+            ClassificationProvenance::explicit(),
+            "Owner <owner@example.com>".to_string(),
+        );
+
+        assert_eq!(manifest.run_id, identity.run_id);
+        assert_eq!(manifest.uuid.as_deref(), Some(uuid_string.as_str()));
+        assert_eq!(manifest.short_id.as_deref(), Some(identity.short_id.as_str()));
+        assert_eq!(manifest.created_at, created_at);
+        assert!(!manifest.is_legacy_layout());
+    }
+
+    #[test]
+    fn canonicalize_reconstructs_legacy_identity_fields() {
+        let uuid = Uuid::parse_str("019db71e-f1bb-7dc2-b535-213e556d16fe").expect("uuid");
+        let uuid_string = uuid.to_string();
+        let expected_short_id = short_id_from_uuid(&uuid);
+        let manifest = sample_manifest(uuid_string.clone());
+
+        let canonical = manifest.canonicalize();
+
+        assert_eq!(canonical.uuid.as_deref(), Some(uuid.as_simple().to_string().as_str()));
+        assert_eq!(canonical.short_id.as_deref(), Some(expected_short_id.as_str()));
+        assert_eq!(canonical.uuid_or_legacy(), uuid.as_simple().to_string());
+        assert!(canonical.is_legacy_layout());
+
+        let identity = canonical.to_identity().expect("legacy identity should reconstruct");
+        assert_eq!(identity.run_id, uuid_string);
+        assert_eq!(identity.short_id, expected_short_id);
+    }
+
+    #[test]
+    fn canonicalize_backfills_short_id_from_uuid_when_missing() {
+        let uuid = Uuid::parse_str("22222222-0000-7000-8000-000000000002").expect("uuid");
+        let uuid_string = uuid.as_simple().to_string();
+        let expected_short_id = short_id_from_uuid(&uuid);
+        let mut manifest = sample_manifest("R-20260422-22222222".to_string());
+        manifest.uuid = Some(uuid_string.clone());
+
+        let canonical = manifest.canonicalize();
+
+        assert_eq!(canonical.uuid.as_deref(), Some(uuid_string.as_str()));
+        assert_eq!(canonical.short_id.as_deref(), Some(expected_short_id.as_str()));
+        assert!(!canonical.is_legacy_layout());
+    }
+
+    #[test]
+    fn to_identity_returns_none_without_a_parseable_uuid() {
+        let manifest = sample_manifest("legacy-run".to_string());
+
+        assert_eq!(manifest.uuid_or_legacy(), "legacy-run");
+        assert!(manifest.to_identity().is_none());
+    }
+}

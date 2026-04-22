@@ -306,8 +306,8 @@ mod tests {
     use clap::Parser;
 
     use super::{
-        AiTarget, ApproveCommand, Cli, Command, InspectCommand, OutputFormat, PublishCommand,
-        RunCommand, SkillsCommand,
+        AiTarget, ApproveCommand, Cli, Command, InspectCommand, ListCommand, OutputFormat,
+        PublishCommand, RunCommand, SkillsCommand,
     };
     use canon_engine::AiTool;
 
@@ -346,6 +346,30 @@ mod tests {
             Command::Skills { command: SkillsCommand::Install { ai, output } } => {
                 assert_eq!(ai, AiTarget::Codex);
                 assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn list_runs_defaults_to_text_output() {
+        let cli = Cli::parse_from(["canon", "list", "runs"]);
+
+        match cli.command {
+            Command::List { command: ListCommand::Runs { output } } => {
+                assert_eq!(output, OutputFormat::Text);
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn list_runs_accepts_yaml_output() {
+        let cli = Cli::parse_from(["canon", "list", "runs", "--output", "yaml"]);
+
+        match cli.command {
+            Command::List { command: ListCommand::Runs { output } } => {
+                assert_eq!(output, OutputFormat::Yaml);
             }
             other => panic!("unexpected command parsed: {other:?}"),
         }
