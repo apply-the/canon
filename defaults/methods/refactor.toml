@@ -1,8 +1,9 @@
 version = 1
+# Requires explicit `--system-context new|existing` when starting a run.
 mode = "refactor"
 emphasis = "execution-heavy"
 implementation_depth = "contract-only"
-gate_profile = ["Exploration", "BrownfieldPreservation", "Risk", "ReleaseReadiness"]
+gate_profile = ["Exploration", "ChangePreservation", "Risk", "ReleaseReadiness"]
 artifacts = [
     "equivalence-criteria.md",
     "preserved-surface.md",

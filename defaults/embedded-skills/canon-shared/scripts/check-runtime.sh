@@ -12,8 +12,10 @@ run_id=""
 owner=""
 risk=""
 zone=""
+system_context=""
 normalized_risk=""
 normalized_zone=""
+normalized_system_context=""
 inferred_risk=""
 inferred_zone=""
 inference_confidence=""
@@ -93,6 +95,14 @@ normalize_zone() {
     green|Green) printf '%s' 'green' ;;
     yellow|Yellow) printf '%s' 'yellow' ;;
     red|Red) printf '%s' 'red' ;;
+    *) return 1 ;;
+  esac
+}
+
+normalize_system_context() {
+  case "$1" in
+    new|New) printf '%s' 'new' ;;
+    existing|Existing) printf '%s' 'existing' ;;
     *) return 1 ;;
   esac
 }
@@ -252,8 +262,8 @@ canonical_mode_input_hint() {
     system-shaping)
       printf '%s' 'canon-input/system-shaping.md or canon-input/system-shaping/'
       ;;
-    brownfield-change)
-      printf '%s' 'canon-input/brownfield-change.md or canon-input/brownfield-change/'
+    change)
+      printf '%s' 'canon-input/change.md or canon-input/change/'
       ;;
     *)
       return 1
@@ -416,6 +426,10 @@ while [[ $# -gt 0 ]]; do
       zone="${2:-}"
       shift 2
       ;;
+    --system-context)
+      system_context="${2:-}"
+      shift 2
+      ;;
     --input)
       inputs+=("${2:-}")
       shift 2
@@ -498,7 +512,7 @@ if canon --version >/dev/null 2>&1; then
   fi
 else
   probe_output="$(canon inspect modes --output json 2>/dev/null || true)"
-  if [[ -z "${probe_output}" ]] || [[ "${probe_output}" != *"requirements"* ]] || [[ "${probe_output}" != *"brownfield-change"* ]] || [[ "${probe_output}" != *"review"* ]] || [[ "${probe_output}" != *"verification"* ]] || [[ "${probe_output}" != *"pr-review"* ]]; then
+  if [[ -z "${probe_output}" ]] || [[ "${probe_output}" != *"requirements"* ]] || [[ "${probe_output}" != *"change"* ]] || [[ "${probe_output}" != *"review"* ]] || [[ "${probe_output}" != *"verification"* ]] || [[ "${probe_output}" != *"pr-review"* ]]; then
     emit_failure "version-incompatible" 11 \
       "Canon is present, but it does not satisfy the expected CLI command contract for this repo." \
       "$(reinstall_action)"
@@ -522,7 +536,7 @@ run_id_command="false"
 pr_review_command="false"
 
 case "${command_name}" in
-  requirements|discovery|system-shaping|architecture|brownfield-change|review|verification)
+  requirements|discovery|system-shaping|architecture|change|review|verification)
     run_start_command="true"
     ;;
   pr-review)
@@ -563,6 +577,7 @@ if [[ "${run_start_command}" == "true" ]]; then
   owner="$(trim "${owner}")"
   risk="$(trim "${risk}")"
   zone="$(trim "${zone}")"
+  system_context="$(trim "${system_context}")"
 
   if [[ "${pr_review_command}" == "true" ]]; then
     if (( ${#refs[@]} == 0 )); then
@@ -741,6 +756,42 @@ if [[ "${run_start_command}" == "true" ]]; then
     fi
   fi
 
+  system_context_usage=""
+  case "${command_name}" in
+    system-shaping|architecture)
+      system_context_usage="new|existing"
+      ;;
+    change)
+      system_context_usage="existing"
+      ;;
+  esac
+
+  if [[ -n "${system_context_usage}" ]] && is_missing_value "$system_context"; then
+    emit_failure "missing-input" 14 \
+      "System context is required for ${command_name}." \
+      "Retry with --system-context ${system_context_usage}." \
+      "FAILED_SLOT=system-context" \
+      "FAILED_KIND=SystemContextField"
+  fi
+
+  if ! is_missing_value "$system_context"; then
+    if ! normalized_system_context="$(normalize_system_context "$system_context")"; then
+      emit_failure "invalid-input" 17 \
+        "System context ${system_context} is not supported by the Canon runtime contract." \
+        "Retry with new, existing, or the runtime-recognized aliases New, Existing." \
+        "FAILED_SLOT=system-context" \
+        "FAILED_KIND=SystemContextField"
+    fi
+  fi
+
+  if [[ "${command_name}" == "change" && -n "${normalized_system_context}" && "${normalized_system_context}" != "existing" ]]; then
+    emit_failure "invalid-input" 17 \
+      "Mode change currently supports only --system-context existing in this release." \
+      "Retry with --system-context existing." \
+      "FAILED_SLOT=system-context" \
+      "FAILED_KIND=SystemContextField"
+  fi
+
   if [[ -z "${normalized_risk}" || -z "${normalized_zone}" ]]; then
     if [[ "${pr_review_command}" == "true" ]]; then
       infer_classification "$command_name" "$normalized_ref_1" "$normalized_ref_2"
@@ -767,6 +818,9 @@ if [[ "${run_start_command}" == "true" ]]; then
 
     if [[ -n "${normalized_input_1}" ]]; then
       extras+=("NORMALIZED_INPUT_1=${normalized_input_1}")
+    fi
+    if [[ -n "${normalized_system_context}" ]]; then
+      extras+=("NORMALIZED_SYSTEM_CONTEXT=${normalized_system_context}")
     fi
     if [[ -n "${normalized_ref_1}" ]]; then
       extras+=("NORMALIZED_REF_1=${normalized_ref_1}")
@@ -803,6 +857,9 @@ if [[ -n "${normalized_run_id}" ]]; then
 fi
 if [[ -n "${normalized_input_1}" ]]; then
   extras+=("NORMALIZED_INPUT_1=${normalized_input_1}")
+fi
+if [[ -n "${normalized_system_context}" ]]; then
+  extras+=("NORMALIZED_SYSTEM_CONTEXT=${normalized_system_context}")
 fi
 if [[ -n "${normalized_ref_1}" ]]; then
   extras+=("NORMALIZED_REF_1=${normalized_ref_1}")

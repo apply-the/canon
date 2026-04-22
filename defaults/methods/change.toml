@@ -1,10 +1,11 @@
 version = 1
-mode = "brownfield-change"
+# Requires explicit `--system-context existing` when starting a run.
+mode = "change"
 emphasis = "analysis-heavy"
 implementation_depth = "full"
 gate_profile = [
     "Exploration",
-    "BrownfieldPreservation",
+    "ChangePreservation",
     "Architecture",
     "Risk",
     "ReleaseReadiness",

@@ -22,7 +22,7 @@ messaging for outage and response requests.
 
 ## When It Must Not Trigger
 
-- The user wants runnable live-codebase change planning; use `$canon-brownfield`.
+- The user wants runnable live-codebase change planning; use `$canon-change`.
 - The user only needs bounded problem framing; use `$canon-requirements`.
 - The user expects a real Canon run, approval target, or evidence bundle today.
 
@@ -44,7 +44,7 @@ messaging for outage and response requests.
 - Explain that Canon models `incident` as a typed mode and keeps it discoverable.
 - Explain that Canon does not yet deliver incident-specific execution, escalation, and evidence end to end.
 - If the request has stabilized into bounded live-codebase change work, direct the
-	user to `$canon-brownfield`.
+	user to `$canon-change`.
 - If the incident is still too ambiguous to bound safely, direct the user to
 	`$canon-requirements`.
 
@@ -62,10 +62,10 @@ messaging for outage and response requests.
 
 ## Next-Step Guidance
 
-- Use `$canon-brownfield` when the incident requires bounded live-codebase change planning.
+- Use `$canon-change` when the incident requires bounded live-codebase change planning.
 - Use `$canon-requirements` when the incident first needs bounded problem framing.
 
 ## Related Skills
 
-- `$canon-brownfield`
+- `$canon-change`
 - `$canon-requirements`

@@ -35,7 +35,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "requirements",
             "system-shaping",
             "architecture",
-            "brownfield-change",
+            "change",
             "pr-review",
             "implementation",
             "refactor",

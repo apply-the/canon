@@ -35,7 +35,7 @@ fn git(workspace: &TempDir, args: &[&str]) {
     );
 }
 
-fn init_brownfield_repo(workspace: &TempDir) {
+fn init_change_repo(workspace: &TempDir) {
     git(workspace, &["init", "-b", "main"]);
     git(workspace, &["config", "user.name", "Canon Test"]);
     git(workspace, &["config", "user.email", "canon@example.com"]);
@@ -54,25 +54,27 @@ fn init_brownfield_repo(workspace: &TempDir) {
     .expect("test file");
 
     git(workspace, &["add", "."]);
-    git(workspace, &["commit", "-m", "seed brownfield repo"]);
+    git(workspace, &["commit", "-m", "seed change repo"]);
 }
 
 fn complete_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
 #[test]
-fn brownfield_governed_run_persists_evidence_and_independent_validation_paths() {
+fn change_governed_run_persists_evidence_and_independent_validation_paths() {
     let workspace = TempDir::new().expect("temp dir");
-    init_brownfield_repo(&workspace);
-    fs::write(workspace.path().join("brownfield.md"), complete_brief()).expect("brief file");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("change.md"), complete_brief()).expect("brief file");
 
     let output = cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -80,7 +82,7 @@ fn brownfield_governed_run_persists_evidence_and_independent_validation_paths() 
             "--owner",
             "maintainer",
             "--input",
-            "brownfield.md",
+            "change.md",
             "--output",
             "json",
         ])
@@ -94,7 +96,7 @@ fn brownfield_governed_run_persists_evidence_and_independent_validation_paths() 
 
     assert!(
         json["invocations_total"].as_u64().is_some_and(|count| count >= 3),
-        "brownfield run should record governed repository, generation, and validation requests"
+        "change run should record governed repository, generation, and validation requests"
     );
     assert_eq!(json["invocations_pending_approval"], 0);
     assert!(
@@ -114,15 +116,15 @@ fn brownfield_governed_run_persists_evidence_and_independent_validation_paths() 
     let entries = invocation_json["entries"].as_array().expect("entries");
     assert!(
         entries.iter().any(|entry| entry["capability"] == "ReadRepository"),
-        "brownfield run should persist repository context capture"
+        "change run should persist repository context capture"
     );
     assert!(
         entries.iter().any(|entry| entry["capability"] == "GenerateContent"),
-        "brownfield run should persist bounded generation"
+        "change run should persist bounded generation"
     );
     assert!(
         entries.iter().any(|entry| entry["capability"] == "ValidateWithTool"),
-        "brownfield run should persist independent validation-tool execution"
+        "change run should persist independent validation-tool execution"
     );
 
     let evidence = cli_command()
@@ -140,11 +142,11 @@ fn brownfield_governed_run_persists_evidence_and_independent_validation_paths() 
         .expect("evidence bundle");
     assert!(
         bundle["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "brownfield evidence should include a generation path"
+        "change evidence should include a generation path"
     );
     assert!(
         bundle["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "brownfield evidence should include a validation path"
+        "change evidence should include a validation path"
     );
 
     let status = cli_command()

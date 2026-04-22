@@ -7,7 +7,7 @@
 
 ## Governance Context *(mandatory)*
 
-**Mode**: [system-shaping, brownfield, review, architecture, debugging, operations
+**Mode**: [system-shaping, change, review, architecture, debugging, operations
 or NEEDS CLARIFICATION]
 **Risk Classification**: [low-impact | bounded-impact | systemic-impact with rationale]
 **Scope In**: [What this feature is allowed to change]

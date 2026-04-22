@@ -6,6 +6,7 @@ use crate::domain::artifact::ArtifactContract;
 use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
+use crate::domain::run::SystemContext;
 
 pub struct DiscoveryGateContext<'a> {
     pub owner: &'a str,
@@ -32,11 +33,12 @@ pub struct ArchitectureGateContext<'a> {
     pub evidence_complete: bool,
 }
 
-pub struct BrownfieldGateContext<'a> {
+pub struct ChangeGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
     pub zone: UsageZone,
     pub approvals: &'a [ApprovalRecord],
+    pub system_context: Option<SystemContext>,
     pub validation_independence_satisfied: bool,
     pub evidence_complete: bool,
 }
@@ -193,10 +195,10 @@ pub fn evaluate_architecture_gates(
     ]
 }
 
-pub fn evaluate_brownfield_gates(
+pub fn evaluate_change_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
-    context: BrownfieldGateContext<'_>,
+    context: ChangeGateContext<'_>,
 ) -> Vec<GateEvaluation> {
     vec![
         named_artifact_gate(
@@ -204,30 +206,64 @@ pub fn evaluate_brownfield_gates(
             contract,
             artifacts,
             &["system-slice.md"],
-            "brownfield exploration requires a bounded system slice",
+            "change exploration requires a bounded system slice",
         ),
-        named_artifact_gate(
-            GateKind::BrownfieldPreservation,
-            contract,
-            artifacts,
-            &["legacy-invariants.md", "change-surface.md"],
-            "brownfield preservation requires preserved behavior and a named change surface",
-        ),
+        change_preservation_gate(contract, artifacts, context.system_context),
         named_artifact_gate(
             GateKind::Architecture,
             contract,
             artifacts,
             &["implementation-plan.md", "decision-record.md"],
-            "brownfield architecture review requires an implementation plan and decision record",
+            "change architecture review requires an implementation plan and decision record",
         ),
-        brownfield_risk_gate(context.owner, context.risk, context.zone, context.approvals),
-        brownfield_release_readiness_gate(
+        change_risk_gate(context.owner, context.risk, context.zone, context.approvals),
+        change_release_readiness_gate(
             contract,
             artifacts,
             context.validation_independence_satisfied,
             context.evidence_complete,
         ),
     ]
+}
+
+fn change_preservation_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    system_context: Option<SystemContext>,
+) -> GateEvaluation {
+    let mut blockers = contract
+        .artifact_requirements
+        .iter()
+        .filter(|requirement| {
+            matches!(requirement.file_name.as_str(), "legacy-invariants.md" | "change-surface.md")
+        })
+        .flat_map(|requirement| {
+            artifacts
+                .iter()
+                .find(|(file_name, _)| file_name == &requirement.file_name)
+                .map(|(_, contents)| {
+                    crate::artifacts::contract::validate_artifact(requirement, contents)
+                })
+                .unwrap_or_else(|| {
+                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                })
+        })
+        .collect::<Vec<_>>();
+
+    // Change keeps the preserved-behavior gate, while system_context keeps the target-system fact explicit.
+    if !matches!(system_context, Some(SystemContext::Existing)) {
+        blockers.push(
+            "change preservation requires `system_context = existing` so gating stays bound to an existing system"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ChangePreservation,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
 }
 
 pub fn evaluate_review_gates(
@@ -427,7 +463,7 @@ fn analysis_release_readiness_gate(
     }
 }
 
-fn brownfield_risk_gate(
+fn change_risk_gate(
     owner: &str,
     risk: RiskClass,
     zone: UsageZone,
@@ -461,7 +497,7 @@ fn brownfield_risk_gate(
         (
             GateStatus::NeedsApproval,
             vec![
-                "systemic-impact or red-zone brownfield work requires explicit approval before it can proceed"
+                "systemic-impact or red-zone change work requires explicit approval before it can proceed"
                     .to_string(),
             ],
         )
@@ -479,7 +515,7 @@ fn brownfield_risk_gate(
     }
 }
 
-fn brownfield_release_readiness_gate(
+fn change_release_readiness_gate(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
     validation_independence_satisfied: bool,
@@ -488,14 +524,13 @@ fn brownfield_release_readiness_gate(
     let mut blockers = validate_release_bundle(contract, artifacts);
 
     if !evidence_complete {
-        blockers.push(
-            "brownfield readiness needs explicit generation and validation evidence".to_string(),
-        );
+        blockers
+            .push("change readiness needs explicit generation and validation evidence".to_string());
     }
 
     if !validation_independence_satisfied {
         blockers.push(
-            "brownfield readiness requires an independently recorded validation path".to_string(),
+            "change readiness requires an independently recorded validation path".to_string(),
         );
     }
 
@@ -848,8 +883,8 @@ mod tests {
     use time::OffsetDateTime;
 
     use super::{
-        BrownfieldGateContext, PrReviewGateContext, evaluate_brownfield_gates,
-        evaluate_pr_review_gates, evaluate_requirements_gates,
+        ChangeGateContext, PrReviewGateContext, evaluate_change_gates, evaluate_pr_review_gates,
+        evaluate_requirements_gates,
     };
     use crate::artifacts::contract::contract_for_mode;
     use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
@@ -858,6 +893,7 @@ mod tests {
     use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::run::SystemContext;
 
     fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
         contract
@@ -961,18 +997,19 @@ mod tests {
     }
 
     #[test]
-    fn brownfield_risk_gate_requires_or_records_approval_for_systemic_red_runs() {
-        let contract = contract_for_mode(Mode::BrownfieldChange);
+    fn change_risk_gate_requires_or_records_approval_for_systemic_red_runs() {
+        let contract = contract_for_mode(Mode::Change);
         let artifacts = valid_artifacts(&contract);
 
-        let gated = evaluate_brownfield_gates(
+        let gated = evaluate_change_gates(
             &contract,
             &artifacts,
-            BrownfieldGateContext {
+            ChangeGateContext {
                 owner: "Owner",
                 risk: RiskClass::SystemicImpact,
                 zone: UsageZone::Red,
                 approvals: &[],
+                system_context: Some(SystemContext::Existing),
                 validation_independence_satisfied: true,
                 evidence_complete: true,
             },
@@ -986,14 +1023,15 @@ mod tests {
             "approved for test".to_string(),
             OffsetDateTime::UNIX_EPOCH,
         )];
-        let overridden = evaluate_brownfield_gates(
+        let overridden = evaluate_change_gates(
             &contract,
             &artifacts,
-            BrownfieldGateContext {
+            ChangeGateContext {
                 owner: "Owner",
                 risk: RiskClass::SystemicImpact,
                 zone: UsageZone::Red,
                 approvals: &approvals,
+                system_context: Some(SystemContext::Existing),
                 validation_independence_satisfied: true,
                 evidence_complete: true,
             },
@@ -1003,18 +1041,19 @@ mod tests {
     }
 
     #[test]
-    fn brownfield_release_readiness_blocks_without_evidence_or_independent_validation() {
-        let contract = contract_for_mode(Mode::BrownfieldChange);
+    fn change_release_readiness_blocks_without_evidence_or_independent_validation() {
+        let contract = contract_for_mode(Mode::Change);
         let artifacts = valid_artifacts(&contract);
 
-        let evaluations = evaluate_brownfield_gates(
+        let evaluations = evaluate_change_gates(
             &contract,
             &artifacts,
-            BrownfieldGateContext {
+            ChangeGateContext {
                 owner: "Owner",
                 risk: RiskClass::LowImpact,
                 zone: UsageZone::Green,
                 approvals: &[],
+                system_context: Some(SystemContext::Existing),
                 validation_independence_satisfied: false,
                 evidence_complete: false,
             },
@@ -1033,6 +1072,35 @@ mod tests {
                 .blockers
                 .iter()
                 .any(|blocker| blocker.contains("independently recorded validation path"))
+        );
+    }
+
+    #[test]
+    fn change_preservation_blocks_without_existing_system_context() {
+        let contract = contract_for_mode(Mode::Change);
+        let artifacts = valid_artifacts(&contract);
+
+        let evaluations = evaluate_change_gates(
+            &contract,
+            &artifacts,
+            ChangeGateContext {
+                owner: "Owner",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                system_context: Some(SystemContext::New),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        let preservation = gate(&evaluations, GateKind::ChangePreservation);
+
+        assert_eq!(preservation.status, GateStatus::Blocked);
+        assert!(
+            preservation
+                .blockers
+                .iter()
+                .any(|blocker| { blocker.contains("system_context = existing") })
         );
     }
 

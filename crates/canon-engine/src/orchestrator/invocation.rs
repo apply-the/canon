@@ -7,7 +7,7 @@ use crate::domain::execution::{
 use crate::domain::policy::PolicySet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BrownfieldMutationScopeStatus {
+enum ChangeMutationScopeStatus {
     Missing,
     Bounded,
     Expanded,
@@ -79,36 +79,36 @@ pub fn evaluate_request_policy(
         return decision;
     }
 
-    if request.mode == "brownfield-change"
+    if request.mode == "change"
         && matches!(
             request.capability,
             canon_adapters::CapabilityKind::ExecuteBoundedTransformation
         )
     {
-        match classify_brownfield_mutation_scope(&request.requested_scope) {
-            BrownfieldMutationScopeStatus::Missing => {
+        match classify_change_mutation_scope(&request.requested_scope) {
+            ChangeMutationScopeStatus::Missing => {
                 decision.kind = PolicyDecisionKind::Deny;
                 decision.requires_approval = false;
                 decision.rationale =
-                    "brownfield mutation requires a closed named change surface before execution can be recommended"
+                    "change mutation requires a closed named change surface before execution can be recommended"
                         .to_string();
             }
-            BrownfieldMutationScopeStatus::Expanded => {
+            ChangeMutationScopeStatus::Expanded => {
                 decision.kind = PolicyDecisionKind::NeedsApproval;
                 decision.requires_approval = true;
                 decision.constraints.allowed_paths = request.requested_scope.clone();
                 decision.rationale = format!(
-                    "brownfield mutation scope broadens beyond a closed change surface and requires explicit approval before it can be recommended: {}",
+                    "change mutation scope broadens beyond a closed change surface and requires explicit approval before it can be recommended: {}",
                     request.requested_scope.join(", ")
                 );
             }
-            BrownfieldMutationScopeStatus::Bounded => {
+            ChangeMutationScopeStatus::Bounded => {
                 decision.kind = PolicyDecisionKind::AllowConstrained;
                 decision.constraints =
-                    policy_set.constraint_profile("brownfield-mutation").unwrap_or_default();
+                    policy_set.constraint_profile("change-mutation").unwrap_or_default();
                 decision.constraints.allowed_paths = request.requested_scope.clone();
                 decision.rationale = format!(
-                    "brownfield mutation remains recommendation-only within the declared change surface: {}",
+                    "change mutation remains recommendation-only within the declared change surface: {}",
                     request.requested_scope.join(", ")
                 );
             }
@@ -118,7 +118,7 @@ pub fn evaluate_request_policy(
 
     let approval_required = matches!(
         (request.mode.as_str(), request.capability),
-        ("requirements" | "brownfield-change", canon_adapters::CapabilityKind::GenerateContent)
+        ("requirements" | "change", canon_adapters::CapabilityKind::GenerateContent)
     ) && (!policy_set.allow_mutation(request.risk, request.zone)
         || matches!(request.risk, crate::domain::policy::RiskClass::SystemicImpact));
 
@@ -151,17 +151,11 @@ fn constraint_profile_id(request: &InvocationRequest) -> Option<&'static str> {
         ("requirements", canon_adapters::CapabilityKind::CritiqueContent) => {
             Some("requirements-validation")
         }
-        ("brownfield-change", canon_adapters::CapabilityKind::ReadRepository) => {
-            Some("brownfield-context")
-        }
-        ("brownfield-change", canon_adapters::CapabilityKind::GenerateContent) => {
-            Some("brownfield-generation")
-        }
-        ("brownfield-change", canon_adapters::CapabilityKind::ValidateWithTool) => {
-            Some("brownfield-validation")
-        }
-        ("brownfield-change", canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
-            Some("brownfield-mutation")
+        ("change", canon_adapters::CapabilityKind::ReadRepository) => Some("change-context"),
+        ("change", canon_adapters::CapabilityKind::GenerateContent) => Some("change-generation"),
+        ("change", canon_adapters::CapabilityKind::ValidateWithTool) => Some("change-validation"),
+        ("change", canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
+            Some("change-mutation")
         }
         ("pr-review", canon_adapters::CapabilityKind::InspectDiff) => Some("pr-review-diff"),
         ("pr-review", canon_adapters::CapabilityKind::CritiqueContent) => {
@@ -180,17 +174,17 @@ fn constrained_rationale(request: &InvocationRequest) -> &'static str {
         ("requirements", canon_adapters::CapabilityKind::ReadRepository) => {
             "requirements context capture is bounded by repository and input scope constraints"
         }
-        ("brownfield-change", canon_adapters::CapabilityKind::ReadRepository) => {
-            "brownfield repository analysis is bounded to the named system slice and current workspace"
+        ("change", canon_adapters::CapabilityKind::ReadRepository) => {
+            "change repository analysis is bounded to the named system slice and current workspace"
         }
-        ("brownfield-change", canon_adapters::CapabilityKind::GenerateContent) => {
-            "brownfield generation is bounded and must remain traceable to repository context"
+        ("change", canon_adapters::CapabilityKind::GenerateContent) => {
+            "change generation is bounded and must remain traceable to repository context"
         }
-        ("brownfield-change", canon_adapters::CapabilityKind::ValidateWithTool) => {
-            "brownfield validation must challenge generated change framing through a separate non-generative path"
+        ("change", canon_adapters::CapabilityKind::ValidateWithTool) => {
+            "change validation must challenge generated change framing through a separate non-generative path"
         }
-        ("brownfield-change", canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
-            "brownfield mutation remains recommendation-only until a later execution tranche"
+        ("change", canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
+            "change mutation remains recommendation-only until a later execution tranche"
         }
         ("pr-review", canon_adapters::CapabilityKind::InspectDiff) => {
             "pr-review diff inspection is constrained to summary-first repository evidence"
@@ -202,7 +196,7 @@ fn constrained_rationale(request: &InvocationRequest) -> &'static str {
     }
 }
 
-fn classify_brownfield_mutation_scope(scope: &[String]) -> BrownfieldMutationScopeStatus {
+fn classify_change_mutation_scope(scope: &[String]) -> ChangeMutationScopeStatus {
     let normalized = scope
         .iter()
         .map(|entry| entry.trim())
@@ -210,17 +204,17 @@ fn classify_brownfield_mutation_scope(scope: &[String]) -> BrownfieldMutationSco
         .collect::<Vec<_>>();
 
     if normalized.is_empty() {
-        return BrownfieldMutationScopeStatus::Missing;
+        return ChangeMutationScopeStatus::Missing;
     }
 
-    if normalized.iter().any(|entry| looks_like_expanded_brownfield_scope(entry)) {
-        BrownfieldMutationScopeStatus::Expanded
+    if normalized.iter().any(|entry| looks_like_expanded_change_scope(entry)) {
+        ChangeMutationScopeStatus::Expanded
     } else {
-        BrownfieldMutationScopeStatus::Bounded
+        ChangeMutationScopeStatus::Bounded
     }
 }
 
-fn looks_like_expanded_brownfield_scope(entry: &str) -> bool {
+fn looks_like_expanded_change_scope(entry: &str) -> bool {
     let normalized = entry.trim().to_ascii_lowercase();
     normalized == "."
         || normalized == "/"
@@ -344,37 +338,37 @@ mod tests {
                     patch_disabled: true,
                 },
                 InvocationConstraintProfile {
-                    id: "brownfield-context".to_string(),
+                    id: "change-context".to_string(),
                     payload_retention:
                         crate::domain::execution::PayloadRetentionLevel::SummaryWithDigest,
                     max_payload_bytes: Some(16 * 1024),
-                    command_profile: Some("brownfield-context".to_string()),
+                    command_profile: Some("change-context".to_string()),
                     recommendation_only: false,
                     patch_disabled: true,
                 },
                 InvocationConstraintProfile {
-                    id: "brownfield-generation".to_string(),
+                    id: "change-generation".to_string(),
                     payload_retention:
                         crate::domain::execution::PayloadRetentionLevel::SummaryWithDigest,
                     max_payload_bytes: Some(32 * 1024),
-                    command_profile: Some("brownfield-generation".to_string()),
+                    command_profile: Some("change-generation".to_string()),
                     recommendation_only: false,
                     patch_disabled: true,
                 },
                 InvocationConstraintProfile {
-                    id: "brownfield-validation".to_string(),
+                    id: "change-validation".to_string(),
                     payload_retention:
                         crate::domain::execution::PayloadRetentionLevel::SummaryWithDigest,
                     max_payload_bytes: Some(16 * 1024),
-                    command_profile: Some("brownfield-validation".to_string()),
+                    command_profile: Some("change-validation".to_string()),
                     recommendation_only: false,
                     patch_disabled: true,
                 },
                 InvocationConstraintProfile {
-                    id: "brownfield-mutation".to_string(),
+                    id: "change-mutation".to_string(),
                     payload_retention: crate::domain::execution::PayloadRetentionLevel::SummaryOnly,
                     max_payload_bytes: Some(4 * 1024),
-                    command_profile: Some("brownfield-mutation".to_string()),
+                    command_profile: Some("change-mutation".to_string()),
                     recommendation_only: true,
                     patch_disabled: false,
                 },
@@ -417,6 +411,7 @@ mod tests {
             request_id: "req-1".to_string(),
             run_id: "run-1".to_string(),
             mode: mode.to_string(),
+            system_context: None,
             risk,
             zone,
             adapter: match capability {
@@ -537,10 +532,10 @@ mod tests {
     }
 
     #[test]
-    fn brownfield_mutation_requests_become_recommendation_only() {
+    fn change_mutation_requests_become_recommendation_only() {
         let decision = evaluate_request_policy(
             &request_with_scope(
-                "brownfield-change",
+                "change",
                 CapabilityKind::ExecuteBoundedTransformation,
                 RiskClass::BoundedImpact,
                 UsageZone::Yellow,
@@ -561,10 +556,10 @@ mod tests {
     }
 
     #[test]
-    fn brownfield_mutation_requests_without_a_named_change_surface_are_denied() {
+    fn change_mutation_requests_without_a_named_change_surface_are_denied() {
         let decision = evaluate_request_policy(
             &request_with_scope(
-                "brownfield-change",
+                "change",
                 CapabilityKind::ExecuteBoundedTransformation,
                 RiskClass::BoundedImpact,
                 UsageZone::Yellow,
@@ -578,10 +573,10 @@ mod tests {
     }
 
     #[test]
-    fn expanded_brownfield_mutation_scope_requires_approval() {
+    fn expanded_change_mutation_scope_requires_approval() {
         let decision = evaluate_request_policy(
             &request_with_scope(
-                "brownfield-change",
+                "change",
                 CapabilityKind::ExecuteBoundedTransformation,
                 RiskClass::BoundedImpact,
                 UsageZone::Yellow,
@@ -598,10 +593,10 @@ mod tests {
     }
 
     #[test]
-    fn systemic_brownfield_generation_requires_approval() {
+    fn systemic_change_generation_requires_approval() {
         let decision = evaluate_request_policy(
             &request(
-                "brownfield-change",
+                "change",
                 CapabilityKind::GenerateContent,
                 RiskClass::SystemicImpact,
                 UsageZone::Yellow,

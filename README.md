@@ -172,11 +172,49 @@ What you get:
 
 That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
 
-Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `brownfield-change`, `review`, `verification`, and `pr-review`.
+## Two Axes In Canon
+
+Canon is organized around two explicit axes:
+
+- `mode`: what kind of governed work is happening
+- `system_context`: whether the target system is new or existing
+
+These axes answer different questions. A mode does not imply system state, and
+system state does not imply the kind of work. When Canon needs target-state
+binding, it requires `--system-context` explicitly instead of hiding that
+choice in the mode name.
+
+## Typical Flow
+
+A common progression is:
+
+- `discovery` when the problem space is still unclear
+- `requirements` when the intent is known but still needs bounded scope and
+  constraints
+- `system-shaping` when the next question is how a capability should be
+  structured
+- `architecture` when boundaries, invariants, and tradeoffs need to be fixed
+- `change` when the structure is known and the work is bounded modification of
+  an existing system
+- `pr-review` when there is a real diff to challenge
+
+### Quick Decision Rule
+
+- use `system-shaping` when the structure of a capability is not yet defined
+- use `change` when the structure is known and the task is bounded
+  modification with preserved behavior
+- use `system-shaping --system-context existing` when you are working inside
+  an existing system but the next need is still structural, not modification
+
+Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `change`, `review`, `verification`, and `pr-review`.
+
+Modes that target a specific system state keep that explicit in the run
+contract: use `--system-context new|existing` for `system-shaping` and
+`architecture`, and use `--system-context existing` for `change`.
 
 Use `review` for bounded non-PR change packages or artifact bundles, `verification` to challenge claims and invariants directly, and `pr-review` only when the target is a real diff or `WORKTREE`.
 
-In practice, `review` sits after authored packets such as `requirements`, `architecture`, `brownfield-change`, or another non-PR proposal bundle. It is packet-backed, so do not point it at `src/` or a repository snapshot; use `pr-review` for diffs and `WORKTREE`.
+In practice, `review` sits after authored packets such as `requirements`, `architecture`, `change`, or another non-PR proposal bundle. It is packet-backed, so do not point it at `src/` or a repository snapshot; use `pr-review` for diffs and `WORKTREE`.
 
 ## Initialize Your Repo
 
@@ -243,13 +281,17 @@ For file-backed modes, the canonical authored-input locations are under
 - `canon-input/discovery.md` or `canon-input/discovery/`
 - `canon-input/system-shaping.md` or `canon-input/system-shaping/`
 - `canon-input/architecture.md` or `canon-input/architecture/`
-- `canon-input/brownfield-change.md` or `canon-input/brownfield-change/`
+- `canon-input/change.md` or `canon-input/change/`
 - `canon-input/review.md` or `canon-input/review/`
 - `canon-input/verification.md` or `canon-input/verification/`
 
 Repo-local skills may auto-bind only from those mode-specific canonical
 locations. They must not infer `--input` from the active editor file, open
 tabs, or anything under `.canon/`.
+
+For modes that require target-state binding, Canon also expects an explicit
+system context. Use `--system-context new|existing` for `system-shaping` and
+`architecture`; use `--system-context existing` for `change`.
 
 `canon run` and `canon inspect risk-zone` also accept explicit inline authored
 input through `--input-text` when you do not want to materialize a repo file
@@ -306,7 +348,7 @@ High-value available-now skills:
 - `$canon-inspect-artifacts`
 - `$canon-approve`
 - `$canon-resume`
-- `$canon-brownfield`
+- `$canon-change`
 - `$canon-pr-review`
 
 Typical skill flow:
@@ -357,11 +399,13 @@ Canon will:
 - deny mutation in this mode
 - emit a requirements artifact set backed by invocation evidence
 
-### `brownfield-change`
+### `change`
 
 Use this for changes in a live codebase where preserved behavior matters.
 
-If you already have a brownfield brief, use it directly. If you only have a
+This mode currently requires `--system-context existing`.
+
+If you already have a change brief, use it directly. If you only have a
 change intent, the skill should guide you to fill the minimum missing slots
 before invoking Canon: system slice, intended change, legacy invariants,
 allowed or excluded change surface, and validation strategy. Only redirect to
@@ -369,11 +413,12 @@ allowed or excluded change surface, and validation strategy. Only redirect to
 
 ```bash
 canon run \
-  --mode brownfield-change \
+  --mode change \
+  --system-context existing \
   --risk bounded-impact \
   --zone yellow \
   --owner staff-engineer \
-  --input canon-input/brownfield-change.md
+  --input canon-input/change.md
 ```
 
 Canon will:
@@ -383,9 +428,9 @@ Canon will:
 - keep consequential mutation recommendation-only in the current release
 - block readiness if invariants or independent challenge are missing
 
-When brownfield work is blocked or recommendation-only, the guided next step
+When change work is blocked or recommendation-only, the guided next step
 should usually be to inspect the emitted packet under
-`.canon/artifacts/<RUN_ID>/brownfield-change/` before recording approval.
+`.canon/artifacts/<RUN_ID>/change/` before recording approval.
 
 If a consequential request is gated, approval is explicit and local:
 
@@ -395,7 +440,7 @@ canon approve \
   --target invocation:<REQUEST_ID> \
   --by principal-engineer \
   --decision approve \
-  --rationale "Allow bounded systemic brownfield generation with named ownership."
+  --rationale "Allow bounded systemic change generation with named ownership."
 
 canon resume --run <RUN_ID>
 ```
@@ -525,7 +570,9 @@ Implemented end to end today:
 - [requirements](#requirements-mode)
 - [system-shaping](#system-shaping-mode)
 - [architecture](#architecture-mode)
-- [brownfield-change](#brownfield-change-mode)
+- [change](#change-mode)
+- [review](#review-mode)
+- [verification](#verification-mode)
 - [pr-review](#pr-review-mode)
 
 Available-now repo-local skills backed by the real Canon CLI:
@@ -541,15 +588,15 @@ Available-now repo-local skills backed by the real Canon CLI:
 - `canon-inspect-artifacts`
 - `canon-approve`
 - `canon-resume`
-- `canon-brownfield`
+- `canon-change`
+- `canon-review`
+- `canon-verification`
 - `canon-pr-review`
 
 Modeled but not fully implemented end to end yet:
 
 - [implementation](#implementation-mode)
 - [refactor](#refactor-mode)
-- [verification](#verification-mode)
-- [review](#review-mode)
 - [incident](#incident-mode)
 - [migration](#migration-mode)
 
@@ -577,26 +624,43 @@ constraints, open questions, and decision checkpoints.
 
 ### System-Shaping Mode
 
-Use this when the intent is bounded but the system does not exist yet. The
-canonical CLI name is `system-shaping`.
-Canon shapes a new capability into a first governed structure: system shape,
+Use this when the intent is bounded and the next question is how a new
+capability should be structured. The canonical CLI name is `system-shaping`.
+Start the run with an explicit `--system-context new|existing` so the target
+state is recorded instead of implied.
+
+Use `--system-context new` when you are shaping a new system from scratch. Use
+`--system-context existing` when the system already exists but you first need
+to shape a new capability structure inside it before planning a bounded change.
+
+Canon shapes that capability into a first governed structure: system shape,
 architecture outline, capability map, delivery options, and risk hotspots.
 This mode includes mandatory critique before the artifact set is finalized.
 
 ### Architecture Mode
 
 Use this when you are choosing boundaries, invariants, and tradeoffs for a real
-design decision. Canon produces architecture decisions, invariants, a tradeoff
-matrix, a boundary map, and a readiness assessment. This mode includes
-mandatory critique and can stop for explicit approval when the run is
-systemic-impact or in a red zone.
+design decision. Start the run with an explicit `--system-context new|existing`
+so the decision packet records whether it targets a new or existing system.
+Canon produces architecture decisions, invariants, a tradeoff matrix, a
+boundary map, and a readiness assessment. This mode includes mandatory critique
+and can stop for explicit approval when the run is systemic-impact or in a red
+zone.
 
-### Brownfield-Change Mode
+### Change Mode
 
 Use this when you need to change an existing system without losing important
-behavior. Canon constrains the change surface, records legacy invariants,
-captures a bounded implementation plan, and makes the validation strategy part
-of the governed output.
+behavior. The canonical CLI name is `change`, and this mode currently requires
+`--system-context existing` because it is defined around preserved behavior and
+bounded modification of a live system.
+
+If the real need is to shape a new capability inside an existing system before
+you decide the bounded change surface, use `system-shaping --system-context
+existing` first.
+
+Canon constrains the change surface, records legacy invariants, captures a
+bounded implementation plan, and makes the validation strategy part of the
+governed output.
 
 ### PR-Review Mode
 
@@ -615,11 +679,19 @@ TODO: planned mode surface, not implemented end to end yet.
 
 ### Verification Mode
 
-TODO: planned mode surface, not implemented end to end yet.
+Use this when you want to challenge claims, invariants, contracts, or evidence
+directly. Canon takes a verification packet, runs critique as a separate
+governed path, and leaves behind invariants, contract matrix, adversarial
+review, verification report, and unresolved findings. Run and status
+summaries surface `verification-report.md` directly.
 
 ### Review Mode
 
-TODO: planned mode surface, not implemented end to end yet.
+Use this when you need a governed review of a bounded non-PR packet (a
+requirements, architecture, or change packet, or any proposal bundle). Canon
+emits a boundary assessment, missing-evidence record, decision-impact note,
+and explicit `review-disposition.md` that run and status summaries surface
+directly.
 
 ### Incident Mode
 
@@ -633,14 +705,12 @@ Discoverable support-state wrappers that are still intentionally limited:
 
 - `canon-implementation`
 - `canon-refactor`
-- `canon-review`
 - `canon-incident`
 - `canon-migration`
-- `canon-verification` as `intentionally-limited`
 
 Current limitations:
 
-- `verify` is present as a CLI surface but not implemented yet
+- `canon verify` is present as a CLI surface but not implemented yet; use `canon run --mode verification` for the runnable verification path
 - MCP runtime is modeled in policy and domain terms, but explicitly denied at runtime
 - convenience channels such as Homebrew or Chocolatey are not shipped yet; use the GitHub release archives
 - deeper semantic critique and broader adapter coverage are still backlog

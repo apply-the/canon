@@ -21,7 +21,7 @@ runnable behavior.
 
 ## When It Must Not Trigger
 
-- The user wants a real runnable change workflow in a live codebase; use `$canon-brownfield`.
+- The user wants a real runnable change workflow in a live codebase; use `$canon-change`.
 - The user expects a real Canon run today.
 
 ## Required Inputs
@@ -53,10 +53,10 @@ runnable behavior.
 
 ## Next-Step Guidance
 
-- Use `$canon-brownfield` for runnable change planning.
+- Use `$canon-change` for runnable change planning.
 - Use `$canon-review` for runnable non-PR review packets, not for refactor execution.
 
 ## Related Skills
 
-- `$canon-brownfield`
+- `$canon-change`
 - `$canon-review`
