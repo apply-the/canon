@@ -273,8 +273,9 @@ fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
     assert!(entries.iter().any(|entry| entry["capability"] == "CritiqueContent"));
     assert!(entries.iter().any(|entry| entry["capability"] == "ValidateWithTool"));
 
-    let contract_path =
-        workspace.path().join(".canon").join("runs").join(&run_id).join("artifact-contract.toml");
+    let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+        .run_dir(&run_id)
+        .join("artifact-contract.toml");
     let contract_toml = fs::read_to_string(contract_path).expect("artifact contract");
     assert!(contract_toml.contains("problem-map.md"));
     assert!(contract_toml.contains("unknowns-and-assumptions.md"));

@@ -114,6 +114,9 @@ fn render_risk_zone_text(value: &Value) -> String {
 fn render_run_summary_markdown(summary: &RunSummary) -> String {
     let mut lines = vec!["# run".to_string(), String::new()];
     lines.push(format!("Run ID: {}", summary.run_id));
+    if let Some(uuid) = &summary.uuid {
+        lines.push(format!("UUID: {uuid}"));
+    }
     lines.push(format!("Mode: {}", summary.mode));
     lines.push(format!("State: {}", summary.state));
     lines.push(format!("Risk: {}", summary.risk));
@@ -768,6 +771,7 @@ mod tests {
     fn run_summary_markdown_surfaces_mode_result_without_mandatory_next_step() {
         let summary = RunSummary {
             run_id: "run-123".to_string(),
+            uuid: None,
             owner: "Owner".to_string(),
             mode: "requirements".to_string(),
             risk: "bounded-impact".to_string(),
@@ -822,6 +826,7 @@ mod tests {
     fn run_summary_markdown_keeps_mandatory_next_step_for_gated_runs() {
         let summary = RunSummary {
             run_id: "run-456".to_string(),
+            uuid: None,
             owner: "Owner".to_string(),
             mode: "change".to_string(),
             risk: "systemic-impact".to_string(),

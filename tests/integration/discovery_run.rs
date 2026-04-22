@@ -55,7 +55,8 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
 
-    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let run_root =
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("discovery");
     let input_snapshot = run_root.join("inputs").join("input-00-discovery.md");

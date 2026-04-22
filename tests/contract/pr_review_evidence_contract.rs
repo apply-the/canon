@@ -127,11 +127,8 @@ fn pr_review_attempts_retain_payload_refs_and_artifact_provenance() {
         .expect("inspect diff request");
 
     let attempt = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("runs")
-            .join(run_id)
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+            .run_dir(run_id)
             .join("invocations")
             .join(&diff_request_id)
             .join("attempt-01.toml"),

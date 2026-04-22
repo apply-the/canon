@@ -725,7 +725,8 @@ impl WorkspaceStore {
     }
 
     pub fn load_run_manifest(&self, run_id: &str) -> Result<RunManifest, Error> {
-        read_toml_file(self.layout.run_dir(run_id).join("run.toml"))
+        let manifest: RunManifest = read_toml_file(self.layout.run_dir(run_id).join("run.toml"))?;
+        Ok(manifest.canonicalize())
     }
 
     pub fn load_run_context(&self, run_id: &str) -> Result<RunContext, Error> {
