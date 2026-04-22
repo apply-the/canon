@@ -28,7 +28,7 @@ $AvailableNow = @(
   "canon-discovery",
   "canon-system-shaping",
   "canon-architecture",
-  "canon-brownfield",
+  "canon-change",
   "canon-review",
   "canon-verification",
   "canon-pr-review"
@@ -107,14 +107,16 @@ foreach ($Skill in $IntentionallyLimited) {
 }
 
 if ((Get-Content -Raw (Join-Path $SkillsDir "canon-review/SKILL.md")) -notmatch "canon-pr-review") { Fail "canon-review: must distinguish itself from canon-pr-review" }
-if ((Get-Content -Raw (Join-Path $SkillsDir "canon-refactor/SKILL.md")) -notmatch "canon-brownfield") { Fail "canon-refactor: must distinguish itself from canon-brownfield" }
+if ((Get-Content -Raw (Join-Path $SkillsDir "canon-refactor/SKILL.md")) -notmatch "canon-change") { Fail "canon-refactor: must distinguish itself from canon-change" }
 if ((Get-Content -Raw (Join-Path $SkillsDir "canon-discovery/SKILL.md")) -notmatch "canon-requirements") { Fail "canon-discovery: must distinguish itself from canon-requirements" }
 $CanonInitText = Get-Content -Raw (Join-Path $SkillsDir "canon-init/SKILL.md")
 if ($CanonInitText -notmatch [regex]::Escape('Do not automatically start another Canon skill or `canon run` in the same turn.')) { Fail "canon-init: must explicitly forbid chaining into follow-up runs" }
 if ($CanonInitText -match "Run ID:|State:") { Fail "canon-init: must not describe run-id or run-state output" }
 
 $RequirementsPath = Join-Path $SkillsDir "canon-requirements/SKILL.md"
-$BrownfieldPath = Join-Path $SkillsDir "canon-brownfield/SKILL.md"
+$ChangePath = Join-Path $SkillsDir "canon-change/SKILL.md"
+$SystemShapingPath = Join-Path $SkillsDir "canon-system-shaping/SKILL.md"
+$ArchitecturePath = Join-Path $SkillsDir "canon-architecture/SKILL.md"
 $ReviewPath = Join-Path $SkillsDir "canon-review/SKILL.md"
 $VerificationPath = Join-Path $SkillsDir "canon-verification/SKILL.md"
 $PrReviewPath = Join-Path $SkillsDir "canon-pr-review/SKILL.md"
@@ -122,8 +124,11 @@ $ClarityPath = Join-Path $SkillsDir "canon-inspect-clarity/SKILL.md"
 
 Require-Text $RequirementsPath '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
 Require-Text $RequirementsPath '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
-Require-Text $BrownfieldPath '--input <INPUT_PATH>' 'canon-brownfield: preflight must keep file-path input binding'
-Require-Text $BrownfieldPath '--input-text <INPUT_TEXT>' 'canon-brownfield: must document inline authored input binding'
+Require-Text $ChangePath '--input <INPUT_PATH>' 'canon-change: preflight must keep file-path input binding'
+Require-Text $ChangePath '--input-text <INPUT_TEXT>' 'canon-change: must document inline authored input binding'
+Require-Text $ChangePath '--system-context existing' 'canon-change: must bind existing system context explicitly'
+Require-Text $SystemShapingPath '--system-context <SYSTEM_CONTEXT>' 'canon-system-shaping: must require explicit system context in the command contract'
+Require-Text $ArchitecturePath '--system-context <SYSTEM_CONTEXT>' 'canon-architecture: must require explicit system context in the command contract'
 Require-Text $ReviewPath '--input <INPUT_PATH>' 'canon-review: preflight must keep file-path input binding'
 Require-Text $ReviewPath '--input-text <INPUT_TEXT>' 'canon-review: must document inline authored input binding'
 Require-Text $VerificationPath '--input <INPUT_PATH>' 'canon-verification: preflight must keep file-path input binding'
@@ -152,15 +157,17 @@ Require-Text $RequirementsPath 'low-impact`, `bounded-impact`, or `systemic-impa
 Require-Text $RequirementsPath 'green`, `yellow`, or `red' 'canon-requirements: must list canonical zone choices'
 Require-Text $RequirementsPath 'empty, whitespace-only, or structurally insufficient' 'canon-requirements: must describe fail-fast authored-input validation'
 
-Require-Text $BrownfieldPath 'preserve valid ownership fields' 'canon-brownfield: must describe preserving valid ownership fields across retry'
-Require-Text $BrownfieldPath 'asks only for the missing brief path or missing ownership slot' 'canon-brownfield: must describe targeted retry behavior'
-Require-Text $BrownfieldPath 'exact Canon CLI retry form' 'canon-brownfield: must promise the exact CLI retry form'
-Require-Text $BrownfieldPath 'Canon-execution outcome' 'canon-brownfield: must distinguish Canon-execution outcomes from preflight failures'
-Require-Text $BrownfieldPath 'preflight failure' 'canon-brownfield: must distinguish Canon-execution outcomes from preflight failures'
-Require-Text $BrownfieldPath 'guided fixed choices' 'canon-brownfield: must require guided choices for enum fields'
-Require-Text $BrownfieldPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-brownfield: must list canonical risk choices'
-Require-Text $BrownfieldPath 'green`, `yellow`, or `red' 'canon-brownfield: must list canonical zone choices'
-Require-Text $BrownfieldPath 'empty, whitespace-only, or structurally insufficient' 'canon-brownfield: must describe fail-fast authored-input validation'
+Require-Text $ChangePath 'preserve valid ownership fields' 'canon-change: must describe preserving valid ownership fields across retry'
+Require-Text $ChangePath 'asks only for the missing brief path or missing ownership slot' 'canon-change: must describe targeted retry behavior'
+Require-Text $ChangePath 'exact Canon CLI retry form' 'canon-change: must promise the exact CLI retry form'
+Require-Text $ChangePath 'Canon-execution outcome' 'canon-change: must distinguish Canon-execution outcomes from preflight failures'
+Require-Text $ChangePath 'preflight failure' 'canon-change: must distinguish Canon-execution outcomes from preflight failures'
+Require-Text $ChangePath 'guided fixed choices' 'canon-change: must require guided choices for enum fields'
+Require-Text $ChangePath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-change: must list canonical risk choices'
+Require-Text $ChangePath 'green`, `yellow`, or `red' 'canon-change: must list canonical zone choices'
+Require-Text $ChangePath 'empty, whitespace-only, or structurally insufficient' 'canon-change: must describe fail-fast authored-input validation'
+Require-Text $SystemShapingPath 'guided fixed choices with the exact allowed values `new` and `existing`' 'canon-system-shaping: must list canonical system-context choices'
+Require-Text $ArchitecturePath 'guided fixed choices with the exact allowed values `new` and `existing`' 'canon-architecture: must list canonical system-context choices'
 
 Require-Text $ReviewPath 'preserve valid ownership fields' 'canon-review: must describe preserving valid ownership fields across retry'
 Require-Text $ReviewPath 'asks only for the missing slot' 'canon-review: must describe single-slot retry behavior'

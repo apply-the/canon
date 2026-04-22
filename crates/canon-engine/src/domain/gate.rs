@@ -6,7 +6,7 @@ use time::OffsetDateTime;
 #[strum(serialize_all = "kebab-case")]
 pub enum GateKind {
     Exploration,
-    BrownfieldPreservation,
+    ChangePreservation,
     Architecture,
     Risk,
     ReviewDisposition,
@@ -28,9 +28,7 @@ impl std::str::FromStr for GateKind {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
             "exploration" | "Exploration" => Ok(Self::Exploration),
-            "brownfield-preservation" | "BrownfieldPreservation" => {
-                Ok(Self::BrownfieldPreservation)
-            }
+            "change-preservation" | "ChangePreservation" => Ok(Self::ChangePreservation),
             "architecture" | "Architecture" => Ok(Self::Architecture),
             "risk" | "Risk" => Ok(Self::Risk),
             "review-disposition" | "ReviewDisposition" => Ok(Self::ReviewDisposition),
@@ -72,7 +70,7 @@ mod tests {
     fn gate_kind_round_trips_supported_labels() {
         let cases = [
             (GateKind::Exploration, "exploration", "Exploration"),
-            (GateKind::BrownfieldPreservation, "brownfield-preservation", "BrownfieldPreservation"),
+            (GateKind::ChangePreservation, "change-preservation", "ChangePreservation"),
             (GateKind::Architecture, "architecture", "Architecture"),
             (GateKind::Risk, "risk", "Risk"),
             (GateKind::ReviewDisposition, "review-disposition", "ReviewDisposition"),

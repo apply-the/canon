@@ -4,7 +4,7 @@ This file captures candidate product features that are intentionally beyond the
 current implementation slice.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
-`system-shaping`, `architecture`, `brownfield-change`, `review`,
+`system-shaping`, `architecture`, `change`, `review`,
 `verification`, and `pr-review`. The next roadmap should prioritize
 completing the remaining modeled modes before widening Canon's surface area
 further.
@@ -36,7 +36,7 @@ preserving evidence, approvals, and rollback visibility.
 - Promote `refactor` from contract-only to full depth.
 - Keep red-zone and systemic-impact execution recommendation-only until the
   approval model and validation evidence are strong enough.
-- Reuse brownfield preservation and release-readiness machinery where behavior
+- Reuse change preservation and release-readiness machinery where behavior
   preservation matters.
 
 ### Why This Feature Comes Next
@@ -129,13 +129,13 @@ Comments shape and extending `architecture` packets with C4 model documents.
 Canon strengthens the already-delivered shaping and architecture modes by
 making Domain-Driven Design outputs first-class: explicit ubiquitous language,
 bounded contexts, context relationships, and domain invariants that can flow
-into later architecture, brownfield planning, and review.
+into later architecture, change planning, and review.
 
 ### Modes In Scope
 
 - `system-shaping`
 - `architecture`
-- `brownfield-change`
+- `change`
 
 ### Why These Modes Belong Together
 
@@ -146,6 +146,18 @@ into later architecture, brownfield planning, and review.
 - They reduce downstream drift by making the domain model explicit before
   execution-heavy modes begin.
 
+### Continuity With Current Mode Model
+
+- `system-shaping` becomes the primary entry point for domain discovery when a
+  capability's structure is not yet fixed.
+- `architecture` formalizes domain boundaries and relationships once the
+  structure is being settled.
+- `change` enforces domain invariants during bounded modification of an
+  existing system.
+
+This extends the current mode model instead of introducing a separate planning
+vocabulary for domain work.
+
 ### First Slice
 
 - Extend `system-shaping` to emit a candidate domain map, core-domain
@@ -153,7 +165,7 @@ into later architecture, brownfield planning, and review.
 - Extend `architecture` to emit bounded-context and context-relationship
   artifacts, including integration seams and anti-corruption candidates where
   the decision surface warrants them.
-- Extend `brownfield-change` to tie the change surface to an explicit domain
+- Extend `change` to tie the change surface to an explicit domain
   slice, preserved invariants, and ownership boundaries instead of treating the
   system as one undifferentiated code surface.
 - Keep the existing critique-first posture so Canon challenges weak or blurry

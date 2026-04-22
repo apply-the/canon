@@ -67,12 +67,13 @@ pub fn print_inspect<T: Serialize>(
 
 fn render_markdown_from_json(value: &Value, target_name: &str, run_id: Option<&str>) -> String {
     let entries = value.get("entries").and_then(Value::as_array).cloned().unwrap_or_default();
+    let system_context = value.get("system_context").and_then(Value::as_str);
 
     match target_name {
-        "artifacts" => render_artifacts_markdown(&entries, run_id),
+        "artifacts" => render_artifacts_markdown(&entries, run_id, system_context),
         "clarity" => render_clarity_markdown(&entries),
-        "evidence" => render_evidence_markdown(&entries, run_id),
-        "invocations" => render_invocations_markdown(&entries, run_id),
+        "evidence" => render_evidence_markdown(&entries, run_id, system_context),
+        "invocations" => render_invocations_markdown(&entries, run_id, system_context),
         "risk-zone" => render_risk_zone_markdown(&entries),
         _ => render_list_markdown(target_name, &entries),
     }
@@ -117,6 +118,9 @@ fn render_run_summary_markdown(summary: &RunSummary) -> String {
     lines.push(format!("State: {}", summary.state));
     lines.push(format!("Risk: {}", summary.risk));
     lines.push(format!("Zone: {}", summary.zone));
+    if let Some(system_context) = &summary.system_context {
+        lines.push(format!("System Context: {system_context}"));
+    }
 
     render_mode_result(&mut lines, summary.mode_result.as_ref());
     render_runtime_blockers(&mut lines, &summary.blocked_gates);
@@ -129,6 +133,9 @@ fn render_status_summary_markdown(summary: &StatusSummary) -> String {
     let mut lines = vec!["# status".to_string(), String::new()];
     lines.push(format!("Run ID: {}", summary.run));
     lines.push(format!("State: {}", summary.state));
+    if let Some(system_context) = &summary.system_context {
+        lines.push(format!("System Context: {system_context}"));
+    }
 
     render_mode_result(&mut lines, summary.mode_result.as_ref());
     render_runtime_blockers(&mut lines, &summary.blocked_gates);
@@ -218,12 +225,20 @@ fn render_list_markdown(title: &str, entries: &[Value]) -> String {
     lines.join("\n")
 }
 
-fn render_artifacts_markdown(entries: &[Value], run_id: Option<&str>) -> String {
+fn render_artifacts_markdown(
+    entries: &[Value],
+    run_id: Option<&str>,
+    system_context: Option<&str>,
+) -> String {
     let mut lines = vec!["# artifacts".to_string()];
 
     if let Some(run_id) = run_id {
         lines.push(String::new());
         lines.push(format!("Run ID: {run_id}"));
+    }
+    if let Some(system_context) = system_context {
+        lines.push(String::new());
+        lines.push(format!("System Context: {system_context}"));
     }
 
     lines.push(String::new());
@@ -245,12 +260,20 @@ fn render_artifacts_markdown(entries: &[Value], run_id: Option<&str>) -> String 
     lines.join("\n")
 }
 
-fn render_evidence_markdown(entries: &[Value], run_id: Option<&str>) -> String {
+fn render_evidence_markdown(
+    entries: &[Value],
+    run_id: Option<&str>,
+    system_context: Option<&str>,
+) -> String {
     let mut lines = vec!["# evidence".to_string()];
 
     if let Some(run_id) = run_id {
         lines.push(String::new());
         lines.push(format!("Run ID: {run_id}"));
+    }
+    if let Some(system_context) = system_context {
+        lines.push(String::new());
+        lines.push(format!("System Context: {system_context}"));
     }
 
     if entries.is_empty() {
@@ -309,12 +332,20 @@ fn render_evidence_markdown(entries: &[Value], run_id: Option<&str>) -> String {
     lines.join("\n")
 }
 
-fn render_invocations_markdown(entries: &[Value], run_id: Option<&str>) -> String {
+fn render_invocations_markdown(
+    entries: &[Value],
+    run_id: Option<&str>,
+    system_context: Option<&str>,
+) -> String {
     let mut lines = vec!["# invocations".to_string()];
 
     if let Some(run_id) = run_id {
         lines.push(String::new());
         lines.push(format!("Run ID: {run_id}"));
+    }
+    if let Some(system_context) = system_context {
+        lines.push(String::new());
+        lines.push(format!("System Context: {system_context}"));
     }
 
     if entries.is_empty() {
@@ -646,7 +677,7 @@ mod tests {
                 "policy_decision": "AllowConstrained",
                 "approval_state": "NotRequired",
                 "latest_outcome": "Succeeded",
-                "linked_artifacts": ["artifacts/run-123/brownfield-change/system-slice.md"]
+                "linked_artifacts": ["artifacts/run-123/change/system-slice.md"]
             }]
         });
 
@@ -657,7 +688,7 @@ mod tests {
         assert!(markdown.contains("Adapter: Shell"));
         assert!(markdown.contains("Capability: ValidateWithTool"));
         assert!(markdown.contains("Artifacts:"));
-        assert!(markdown.contains("- .canon/artifacts/run-123/brownfield-change/system-slice.md"));
+        assert!(markdown.contains("- .canon/artifacts/run-123/change/system-slice.md"));
     }
 
     #[test]
@@ -741,6 +772,7 @@ mod tests {
             mode: "requirements".to_string(),
             risk: "bounded-impact".to_string(),
             zone: "yellow".to_string(),
+            system_context: None,
             state: "Completed".to_string(),
             artifact_count: 6,
             invocations_total: 3,
@@ -791,9 +823,10 @@ mod tests {
         let summary = RunSummary {
             run_id: "run-456".to_string(),
             owner: "Owner".to_string(),
-            mode: "brownfield-change".to_string(),
+            mode: "change".to_string(),
             risk: "systemic-impact".to_string(),
             zone: "yellow".to_string(),
+            system_context: Some("existing".to_string()),
             state: "AwaitingApproval".to_string(),
             artifact_count: 0,
             invocations_total: 2,

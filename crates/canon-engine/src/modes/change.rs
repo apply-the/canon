@@ -1,6 +1,6 @@
 use crate::domain::gate::GateKind;
 
-pub const MODE_FILE: &str = "brownfield-change.toml";
+pub const MODE_FILE: &str = "change.toml";
 pub const STEP_SEQUENCE: &[&str] = &[
     "capture-context",
     "classify-risk",
@@ -16,7 +16,7 @@ pub const STEP_SEQUENCE: &[&str] = &[
 ];
 pub const REQUIRED_GATES: &[GateKind] = &[
     GateKind::Exploration,
-    GateKind::BrownfieldPreservation,
+    GateKind::ChangePreservation,
     GateKind::Architecture,
     GateKind::Risk,
     GateKind::ReleaseReadiness,

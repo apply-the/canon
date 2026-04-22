@@ -41,34 +41,34 @@ recommendation_only = false
 patch_disabled = true
 
 [[constraint_profile]]
-id = "brownfield-context"
+id = "change-context"
 payload_retention = "SummaryWithDigest"
 max_payload_bytes = 16384
-command_profile = "brownfield-context"
+command_profile = "change-context"
 recommendation_only = false
 patch_disabled = true
 
 [[constraint_profile]]
-id = "brownfield-generation"
+id = "change-generation"
 payload_retention = "SummaryWithDigest"
 max_payload_bytes = 32768
-command_profile = "brownfield-generation"
+command_profile = "change-generation"
 recommendation_only = false
 patch_disabled = true
 
 [[constraint_profile]]
-id = "brownfield-validation"
+id = "change-validation"
 payload_retention = "SummaryWithDigest"
 max_payload_bytes = 16384
-command_profile = "brownfield-validation"
+command_profile = "change-validation"
 recommendation_only = false
 patch_disabled = true
 
 [[constraint_profile]]
-id = "brownfield-mutation"
+id = "change-mutation"
 payload_retention = "SummaryOnly"
 max_payload_bytes = 4096
-command_profile = "brownfield-mutation"
+command_profile = "change-mutation"
 recommendation_only = true
 patch_disabled = false
 

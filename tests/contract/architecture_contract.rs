@@ -63,6 +63,8 @@ fn start_architecture_run(workspace: &TempDir, risk: &str, zone: &str) -> serde_
             "run",
             "--mode",
             "architecture",
+            "--system-context",
+            "existing",
             "--risk",
             risk,
             "--zone",

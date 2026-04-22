@@ -302,7 +302,7 @@ fn skills_list_returns_all_embedded_skills() {
     assert!(names.contains(&"canon-init"), "should list canon-init");
     assert!(names.contains(&"canon-inspect-clarity"), "should list canon-inspect-clarity");
     assert!(names.contains(&"canon-requirements"), "should list canon-requirements");
-    assert!(names.contains(&"canon-brownfield"), "should list canon-brownfield");
+    assert!(names.contains(&"canon-change"), "should list canon-change");
     assert!(names.contains(&"canon-review"), "should list canon-review");
     assert!(names.contains(&"canon-verification"), "should list canon-verification");
     assert!(names.contains(&"canon-pr-review"), "should list canon-pr-review");

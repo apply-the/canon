@@ -2,7 +2,10 @@ use canon_engine::{
     EngineService, RunRequest,
     domain::mode::Mode,
     domain::policy::{RiskClass, UsageZone},
-    domain::run::{ClassificationFieldProvenance, ClassificationProvenance, ClassificationSource},
+    domain::run::{
+        ClassificationFieldProvenance, ClassificationProvenance, ClassificationSource,
+        SystemContext,
+    },
 };
 
 use crate::app::OutputFormat;
@@ -14,6 +17,7 @@ use crate::output;
 pub fn execute(
     service: &EngineService,
     mode: String,
+    system_context: Option<String>,
     risk: String,
     zone: String,
     risk_source: Option<String>,
@@ -44,6 +48,11 @@ pub fn execute(
         mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
         risk: risk.parse::<RiskClass>().map_err(CliError::InvalidInput)?,
         zone: zone.parse::<UsageZone>().map_err(CliError::InvalidInput)?,
+        system_context: system_context
+            .as_deref()
+            .map(str::parse::<SystemContext>)
+            .transpose()
+            .map_err(CliError::InvalidInput)?,
         classification: ClassificationProvenance {
             risk: classification_field(risk_source, risk_rationale, risk_signals, "Risk class"),
             zone: classification_field(zone_source, zone_rationale, zone_signals, "Usage zone"),
@@ -95,6 +104,7 @@ mod tests {
         let error = execute(
             &service,
             "not-a-mode".to_string(),
+            None,
             "low-impact".to_string(),
             "green".to_string(),
             None,
@@ -123,6 +133,7 @@ mod tests {
         let error = execute(
             &service,
             "requirements".to_string(),
+            None,
             "not-a-risk".to_string(),
             "green".to_string(),
             None,
@@ -151,6 +162,7 @@ mod tests {
         let error = execute(
             &service,
             "requirements".to_string(),
+            None,
             "low-impact".to_string(),
             "not-a-zone".to_string(),
             None,
@@ -179,6 +191,7 @@ mod tests {
         let error = execute(
             &service,
             "requirements".to_string(),
+            None,
             "low-impact".to_string(),
             "green".to_string(),
             Some("not-a-source".to_string()),

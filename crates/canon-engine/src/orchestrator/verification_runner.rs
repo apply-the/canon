@@ -33,7 +33,7 @@ fn requirements_critique_notes() -> Vec<CritiqueNote> {
     ]
 }
 
-pub fn brownfield_verification_records(
+pub fn change_verification_records(
     layers: &[VerificationLayer],
     target_paths: &[String],
 ) -> Vec<VerificationRecord> {
@@ -44,7 +44,7 @@ pub fn brownfield_verification_records(
             layer,
             target_paths: target_paths.to_vec(),
             disposition: format!(
-                "{} recorded against the brownfield artifact bundle.",
+                "{} recorded against the change artifact bundle.",
                 layer_summary(layer)
             ),
             recorded_at: OffsetDateTime::now_utc(),
@@ -121,7 +121,7 @@ mod tests {
     use crate::domain::verification::VerificationLayer;
 
     use super::{
-        analysis_verification_records, attach_runtime_lineage, brownfield_verification_records,
+        analysis_verification_records, attach_runtime_lineage, change_verification_records,
         pr_review_verification_records, requirements_verification_records,
     };
 
@@ -138,15 +138,15 @@ mod tests {
     }
 
     #[test]
-    fn brownfield_and_pr_review_verification_records_preserve_layers_and_targets() {
+    fn change_and_pr_review_verification_records_preserve_layers_and_targets() {
         let layers = vec![VerificationLayer::PeerReview, VerificationLayer::ArchitecturalReview];
         let targets = vec!["artifacts/run-1/pr-review/review-summary.md".to_string()];
 
-        let brownfield = brownfield_verification_records(&layers, &targets);
+        let change = change_verification_records(&layers, &targets);
         let pr_review = pr_review_verification_records(&layers, &targets);
 
-        assert_eq!(brownfield.len(), 2);
-        assert!(brownfield[0].disposition.contains("Peer review"));
+        assert_eq!(change.len(), 2);
+        assert!(change[0].disposition.contains("Peer review"));
         assert!(pr_review[1].disposition.contains("Architectural review"));
         assert_eq!(pr_review[0].target_paths, targets);
     }

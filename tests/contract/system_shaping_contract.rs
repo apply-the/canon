@@ -41,6 +41,8 @@ fn run_system_shaping_flow(workspace: &TempDir) -> String {
             "run",
             "--mode",
             "system-shaping",
+            "--system-context",
+            "new",
             "--risk",
             "bounded-impact",
             "--zone",

@@ -113,12 +113,12 @@ fn shell_adapter_blocks_mutating_execution_without_permission() {
 }
 
 #[test]
-fn brownfield_red_or_systemic_work_becomes_recommendation_only() {
+fn change_red_or_systemic_work_becomes_recommendation_only() {
     let policy_set = sample_policy_set();
 
     assert_eq!(
         mutation_policy_for_mode(
-            Mode::BrownfieldChange,
+            Mode::Change,
             &policy_set,
             RiskClass::SystemicImpact,
             UsageZone::Yellow,
@@ -127,7 +127,7 @@ fn brownfield_red_or_systemic_work_becomes_recommendation_only() {
     );
     assert_eq!(
         mutation_policy_for_mode(
-            Mode::BrownfieldChange,
+            Mode::Change,
             &policy_set,
             RiskClass::BoundedImpact,
             UsageZone::Red,
