@@ -158,19 +158,27 @@ canon status --run <RUN_ID>
 canon inspect invocations --run <RUN_ID>
 canon inspect evidence --run <RUN_ID>
 canon inspect artifacts --run <RUN_ID>
+canon publish <RUN_ID>
 ```
 
 Inspection commands default to Markdown output for human review. Use `--output json`
 when you need machine-readable output for scripts or tests.
 
+`canon publish` promotes a completed run's emitted packet from hidden
+governance storage under `.canon/` into a visible repository folder. For
+example, `requirements` publishes to `specs/<RUN_ID>/` by default. Use
+`--to <PATH>` to override the default destination. Publish fails if the run is
+still waiting for approval or otherwise not complete.
+
 What you get:
 
 - a governed run under `.canon/runs/<RUN_ID>/`
 - emitted artifacts under `.canon/artifacts/<RUN_ID>/requirements/`
+- optional published copies under visible repo folders such as `specs/<RUN_ID>/`
 - per-invocation request, policy decision, and attempt records
 - an `evidence.toml` that links generation paths, validation paths, artifacts, and decisions
 
-That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect.
+That is the product in one screen: Canon governs execution first, then leaves a local record you can inspect and, once complete, publish into living repository documentation.
 
 ## Two Axes In Canon
 
@@ -732,6 +740,7 @@ Current limitations:
 - `canon inspect evidence --run <RUN_ID>`: inspect readable artifact links, generation paths, validation paths, and evidence linkage in Markdown by default
 - `canon approve --run <RUN_ID> --target ...`: approve a specific invocation or gate
 - `canon resume --run <RUN_ID>`: continue a run after approval or after fixing a blocked condition
+- `canon publish <RUN_ID> [--to <PATH>]`: copy approved artifacts from `.canon/` into a visible repo folder; defaults depend on mode, such as `specs/<RUN_ID>/` for `requirements`
 - `canon verify --run <RUN_ID>`: planned surface, not implemented
 
 ## Contributor Docs

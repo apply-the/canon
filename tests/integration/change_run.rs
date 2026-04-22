@@ -66,7 +66,8 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
 
-    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let run_root =
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
@@ -149,7 +150,8 @@ fn run_change_change_completes_when_context_is_fully_described() {
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
 
-    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let run_root =
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 

@@ -219,11 +219,8 @@ fn approve_unblocks_systemic_change_runs_and_persists_the_approval_record() {
         .success()
         .stdout(contains(&run_id));
 
-    let approval_record = workspace
-        .path()
-        .join(".canon")
-        .join("runs")
-        .join(&run_id)
+    let approval_record = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+        .run_dir(&run_id)
         .join("approvals")
         .join("approval-00.toml");
     assert!(approval_record.exists(), "approval record should be persisted");
