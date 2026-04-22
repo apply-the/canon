@@ -1,6 +1,8 @@
 pub mod approve;
 pub mod init;
 pub mod inspect;
+pub mod list;
+pub mod publish;
 pub mod resume;
 pub mod run;
 pub mod skills;

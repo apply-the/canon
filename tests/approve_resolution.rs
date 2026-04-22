@@ -86,11 +86,8 @@ fn pending_request_id(workspace: &TempDir, global_config: &Path, run_id: &str) -
 
 fn approval_record_by(workspace: &TempDir, run_id: &str) -> String {
     let record = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("runs")
-            .join(run_id)
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+            .run_dir(run_id)
             .join("approvals")
             .join("approval-00.toml"),
     )

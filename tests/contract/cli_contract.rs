@@ -31,6 +31,7 @@ fn help_lists_the_expected_top_level_commands() {
         .stdout(contains("approve"))
         .stdout(contains("verify"))
         .stdout(contains("inspect"))
+        .stdout(contains("publish"))
         .stdout(contains("skills"));
 }
 

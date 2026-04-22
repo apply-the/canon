@@ -79,7 +79,8 @@ fn run_requirements_persists_a_run_contract_and_artifact_bundle() {
     );
     assert!(json["recommended_next_action"].is_null());
 
-    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let run_root =
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("requirements");
     let input_snapshot = run_root.join("inputs").join("input-00-idea.md");
@@ -216,7 +217,9 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
-    let inputs_dir = workspace.path().join(".canon").join("runs").join(run_id).join("inputs");
+    let inputs_dir = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+        .run_dir(run_id)
+        .join("inputs");
     let problem_statement = fs::read_to_string(
         workspace
             .path()
@@ -236,7 +239,9 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
     assert_eq!(snapshots.len(), 2, "directory input should snapshot each authored file");
 
     let context_toml = fs::read_to_string(
-        workspace.path().join(".canon").join("runs").join(run_id).join("context.toml"),
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
+            .run_dir(run_id)
+            .join("context.toml"),
     )
     .expect("context file");
     let context: toml::Value = toml::from_str(&context_toml).expect("context toml");
@@ -286,7 +291,8 @@ fn run_requirements_persists_inline_input_only_under_run_snapshots() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
-    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let run_root =
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let snapshot_path = run_root.join("inputs").join("input-00-inline-input-01.md");
 
     assert!(snapshot_path.exists(), "inline authored input should be snapshotted");

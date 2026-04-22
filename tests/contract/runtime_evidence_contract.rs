@@ -51,7 +51,8 @@ fn requirements_run_persists_invocation_manifests_and_run_evidence_bundle() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
-    let run_root = workspace.path().join(".canon").join("runs").join(run_id);
+    let run_root =
+        canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
 
     assert!(run_root.join("evidence.toml").exists(), "run-level evidence should exist");
 
