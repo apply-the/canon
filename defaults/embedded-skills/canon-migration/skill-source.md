@@ -22,7 +22,7 @@ messaging.
 ## When It Must Not Trigger
 
 - The user expects a real Canon run today.
-- The user only needs runnable change planning; use `$canon-brownfield`.
+- The user only needs runnable change planning; use `$canon-change`.
 
 ## Required Inputs
 
@@ -53,10 +53,10 @@ messaging.
 
 ## Next-Step Guidance
 
-- Use `$canon-brownfield` for runnable live-codebase change planning.
+- Use `$canon-change` for runnable live-codebase change planning.
 - Use `$canon-architecture` for modeled architecture context.
 
 ## Related Skills
 
-- `$canon-brownfield`
+- `$canon-change`
 - `$canon-architecture`

@@ -31,7 +31,7 @@ available_now=(
   "canon-discovery"
   "canon-system-shaping"
   "canon-architecture"
-  "canon-brownfield"
+  "canon-change"
   "canon-review"
   "canon-verification"
   "canon-pr-review"
@@ -107,7 +107,7 @@ if ((${#intentionally_limited[@]} > 0)); then
 fi
 
 grep -q 'canon-pr-review' "${SKILLS_DIR}/canon-review/SKILL.md" || fail "canon-review: must distinguish itself from canon-pr-review"
-grep -q 'canon-brownfield' "${SKILLS_DIR}/canon-refactor/SKILL.md" || fail "canon-refactor: must distinguish itself from canon-brownfield"
+grep -q 'canon-change' "${SKILLS_DIR}/canon-refactor/SKILL.md" || fail "canon-refactor: must distinguish itself from canon-change"
 grep -q 'canon-requirements' "${SKILLS_DIR}/canon-discovery/SKILL.md" || fail "canon-discovery: must distinguish itself from canon-requirements"
 grep -q 'Do not automatically start another Canon skill or `canon run` in the same turn.' "${SKILLS_DIR}/canon-init/SKILL.md" || fail "canon-init: must explicitly forbid chaining into follow-up runs"
 if grep -Eq 'Run ID:|State:' "${SKILLS_DIR}/canon-init/SKILL.md"; then
@@ -115,7 +115,9 @@ if grep -Eq 'Run ID:|State:' "${SKILLS_DIR}/canon-init/SKILL.md"; then
 fi
 
 requirements_path="${SKILLS_DIR}/canon-requirements/SKILL.md"
-brownfield_path="${SKILLS_DIR}/canon-brownfield/SKILL.md"
+change_path="${SKILLS_DIR}/canon-change/SKILL.md"
+system_shaping_path="${SKILLS_DIR}/canon-system-shaping/SKILL.md"
+architecture_path="${SKILLS_DIR}/canon-architecture/SKILL.md"
 review_path="${SKILLS_DIR}/canon-review/SKILL.md"
 verification_path="${SKILLS_DIR}/canon-verification/SKILL.md"
 pr_review_path="${SKILLS_DIR}/canon-pr-review/SKILL.md"
@@ -123,8 +125,11 @@ clarity_path="${SKILLS_DIR}/canon-inspect-clarity/SKILL.md"
 
 require_text "$requirements_path" '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
 require_text "$requirements_path" '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
-require_text "$brownfield_path" '--input <INPUT_PATH>' 'canon-brownfield: preflight must keep file-path input binding'
-require_text "$brownfield_path" '--input-text <INPUT_TEXT>' 'canon-brownfield: must document inline authored input binding'
+require_text "$change_path" '--input <INPUT_PATH>' 'canon-change: preflight must keep file-path input binding'
+require_text "$change_path" '--input-text <INPUT_TEXT>' 'canon-change: must document inline authored input binding'
+require_text "$change_path" '--system-context existing' 'canon-change: must bind existing system context explicitly'
+require_text "$system_shaping_path" '--system-context <SYSTEM_CONTEXT>' 'canon-system-shaping: must require explicit system context in the command contract'
+require_text "$architecture_path" '--system-context <SYSTEM_CONTEXT>' 'canon-architecture: must require explicit system context in the command contract'
 require_text "$review_path" '--input <INPUT_PATH>' 'canon-review: preflight must keep file-path input binding'
 require_text "$review_path" '--input-text <INPUT_TEXT>' 'canon-review: must document inline authored input binding'
 require_text "$verification_path" '--input <INPUT_PATH>' 'canon-verification: preflight must keep file-path input binding'
@@ -153,15 +158,17 @@ require_text "$requirements_path" 'low-impact`, `bounded-impact`, or `systemic-i
 require_text "$requirements_path" 'green`, `yellow`, or `red' 'canon-requirements: must list canonical zone choices'
 require_text "$requirements_path" 'empty, whitespace-only, or structurally insufficient' 'canon-requirements: must describe fail-fast authored-input validation'
 
-require_text "$brownfield_path" 'preserve valid ownership fields' 'canon-brownfield: must describe preserving valid ownership fields across retry'
-require_text "$brownfield_path" 'asks only for the missing brief path or missing ownership slot' 'canon-brownfield: must describe targeted retry behavior'
-require_text "$brownfield_path" 'exact Canon CLI retry form' 'canon-brownfield: must promise the exact CLI retry form'
-require_text "$brownfield_path" 'Canon-execution outcome' 'canon-brownfield: must distinguish Canon-execution outcomes from preflight failures'
-require_text "$brownfield_path" 'preflight failure' 'canon-brownfield: must distinguish Canon-execution outcomes from preflight failures'
-require_text "$brownfield_path" 'guided fixed choices' 'canon-brownfield: must require guided choices for enum fields'
-require_text "$brownfield_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-brownfield: must list canonical risk choices'
-require_text "$brownfield_path" 'green`, `yellow`, or `red' 'canon-brownfield: must list canonical zone choices'
-require_text "$brownfield_path" 'empty, whitespace-only, or structurally insufficient' 'canon-brownfield: must describe fail-fast authored-input validation'
+require_text "$change_path" 'preserve valid ownership fields' 'canon-change: must describe preserving valid ownership fields across retry'
+require_text "$change_path" 'asks only for the missing brief path or missing ownership slot' 'canon-change: must describe targeted retry behavior'
+require_text "$change_path" 'exact Canon CLI retry form' 'canon-change: must promise the exact CLI retry form'
+require_text "$change_path" 'Canon-execution outcome' 'canon-change: must distinguish Canon-execution outcomes from preflight failures'
+require_text "$change_path" 'preflight failure' 'canon-change: must distinguish Canon-execution outcomes from preflight failures'
+require_text "$change_path" 'guided fixed choices' 'canon-change: must require guided choices for enum fields'
+require_text "$change_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-change: must list canonical risk choices'
+require_text "$change_path" 'green`, `yellow`, or `red' 'canon-change: must list canonical zone choices'
+require_text "$change_path" 'empty, whitespace-only, or structurally insufficient' 'canon-change: must describe fail-fast authored-input validation'
+require_text "$system_shaping_path" 'guided fixed choices with the exact allowed values `new` and `existing`' 'canon-system-shaping: must list canonical system-context choices'
+require_text "$architecture_path" 'guided fixed choices with the exact allowed values `new` and `existing`' 'canon-architecture: must list canonical system-context choices'
 
 require_text "$review_path" 'preserve valid ownership fields' 'canon-review: must describe preserving valid ownership fields across retry'
 require_text "$review_path" 'asks only for the missing slot' 'canon-review: must describe single-slot retry behavior'

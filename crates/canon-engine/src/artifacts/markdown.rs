@@ -156,7 +156,7 @@ pub fn render_discovery_artifact(file_name: &str, brief_summary: &str) -> String
             "# Context Boundary\n\n## Summary\n\n{summary}\n\n## In-Scope Context\n\n{problem}\n\n{repo_focus}\n\n## Repo Surface\n\n{repo_surface}\n\n## Out-of-Scope Context\n\n- Workspace mutation and implementation edits remain out of scope for discovery.\n- Do not expand beyond the named repository signals until the next governed mode is chosen.\n\n## Translation Trigger\n\n{next_phase}\n"
         ),
         "exploration-options.md" => format!(
-            "# Exploration Options\n\n## Summary\n\n{summary}\n\n## Options\n\n1. Stay in discovery only to close the highest-risk unknowns tied to the current repository surface.\n2. Translate this packet into requirements mode if the main need is bounded problem framing and scope cuts.\n3. Translate this packet into architecture or brownfield planning if the repository signals already point to concrete boundaries or preserved behavior.\n\n## Constraints\n\n- {constraints}\n- Preserve explicit repository anchoring in the next phase.\n\n## Recommended Direction\n\n{generation_summary}\n\n## Next-Phase Shape\n\n{next_phase}\n"
+            "# Exploration Options\n\n## Summary\n\n{summary}\n\n## Options\n\n1. Stay in discovery only to close the highest-risk unknowns tied to the current repository surface.\n2. Translate this packet into requirements mode if the main need is bounded problem framing and scope cuts.\n3. Translate this packet into architecture or change planning if the repository signals already point to concrete boundaries or preserved behavior.\n\n## Constraints\n\n- {constraints}\n- Preserve explicit repository anchoring in the next phase.\n\n## Recommended Direction\n\n{generation_summary}\n\n## Next-Phase Shape\n\n{next_phase}\n"
         ),
         "decision-pressure-points.md" => format!(
             "# Decision Pressure Points\n\n## Summary\n\n{summary}\n\n## Pressure Points\n\n{critique_summary}\n\n## Blocking Decisions\n\n{validation_summary}\n\n## Open Questions\n\n{unknowns}\n\n## Recommended Owner\n\n- The named discovery owner should route this packet into the next governed mode with explicit boundary ownership.\n"
@@ -240,7 +240,7 @@ pub fn render_architecture_artifact(
     }
 }
 
-pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> String {
+pub fn render_change_artifact(file_name: &str, brief_summary: &str) -> String {
     let normalized = brief_summary.to_lowercase();
     let system_slice = extract_marker(brief_summary, &normalized, "system slice")
         .unwrap_or("Map the bounded subsystem before change planning.".to_string());
@@ -270,7 +270,7 @@ pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> Strin
         .unwrap_or("unspecified-risk".to_string());
     let zone = extract_marker(brief_summary, &normalized, "zone")
         .unwrap_or("unspecified-zone".to_string());
-    let summary = render_brownfield_bundle_summary(
+    let summary = render_change_bundle_summary(
         file_name,
         &system_slice,
         &intended_change,
@@ -288,7 +288,7 @@ pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> Strin
                 "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Legacy Invariants\n\n{value}\n\n## Forbidden Normalization\n\n- Do not simplify away existing behavior that operators or downstream systems still depend on.\n"
             ),
             None => format!(
-                "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture preserved behavior before this run can pass brownfield preservation.\n"
+                "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture preserved behavior before this run can pass change preservation.\n"
             ),
         },
         "change-surface.md" => match change_surface {
@@ -312,7 +312,7 @@ pub fn render_brownfield_artifact(file_name: &str, brief_summary: &str) -> Strin
     }
 }
 
-fn render_brownfield_bundle_summary(
+fn render_change_bundle_summary(
     current_file: &str,
     system_slice: &str,
     intended_change: &str,
@@ -1239,7 +1239,7 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_marker, render_architecture_artifact, render_brownfield_artifact,
+        extract_marker, render_architecture_artifact, render_change_artifact,
         render_discovery_artifact, render_pr_review_artifact, render_requirements_artifact,
         render_requirements_artifact_from_evidence, render_review_artifact,
         render_system_shaping_artifact, render_verification_artifact, trim_markdown_list_prefix,
@@ -1250,7 +1250,7 @@ mod tests {
 
     #[test]
     fn extract_marker_prefers_markdown_section_over_inline_mentions() {
-        let source = "# Brownfield Brief\n\n## Change Surface\n- bounded module\n- stable interface\n\nMutation posture: propose bounded legacy transformation within declared change surface: workspace, adjacent modules";
+        let source = "# Change Brief\n\n## Change Surface\n- bounded module\n- stable interface\n\nMutation posture: propose bounded legacy transformation within declared change surface: workspace, adjacent modules";
         let normalized = source.to_lowercase();
 
         let marker = extract_marker(source, &normalized, "change surface").expect("change surface");
@@ -1259,10 +1259,10 @@ mod tests {
     }
 
     #[test]
-    fn render_brownfield_change_surface_preserves_markdown_bullets() {
-        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Change Surface\n- Public API entrypoints\n- Debug logging only\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
+    fn render_change_surface_preserves_markdown_bullets() {
+        let source = "# Change Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Change Surface\n- Public API entrypoints\n- Debug logging only\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
 
-        let rendered = render_brownfield_artifact("change-surface.md", source);
+        let rendered = render_change_artifact("change-surface.md", source);
 
         assert!(
             rendered
@@ -1272,10 +1272,10 @@ mod tests {
     }
 
     #[test]
-    fn render_brownfield_validation_strategy_preserves_markdown_bullets() {
-        let source = "# Brownfield Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Validation Strategy\n- Unit tests\n- Log assertion checks\n";
+    fn render_change_validation_strategy_preserves_markdown_bullets() {
+        let source = "# Change Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Validation Strategy\n- Unit tests\n- Log assertion checks\n";
 
-        let rendered = render_brownfield_artifact("validation-strategy.md", source);
+        let rendered = render_change_artifact("validation-strategy.md", source);
 
         assert!(
             rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
@@ -1306,13 +1306,13 @@ mod tests {
     }
 
     #[test]
-    fn render_brownfield_artifact_reports_missing_context_and_default_metadata() {
-        let source = "# Brownfield Brief\n\n## System Slice\nSession repository\n\n## Intended Change\nStabilize resumable execution\n";
+    fn render_change_artifact_reports_missing_context_and_default_metadata() {
+        let source = "# Change Brief\n\n## System Slice\nSession repository\n\n## Intended Change\nStabilize resumable execution\n";
 
-        let invariants = render_brownfield_artifact("legacy-invariants.md", source);
-        let decision = render_brownfield_artifact("decision-record.md", source);
+        let invariants = render_change_artifact("legacy-invariants.md", source);
+        let decision = render_change_artifact("decision-record.md", source);
 
-        assert!(invariants.contains("## Missing Context\n\nCapture preserved behavior before this run can pass brownfield preservation."));
+        assert!(invariants.contains("## Missing Context\n\nCapture preserved behavior before this run can pass change preservation."));
         assert!(decision.contains(
             "Prefer additive change over normalization when the legacy surface still matters."
         ));

@@ -34,6 +34,7 @@ mod tests {
                 mode: Mode::Requirements,
                 risk: RiskClass::SystemicImpact,
                 zone: UsageZone::Green,
+                system_context: None,
                 classification: ClassificationProvenance::explicit(),
                 owner: "Owner <owner@example.com>".to_string(),
                 inputs: vec!["idea.md".to_string()],

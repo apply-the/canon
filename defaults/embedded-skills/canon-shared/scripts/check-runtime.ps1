@@ -6,6 +6,7 @@ param(
   [string]$Owner = "",
   [string]$Risk = "",
   [string]$Zone = "",
+  [string]$SystemContext = "",
   [Alias("Input")]
   [string[]]$InputPath = @(),
   [Alias("InputText")]
@@ -119,6 +120,16 @@ function Normalize-Zone([string]$Value) {
   }
 }
 
+function Normalize-SystemContext([string]$Value) {
+  switch ($Value) {
+    'new' { return 'new' }
+    'New' { return 'new' }
+    'existing' { return 'existing' }
+    'Existing' { return 'existing' }
+    default { return $null }
+  }
+}
+
 function Normalize-InputPath([string]$Value) {
   if ([string]::IsNullOrWhiteSpace($Value)) {
     return ""
@@ -201,7 +212,7 @@ function Get-CanonicalModeInputHint([string]$CommandName) {
     'review' { return 'canon-input/review.md or canon-input/review/' }
     'system-shaping' { return 'canon-input/system-shaping.md or canon-input/system-shaping/' }
     'architecture' { return 'canon-input/architecture.md or canon-input/architecture/' }
-    'brownfield-change' { return 'canon-input/brownfield-change.md or canon-input/brownfield-change/' }
+    'change' { return 'canon-input/change.md or canon-input/change/' }
     'verification' { return 'canon-input/verification.md or canon-input/verification/' }
     default { return $null }
   }
@@ -324,7 +335,7 @@ try {
 } catch {
   $ProbeOutput = & canon inspect modes --output json 2>$null
   $ProbeText = ($ProbeOutput | Out-String)
-  if ($LASTEXITCODE -ne 0 -or $ProbeText -notmatch "requirements" -or $ProbeText -notmatch "brownfield-change" -or $ProbeText -notmatch "review" -or $ProbeText -notmatch "verification" -or $ProbeText -notmatch "pr-review") {
+  if ($LASTEXITCODE -ne 0 -or $ProbeText -notmatch "requirements" -or $ProbeText -notmatch "change" -or $ProbeText -notmatch "review" -or $ProbeText -notmatch "verification" -or $ProbeText -notmatch "pr-review") {
     Emit-Failure "version-incompatible" 11 "Canon is present, but it does not satisfy the expected CLI command contract for this repo." (Get-InstallAction -Update)
   }
 }
@@ -342,7 +353,7 @@ if ($RequireInit -and -not (Test-Path (Join-Path $RepoRoot ".canon"))) {
   Emit-Failure "repo-not-initialized" 13 "This workflow requires an initialized .canon/ directory." "Run `$canon-init or canon init in $RepoRoot first."
 }
 
-$RunStartCommands = @('requirements', 'discovery', 'system-shaping', 'architecture', 'brownfield-change', 'review', 'verification', 'pr-review')
+$RunStartCommands = @('requirements', 'discovery', 'system-shaping', 'architecture', 'change', 'review', 'verification', 'pr-review')
 $RunIdCommands = @('status', 'inspect-invocations', 'inspect-evidence', 'inspect-artifacts', 'approve', 'resume')
 $RunStartCommand = $RunStartCommands -contains $Command
 $RunIdCommand = $RunIdCommands -contains $Command
@@ -351,6 +362,7 @@ $PrReviewCommand = ($Command -eq 'pr-review')
 $NormalizedRunId = ''
 $NormalizedRisk = ''
 $NormalizedZone = ''
+$NormalizedSystemContext = ''
 $NormalizedInput1 = ''
 $NormalizedInlineInput1 = ''
 $NormalizedRef1 = ''
@@ -440,6 +452,7 @@ if ($RunStartCommand) {
   $Owner = Trim-Value $Owner
   $Risk = Trim-Value $Risk
   $Zone = Trim-Value $Zone
+  $SystemContext = Trim-Value $SystemContext
 
   if ($PrReviewCommand) {
     if ($RefName.Count -eq 0) {
@@ -543,6 +556,28 @@ if ($RunStartCommand) {
     }
   }
 
+  $SystemContextUsage = switch ($Command) {
+    'system-shaping' { 'new|existing' }
+    'architecture' { 'new|existing' }
+    'change' { 'existing' }
+    default { '' }
+  }
+
+  if ($SystemContextUsage -and (Test-MissingValue $SystemContext)) {
+    Emit-Failure 'missing-input' 14 "System context is required for $Command." "Retry with --system-context $SystemContextUsage." @{ FAILED_SLOT = 'system-context'; FAILED_KIND = 'SystemContextField' }
+  }
+
+  if (-not (Test-MissingValue $SystemContext)) {
+    $NormalizedSystemContext = Normalize-SystemContext $SystemContext
+    if (-not $NormalizedSystemContext) {
+      Emit-Failure 'invalid-input' 17 "System context $SystemContext is not supported by the Canon runtime contract." 'Retry with new, existing, or the runtime-recognized aliases New, Existing.' @{ FAILED_SLOT = 'system-context'; FAILED_KIND = 'SystemContextField' }
+    }
+  }
+
+  if ($Command -eq 'change' -and $NormalizedSystemContext -and $NormalizedSystemContext -ne 'existing') {
+    Emit-Failure 'invalid-input' 17 'Mode change currently supports only --system-context existing in this release.' 'Retry with --system-context existing.' @{ FAILED_SLOT = 'system-context'; FAILED_KIND = 'SystemContextField' }
+  }
+
   if (-not $NormalizedRisk -or -not $NormalizedZone) {
     if ($PrReviewCommand) {
       Invoke-ClassificationInference -ModeName $Command -InputValues @($NormalizedRef1, $NormalizedRef2)
@@ -570,6 +605,7 @@ if ($RunStartCommand) {
     }
 
     if ($NormalizedInput1) { $Extra['NORMALIZED_INPUT_1'] = $NormalizedInput1 }
+    if ($NormalizedSystemContext) { $Extra['NORMALIZED_SYSTEM_CONTEXT'] = $NormalizedSystemContext }
     if ($NormalizedRef1) { $Extra['NORMALIZED_REF_1'] = $NormalizedRef1 }
     if ($NormalizedRef2) { $Extra['NORMALIZED_REF_2'] = $NormalizedRef2 }
 
@@ -595,6 +631,7 @@ $Extra = @{
 
 if ($NormalizedRunId) { $Extra['NORMALIZED_RUN_ID'] = $NormalizedRunId }
 if ($NormalizedInput1) { $Extra['NORMALIZED_INPUT_1'] = $NormalizedInput1 }
+if ($NormalizedSystemContext) { $Extra['NORMALIZED_SYSTEM_CONTEXT'] = $NormalizedSystemContext }
 if ($NormalizedRef1) { $Extra['NORMALIZED_REF_1'] = $NormalizedRef1 }
 if ($NormalizedRef2) { $Extra['NORMALIZED_REF_2'] = $NormalizedRef2 }
 if ($NormalizedRisk) { $Extra['NORMALIZED_RISK'] = $NormalizedRisk }

@@ -112,6 +112,7 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
             mode: Mode::Requirements,
             risk: RiskClass::BoundedImpact,
             zone: UsageZone::Yellow,
+            system_context: None,
             classification: ClassificationProvenance::explicit(),
             owner: "product-lead".to_string(),
             inputs: vec!["idea.md".to_string()],

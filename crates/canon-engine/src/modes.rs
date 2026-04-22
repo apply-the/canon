@@ -1,5 +1,5 @@
 pub mod architecture;
-pub mod brownfield_change;
+pub mod change;
 pub mod discovery;
 pub mod implementation;
 pub mod incident;

@@ -6,6 +6,13 @@ fn system_shaping_mode_parses_through_the_public_name() {
 }
 
 #[test]
+fn legacy_public_mode_names_fail_with_generic_unsupported_mode_errors() {
+    for legacy_name in ["brownfield-change", "brownfield", "greenfield"] {
+        assert_eq!(legacy_name.parse::<Mode>(), Err(format!("unsupported mode: {legacy_name}")));
+    }
+}
+
+#[test]
 fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
     let profiles = all_mode_profiles();
     assert_eq!(profiles.len(), Mode::all().len(), "every mode should have a profile");
@@ -52,7 +59,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::Requirements,
         Mode::Discovery,
         Mode::SystemShaping,
-        Mode::BrownfieldChange,
+        Mode::Change,
         Mode::Architecture,
         Mode::Verification,
         Mode::Review,

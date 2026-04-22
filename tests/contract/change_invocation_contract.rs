@@ -35,7 +35,7 @@ fn git(workspace: &TempDir, args: &[&str]) {
     );
 }
 
-fn init_brownfield_repo(workspace: &TempDir) {
+fn init_change_repo(workspace: &TempDir) {
     git(workspace, &["init", "-b", "main"]);
     git(workspace, &["config", "user.name", "Canon Test"]);
     git(workspace, &["config", "user.email", "canon@example.com"]);
@@ -54,29 +54,31 @@ fn init_brownfield_repo(workspace: &TempDir) {
     .expect("test file");
 
     git(workspace, &["add", "."]);
-    git(workspace, &["commit", "-m", "seed brownfield repo"]);
+    git(workspace, &["commit", "-m", "seed change repo"]);
 }
 
 fn complete_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
 fn broad_surface_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: auth service, session repository, and adjacent modules.\nImplementation Plan: tighten the auth persistence boundary while preserving the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: auth service, session repository, and adjacent modules.\nImplementation Plan: tighten the auth persistence boundary while preserving the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
 #[test]
-fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_requests() {
+fn systemic_change_run_persists_approval_gated_and_recommendation_only_requests() {
     let workspace = TempDir::new().expect("temp dir");
-    init_brownfield_repo(&workspace);
-    fs::write(workspace.path().join("brownfield.md"), complete_brief()).expect("brief file");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("change.md"), complete_brief()).expect("brief file");
 
     let output = cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "systemic-impact",
             "--zone",
@@ -84,7 +86,7 @@ fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_reque
             "--owner",
             "architect",
             "--input",
-            "brownfield.md",
+            "change.md",
             "--output",
             "json",
         ])
@@ -119,7 +121,7 @@ fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_reque
         .expect("pending request");
     assert!(
         entries.iter().any(|entry| entry["latest_outcome"] == "RecommendationOnly"),
-        "systemic brownfield work should persist a recommendation-only mutation request"
+        "systemic change work should persist a recommendation-only mutation request"
     );
 
     cli_command()
@@ -135,7 +137,7 @@ fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_reque
             "--decision",
             "approve",
             "--rationale",
-            "Allow bounded systemic brownfield generation with explicit ownership.",
+            "Allow bounded systemic change generation with explicit ownership.",
         ])
         .assert()
         .success();
@@ -155,17 +157,19 @@ fn systemic_brownfield_run_persists_approval_gated_and_recommendation_only_reque
 }
 
 #[test]
-fn broad_brownfield_change_surface_escalates_mutation_before_completion() {
+fn broad_change_change_surface_escalates_mutation_before_completion() {
     let workspace = TempDir::new().expect("temp dir");
-    init_brownfield_repo(&workspace);
-    fs::write(workspace.path().join("brownfield.md"), broad_surface_brief()).expect("brief file");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("change.md"), broad_surface_brief()).expect("brief file");
 
     let output = cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -173,7 +177,7 @@ fn broad_brownfield_change_surface_escalates_mutation_before_completion() {
             "--owner",
             "maintainer",
             "--input",
-            "brownfield.md",
+            "change.md",
             "--output",
             "json",
         ])

@@ -1,4 +1,5 @@
 version = 1
+# Requires explicit `--system-context new|existing` when starting a run.
 mode = "implementation"
 emphasis = "execution-heavy"
 implementation_depth = "skeleton"

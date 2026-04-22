@@ -3,8 +3,8 @@ use time::OffsetDateTime;
 
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
-use crate::domain::run::ClassificationProvenance;
 use crate::domain::run::RunState;
+use crate::domain::run::{ClassificationProvenance, SystemContext};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkManifest {
@@ -21,6 +21,8 @@ pub struct RunManifest {
     pub mode: Mode,
     pub risk: RiskClass,
     pub zone: UsageZone,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_context: Option<SystemContext>,
     #[serde(default)]
     pub classification: ClassificationProvenance,
     pub owner: String,

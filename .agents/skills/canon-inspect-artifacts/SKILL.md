@@ -50,7 +50,7 @@ Expose artifact paths from a real Canon run without inventing runtime state.
 - no run-level TOML pointers in standard user-facing output
 - optional action chips that preserve the same run context, with `Approve generation...` only after packet review and `Inspect evidence` when rationale is the real next need
 - ordered possible actions from the current run state
-- one recommended next step that preserves the same run context, or no mandatory next step when the packet already answers the user request
+- one recommended next step that preserves the same run context
 
 ## Failure Handling Guidance
 
@@ -64,7 +64,6 @@ Expose artifact paths from a real Canon run without inventing runtime state.
 
 ## Next-Step Guidance
 
-- If the packet already answers the user request, treat inspection as complete and keep further drill-down optional.
 - If the artifact packet explains an approval-gated or recommendation-only block, recommend `$canon-approve` next only after the user has reviewed it.
 - Use `$canon-inspect-evidence` when the user needs the policy rationale or request lineage behind the artifact packet.
 - Use `$canon-status` only to re-check overall run state after inspection, approval, or resume.

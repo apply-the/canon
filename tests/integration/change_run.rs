@@ -20,21 +20,21 @@ fn cli_command() -> Command {
 }
 
 fn blocked_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nImplementation Plan: keep the external auth API stable while tightening the persistence boundary.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nImplementation Plan: keep the external auth API stable while tightening the persistence boundary.\n"
 }
 
 fn complete_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
 fn markdown_heading_brief() -> &'static str {
-    "# Brownfield Brief: Debug Logging for Null Arguments\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for every public function argument that is null. This will help diagnose edge cases and support troubleshooting in the schema validation pipeline.\n\n## Legacy Invariants\n- API compatibility must be maintained\n- Existing behavior and requirements must not change\n- Output format must remain unchanged\n\n## Change Surface\n- Public functions in schema validation module\n- Debug-level log statements only (non-intrusive)\n- No changes to function signatures or return types\n\n## Validation Strategy\n- Unit tests using JUnit5 and Mockito\n- Verify debug logs are emitted for null arguments\n- Ensure no performance degradation\n- Confirm null argument handling remains correct\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n"
+    "# Change Brief: Debug Logging for Null Arguments\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for every public function argument that is null. This will help diagnose edge cases and support troubleshooting in the schema validation pipeline.\n\n## Legacy Invariants\n- API compatibility must be maintained\n- Existing behavior and requirements must not change\n- Output format must remain unchanged\n\n## Change Surface\n- Public functions in schema validation module\n- Debug-level log statements only (non-intrusive)\n- No changes to function signatures or return types\n\n## Validation Strategy\n- Unit tests using JUnit5 and Mockito\n- Verify debug logs are emitted for null arguments\n- Ensure no performance degradation\n- Confirm null argument handling remains correct\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n"
 }
 
 #[test]
-fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
+fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
     let workspace = TempDir::new().expect("temp dir");
-    let brief_path = workspace.path().join("brownfield.md");
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
     let output = cli_command()
@@ -42,7 +42,9 @@ fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -66,14 +68,14 @@ fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
 
     let run_root = workspace.path().join(".canon").join("runs").join(run_id);
     let artifact_root =
-        workspace.path().join(".canon").join("artifacts").join(run_id).join("brownfield-change");
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
     assert_eq!(json["state"], "Blocked");
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Change Surface"));
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/brownfield-change/change-surface.md"))
+            .is_some_and(|value| value.ends_with("/change/change-surface.md"))
     );
     assert!(
         json["mode_result"]["headline"]
@@ -83,8 +85,8 @@ fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
     assert!(run_root.join("run.toml").exists(), "run manifest should exist");
     assert!(run_root.join("artifact-contract.toml").exists(), "artifact contract should exist");
     assert!(
-        run_root.join("gates").join("brownfield-preservation.toml").exists(),
-        "brownfield preservation gate should be persisted"
+        run_root.join("gates").join("change-preservation.toml").exists(),
+        "change preservation gate should be persisted"
     );
     assert!(
         artifact_root.join("legacy-invariants.md").exists(),
@@ -113,9 +115,9 @@ fn run_brownfield_change_blocks_when_preservation_artifacts_are_incomplete() {
 }
 
 #[test]
-fn run_brownfield_change_completes_when_context_is_fully_described() {
+fn run_change_change_completes_when_context_is_fully_described() {
     let workspace = TempDir::new().expect("temp dir");
-    let brief_path = workspace.path().join("brownfield.md");
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
     let output = cli_command()
@@ -123,7 +125,9 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -147,18 +151,18 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
 
     let run_root = workspace.path().join(".canon").join("runs").join(run_id);
     let artifact_root =
-        workspace.path().join(".canon").join("artifacts").join(run_id).join("brownfield-change");
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
     assert_eq!(json["state"], "Completed");
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Change Surface"));
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/brownfield-change/change-surface.md"))
+            .is_some_and(|value| value.ends_with("/change/change-surface.md"))
     );
     assert!(run_root.join("inputs").is_dir(), "input snapshot directory should exist");
     assert!(
-        run_root.join("inputs").join("input-00-brownfield.md").exists(),
+        run_root.join("inputs").join("input-00-change.md").exists(),
         "authored input snapshot should exist"
     );
 
@@ -172,7 +176,7 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
-            "{artifact} should exist in the brownfield bundle"
+            "{artifact} should exist in the change bundle"
         );
     }
 
@@ -182,7 +186,7 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
         .as_array()
         .and_then(|entries| entries.first())
         .expect("input fingerprint");
-    let expected_snapshot_ref = format!("runs/{run_id}/inputs/input-00-brownfield.md");
+    let expected_snapshot_ref = format!("runs/{run_id}/inputs/input-00-change.md");
     assert!(
         fingerprint["content_digest_sha256"].as_str().is_some_and(|value| !value.is_empty()),
         "input fingerprint should include a content digest"
@@ -211,9 +215,9 @@ fn run_brownfield_change_completes_when_context_is_fully_described() {
 }
 
 #[test]
-fn run_brownfield_change_preserves_markdown_brief_structure() {
+fn run_change_change_preserves_markdown_brief_structure() {
     let workspace = TempDir::new().expect("temp dir");
-    let brief_path = workspace.path().join("brownfield.md");
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, markdown_heading_brief()).expect("brief file");
 
     let output = cli_command()
@@ -221,7 +225,9 @@ fn run_brownfield_change_preserves_markdown_brief_structure() {
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "low-impact",
             "--zone",
@@ -244,7 +250,7 @@ fn run_brownfield_change_preserves_markdown_brief_structure() {
     let run_id = json["run_id"].as_str().expect("run id");
 
     let artifact_root =
-        workspace.path().join(".canon").join("artifacts").join(run_id).join("brownfield-change");
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
     let system_slice =
         fs::read_to_string(artifact_root.join("system-slice.md")).expect("system slice artifact");
@@ -264,15 +270,14 @@ fn run_brownfield_change_preserves_markdown_brief_structure() {
     );
     assert!(
         system_slice.contains("- Details: [legacy-invariants.md](legacy-invariants.md), [change-surface.md](change-surface.md), [implementation-plan.md](implementation-plan.md), [validation-strategy.md](validation-strategy.md), [decision-record.md](decision-record.md)"),
-        "summary should point to the other detail files in the brownfield bundle"
+        "summary should point to the other detail files in the change bundle"
     );
     assert!(
         system_slice.contains("## System Slice\n\nSchema validation"),
         "system slice should be extracted from markdown headings"
     );
     assert!(
-        !system_slice
-            .contains("## Summary\n\n# Brownfield Brief: Debug Logging for Null Arguments"),
+        !system_slice.contains("## Summary\n\n# Change Brief: Debug Logging for Null Arguments"),
         "summary should no longer inline the full brief"
     );
 

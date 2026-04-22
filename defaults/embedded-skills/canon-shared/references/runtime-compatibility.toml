@@ -1,12 +1,12 @@
 [canon]
-expected_workspace_version = "0.7.0"
+expected_workspace_version = "0.8.0"
 install_command = "follow the install guide at https://github.com/apply-the/canon#install"
 install_guidance_ref = "https://github.com/apply-the/canon#install"
 release_surface = "https://github.com/apply-the/canon/releases"
 version_command = "canon --version"
 version_check_strategy = "prefer-semver-then-command-probe"
 command_probe = "canon inspect modes --output json"
-required_modes = ["requirements", "brownfield-change", "pr-review"]
+required_modes = ["requirements", "change", "pr-review"]
 
 [notes]
 summary = "Canon CLI compatibility is semver-based when the binary exposes --version and command-contract-based when it does not; missing or incompatible binaries should be recovered through the release install guide."

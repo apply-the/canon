@@ -12,8 +12,8 @@ description: Use when you need a governed Canon system-shaping run to shape a ne
 
 ## Purpose
 
-Start a real Canon system-shaping run from Codex without making the user
-memorize the raw CLI.
+Start a real Canon system-shaping run from your AI assistant without making
+the user memorize the raw CLI.
 
 ## When To Trigger
 
@@ -29,6 +29,7 @@ memorize the raw CLI.
 
 - `RISK`
 - `ZONE`
+- `SYSTEM_CONTEXT`
 - at least one input file, input folder, or inline note
 
 Optional:
@@ -39,7 +40,9 @@ Optional:
 
 - Verify `canon` is on PATH. If missing, point to the install guide.
 - Verify `.canon/` exists. If missing, point to `$canon-init`.
-- Verify risk, zone, and at least one authored input are present before invoking Canon.
+- Verify risk, zone, `SYSTEM_CONTEXT`, and at least one authored input are present before invoking Canon.
+- Treat authored inputs under `canon-input/` as read-only source material. Do not rewrite, normalize, append to, or otherwise modify the user's input files during preflight, clarification, generation, critique, or summary.
+- Ask for `SYSTEM_CONTEXT` explicitly with guided fixed choices `new` or `existing`; do not infer it from the mode name alone.
 - For auto-binding only, treat `canon-input/system-shaping.md` or `canon-input/system-shaping/` as the canonical authored-input locations for this mode.
 - For an explicit inline note, pass it through `--input-text` instead of materializing a repo file automatically.
 - Never infer `--input` from the active editor file, open tabs, recent `.canon/` artifacts, or any other path under `.canon/`.
@@ -56,8 +59,90 @@ Optional:
 
 ## Canon Command Contract
 
-- Canon command: `canon run --mode system-shaping --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
+- Canon command: `canon run --mode system-shaping --system-context <SYSTEM_CONTEXT> --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any approval target Canon emits.
+
+## AI Companion Operating Model
+
+After preflight succeeds and the real Canon run exists, the assistant is
+responsible for turning the system-shaping packet from templated stubs into a
+grounded, reviewable artifact set.
+
+### Run Boundary
+
+- Read the full authored input surface before generation. If the input is a directory such as `canon-input/system-shaping/`, treat the directory as one authored packet and read it recursively before generation.
+- Start the real Canon run before artifact writing so `.canon/artifacts/<RUN_ID>/system-shaping/` exists and the packet stays attached to a real run id.
+- Treat authored inputs under `canon-input/` as read-only source material. Do not rewrite, normalize, append to, or otherwise modify the user's input files during preflight, clarification, generation, critique, or summary.
+- Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/system-shaping/`.
+- Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.
+
+### Generation Loop
+
+1. Read the authored input surface and extract the stated intent, declared constraints, target system boundary, candidate components or capabilities, and the explicit open questions already present in the source.
+2. Start the Canon run and inspect the generated system-shaping stubs under `.canon/artifacts/<RUN_ID>/system-shaping/`.
+3. If the source is sufficient, generate the packet directly. If it is structurally sufficient but materially ambiguous, run the clarification loop before final generation.
+4. Draft each artifact so every nontrivial claim is grounded in the authored input, in an explicit user clarification, or in a clearly marked open question.
+5. Run a critique pass that challenges invented architecture not requested by the brief, missing intent or constraint coverage, unsupported component decisions, and silent expansion of the system boundary.
+6. Overwrite the templated stubs with the revised packet and write the provenance sidecar.
+
+### Clarification Loop
+
+When the authored input is structurally present but materially ambiguous on
+points that would force the assistant to invent content, ask targeted
+clarification questions before generation rather than papering over the gap.
+
+#### Question Granularity Rules
+
+- One question per question. Never bundle multiple decisions into a single prompt with `and`, `or`, or comma-separated sub-questions.
+- Each question must isolate exactly one decision the user can answer with one short response.
+- If a topic naturally needs several decisions, split it into separate atomic questions and label them as a short series.
+- Prefer fixed-choice options when the answer space is small and known.
+
+#### Question Format (mandatory)
+
+Each question must follow this shape:
+
+```
+- Question: <one-sentence question>
+  - Affects: <artifact or section it changes>
+  - Why it matters: <one short line on what changes if unanswered>
+  - Context: <≤2 lines from authored input, or `no input coverage`>
+  - Options:
+    a) <concrete option>
+    b) <concrete option>
+    c) <concrete option>
+    d) Other (free-form)
+  - Default if skipped: <explicit default>
+  - Status: Required | Optional
+```
+
+#### Use Host UI Affordances When Available
+
+- When the host surface supports rich question UI (selectable options, secondary text, tooltips, hover hints), put the `Question` line as the main prompt and surface `Why it matters` and `Context` as secondary or tooltip text rather than dumping the full block inline.
+- Keep the visible question short, ideally under ~100 characters; move background, citations, and rationale into the secondary or tooltip slot.
+- Fall back to the plain bulleted block above only when the host has no rich question UI or when the user explicitly asks for it inline.
+
+#### Batch Size
+
+- Ask 3 to 5 questions per round, never more than 7. If more questions exist, defer the lower-impact ones to a later round.
+
+#### Interaction Loop
+
+- Ask the batch.
+- Wait for user answers.
+- Apply answers, regenerate the affected sections, and surface any remaining open questions still required to finish the packet.
+- Stop the loop when no Required question is unanswered.
+
+#### Provenance Sidecar
+
+Write `.canon/artifacts/<RUN_ID>/system-shaping/ai-provenance.md` describing
+how the packet was produced. It must include:
+
+- The authored input files that were read.
+- The clarification questions that were asked, the user answers received, and any defaults that were applied because the user skipped or deferred a question.
+- A `Clarification Loop` section with: number of questions presented, number of Required questions answered, number of Required questions left unresolved, number of Optional questions answered or deferred, and the number of substantive clarifications that drove material changes per artifact section.
+- The critique findings that were addressed and any that were intentionally deferred.
+- The generation model or assistant identity that produced the artifact set.
 
 ## Expected Output Shape
 
@@ -68,6 +153,7 @@ Optional:
 - primary artifact path and short excerpt when available
 - concrete `.canon/artifacts/...` paths when Canon emitted them
 - next steps pointing to `$canon-status`, `$canon-inspect-artifacts`, and `$canon-inspect-evidence`
+- generated content must be written only to Canon-managed run outputs such as `.canon/artifacts/<RUN_ID>/system-shaping/` and `.canon/artifacts/<RUN_ID>/system-shaping/ai-provenance.md`, never back into `canon-input/`
 
 ## Failure Handling Guidance
 
@@ -79,12 +165,14 @@ Optional:
 - If the brief lacks explicit `Intent:` or `Constraint:` markers, ask only for the missing marker rather than discarding the rest of the brief.
 - For `RISK`, use guided fixed choices with the exact allowed values `low-impact`, `bounded-impact`, and `systemic-impact`.
 - For `ZONE`, use guided fixed choices with the exact allowed values `green`, `yellow`, and `red`.
+- For `SYSTEM_CONTEXT`, use guided fixed choices with the exact allowed values `new` and `existing`.
 - If an input is invalid, tell the user which typed slot failed and retry only that slot.
 - If the input file is missing, ask only for the missing path and do not restate already valid ownership metadata.
 - If an explicit inline note is empty or whitespace-only, ask only for non-empty `--input-text` content and do not restate already valid ownership metadata.
 - If Canon fails after preflight succeeds, state that the failure happened inside Canon execution rather than before Canon execution.
 - If Canon returns `Blocked`, surface the concrete blocked gate and keep the emitted artifact paths visible for inspection.
 - Never emit a fabricated Canon run result.
+- If the assistant has already edited or is about to edit an authored input file under `canon-input/`, stop, restore the file from the user's last saved version, and report the rollback before continuing.
 
 ## Next-Step Guidance
 

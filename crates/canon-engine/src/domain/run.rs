@@ -5,6 +5,35 @@ use crate::domain::artifact::ArtifactContract;
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
 
+// Mode names only describe the governed work type; system state stays explicit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SystemContext {
+    New,
+    Existing,
+}
+
+impl SystemContext {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::New => "new",
+            Self::Existing => "existing",
+        }
+    }
+}
+
+impl std::str::FromStr for SystemContext {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "new" => Ok(Self::New),
+            "existing" => Ok(Self::Existing),
+            other => Err(format!("unsupported system context: {other}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RunState {
     Draft,
@@ -29,6 +58,8 @@ pub struct RunContext {
     pub inputs: Vec<String>,
     pub excluded_paths: Vec<String>,
     pub input_fingerprints: Vec<InputFingerprint>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_context: Option<SystemContext>,
     #[serde(default, skip)]
     pub inline_inputs: Vec<InlineInput>,
     pub captured_at: OffsetDateTime,
@@ -153,6 +184,8 @@ pub struct Run {
     pub mode: Option<Mode>,
     pub risk: Option<RiskClass>,
     pub zone: Option<UsageZone>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_context: Option<SystemContext>,
     pub state: RunState,
     pub created_at: OffsetDateTime,
     pub artifact_contract: Option<ArtifactContract>,
