@@ -2,7 +2,7 @@ version = 1
 
 mandatory_gates = [
     "Exploration",
-    "BrownfieldPreservation",
+    "ChangePreservation",
     "Architecture",
     "Risk",
     "ReviewDisposition",

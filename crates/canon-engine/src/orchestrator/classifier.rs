@@ -1,6 +1,56 @@
 use crate::domain::artifact::ArtifactContract;
 use crate::domain::mode::Mode;
 use crate::domain::policy::{PolicySet, RiskClass, UsageZone};
+use crate::domain::run::SystemContext;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SystemContextRequirement {
+    Required,
+    Optional,
+}
+
+pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
+    match mode {
+        Mode::SystemShaping
+        | Mode::Architecture
+        | Mode::Change
+        | Mode::Implementation
+        | Mode::Refactor
+        | Mode::Migration
+        | Mode::Incident => SystemContextRequirement::Required,
+        Mode::Discovery
+        | Mode::Requirements
+        | Mode::Review
+        | Mode::Verification
+        | Mode::PrReview => SystemContextRequirement::Optional,
+    }
+}
+
+pub fn validate_system_context(
+    mode: Mode,
+    system_context: Option<SystemContext>,
+) -> Result<(), String> {
+    // Work type and system state stay independent: mode picks the method, context picks the target state.
+    match (system_context_requirement(mode), system_context) {
+        (SystemContextRequirement::Required, None) => Err(format!(
+            "mode `{}` requires --system-context {}",
+            mode.as_str(),
+            supported_system_context_usage(mode)
+        )),
+        (_, Some(SystemContext::New)) if matches!(mode, Mode::Change) => {
+            Err("mode `change` currently supports only --system-context existing in this release"
+                .to_string())
+        }
+        _ => Ok(()),
+    }
+}
+
+fn supported_system_context_usage(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Change => "existing",
+        _ => "new|existing",
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MutationPolicy {
@@ -263,10 +313,8 @@ fn infer_risk(mode: Mode, intake_summary: &str, inputs: &[String]) -> FieldInfer
         ],
     );
 
-    let mode_defaults_to_bounded = matches!(
-        mode,
-        Mode::SystemShaping | Mode::Architecture | Mode::BrownfieldChange | Mode::PrReview
-    );
+    let mode_defaults_to_bounded =
+        matches!(mode, Mode::SystemShaping | Mode::Architecture | Mode::Change | Mode::PrReview);
     if mode_defaults_to_bounded || !bounded_hits.is_empty() {
         let mut signals = bounded_hits
             .iter()
@@ -378,7 +426,7 @@ fn infer_zone(mode: Mode, intake_summary: &str, inputs: &[String]) -> FieldInfer
             "main branch",
         ],
     );
-    let mode_defaults_to_yellow = matches!(mode, Mode::BrownfieldChange | Mode::PrReview);
+    let mode_defaults_to_yellow = matches!(mode, Mode::Change | Mode::PrReview);
     if mode_defaults_to_yellow || !yellow_hits.is_empty() {
         let mut signals = yellow_hits
             .iter()
@@ -475,22 +523,49 @@ fn extract_declared_value(source: &str, markers: &[&str]) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClassificationConfidence, infer_risk_zone};
+    use super::{
+        ClassificationConfidence, SystemContextRequirement, infer_risk_zone,
+        system_context_requirement, validate_system_context,
+    };
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::run::SystemContext;
+
+    #[test]
+    fn change_requires_existing_system_context() {
+        let missing = validate_system_context(Mode::Change, None)
+            .expect_err("change should require explicit context");
+        let invalid = validate_system_context(Mode::Change, Some(SystemContext::New))
+            .expect_err("change should reject new-system context");
+
+        assert!(missing.contains("mode `change` requires --system-context existing"));
+        assert!(invalid.contains("only --system-context existing"));
+    }
+
+    #[test]
+    fn optional_modes_can_omit_system_context() {
+        assert_eq!(
+            system_context_requirement(Mode::Requirements),
+            SystemContextRequirement::Optional
+        );
+        assert!(validate_system_context(Mode::Requirements, None).is_ok());
+        assert!(validate_system_context(Mode::Requirements, Some(SystemContext::Existing)).is_ok());
+    }
+
+    #[test]
+    fn architecture_requires_explicit_system_context() {
+        let error = validate_system_context(Mode::Architecture, None)
+            .expect_err("architecture should require explicit context");
+
+        assert!(error.contains("mode `architecture` requires --system-context new|existing"));
+    }
 
     #[test]
     fn infer_risk_zone_respects_explicit_markers_in_the_intake() {
         let summary = "# Brief\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
 
-        let inferred = infer_risk_zone(
-            Mode::BrownfieldChange,
-            None,
-            None,
-            summary,
-            &["brief.md".to_string()],
-            &[],
-        );
+        let inferred =
+            infer_risk_zone(Mode::Change, None, None, summary, &["brief.md".to_string()], &[]);
 
         assert_eq!(inferred.risk, RiskClass::LowImpact);
         assert_eq!(inferred.zone, UsageZone::Green);

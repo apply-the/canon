@@ -188,5 +188,5 @@ Later slices extend the same Canon-backed shapes to:
 - `canon-inspect-clarity`
 - `canon-approve`
 - `canon-resume`
-- `canon-brownfield`
+- `canon-change`
 - `canon-pr-review`

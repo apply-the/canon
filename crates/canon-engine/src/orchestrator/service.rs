@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
-    render_architecture_artifact, render_brownfield_artifact, render_discovery_artifact,
+    render_architecture_artifact, render_change_artifact, render_discovery_artifact,
     render_pr_review_artifact, render_requirements_artifact_from_evidence, render_review_artifact,
     render_system_shaping_artifact, render_verification_artifact,
 };
@@ -28,6 +28,7 @@ use crate::domain::mode::{Mode, all_mode_profiles};
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::run::{
     ClassificationProvenance, InlineInput, InputFingerprint, InputSourceKind, RunContext, RunState,
+    SystemContext,
 };
 use crate::orchestrator::{classifier, gatekeeper, resume, verification_runner};
 use crate::orchestrator::{evidence as evidence_builder, invocation as invocation_runtime};
@@ -84,6 +85,7 @@ pub struct RunRequest {
     pub mode: Mode,
     pub risk: RiskClass,
     pub zone: UsageZone,
+    pub system_context: Option<SystemContext>,
     pub classification: ClassificationProvenance,
     pub owner: String,
     pub inputs: Vec<String>,
@@ -161,6 +163,8 @@ pub struct SkillEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct InspectResponse {
     pub target: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_context: Option<String>,
     pub entries: Vec<InspectEntry>,
 }
 
@@ -258,6 +262,7 @@ pub struct RunSummary {
     pub mode: String,
     pub risk: String,
     pub zone: String,
+    pub system_context: Option<String>,
     pub state: String,
     pub artifact_count: usize,
     pub invocations_total: usize,
@@ -276,6 +281,7 @@ pub struct StatusSummary {
     pub run: String,
     pub owner: String,
     pub state: String,
+    pub system_context: Option<String>,
     pub invocations_total: usize,
     pub pending_invocation_approvals: usize,
     pub validation_independence_satisfied: bool,
@@ -316,6 +322,7 @@ struct RequirementsRequestSpec<'a> {
     run_id: &'a str,
     risk: RiskClass,
     zone: UsageZone,
+    system_context: Option<SystemContext>,
     owner: &'a str,
     capability: CapabilityKind,
     summary: &'a str,
@@ -328,6 +335,7 @@ struct GovernedRequestSpec<'a> {
     mode: Mode,
     risk: RiskClass,
     zone: UsageZone,
+    system_context: Option<SystemContext>,
     owner: &'a str,
     adapter: canon_adapters::AdapterKind,
     capability: CapabilityKind,
@@ -347,6 +355,7 @@ struct RunSummarySpec<'a> {
 
 #[derive(Debug, Clone)]
 struct RunRuntimeDetails {
+    system_context: Option<SystemContext>,
     invocations_total: usize,
     invocations_denied: usize,
     pending_invocation_approvals: usize,
@@ -630,6 +639,8 @@ impl EngineService {
             if root.is_absolute() { root } else { self.repo_root.join(root) }
         });
         let policy_set = store.load_policy_set(policy_root.as_deref())?;
+        classifier::validate_system_context(request.mode, request.system_context)
+            .map_err(EngineError::Validation)?;
         let owner_supplied_explicitly = !request.owner.trim().is_empty();
         request.owner = self.resolve_owner(&request.owner);
         classifier::classify_owner_requirement(&policy_set, request.risk, &request.owner).map_err(
@@ -649,7 +660,7 @@ impl EngineService {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
-            Mode::BrownfieldChange => self.run_brownfield_change(&store, request, policy_set),
+            Mode::Change => self.run_change(&store, request, policy_set),
             Mode::Architecture => self.run_architecture(&store, request, policy_set),
             Mode::Review => self.run_review(&store, request, policy_set),
             Mode::Verification => self.run_verification(&store, request, policy_set),
@@ -765,6 +776,7 @@ impl EngineService {
                 mode: manifest.mode,
                 risk: manifest.risk,
                 zone: manifest.zone,
+                system_context: context.system_context,
                 classification: manifest.classification.clone(),
                 owner: manifest.owner.clone(),
                 inputs: self.resume_inputs(&context),
@@ -780,6 +792,7 @@ impl EngineService {
                 run_id,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 owner: &request.owner,
                 capability: CapabilityKind::ReadRepository,
                 summary: "capture repository and idea context",
@@ -809,6 +822,7 @@ impl EngineService {
                 run_id,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 owner: &request.owner,
                 capability: CapabilityKind::GenerateContent,
                 summary: "generate bounded requirements framing",
@@ -820,6 +834,7 @@ impl EngineService {
                 run_id,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 owner: &request.owner,
                 capability: CapabilityKind::ProposeWorkspaceEdit,
                 summary: "attempt workspace mutation from requirements mode",
@@ -862,6 +877,7 @@ impl EngineService {
                 run_id,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 owner: &request.owner,
                 capability: CapabilityKind::CritiqueContent,
                 summary: "critique generated requirements framing",
@@ -1086,12 +1102,13 @@ impl EngineService {
             );
         }
 
-        if matches!(manifest.mode, Mode::BrownfieldChange) && artifacts.is_empty() {
+        if matches!(manifest.mode, Mode::Change) && artifacts.is_empty() {
             let policy_set = store.load_policy_set(None)?;
             let request = RunRequest {
                 mode: manifest.mode,
                 risk: manifest.risk,
                 zone: manifest.zone,
+                system_context: context.system_context,
                 classification: manifest.classification.clone(),
                 owner: manifest.owner.clone(),
                 inputs: self.resume_inputs(&context),
@@ -1100,7 +1117,7 @@ impl EngineService {
                 policy_root: None,
                 method_root: None,
             };
-            return self.execute_brownfield_change(
+            return self.execute_change(
                 &store,
                 request,
                 policy_set,
@@ -1127,9 +1144,10 @@ impl EngineService {
 
     pub fn inspect(&self, target: InspectTarget) -> Result<InspectResponse, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
-        let (name, entries) = match target {
+        let (name, system_context, entries) = match target {
             InspectTarget::Modes => (
                 "modes".to_string(),
+                None,
                 Mode::all()
                     .iter()
                     .map(|mode| InspectEntry::Name(mode.as_str().to_string()))
@@ -1137,14 +1155,17 @@ impl EngineService {
             ),
             InspectTarget::Methods => (
                 "methods".to_string(),
+                None,
                 store.list_method_files()?.into_iter().map(InspectEntry::Name).collect::<Vec<_>>(),
             ),
             InspectTarget::Policies => (
                 "policies".to_string(),
+                None,
                 store.list_policy_files()?.into_iter().map(InspectEntry::Name).collect::<Vec<_>>(),
             ),
             InspectTarget::RiskZone { mode, risk, zone, inputs, inline_inputs } => (
                 "risk-zone".to_string(),
+                None,
                 vec![InspectEntry::RiskZone(self.inspect_risk_zone(
                     mode,
                     risk,
@@ -1155,17 +1176,25 @@ impl EngineService {
             ),
             InspectTarget::Clarity { mode, inputs } => (
                 "clarity".to_string(),
+                None,
                 vec![InspectEntry::Clarity(self.inspect_clarity(mode, &inputs)?)],
             ),
-            InspectTarget::Artifacts { run_id } => (
-                "artifacts".to_string(),
-                store
-                    .list_artifact_files(&run_id)?
-                    .into_iter()
-                    .map(InspectEntry::Name)
-                    .collect::<Vec<_>>(),
-            ),
+            InspectTarget::Artifacts { run_id } => {
+                let system_context =
+                    store.load_run_context(&run_id).ok().and_then(|context| context.system_context);
+                (
+                    "artifacts".to_string(),
+                    system_context,
+                    store
+                        .list_artifact_files(&run_id)?
+                        .into_iter()
+                        .map(InspectEntry::Name)
+                        .collect::<Vec<_>>(),
+                )
+            }
             InspectTarget::Invocations { run_id } => {
+                let system_context =
+                    store.load_run_context(&run_id).ok().and_then(|context| context.system_context);
                 let artifacts = store
                     .load_run_manifest(&run_id)
                     .ok()
@@ -1218,9 +1247,11 @@ impl EngineService {
                         })
                     })
                     .collect::<Vec<_>>();
-                ("invocations".to_string(), entries)
+                ("invocations".to_string(), system_context, entries)
             }
             InspectTarget::Evidence { run_id } => {
+                let system_context =
+                    store.load_run_context(&run_id).ok().and_then(|context| context.system_context);
                 let entries = store
                     .load_evidence_bundle(&run_id)?
                     .map(|evidence| {
@@ -1244,11 +1275,15 @@ impl EngineService {
                         })]
                     })
                     .unwrap_or_default();
-                ("evidence".to_string(), entries)
+                ("evidence".to_string(), system_context, entries)
             }
         };
 
-        Ok(InspectResponse { target: name, entries })
+        Ok(InspectResponse {
+            target: name,
+            system_context: system_context.map(|context| context.as_str().to_string()),
+            entries,
+        })
     }
 
     fn inspect_risk_zone(
@@ -1399,7 +1434,7 @@ impl EngineService {
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
-            "Resolve the missing discovery boundaries before translating this packet into requirements, architecture, or brownfield planning.".to_string()
+            "Resolve the missing discovery boundaries before translating this packet into requirements, architecture, or change planning.".to_string()
         } else if !clarification_questions.is_empty() {
             "Review the open discovery questions with the named owner before choosing the downstream handoff mode.".to_string()
         } else {
@@ -1429,6 +1464,7 @@ impl EngineService {
             run: run.to_string(),
             owner: manifest.owner,
             state: format!("{:?}", state.state),
+            system_context: details.system_context.map(|context| context.as_str().to_string()),
             invocations_total: details.invocations_total,
             pending_invocation_approvals: details.pending_invocation_approvals,
             validation_independence_satisfied: details.validation_independence_satisfied,
@@ -1460,6 +1496,7 @@ impl EngineService {
             run_id: &run_id,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             capability: CapabilityKind::ReadRepository,
             summary: "capture repository and idea context",
@@ -1490,6 +1527,7 @@ impl EngineService {
             run_id: &run_id,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             capability: CapabilityKind::GenerateContent,
             summary: "generate bounded requirements framing",
@@ -1502,6 +1540,7 @@ impl EngineService {
             run_id: &run_id,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             capability: CapabilityKind::ProposeWorkspaceEdit,
             summary: "attempt workspace mutation from requirements mode",
@@ -1554,6 +1593,7 @@ impl EngineService {
                     mode: request.mode,
                     risk: request.risk,
                     zone: request.zone,
+                    system_context: request.system_context,
                     classification: request.classification.clone(),
                     owner: request.owner.clone(),
                     created_at: now,
@@ -1607,6 +1647,10 @@ impl EngineService {
                 mode: bundle.run.mode.as_str().to_string(),
                 risk: bundle.run.risk.as_str().to_string(),
                 zone: bundle.run.zone.as_str().to_string(),
+                system_context: bundle
+                    .run
+                    .system_context
+                    .map(|context| context.as_str().to_string()),
                 state: format!("{:?}", bundle.state.state),
                 artifact_count: 0,
                 invocations_total: details.invocations_total,
@@ -1655,6 +1699,7 @@ impl EngineService {
             run_id: &run_id,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             capability: CapabilityKind::CritiqueContent,
             summary: "critique generated requirements framing",
@@ -1814,6 +1859,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -1878,6 +1924,7 @@ impl EngineService {
             mode: bundle.run.mode.as_str().to_string(),
             risk: bundle.run.risk.as_str().to_string(),
             zone: bundle.run.zone.as_str().to_string(),
+            system_context: bundle.run.system_context.map(|context| context.as_str().to_string()),
             state: format!("{:?}", bundle.state.state),
             artifact_count: bundle.artifacts.len(),
             invocations_total: details.invocations_total,
@@ -1892,14 +1939,14 @@ impl EngineService {
         })
     }
 
-    fn run_brownfield_change(
+    fn run_change(
         &self,
         store: &WorkspaceStore,
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
         let run_id = Uuid::now_v7().to_string();
-        self.execute_brownfield_change(store, request, policy_set, run_id, Vec::new())
+        self.execute_change(store, request, policy_set, run_id, Vec::new())
     }
 
     fn run_discovery(
@@ -1923,6 +1970,7 @@ impl EngineService {
             mode: Mode::Discovery,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
@@ -1958,6 +2006,7 @@ impl EngineService {
             mode: Mode::Discovery,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
@@ -1992,6 +2041,7 @@ impl EngineService {
             mode: Mode::Discovery,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
@@ -2021,6 +2071,7 @@ impl EngineService {
             mode: Mode::Discovery,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ValidateWithTool,
@@ -2030,7 +2081,7 @@ impl EngineService {
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
         let (validation_summary, validation_attempt) =
-            self.brownfield_validation_attempt(&validation_request)?;
+            self.change_validation_attempt(&validation_request)?;
 
         let artifact_paths = artifact_contract
             .artifact_requirements
@@ -2166,6 +2217,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -2247,6 +2299,7 @@ impl EngineService {
             mode: Mode::SystemShaping,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
@@ -2279,6 +2332,7 @@ impl EngineService {
             mode: Mode::SystemShaping,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
@@ -2312,6 +2366,7 @@ impl EngineService {
             mode: Mode::SystemShaping,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
@@ -2457,6 +2512,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -2532,6 +2588,7 @@ impl EngineService {
             mode: Mode::Architecture,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
@@ -2564,6 +2621,7 @@ impl EngineService {
             mode: Mode::Architecture,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
@@ -2597,6 +2655,7 @@ impl EngineService {
             mode: Mode::Architecture,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
@@ -2742,6 +2801,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -2859,6 +2919,7 @@ impl EngineService {
             mode: request.mode,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
@@ -2890,6 +2951,7 @@ impl EngineService {
             mode: request.mode,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
@@ -2927,6 +2989,7 @@ impl EngineService {
             mode: request.mode,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
@@ -2959,6 +3022,7 @@ impl EngineService {
             mode: request.mode,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ValidateWithTool,
@@ -2968,7 +3032,7 @@ impl EngineService {
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
         let (validation_summary, validation_attempt) =
-            self.brownfield_validation_attempt(&validation_request)?;
+            self.change_validation_attempt(&validation_request)?;
 
         let artifact_paths = artifact_contract
             .artifact_requirements
@@ -3140,6 +3204,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -3201,7 +3266,7 @@ impl EngineService {
         )
     }
 
-    fn execute_brownfield_change(
+    fn execute_change(
         &self,
         store: &WorkspaceStore,
         request: RunRequest,
@@ -3221,27 +3286,28 @@ impl EngineService {
 
         let context_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::BrownfieldChange,
+            mode: Mode::Change,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
-            summary: "capture brownfield brief and repository context",
+            summary: "capture change brief and repository context",
             scope: input_scope.clone(),
         });
         let context_decision =
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
         let context_summary =
             self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
-        let declared_change_surface = extract_brownfield_change_surface_entries(&context_summary);
+        let declared_change_surface = extract_change_surface_entries(&context_summary);
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
             "filesystem",
             ToolOutcome {
                 kind: ToolOutcomeKind::Succeeded,
-                summary: "Captured brownfield brief and bounded repository context.".to_string(),
+                summary: "Captured change brief and bounded repository context.".to_string(),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
                 candidate_artifacts: Vec::new(),
@@ -3251,13 +3317,14 @@ impl EngineService {
 
         let generation_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::BrownfieldChange,
+            mode: Mode::Change,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
-            summary: "generate bounded brownfield change framing",
+            summary: "generate bounded change change framing",
             scope: input_scope.clone(),
         });
         let generation_decision =
@@ -3275,9 +3342,10 @@ impl EngineService {
         };
         let mutation_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::BrownfieldChange,
+            mode: Mode::Change,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ExecuteBoundedTransformation,
@@ -3338,6 +3406,7 @@ impl EngineService {
                     mode: request.mode,
                     risk: request.risk,
                     zone: request.zone,
+                    system_context: request.system_context,
                     classification: request.classification.clone(),
                     owner: request.owner.clone(),
                     created_at: now,
@@ -3423,19 +3492,20 @@ impl EngineService {
 
         let validation_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
-            mode: Mode::BrownfieldChange,
+            mode: Mode::Change,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ValidateWithTool,
-            summary: "validate brownfield change framing against repository context",
+            summary: "validate change change framing against repository context",
             scope: input_scope.clone(),
         });
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
         let (validation_summary, validation_attempt) =
-            self.brownfield_validation_attempt(&validation_request)?;
+            self.change_validation_attempt(&validation_request)?;
 
         let artifact_paths = artifact_contract
             .artifact_requirements
@@ -3501,10 +3571,7 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_brownfield_artifact(
-                    &requirement.file_name,
-                    &evidence_backed_summary,
-                ),
+                contents: render_change_artifact(&requirement.file_name, &evidence_backed_summary),
             })
             .collect::<Vec<_>>();
 
@@ -3512,14 +3579,15 @@ impl EngineService {
             .iter()
             .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
             .collect::<Vec<_>>();
-        let gates = gatekeeper::evaluate_brownfield_gates(
+        let gates = gatekeeper::evaluate_change_gates(
             &artifact_contract,
             &gate_inputs,
-            gatekeeper::BrownfieldGateContext {
+            gatekeeper::ChangeGateContext {
                 owner: &request.owner,
                 risk: request.risk,
                 zone: request.zone,
                 approvals: &approvals,
+                system_context: request.system_context,
                 validation_independence_satisfied: validation_path.independence.sufficient,
                 evidence_complete: true,
             },
@@ -3532,7 +3600,7 @@ impl EngineService {
             state = RunState::AwaitingApproval;
         }
 
-        let mut verification_records = verification_runner::brownfield_verification_records(
+        let mut verification_records = verification_runner::change_verification_records(
             &artifact_contract.required_verification_layers,
             &artifact_paths,
         );
@@ -3586,6 +3654,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -3670,6 +3739,7 @@ impl EngineService {
             mode: Mode::PrReview,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::InspectDiff,
@@ -3726,6 +3796,7 @@ impl EngineService {
             mode: Mode::PrReview,
             risk: request.risk,
             zone: request.zone,
+            system_context: request.system_context,
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::CritiqueContent,
@@ -3886,6 +3957,7 @@ impl EngineService {
                 mode: request.mode,
                 risk: request.risk,
                 zone: request.zone,
+                system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
                 created_at: now,
@@ -3981,14 +4053,15 @@ impl EngineService {
                     evidence_complete,
                 },
             ),
-            Mode::BrownfieldChange => gatekeeper::evaluate_brownfield_gates(
+            Mode::Change => gatekeeper::evaluate_change_gates(
                 contract,
                 &artifact_inputs,
-                gatekeeper::BrownfieldGateContext {
+                gatekeeper::ChangeGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
                     zone: manifest.zone,
                     approvals,
+                    system_context: manifest.system_context,
                     validation_independence_satisfied,
                     evidence_complete,
                 },
@@ -4064,6 +4137,7 @@ impl EngineService {
             mode: Mode::Requirements,
             risk: spec.risk,
             zone: spec.zone,
+            system_context: spec.system_context,
             owner: spec.owner,
             adapter,
             capability: spec.capability,
@@ -4079,6 +4153,7 @@ impl EngineService {
             request_id: format!("{}-{}", spec.run_id, capability_tag(spec.capability)),
             run_id: spec.run_id.to_string(),
             mode: spec.mode.as_str().to_string(),
+            system_context: spec.system_context,
             risk: spec.risk,
             zone: spec.zone,
             adapter: spec.adapter,
@@ -4150,7 +4225,7 @@ impl EngineService {
         }
     }
 
-    fn brownfield_validation_attempt(
+    fn change_validation_attempt(
         &self,
         request: &InvocationRequest,
     ) -> Result<(String, InvocationAttempt), EngineError> {
@@ -4336,6 +4411,7 @@ impl EngineService {
             mode: spec.mode.as_str().to_string(),
             risk: spec.risk.as_str().to_string(),
             zone: spec.zone.as_str().to_string(),
+            system_context: details.system_context.map(|context| context.as_str().to_string()),
             state: format!("{:?}", spec.state),
             artifact_count: spec.artifact_count,
             invocations_total: details.invocations_total,
@@ -4360,6 +4436,8 @@ impl EngineService {
         let invocations = store.load_persisted_invocations(run_id).unwrap_or_default();
         let evidence_bundle = store.load_evidence_bundle(run_id)?;
         let gates = store.load_gate_evaluations(run_id).unwrap_or_default();
+        let system_context =
+            store.load_run_context(run_id).ok().and_then(|context| context.system_context);
 
         let persisted_artifacts = store
             .load_artifact_contract(run_id)
@@ -4435,6 +4513,7 @@ impl EngineService {
         );
 
         Ok(RunRuntimeDetails {
+            system_context,
             invocations_total: invocations.len(),
             invocations_denied: evidence_bundle
                 .as_ref()
@@ -4497,6 +4576,7 @@ impl EngineService {
             inputs: request.merged_input_sources(),
             excluded_paths: request.excluded_paths.clone(),
             input_fingerprints,
+            system_context: request.system_context,
             inline_inputs: request.transient_inline_inputs(),
             captured_at,
         }
@@ -5323,7 +5403,7 @@ fn summarize_mode_result(mode: Mode, artifacts: &[PersistedArtifact]) -> Option<
         Mode::Discovery => summarize_discovery_mode_result(artifacts),
         Mode::SystemShaping => summarize_system_shaping_mode_result(artifacts),
         Mode::Architecture => summarize_architecture_mode_result(artifacts),
-        Mode::BrownfieldChange => summarize_brownfield_mode_result(artifacts),
+        Mode::Change => summarize_change_mode_result(artifacts),
         Mode::Review => summarize_review_mode_result(artifacts),
         Mode::Verification => summarize_verification_mode_result(artifacts),
         Mode::PrReview => summarize_pr_review_mode_result(artifacts),
@@ -5508,7 +5588,7 @@ fn summarize_architecture_mode_result(
     })
 }
 
-fn summarize_brownfield_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
         artifacts.iter().find(|artifact| artifact.record.file_name == "change-surface.md")?;
     let legacy_invariants_artifact =
@@ -5569,10 +5649,10 @@ fn summarize_brownfield_mode_result(artifacts: &[PersistedArtifact]) -> Option<M
     let validation_count = count_markdown_entries(&validation_strategy);
 
     let headline = if missing_context_markers == 0 {
-        "Brownfield packet ready for bounded change review.".to_string()
+        "Change packet ready for bounded change review.".to_string()
     } else {
         format!(
-            "Brownfield packet completed with {missing_context_markers} explicit missing-context marker(s)."
+            "Change packet completed with {missing_context_markers} explicit missing-context marker(s)."
         )
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
@@ -6089,9 +6169,9 @@ fn infer_discovery_next_phase(source: &str) -> String {
             .to_string()
     } else if normalized.contains("legacy")
         || normalized.contains("existing")
-        || normalized.contains("brownfield")
+        || normalized.contains("change")
     {
-        "Translate this discovery packet into brownfield-change mode with preserved invariants and a bounded change surface."
+        "Translate this discovery packet into change mode with preserved invariants and a bounded change surface."
             .to_string()
     } else if normalized.contains("new capability")
         || normalized.contains("system-shaping")
@@ -6106,7 +6186,7 @@ fn infer_discovery_next_phase(source: &str) -> String {
     }
 }
 
-fn extract_brownfield_change_surface_entries(source: &str) -> Vec<String> {
+fn extract_change_surface_entries(source: &str) -> Vec<String> {
     let normalized = source.to_lowercase();
     let Some(raw_surface) = extract_marker(source, &normalized, "change surface") else {
         return Vec::new();
@@ -6310,7 +6390,7 @@ fn capability_tag(capability: CapabilityKind) -> &'static str {
 mod tests {
     use super::{
         EngineService, GateInspectSummary, ModeResultSummary, RecommendedActionSummary,
-        ResultActionSummary, capability_tag, extract_brownfield_change_surface_entries,
+        ResultActionSummary, capability_tag, extract_change_surface_entries,
         preserve_multiline_summary, recommend_next_action, run_state_from_gates,
     };
     use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
@@ -6323,9 +6403,9 @@ mod tests {
 
     #[test]
     fn change_surface_entries_prefer_markdown_section_over_inline_summary_mentions() {
-        let source = "# Brownfield Brief\n\n## Change Surface\n- session repository\n- auth service\n\nMutation posture: propose bounded legacy transformation within declared change surface: entire repository, adjacent modules";
+        let source = "# Change Brief\n\n## Change Surface\n- session repository\n- auth service\n\nMutation posture: propose bounded legacy transformation within declared change surface: entire repository, adjacent modules";
 
-        let entries = extract_brownfield_change_surface_entries(source);
+        let entries = extract_change_surface_entries(source);
 
         assert_eq!(entries, vec!["session repository".to_string(), "auth service".to_string()]);
     }
@@ -6334,7 +6414,7 @@ mod tests {
     fn change_surface_entries_fall_back_to_inline_marker_and_dedupe_segments() {
         let source = "Summary\n\nChange Surface: auth service, session repository; auth service; token cleanup job";
 
-        let entries = extract_brownfield_change_surface_entries(source);
+        let entries = extract_change_surface_entries(source);
 
         assert_eq!(
             entries,
@@ -6523,7 +6603,7 @@ mod tests {
         let action = recommend_next_action(
             RunState::AwaitingApproval,
             None,
-            &[".canon/artifacts/run-123/brownfield-change/system-slice.md".to_string()],
+            &[".canon/artifacts/run-123/change/system-slice.md".to_string()],
             true,
             &[],
             &["invocation:req-1".to_string()],
@@ -6568,7 +6648,7 @@ mod tests {
             &[],
             true,
             &[GateInspectSummary {
-                gate: "brownfield-preservation".to_string(),
+                gate: "change-preservation".to_string(),
                 status: "Blocked".to_string(),
                 blockers: vec!["legacy-invariants.md missing".to_string()],
             }],

@@ -47,7 +47,7 @@ fn git(workspace: &TempDir, global_config: &Path, args: &[&str]) {
 }
 
 fn complete_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
 fn parse_run_id(output: &[u8]) -> String {
@@ -108,8 +108,8 @@ fn approval_summary_json(output: &[u8]) -> serde_json::Value {
     serde_json::from_slice(output).expect("approval json")
 }
 
-fn start_gated_brownfield_run(workspace: &TempDir, global_config: &Path) -> (String, String) {
-    let brief_path = workspace.path().join("brownfield.md");
+fn start_gated_change_run(workspace: &TempDir, global_config: &Path) -> (String, String) {
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
     let mut command = cli_command();
@@ -122,7 +122,9 @@ fn start_gated_brownfield_run(workspace: &TempDir, global_config: &Path) -> (Str
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "systemic-impact",
             "--zone",
@@ -184,7 +186,7 @@ fn explicit_approver_overrides_git_identity() {
     git(&workspace, &global_config, &["config", "user.name", "Local Approver"]);
     git(&workspace, &global_config, &["config", "user.email", "local-approver@example.com"]);
 
-    let (run_id, request_id) = start_gated_brownfield_run(&workspace, &global_config);
+    let (run_id, request_id) = start_gated_change_run(&workspace, &global_config);
 
     let output = approve_run(
         &workspace,
@@ -218,7 +220,7 @@ fn approve_uses_local_git_identity_when_by_is_omitted() {
     git(&workspace, &global_config, &["config", "user.name", "Local Approver"]);
     git(&workspace, &global_config, &["config", "user.email", "local-approver@example.com"]);
 
-    let (run_id, request_id) = start_gated_brownfield_run(&workspace, &global_config);
+    let (run_id, request_id) = start_gated_change_run(&workspace, &global_config);
 
     let output = approve_run(&workspace, &global_config, &run_id, &request_id, &[])
         .success()
@@ -263,7 +265,7 @@ fn approve_uses_global_git_identity_when_local_identity_is_missing() {
     let output = global_email.output().expect("set global email");
     assert!(output.status.success(), "set global email failed");
 
-    let (run_id, request_id) = start_gated_brownfield_run(&workspace, &global_config);
+    let (run_id, request_id) = start_gated_change_run(&workspace, &global_config);
 
     let output = approve_run(&workspace, &global_config, &run_id, &request_id, &[])
         .success()
@@ -292,7 +294,7 @@ fn approve_without_by_or_git_identity_fails_with_guidance() {
 
     git(&workspace, &global_config, &["init", "-b", "main"]);
 
-    let (run_id, request_id) = start_gated_brownfield_run(&workspace, &global_config);
+    let (run_id, request_id) = start_gated_change_run(&workspace, &global_config);
 
     approve_run(&workspace, &global_config, &run_id, &request_id, &[])
         .failure()

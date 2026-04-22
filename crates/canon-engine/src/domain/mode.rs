@@ -6,12 +6,13 @@ use canon_adapters::AdapterKind;
 
 use crate::domain::gate::GateKind;
 
+// Modes stay focused on the governed work type; `SystemContext` carries new vs existing state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Mode {
     Requirements,
     Discovery,
     SystemShaping,
-    BrownfieldChange,
+    Change,
     Architecture,
     Implementation,
     Refactor,
@@ -53,7 +54,7 @@ impl Mode {
             Self::Requirements => "requirements",
             Self::Discovery => "discovery",
             Self::SystemShaping => "system-shaping",
-            Self::BrownfieldChange => "brownfield-change",
+            Self::Change => "change",
             Self::Architecture => "architecture",
             Self::Implementation => "implementation",
             Self::Refactor => "refactor",
@@ -71,7 +72,7 @@ impl Mode {
             Self::Requirements,
             Self::SystemShaping,
             Self::Architecture,
-            Self::BrownfieldChange,
+            Self::Change,
             Self::PrReview,
             Self::Implementation,
             Self::Refactor,
@@ -97,7 +98,7 @@ impl std::str::FromStr for Mode {
             "requirements" => Ok(Self::Requirements),
             "discovery" => Ok(Self::Discovery),
             "system-shaping" => Ok(Self::SystemShaping),
-            "brownfield-change" => Ok(Self::BrownfieldChange),
+            "change" => Ok(Self::Change),
             "architecture" => Ok(Self::Architecture),
             "implementation" => Ok(Self::Implementation),
             "refactor" => Ok(Self::Refactor),
@@ -114,13 +115,13 @@ impl std::str::FromStr for Mode {
 pub fn all_mode_profiles() -> Vec<ModeProfile> {
     use AdapterKind::{CopilotCli, Filesystem, McpStdio, Shell};
     use GateKind::{
-        Architecture, BrownfieldPreservation, Exploration, ImplementationReadiness,
+        Architecture, ChangePreservation, Exploration, ImplementationReadiness,
         IncidentContainment, MigrationSafety, ReleaseReadiness, ReviewDisposition, Risk,
     };
     use ImplementationDepth::{ContractOnly, Full, Skeleton};
     use Mode::{
-        Architecture as ArchitectureMode, BrownfieldChange, Discovery, Implementation, Incident,
-        Migration, PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
+        Architecture as ArchitectureMode, Change, Discovery, Implementation, Incident, Migration,
+        PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -187,13 +188,13 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
         ModeProfile {
-            mode: BrownfieldChange,
+            mode: Change,
             purpose: "Constrain change in an existing system before implementation begins.",
             emphasis: AnalysisHeavy,
             implementation_depth: Full,
             gate_profile: vec![
                 Exploration,
-                BrownfieldPreservation,
+                ChangePreservation,
                 Architecture,
                 Risk,
                 ReleaseReadiness,
@@ -229,7 +230,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             purpose: "Improve structure while preserving externally meaningful behavior.",
             emphasis: ExecutionHeavy,
             implementation_depth: ContractOnly,
-            gate_profile: vec![Exploration, BrownfieldPreservation, Risk, ReleaseReadiness],
+            gate_profile: vec![Exploration, ChangePreservation, Risk, ReleaseReadiness],
             artifact_families: vec![
                 "equivalence criteria",
                 "preserved surface",

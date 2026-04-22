@@ -22,7 +22,7 @@ current runtime boundary.
 ## When It Must Not Trigger
 
 - The user expects a real Canon run id or emitted evidence bundle today.
-- The user actually needs a live-codebase workflow; use `$canon-brownfield`.
+- The user actually needs a live-codebase workflow; use `$canon-change`.
 
 ## Required Inputs
 
@@ -53,10 +53,10 @@ current runtime boundary.
 
 ## Next-Step Guidance
 
-- Use `$canon-brownfield` for runnable live-codebase work.
+- Use `$canon-change` for runnable live-codebase work.
 - Use `$canon-pr-review` if the work is already on a real diff.
 
 ## Related Skills
 
-- `$canon-brownfield`
+- `$canon-change`
 - `$canon-pr-review`

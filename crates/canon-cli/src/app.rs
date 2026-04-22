@@ -112,6 +112,8 @@ impl From<AiTarget> for AiTool {
 pub struct RunCommand {
     #[arg(long)]
     mode: String,
+    #[arg(long = "system-context")]
+    system_context: Option<String>,
     #[arg(long)]
     risk: String,
     #[arg(long)]
@@ -223,6 +225,7 @@ pub fn run() -> CliResult<i32> {
         Command::Run(run_command) => {
             let RunCommand {
                 mode,
+                system_context,
                 risk,
                 zone,
                 risk_source,
@@ -243,6 +246,7 @@ pub fn run() -> CliResult<i32> {
             commands::run::execute(
                 &service,
                 mode,
+                system_context,
                 risk,
                 zone,
                 risk_source,
@@ -350,6 +354,7 @@ mod tests {
             Command::Run(run) => {
                 let RunCommand {
                     mode,
+                    system_context,
                     risk,
                     zone,
                     risk_source,
@@ -363,6 +368,7 @@ mod tests {
                 } = *run;
 
                 assert_eq!(mode, "requirements");
+                assert_eq!(system_context, None);
                 assert_eq!(risk, "low-impact");
                 assert_eq!(zone, "green");
                 assert_eq!(risk_source.as_deref(), Some("inferred-confirmed"));

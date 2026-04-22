@@ -109,7 +109,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
         ],
-        Mode::BrownfieldChange => vec![
+        Mode::Change => vec![
             requirement(
                 "system-slice.md",
                 &["Summary", "System Slice", "Excluded Areas"],
@@ -118,16 +118,12 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             requirement(
                 "legacy-invariants.md",
                 &["Summary", "Legacy Invariants", "Forbidden Normalization"],
-                &[GateKind::BrownfieldPreservation, GateKind::Risk, GateKind::ReleaseReadiness],
+                &[GateKind::ChangePreservation, GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             requirement(
                 "change-surface.md",
                 &["Summary", "Change Surface", "Ownership"],
-                &[
-                    GateKind::BrownfieldPreservation,
-                    GateKind::Architecture,
-                    GateKind::ReleaseReadiness,
-                ],
+                &[GateKind::ChangePreservation, GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
             requirement(
                 "implementation-plan.md",

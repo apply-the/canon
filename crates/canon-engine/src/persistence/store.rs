@@ -31,7 +31,7 @@ const METHOD_FILES: &[(&str, &str)] = &[
     ("requirements.toml", include_str!("../../../../defaults/methods/requirements.toml")),
     ("discovery.toml", include_str!("../../../../defaults/methods/discovery.toml")),
     ("system-shaping.toml", include_str!("../../../../defaults/methods/system-shaping.toml")),
-    ("brownfield-change.toml", include_str!("../../../../defaults/methods/brownfield-change.toml")),
+    ("change.toml", include_str!("../../../../defaults/methods/change.toml")),
     ("architecture.toml", include_str!("../../../../defaults/methods/architecture.toml")),
     ("implementation.toml", include_str!("../../../../defaults/methods/implementation.toml")),
     ("refactor.toml", include_str!("../../../../defaults/methods/refactor.toml")),
@@ -62,8 +62,8 @@ const SKILL_FILES: &[(&str, &str)] = &[
         include_str!("../../../../defaults/embedded-skills/canon-requirements/skill-source.md"),
     ),
     (
-        "canon-brownfield/SKILL.md",
-        include_str!("../../../../defaults/embedded-skills/canon-brownfield/skill-source.md"),
+        "canon-change/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-change/skill-source.md"),
     ),
     (
         "canon-pr-review/SKILL.md",

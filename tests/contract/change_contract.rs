@@ -21,11 +21,11 @@ fn cli_command() -> Command {
 }
 
 fn blocked_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nImplementation Plan: keep the external auth API stable while tightening the persistence boundary.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nImplementation Plan: keep the external auth API stable while tightening the persistence boundary.\n"
 }
 
 fn complete_brief() -> &'static str {
-    "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
+    "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n"
 }
 
 fn parse_run_id(output: &[u8]) -> String {
@@ -58,9 +58,9 @@ fn pending_request_id(workspace: &TempDir, run_id: &str) -> String {
 }
 
 #[test]
-fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
+fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
     let workspace = TempDir::new().expect("temp dir");
-    let brief_path = workspace.path().join("brownfield.md");
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
     let run_output = cli_command()
@@ -68,7 +68,9 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -97,7 +99,7 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
     assert_eq!(run_json["artifact_count"], 6);
     assert!(
         run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
-        "blocked brownfield runs should expose all readable artifact paths"
+        "blocked change runs should expose all readable artifact paths"
     );
     assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Change Surface");
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
@@ -105,8 +107,8 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
     let blocked_gates = run_json["blocked_gates"].as_array().expect("blocked gates");
     let preservation_gate = blocked_gates
         .iter()
-        .find(|gate| gate["gate"] == "brownfield-preservation")
-        .expect("brownfield preservation gate");
+        .find(|gate| gate["gate"] == "change-preservation")
+        .expect("change preservation gate");
     assert!(
         preservation_gate["blockers"]
             .as_array()
@@ -145,9 +147,9 @@ fn blocked_brownfield_run_returns_exit_code_2_and_mentions_preservation_gap() {
 }
 
 #[test]
-fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() {
+fn approve_unblocks_systemic_change_runs_and_persists_the_approval_record() {
     let workspace = TempDir::new().expect("temp dir");
-    let brief_path = workspace.path().join("brownfield.md");
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
     let run_output = cli_command()
@@ -155,7 +157,9 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "systemic-impact",
             "--zone",
@@ -178,7 +182,7 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
     assert_eq!(run_json["blocking_classification"], "approval-gated");
     assert!(
         run_json["artifact_paths"].as_array().is_some_and(|paths| paths.is_empty()),
-        "approval-gated brownfield runs should not advertise readable artifacts before generation emits them"
+        "approval-gated change runs should not advertise readable artifacts before generation emits them"
     );
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-evidence");
     let request_id = pending_request_id(&workspace, &run_id);
@@ -243,7 +247,7 @@ fn approve_unblocks_systemic_brownfield_runs_and_persists_the_approval_record() 
 #[test]
 fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
     let workspace = TempDir::new().expect("temp dir");
-    let brief_path = workspace.path().join("brownfield.md");
+    let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
     let run_output = cli_command()
@@ -251,7 +255,9 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -271,7 +277,7 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
     let run_id = parse_run_id(&run_output);
 
     let artifact_root =
-        workspace.path().join(".canon").join("artifacts").join(&run_id).join("brownfield-change");
+        workspace.path().join(".canon").join("artifacts").join(&run_id).join("change");
 
     fs::write(
         artifact_root.join("legacy-invariants.md"),
@@ -297,7 +303,9 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
         .args([
             "run",
             "--mode",
-            "brownfield-change",
+            "change",
+            "--system-context",
+            "existing",
             "--risk",
             "bounded-impact",
             "--zone",
@@ -318,7 +326,7 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
 
     fs::write(
         &brief_path,
-        "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nChange Surface: auth service and repository.\n",
+        "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nChange Surface: auth service and repository.\n",
     )
     .expect("updated brief file");
 

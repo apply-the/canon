@@ -12,7 +12,7 @@ use canon_engine::artifacts::contract::{
 use canon_engine::domain::approval::ApprovalDecision;
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
-use canon_engine::domain::run::ClassificationProvenance;
+use canon_engine::domain::run::{ClassificationProvenance, SystemContext};
 use canon_engine::orchestrator::service::{AiTool, InspectEntry, InspectTarget, RunRequest};
 use tempfile::TempDir;
 
@@ -27,6 +27,16 @@ fn request(
         mode,
         risk,
         zone,
+        system_context: match mode {
+            Mode::Change
+            | Mode::SystemShaping
+            | Mode::Architecture
+            | Mode::Implementation
+            | Mode::Refactor
+            | Mode::Migration
+            | Mode::Incident => Some(SystemContext::Existing),
+            _ => None,
+        },
         classification: ClassificationProvenance::explicit(),
         owner: owner.to_string(),
         inputs: inputs.into_iter().map(ToString::to_string).collect(),
@@ -52,7 +62,7 @@ fn git(workspace: &TempDir, args: &[&str]) {
     );
 }
 
-fn init_brownfield_repo(workspace: &TempDir) {
+fn init_change_repo(workspace: &TempDir) {
     git(workspace, &["init", "-b", "main"]);
     git(workspace, &["config", "user.name", "Canon Test"]);
     git(workspace, &["config", "user.email", "canon@example.com"]);
@@ -71,7 +81,7 @@ fn init_brownfield_repo(workspace: &TempDir) {
     .expect("test file");
 
     git(workspace, &["add", "."]);
-    git(workspace, &["commit", "-m", "seed brownfield repo"]);
+    git(workspace, &["commit", "-m", "seed change repo"]);
 }
 
 fn init_review_repo(workspace: &TempDir) {
@@ -364,25 +374,25 @@ fn architecture_direct_run_requires_gate_approval_and_completes_after_status_ref
 }
 
 #[test]
-fn brownfield_direct_run_records_validation_paths_and_runtime_details() {
+fn change_direct_run_records_validation_paths_and_runtime_details() {
     let workspace = TempDir::new().expect("temp dir");
-    init_brownfield_repo(&workspace);
+    init_change_repo(&workspace);
     fs::write(
-        workspace.path().join("brownfield.md"),
-        "# Brownfield Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n",
+        workspace.path().join("change.md"),
+        "# Change Brief\n\nSystem Slice: auth session boundary and persistence layer.\nLegacy Invariants: session revocation remains eventually consistent and audit log ordering stays stable.\nChange Surface: session repository, auth service, and token cleanup job.\nImplementation Plan: add bounded repository methods and preserve the public auth contract.\nValidation Strategy: contract tests, invariant checks, and rollback rehearsal.\nDecision Record: prefer additive change over normalization to preserve operator expectations.\n",
     )
     .expect("brief file");
 
     let service = EngineService::new(workspace.path());
     let summary = service
         .run(request(
-            Mode::BrownfieldChange,
+            Mode::Change,
             RiskClass::BoundedImpact,
             UsageZone::Yellow,
             "maintainer",
-            vec!["brownfield.md"],
+            vec!["change.md"],
         ))
-        .expect("brownfield run");
+        .expect("change run");
 
     assert_eq!(summary.state, "Completed");
     assert!(summary.invocations_total >= 3);

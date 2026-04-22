@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 use crate::domain::policy::{RiskClass, UsageZone};
+use crate::domain::run::SystemContext;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PolicyDecisionKind {
@@ -62,6 +63,8 @@ pub struct InvocationRequest {
     pub request_id: String,
     pub run_id: String,
     pub mode: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_context: Option<SystemContext>,
     pub risk: RiskClass,
     pub zone: UsageZone,
     pub adapter: AdapterKind,
