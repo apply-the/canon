@@ -9,42 +9,6 @@ Current end-to-end depth exists for `requirements`, `discovery`,
 completing the remaining modeled modes before widening Canon's surface area
 further.
 
-## Feature: Controlled Execution Modes
-
-### Outcome
-
-Canon can move from bounded planning into governed change execution while still
-preserving evidence, approvals, and rollback visibility.
-
-### Modes In Scope
-
-- `implementation`
-- `refactor`
-
-### Why These Modes Belong Together
-
-- They are the first modes where controlled mutation becomes central rather than
-  incidental.
-- They both depend on stronger execution controls, contract checks, validation
-  hooks, and completion evidence.
-- They should share the same mutation-policy and rollback-oriented runtime
-  primitives.
-
-### First Slice
-
-- Promote `implementation` from skeleton to full depth.
-- Promote `refactor` from contract-only to full depth.
-- Keep red-zone and systemic-impact execution recommendation-only until the
-  approval model and validation evidence are strong enough.
-- Reuse change preservation and release-readiness machinery where behavior
-  preservation matters.
-
-### Why This Feature Comes Next
-
-- Execution-heavy modes raise the risk profile of Canon more than analysis or
-  review modes.
-- The next roadmap step should finish the remaining modeled modes before it
-  deepens already-shipped outputs or expands into new external surfaces.
 
 ## Feature: High-Risk Operational Programs
 
@@ -177,6 +141,180 @@ vocabulary for domain work.
   expands into packaging or protocol work.
 - It should follow completion of the remaining modeled modes because it
   strengthens existing workflows instead of closing a missing one.
+
+## Feature: Backlog Mode — Delivery Decomposition
+
+### Outcome
+
+Canon transforms bounded architecture decisions and system shape into governed
+epics, delivery slices, dependencies, and sequencing without descending into
+false task details or ignoring architecture closure gaps.
+
+### Modes In Scope
+
+- `backlog`
+
+### Problem This Solves
+
+Currently, Canon has governance for understanding problems (`discovery`,
+`requirements`), shaping systems (`system-shaping`), making decisions
+(`architecture`), and executing changes (`implementation`, `refactor`). But
+there is no governed mode that bridges from "we have decided what to build" to
+"here is the decomposition into deliverable work".
+
+Today that gap means either:
+
+- Architecture artifacts get handed off informally to task splitting,
+- Backlog planning happens outside Canon with no connection to gated decisions,
+- Or implementation mode runs on unbounded problem spaces instead of bounded
+  slices.
+
+### Input Shape
+
+A backlog brief with explicit source references and delivery intent:
+
+```
+canon-input/backlog/
+  brief.md
+  priorities.md
+  context-links.md
+```
+
+or single file:
+
+```
+canon-input/backlog.md
+```
+
+### Good Input Should Include
+
+- Source artifact references (which `architecture`, `system-shaping`,
+  `requirements`, or `discovery` packets drive this backlog)
+- Delivery horizon and priorities
+- Known constraints (team, time, dependency)
+- Desired granularity (epic only, epic+slice, epic+slice+story-candidate)
+- Out-of-scope items and deferrable parts
+
+### What Canon Emits
+
+Backlog produces a delivery decomposition packet with these artifacts:
+
+- `backlog-overview.md` — scope, horizon, sources, strategy
+- `epic-tree.md` — initiative/epic/sub-epic hierarchy with clear boundaries
+- `capability-to-epic-map.md` — traces from system-shaping/architecture
+  capabilities to backlog structure
+- `dependency-map.md` — explicit cross-epic and external dependencies
+- `delivery-slices.md` — implementable vertical slices per epic, with
+  foundation vs. feature distinction
+- `sequencing-plan.md` — execution order, parallelism, and critical path
+- `acceptance-anchors.md` — how to recognize each epic or slice as complete
+  (not full acceptance criteria, but bounded enough to steer)
+- `planning-risks.md` — gaps where architecture is not yet closed,
+  underestimated dependencies, or epics too large to commit
+
+### Key Constraints
+
+#### Granularity Discipline
+
+Backlog stops at **delivery slices and story candidates**. It does not emit
+fine-grained task lists; that is implementation-mode work. If the backlog
+reaches too far into task minutiae, it discovers false details and loses
+credibility.
+
+#### Architecture Closure Check
+
+If the source architecture is too vague, `backlog` mode gates or downgrades
+the result. It must be able to say:
+
+> "Architecture is not sufficiently closed for credible decomposition."
+
+This is a feature, not a bug.
+
+#### No Blind Task Generation
+
+Backlog does not decompose based on guesses about team capacity, story point
+totals, or mechanical task splitting. Every slice and epic must be anchored in
+either:
+
+- the bounded scope from `architecture` or `system-shaping`,
+- an explicit dependency identified in the decomposition,
+- or a named gap that the backlog calls out as unsettled.
+
+#### Reusable Outside Canon
+
+The emitted artifacts must remain credible and useful when read as a standalone
+planning document. Backlog is not scaffolding for a later mode; it is a
+durable decomposition that implementation and review modes consume.
+
+### Typical Flow
+
+```
+architecture (or system-shaping) → backlog → implementation
+```
+
+In simpler cases:
+
+```
+requirements → system-shaping → backlog
+```
+
+Or direct:
+
+```
+system-shaping → backlog → implementation
+```
+
+### Typical Handoff After This Mode
+
+- publish the approved backlog packet with `canon publish <RUN_ID>` to
+  `docs/planning/<RUN_ID>/`, or use `--to` for a different public destination
+- pass individual slices or epics into `implementation` mode once they are
+  approved and the blocking dependencies are resolved
+- return to `architecture` only if decomposition reveals architecture is too
+  vague or incomplete
+- use the `capability-to-epic-map.md` and `dependency-map.md` to keep later
+  work traceable back to earlier decisions
+
+### Common Mistakes
+
+- using Backlog before architecture or shape is actually bounded
+- descending into task-level granularity instead of staying at slice/story
+  candidate level
+- treating Backlog as a Jira ticket generator instead of a bounded
+  decomposition artifact
+- ignoring architecture closure gaps and pretending decomposition is credible
+  anyway
+- generating false priorities without explicit source input
+- omitting dependency tracking and sequencing
+
+### Why This Feature
+
+- It completes the pipeline from problem understanding through approved
+  decisions to deliverable decomposition.
+- It prevents architecture artifacts from being handed off informally or
+  getting lost in untracked task splitting.
+- It maintains traceability and governance over how decisions become work.
+- It lets later modes (`implementation`, `review`) stay focused on execution or
+  verification instead of also trying to decompose.
+
+### Why After Remaining Modes Completion
+
+- `backlog` depends on closure of architecture or system-shaping decisions, so
+  it makes sense as a follow-on.
+- Prioritizing remaining modeled modes (`incident`, `migration`) is higher
+  priority than adding new planning modes, since backlog works well with
+  existing infrastructure and only requires a new skill and mode implementation.
+- This feature enables better execution flow for the later implemented modes
+  without blocking their completion.
+
+### Possible Names
+
+- `backlog` (team-familiar, tool-obvious)
+- `delivery-planning` (more methodological)
+- `decomposition` (more technical)
+- `roadmapping` (less actionable but less Jira-flavored)
+
+Recommendation: stick with `backlog` for clarity.
 
 ## Feature: Distribution Channels Beyond GitHub Releases
 
