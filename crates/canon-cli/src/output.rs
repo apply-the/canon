@@ -161,6 +161,10 @@ fn render_mode_result(
     lines.push(mode_result.headline.clone());
     lines.push(String::new());
     lines.push(mode_result.artifact_packet_summary.clone());
+    if let Some(execution_posture) = &mode_result.execution_posture {
+        lines.push(String::new());
+        lines.push(format!("Execution Posture: {execution_posture}"));
+    }
     lines.push(String::new());
     lines.push(format!("Primary Artifact: {}", humanize_path(&mode_result.primary_artifact_path)));
     lines.push(format!(
@@ -171,6 +175,15 @@ fn render_mode_result(
     lines.push(String::new());
     lines.push("Excerpt:".to_string());
     lines.push(mode_result.result_excerpt.clone());
+
+    if !mode_result.action_chips.is_empty() {
+        lines.push(String::new());
+        lines.push("Action Chips:".to_string());
+        for chip in &mode_result.action_chips {
+            let recommended = if chip.recommended { " (recommended)" } else { "" };
+            lines.push(format!("- {} [{}]{}", chip.label, chip.skill, recommended));
+        }
+    }
 }
 
 fn render_runtime_blockers(
@@ -295,6 +308,35 @@ fn render_evidence_markdown(
     let generation_paths = string_list(entry.get("generation_paths"));
     let validation_paths = string_list(entry.get("validation_paths"));
     let denied_invocations = string_list(entry.get("denied_invocations"));
+    let upstream_source_refs = string_list(entry.get("upstream_source_refs"));
+    let carried_forward_items = string_list(entry.get("carried_forward_items"));
+
+    render_scalar_field(&mut lines, "Execution Posture", entry.get("execution_posture"));
+    render_scalar_field(&mut lines, "Feature Slice", entry.get("upstream_feature_slice"));
+    render_scalar_field(&mut lines, "Primary Upstream Mode", entry.get("primary_upstream_mode"));
+    render_scalar_field(
+        &mut lines,
+        "Excluded Upstream Scope",
+        entry.get("excluded_upstream_scope"),
+    );
+
+    if !upstream_source_refs.is_empty() {
+        lines.push(String::new());
+        lines.push("## Upstream Sources".to_string());
+        lines.push(String::new());
+        for source in upstream_source_refs {
+            lines.push(format!("- {source}"));
+        }
+    }
+
+    if !carried_forward_items.is_empty() {
+        lines.push(String::new());
+        lines.push("## Carried-Forward Context".to_string());
+        lines.push(String::new());
+        for item in carried_forward_items {
+            lines.push(format!("- {item}"));
+        }
+    }
 
     if !artifact_links.is_empty() {
         lines.push(String::new());
@@ -370,6 +412,7 @@ fn render_invocations_markdown(
         render_scalar_field(&mut lines, "Capability", entry.get("capability"));
         render_scalar_field(&mut lines, "Orientation", entry.get("orientation"));
         render_scalar_field(&mut lines, "Policy Decision", entry.get("policy_decision"));
+        render_scalar_field(&mut lines, "Recommendation Only", entry.get("recommendation_only"));
         render_scalar_field(&mut lines, "Approval State", entry.get("approval_state"));
         render_scalar_field(&mut lines, "Latest Outcome", entry.get("latest_outcome"));
 
@@ -650,6 +693,16 @@ mod tests {
     fn evidence_markdown_renders_sections_for_available_lineage() {
         let value = json!({
             "entries": [{
+                "execution_posture": "recommendation-only",
+                "upstream_feature_slice": "auth session revocation",
+                "primary_upstream_mode": "change",
+                "upstream_source_refs": [
+                    "docs/changes/R-20260422-AUTHREVOC/change-surface.md"
+                ],
+                "carried_forward_items": [
+                    "Revocation output formatting stays stable."
+                ],
+                "excluded_upstream_scope": "login UI flow",
                 "artifact_provenance_links": ["artifacts/run-123/pr-review/review-summary.md"],
                 "generation_paths": ["generation:req-1"],
                 "validation_paths": ["validation:req-2"],
@@ -659,6 +712,14 @@ mod tests {
 
         let markdown = render_markdown_from_json(&value, "evidence", Some("run-123"));
 
+        assert!(markdown.contains("Execution Posture: recommendation-only"));
+        assert!(markdown.contains("Feature Slice: auth session revocation"));
+        assert!(markdown.contains("Primary Upstream Mode: change"));
+        assert!(markdown.contains("Excluded Upstream Scope: login UI flow"));
+        assert!(markdown.contains("## Upstream Sources"));
+        assert!(markdown.contains("- docs/changes/R-20260422-AUTHREVOC/change-surface.md"));
+        assert!(markdown.contains("## Carried-Forward Context"));
+        assert!(markdown.contains("- Revocation output formatting stays stable."));
         assert!(markdown.contains("## Readable Artifacts"));
         assert!(markdown.contains("- .canon/artifacts/run-123/pr-review/review-summary.md"));
         assert!(markdown.contains("## Generation Paths"));
@@ -678,6 +739,7 @@ mod tests {
                 "capability": "ValidateWithTool",
                 "orientation": "Validation",
                 "policy_decision": "AllowConstrained",
+                "recommendation_only": true,
                 "approval_state": "NotRequired",
                 "latest_outcome": "Succeeded",
                 "linked_artifacts": ["artifacts/run-123/change/system-slice.md"]
@@ -690,6 +752,7 @@ mod tests {
         assert!(markdown.contains("## req-7"));
         assert!(markdown.contains("Adapter: Shell"));
         assert!(markdown.contains("Capability: ValidateWithTool"));
+        assert!(markdown.contains("Recommendation Only: true"));
         assert!(markdown.contains("Artifacts:"));
         assert!(markdown.contains("- .canon/artifacts/run-123/change/system-slice.md"));
     }
@@ -793,6 +856,7 @@ mod tests {
             mode_result: Some(ModeResultSummary {
                 headline: "Requirements packet ready for downstream review.".to_string(),
                 artifact_packet_summary: "Primary artifact is ready.".to_string(),
+                execution_posture: Some("recommendation-only".to_string()),
                 primary_artifact_title: "Problem Statement".to_string(),
                 primary_artifact_path: ".canon/artifacts/run-123/requirements/problem-statement.md".to_string(),
                 primary_artifact_action: ResultActionSummary {
@@ -806,6 +870,7 @@ mod tests {
                             .to_string(),
                 },
                 result_excerpt: "Build a bounded USB flashing CLI.".to_string(),
+                action_chips: Vec::new(),
             }),
             recommended_next_action: None,
         };
@@ -814,6 +879,7 @@ mod tests {
 
         assert!(markdown.contains("## Result"));
         assert!(markdown.contains("Requirements packet ready for downstream review."));
+        assert!(markdown.contains("Execution Posture: recommendation-only"));
         assert!(markdown.contains(
             "Primary Artifact: .canon/artifacts/run-123/requirements/problem-statement.md"
         ));

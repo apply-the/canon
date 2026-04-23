@@ -84,6 +84,14 @@ fn init_change_repo(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "seed change repo"]);
 }
 
+fn complete_implementation_brief() -> &'static str {
+    "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the new helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n"
+}
+
+fn complete_refactor_brief() -> &'static str {
+    "# Refactor Brief\n\nPreserved Behavior: session revocation formatting and audit ordering remain externally unchanged.\nApproved Exceptions: none.\nRefactor Scope: auth session boundary and repository composition only.\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nStructural Rationale: isolate persistence concerns without changing externally meaningful behavior.\nUntouched Surface: public auth API, tests/session.md, and deployment wiring stay unchanged.\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before structural cleanup.\nRegression Findings: no regression findings are accepted in the bounded packet.\nContract Drift: no public contract drift is allowed.\nReviewer Notes: review packet confirms behavior preservation remains explicit.\nFeature Audit: no new feature behavior is introduced in this refactor packet.\nDecision: preserve behavior and stop if the surface expands.\n"
+}
+
 fn init_review_repo(workspace: &TempDir) {
     git(workspace, &["init", "-b", "main"]);
     git(workspace, &["config", "user.name", "Canon Test"]);
@@ -420,6 +428,77 @@ fn change_direct_run_records_validation_paths_and_runtime_details() {
 }
 
 #[test]
+fn implementation_direct_run_surfaces_recommendation_only_posture_and_bounded_artifacts() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("implementation.md"), complete_implementation_brief())
+        .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Implementation,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "maintainer",
+            vec!["implementation.md"],
+        ))
+        .expect("implementation run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert!(summary.approval_targets.iter().any(|target| target == "gate:execution"));
+    assert!(summary.invocations_total >= 4);
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("task-mapping.md")));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("mutation-bounds.md")));
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "AwaitingApproval");
+    assert_eq!(
+        status.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+}
+
+#[test]
+fn refactor_direct_run_surfaces_recommendation_only_posture_and_preservation_artifacts() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("refactor.md"), complete_refactor_brief()).expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Refactor,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "maintainer",
+            vec!["refactor.md"],
+        ))
+        .expect("refactor run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert!(summary.approval_targets.iter().any(|target| target == "gate:execution"));
+    assert!(summary.invocations_total >= 4);
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("preserved-behavior.md")));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("refactor-scope.md")));
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "AwaitingApproval");
+    assert_eq!(
+        status.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+}
+
+#[test]
 fn pr_review_direct_run_handles_committed_and_worktree_diffs() {
     let workspace = TempDir::new().expect("temp dir");
     init_review_repo(&workspace);
@@ -541,4 +620,91 @@ fn artifact_contract_helpers_cover_analysis_profiles_and_validation_failures() {
             bundle_blockers.iter().any(|blocker| blocker.contains(&first_requirement.file_name))
         );
     }
+}
+
+#[test]
+fn implementation_direct_run_completes_via_approve_and_resume() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("implementation.md"), complete_implementation_brief())
+        .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Implementation,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "maintainer",
+            vec!["implementation.md"],
+        ))
+        .expect("implementation run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert!(summary.approval_targets.iter().any(|t| t == "gate:execution"));
+
+    let approved = service
+        .approve(
+            &summary.run_id,
+            "gate:execution",
+            "maintainer",
+            ApprovalDecision::Approve,
+            "Bounded implementation approved after packet review.",
+        )
+        .expect("approve gate:execution");
+    assert_eq!(approved.state, "AwaitingApproval");
+
+    let post_approve_status = service.status(&summary.run_id).expect("status after approve");
+    assert_eq!(post_approve_status.state, "AwaitingApproval");
+    assert!(post_approve_status.approval_targets.is_empty());
+
+    let resumed = service.resume(&summary.run_id).expect("resume implementation run");
+    assert_eq!(resumed.state, "Completed");
+    assert_eq!(
+        resumed.mode_result.as_ref().and_then(|r| r.execution_posture.as_deref()),
+        Some("approved-recommendation")
+    );
+}
+
+#[test]
+fn refactor_direct_run_completes_via_approve_and_resume() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("refactor.md"), complete_refactor_brief()).expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Refactor,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "maintainer",
+            vec!["refactor.md"],
+        ))
+        .expect("refactor run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert!(summary.approval_targets.iter().any(|t| t == "gate:execution"));
+
+    let approved = service
+        .approve(
+            &summary.run_id,
+            "gate:execution",
+            "maintainer",
+            ApprovalDecision::Approve,
+            "Bounded refactor approved after packet review.",
+        )
+        .expect("approve gate:execution");
+    assert_eq!(approved.state, "AwaitingApproval");
+
+    let post_approve_status = service.status(&summary.run_id).expect("status after approve");
+    assert_eq!(post_approve_status.state, "AwaitingApproval");
+    assert!(post_approve_status.approval_targets.is_empty());
+
+    let resumed = service.resume(&summary.run_id).expect("resume refactor run");
+    assert_eq!(resumed.state, "Completed");
+    assert_eq!(
+        resumed.mode_result.as_ref().and_then(|r| r.execution_posture.as_deref()),
+        Some("approved-recommendation")
+    );
 }

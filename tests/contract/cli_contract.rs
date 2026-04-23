@@ -1,3 +1,6 @@
+use std::fs;
+use std::process::Command as ProcessCommand;
+
 use assert_cmd::Command;
 use predicates::str::contains;
 
@@ -15,6 +18,37 @@ fn cli_command() -> Command {
         "--",
     ]);
     command
+}
+
+fn git(workspace: &tempfile::TempDir, args: &[&str]) {
+    let output = ProcessCommand::new("git")
+        .args(args)
+        .current_dir(workspace.path())
+        .output()
+        .expect("git command");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: stdout=`{}` stderr=`{}`",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_existing_repo(workspace: &tempfile::TempDir) {
+    git(workspace, &["init", "-b", "main"]);
+    git(workspace, &["config", "user.name", "Canon Test"]);
+    git(workspace, &["config", "user.email", "canon@example.com"]);
+
+    fs::create_dir_all(workspace.path().join("src/auth")).expect("src dir");
+    fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String {\n    format!(\"revoked:{id}\")\n}\n",
+    )
+    .expect("source file");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "seed implementation repo"]);
 }
 
 #[test]
@@ -95,6 +129,52 @@ fn run_rejects_missing_authored_input_for_requirements() {
         .assert()
         .failure()
         .stderr(contains("requires at least one authored input via --input or --input-text"));
+}
+
+#[test]
+fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() {
+    let workspace = tempfile::TempDir::new().expect("temp dir");
+    init_existing_repo(&workspace);
+    std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
+    std::fs::write(
+        workspace.path().join("canon-input").join("implementation.md"),
+        "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n",
+    )
+    .expect("implementation brief");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "implementation",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "staff-engineer",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+
+    assert_eq!(json["state"].as_str(), Some("AwaitingApproval"));
+    assert_eq!(json["mode"].as_str(), Some("implementation"));
+    assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
+    assert!(
+        json["approval_targets"]
+            .as_array()
+            .is_some_and(|targets| targets.iter().any(|t| t.as_str() == Some("gate:execution")))
+    );
 }
 
 #[test]

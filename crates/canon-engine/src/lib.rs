@@ -9,7 +9,7 @@ pub mod review;
 
 pub use orchestrator::publish::PublishSummary;
 pub use orchestrator::service::{
-    AiTool, ApprovalSummary, ClarificationQuestionSummary, ClarityInspectSummary,
+    ActionChip, AiTool, ApprovalSummary, ClarificationQuestionSummary, ClarityInspectSummary,
     ClassificationInspectSummary, EngineError, EngineService, GateInspectSummary, InitSummary,
     InspectResponse, InspectTarget, ModeResultSummary, RecommendedActionSummary,
     ResultActionSummary, RunRequest, RunSummary, SkillEntry, SkillsSummary, StatusSummary,
