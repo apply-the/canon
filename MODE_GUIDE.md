@@ -173,6 +173,98 @@ Default publish targets by mode:
 Use `--to <PATH>` when the default destination is not the right public home
 for the packet.
 
+## Mode Flows (Mermaid)
+
+This section summarizes the main Canon mode flows across two explicit axes:
+
+- `mode`: what kind of governed work is happening
+- `system_context`: whether the target system is `new` or `existing`
+
+### 1) Decision Flow: Which Mode To Run
+
+```mermaid
+flowchart TD
+  A[You have a work objective] --> B{Is the problem still ambiguous?}
+  B -->|Yes| D[discovery]
+  B -->|No| C{Do you need requirements framing first?}
+  C -->|Yes| R[requirements]
+  C -->|No| E{Are you reviewing a real diff or worktree?}
+  E -->|Yes| PR[pr-review]
+  E -->|No| F{Do you need to challenge claims, evidence, or contracts?}
+  F -->|Yes| V[verification]
+  F -->|No| G{Do you need packet review for a non-PR artifact set?}
+  G -->|Yes| RV[review]
+  G -->|No| H{Is the main question structural capability design?}
+  H -->|Yes| I{System context}
+  I -->|new| SSN[system-shaping + system_context=new]
+  I -->|existing| SSE[system-shaping + system_context=existing]
+  SSN --> ARCN[architecture + system_context=new]
+  SSE --> ARCE[architecture + system_context=existing]
+  H -->|No| J{Is this a bounded modification in an existing system?}
+  J -->|Yes| CH[change + system_context=existing]
+  J -->|No| K{Execution mode needed?}
+  K -->|Implementation guidance| IMPL[implementation + system_context=existing]
+  K -->|Structural cleanup guidance| REFA[refactor + system_context=existing]
+```
+
+### 2) End-to-End Flow For Implemented Modes
+
+```mermaid
+flowchart LR
+  D[discovery] --> R[requirements]
+  R --> SS[system-shaping]
+  R --> CH[change]
+  R --> ARC[architecture]
+  SS --> ARC
+  SS --> CH
+  ARC --> CH
+  CH --> IMPL[implementation]
+  CH --> REFA[refactor]
+  IMPL --> RV[review]
+  REFA --> RV
+  IMPL --> PR[pr-review]
+  REFA --> PR
+  PR --> V[verification]
+  RV --> V
+  V --> PUB[canon publish]
+```
+
+### 3) Approval Gate Flow For Execution Modes
+
+```mermaid
+stateDiagram-v2
+  [*] --> RunStarted: canon run
+  RunStarted --> AwaitingApproval: packet emitted, execution gate active
+  AwaitingApproval --> AwaitingApproval: canon approve (target resolved)
+  AwaitingApproval --> Completed: canon resume
+  Completed --> Published: canon publish
+  Published --> [*]
+```
+
+### 4) Future Modes (Modeled, Not Fully Runnable Yet)
+
+```mermaid
+flowchart TD
+  A[Special operational need] --> B{Scenario type}
+  B -->|Incident or outage| INC[incident]
+  B -->|Migration initiative| MIG[migration]
+
+  INC --> S1[Current state: modeled, not full end-to-end]
+  MIG --> S2[Current state: modeled, not full end-to-end]
+
+  S1 --> ALT1[Practical fallback: discovery, change, review, verification]
+  S2 --> ALT2[Practical fallback: discovery, system-shaping, change, review]
+```
+
+### 5) Quick Legend
+
+- `discovery` and `requirements` clarify problem boundaries before execution.
+- `system-shaping` and `architecture` handle structural design and decisions.
+- `change` defines bounded modification scope and preserved invariants.
+- `implementation` and `refactor` produce governed execution/preservation packets with approval gating.
+- `review`, `verification`, and `pr-review` challenge packet quality, evidence, and diff-level correctness.
+- `incident` and `migration` remain future-facing modeled modes in the current runtime slice.
+
 ## Mode: discovery
 
 ### Use It For
