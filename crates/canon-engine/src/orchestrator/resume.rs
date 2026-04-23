@@ -53,3 +53,86 @@ fn sha256_hex(bytes: &[u8]) -> String {
     }
     encoded
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::run::{InputFingerprint, InputSourceKind};
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn fingerprint(path: &str, digest: Option<&str>, size: u64, mtime: i64) -> InputFingerprint {
+        InputFingerprint {
+            path: path.to_string(),
+            source_kind: InputSourceKind::Path,
+            size_bytes: size,
+            modified_unix_seconds: mtime,
+            content_digest_sha256: digest.map(str::to_string),
+            snapshot_ref: None,
+        }
+    }
+
+    #[test]
+    fn empty_fingerprints_always_match() {
+        let dir = TempDir::new().unwrap();
+        assert!(input_fingerprints_match(dir.path(), &[]).unwrap());
+    }
+
+    #[test]
+    fn missing_file_returns_false() {
+        let dir = TempDir::new().unwrap();
+        let fp = fingerprint("no-such-file.md", None, 0, 0);
+        assert!(!input_fingerprints_match(dir.path(), &[fp]).unwrap());
+    }
+
+    #[test]
+    fn matching_digest_returns_true() {
+        let dir = TempDir::new().unwrap();
+        let content = b"hello canon input";
+        let path = dir.path().join("input.md");
+        fs::write(&path, content).unwrap();
+        let digest = sha256_hex(content);
+        let fp = fingerprint("input.md", Some(&digest), content.len() as u64, 0);
+        assert!(input_fingerprints_match(dir.path(), &[fp]).unwrap());
+    }
+
+    #[test]
+    fn mismatched_digest_returns_false() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("input.md");
+        fs::write(&path, b"hello canon input").unwrap();
+        let fp = fingerprint(
+            "input.md",
+            Some("0000000000000000000000000000000000000000000000000000000000000000"),
+            17,
+            0,
+        );
+        assert!(!input_fingerprints_match(dir.path(), &[fp]).unwrap());
+    }
+
+    #[test]
+    fn size_mismatch_without_digest_returns_false() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("input.md");
+        fs::write(&path, b"hello canon input").unwrap();
+        let fp = fingerprint("input.md", None, 9999, 0);
+        assert!(!input_fingerprints_match(dir.path(), &[fp]).unwrap());
+    }
+
+    #[test]
+    fn matching_size_and_mtime_without_digest_returns_true() {
+        let dir = TempDir::new().unwrap();
+        let content = b"hello canon input";
+        let path = dir.path().join("input.md");
+        fs::write(&path, content).unwrap();
+        let metadata = std::fs::metadata(&path).unwrap();
+        let mtime = metadata
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or_default();
+        let fp = fingerprint("input.md", None, content.len() as u64, mtime);
+        assert!(input_fingerprints_match(dir.path(), &[fp]).unwrap());
+    }
+}

@@ -69,12 +69,14 @@ specific LLM provider; the assistant in the chat is the model.
 - [`system-shaping`](#mode-system-shaping)
 - [`architecture`](#mode-architecture)
 - [`change`](#mode-change)
+- [`implementation`](#mode-implementation)
+- [`refactor`](#mode-refactor)
 - [`review`](#mode-review)
 - [`verification`](#mode-verification)
 - [`pr-review`](#mode-pr-review)
 
 Modes that are still modeled but not implemented end to end remain outside the
-scope of this guide.
+scope of this guide. Today that still includes `incident` and `migration`.
 
 ## Input Binding Rules
 
@@ -86,6 +88,8 @@ convention:
 - `system-shaping`: `canon-input/system-shaping.md` or `canon-input/system-shaping/`
 - `architecture`: `canon-input/architecture.md` or `canon-input/architecture/`
 - `change`: `canon-input/change.md` or `canon-input/change/`
+- `implementation`: `canon-input/implementation.md` or `canon-input/implementation/`
+- `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
 - `review`: `canon-input/review.md` or `canon-input/review/`
 - `verification`: `canon-input/verification.md` or `canon-input/verification/`
 
@@ -102,6 +106,14 @@ new canonical location, and real runs snapshot it only under
 If you prefer to keep a mode brief as a folder, Canon expands the files in that
 folder into the run context and fingerprints each authored file separately.
 
+For `implementation` and `refactor`, a folder-backed packet is the preferred
+way to carry forward bounded context from earlier packets. Keep the current
+mode brief in `brief.md`, record upstream packet references in `source-map.md`,
+and add `selected-context.md` only when a broader upstream packet needs to be
+narrowed to the current feature slice. Canon still judges readiness from the
+current mode brief; it does not implicitly dereference prior `.canon/` runs,
+published `docs/` packets, or `@last`.
+
 Every mode that expects authored input now fails before execution if the input
 is missing, empty, whitespace-only, or structurally insufficient. That includes
 empty files, empty directories, and directory expansions that produce no usable
@@ -110,7 +122,7 @@ authored content.
 Modes that target a specific system state also require an explicit
 `--system-context` binding. Use `--system-context new|existing` for
 `system-shaping` and `architecture`; use `--system-context existing` for
-`change`.
+`change`, `implementation`, and `refactor`.
 
 `review` is stricter in the current runtime slice: it expects exactly one
 authored review packet at `canon-input/review.md` or `canon-input/review/`.
@@ -152,6 +164,8 @@ Default publish targets by mode:
 - `system-shaping` -> `docs/architecture/shaping/<RUN_ID>/`
 - `architecture` -> `docs/architecture/decisions/<RUN_ID>/`
 - `change` -> `docs/changes/<RUN_ID>/`
+- `implementation` -> `docs/implementation/<RUN_ID>/`
+- `refactor` -> `docs/refactors/<RUN_ID>/`
 - `review` -> `docs/reviews/<RUN_ID>/`
 - `verification` -> `docs/verification/<RUN_ID>/`
 - `pr-review` -> `docs/reviews/prs/<RUN_ID>/`
@@ -598,6 +612,250 @@ context explicit instead of pretending the change is well-bounded.
 Instead of generic templates, Canon uses realistic bounded documents.
 See [docs/examples/canon-input/change-add-caching.md](docs/examples/canon-input/change-add-caching.md)
 for a populated example of a Change brief.
+
+## Mode: implementation
+
+### Use It For
+
+Carry a bounded existing-system plan into governed execution guidance with
+explicit task mapping, mutation bounds, and safety-net evidence.
+
+### Typical Upstream Sources
+
+- a `change` packet whose allowed surface is already fixed
+- an `architecture` packet whose execution boundary is already explicit
+- an approved implementation brief authored directly under `canon-input/`
+
+### Input Shape
+
+A file-backed implementation brief or packet under `canon-input/implementation.md`
+or `canon-input/implementation/`.
+
+For standalone work, a single file is enough. When the packet carries forward
+bounded context from `change` or `architecture`, prefer a folder-backed input
+with:
+
+- `brief.md` for the current-mode execution brief
+- `source-map.md` for explicit upstream packet references and carried-forward decisions
+- optional `selected-context.md` for narrowed excerpts from a broader upstream packet
+
+### Good Input Should Include
+
+- the bounded task mapping Canon should carry forward
+- explicit mutation bounds and allowed paths
+- safety-net evidence that should exist before mutation
+- independent checks that challenge the packet separately from generation
+- rollback triggers and rollback steps
+
+### Questions This Mode Answers
+
+- what task sequence Canon is carrying as the bounded execution packet
+- where the allowed mutation boundary starts and ends
+- which safety-net and rollback expectations make the packet credible
+- whether the packet is complete enough to finish as a governed recommendation set
+
+### Questions This Mode Does Not Answer Well
+
+- what the preserved-behavior boundary should be before planning
+- whether a structural cleanup is actually a refactor versus a bounded implementation step
+- how to mutate the workspace directly in this tranche
+
+### What Canon Emits
+
+Implementation produces a governed execution packet with these artifacts:
+
+- `task-mapping.md`
+- `mutation-bounds.md`
+- `implementation-notes.md`
+- `completion-evidence.md`
+- `validation-hooks.md`
+- `rollback-notes.md`
+
+Run and status summaries surface `task-mapping.md` directly and make the
+current `recommendation-only` posture explicit.
+
+### Important Runtime Constraint
+
+Implementation is now runnable end to end, but the current runtime slice keeps
+workspace mutation recommendation-only. Canon records the bounded execution
+packet, validation evidence, and mutation request trace; it does not edit the
+working tree for you.
+
+Every implementation run gates on an execution approval before it completes.
+After `canon run`, the run enters `AwaitingApproval`. Review the emitted packet,
+then record your decision with `canon approve`. After approval the run remains
+`AwaitingApproval` with no further approval targets until you call `canon resume`,
+which carries out the post-approval continuation and moves the run to `Completed`.
+Publishing requires `Completed` state, so approve and resume before you publish.
+
+### Important Input Behavior
+
+If the brief omits task mapping, mutation bounds, safety-net evidence, or
+rollback notes, Canon still emits the packet but marks the missing context
+explicitly and blocks `implementation-readiness` instead of pretending the run
+is complete.
+
+When the input packet references earlier `change` or `architecture` work,
+`brief.md` must still restate the bounded execution fields Canon needs for the
+current run. `source-map.md` is provenance, not a substitute for task mapping
+or mutation bounds. If the upstream source is a broad architecture packet,
+narrow it to a concrete feature slice and name the excluded upstream scope
+explicitly before you run `implementation`.
+
+### Typical Handoff After This Mode
+
+- publish the approved implementation packet with `canon publish <RUN_ID>` to `docs/implementation/<RUN_ID>/`, or use `--to` for another public destination
+- inspect the emitted packet before accepting or expanding any later mutation posture
+- move to `review` when a non-PR packet needs explicit disposition
+- move to `pr-review` when the real target becomes a diff or `WORKTREE`
+
+### Common Mistakes
+
+- using Implementation before the bounded change surface is actually known
+- omitting allowed paths and expecting Canon to infer them from the repository
+- treating recommendation-only output as if Canon already changed the working tree
+- skipping rollback notes because the packet is "only planning"
+
+### Example Input
+
+See [`docs/templates/canon-input/implementation.md`](docs/templates/canon-input/implementation.md)
+for the starter template, [`docs/examples/canon-input/implementation-auth-session-revocation.md`](docs/examples/canon-input/implementation-auth-session-revocation.md)
+for a populated single-file example, and
+[`docs/examples/canon-input/carry-forward-packets.md`](docs/examples/canon-input/carry-forward-packets.md)
+for the folder-backed carry-forward packet pattern.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode implementation \
+  --system-context existing \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner maintainer \
+  --input canon-input/implementation.md
+```
+
+## Mode: refactor
+
+### Use It For
+
+Carry a bounded structural cleanup into governed execution guidance while
+making preserved behavior, drift review, and no-feature-addition evidence explicit.
+
+### Typical Upstream Sources
+
+- a `change` packet whose preserved behavior and allowed surface are already fixed
+- an `implementation` packet whose next step is structural cleanup rather than feature delivery
+- an approved refactor brief authored directly under `canon-input/`
+
+### Input Shape
+
+A file-backed refactor brief or packet under `canon-input/refactor.md` or
+`canon-input/refactor/`.
+
+For standalone work, a single file is enough. When the packet carries forward
+bounded context from `change` or `implementation`, prefer a folder-backed input
+with:
+
+- `brief.md` for the current-mode preservation brief
+- `source-map.md` for explicit upstream packet references and carried-forward invariants
+- optional `selected-context.md` for narrowed excerpts from a broader upstream packet
+
+### Good Input Should Include
+
+- the behavior that must remain externally unchanged
+- any approved exceptions that are consciously allowed
+- explicit refactor scope and allowed paths
+- the structural rationale and untouched surface
+- safety-net evidence and any accepted regression findings
+- a contract-drift conclusion and a no-feature-addition decision
+
+### Questions This Mode Answers
+
+- what behavior the refactor must preserve
+- where the structural change boundary starts and ends
+- what evidence supports the claim that no new feature behavior is being added
+- whether the packet is complete enough to finish as a governed preservation set
+
+### Questions This Mode Does Not Answer Well
+
+- what the original change boundary should be if it is still contested
+- whether a proposed feature should ship at all
+- how to mutate the workspace directly in this tranche
+
+### What Canon Emits
+
+Refactor produces a governed preservation packet with these artifacts:
+
+- `preserved-behavior.md`
+- `refactor-scope.md`
+- `structural-rationale.md`
+- `regression-evidence.md`
+- `contract-drift-check.md`
+- `no-feature-addition.md`
+
+Run and status summaries surface `preserved-behavior.md` directly and make the
+current `recommendation-only` posture explicit.
+
+### Important Runtime Constraint
+
+Refactor is now runnable end to end, but the current runtime slice keeps
+workspace mutation recommendation-only. Canon records the bounded preservation
+packet, validation evidence, and mutation request trace; it does not edit the
+working tree for you.
+
+Every refactor run gates on an execution approval before it completes.
+After `canon run`, the run enters `AwaitingApproval`. Review the emitted packet,
+then record your decision with `canon approve`. After approval the run remains
+`AwaitingApproval` with no further approval targets until you call `canon resume`,
+which carries out the post-approval continuation and moves the run to `Completed`.
+Publishing requires `Completed` state, so approve and resume before you publish.
+
+### Important Input Behavior
+
+If the brief omits preserved behavior, bounded refactor scope, or no-feature-addition
+proof, Canon still emits the packet but marks the missing context explicitly and
+blocks completion instead of pretending the refactor is safe.
+
+When the input packet references earlier `change` or `implementation` work,
+`brief.md` must still restate the bounded preservation fields Canon needs for
+the current run. `source-map.md` is provenance, not a substitute for preserved
+behavior, scope, or no-feature-addition proof.
+
+### Typical Handoff After This Mode
+
+- publish the approved refactor packet with `canon publish <RUN_ID>` to `docs/refactors/<RUN_ID>/`, or use `--to` for another public destination
+- inspect the emitted packet before accepting or expanding any later mutation posture
+- move to `review` when a non-PR packet needs explicit disposition
+- move to `pr-review` when the real target becomes a diff or `WORKTREE`
+
+### Common Mistakes
+
+- using Refactor when the real work adds new behavior
+- omitting preserved behavior and expecting Canon to infer it from the repository
+- treating recommendation-only output as if Canon already changed the working tree
+- leaving the no-feature-addition decision implicit
+
+### Example Input
+
+See [`docs/templates/canon-input/refactor.md`](docs/templates/canon-input/refactor.md)
+for the starter template, [`docs/examples/canon-input/refactor-auth-session-cleanup.md`](docs/examples/canon-input/refactor-auth-session-cleanup.md)
+for a populated single-file example, and
+[`docs/examples/canon-input/carry-forward-packets.md`](docs/examples/canon-input/carry-forward-packets.md)
+for the folder-backed carry-forward packet pattern.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode refactor \
+  --system-context existing \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner maintainer \
+  --input canon-input/refactor.md
+```
 
 ## Mode: review
 

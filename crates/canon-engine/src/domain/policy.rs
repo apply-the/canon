@@ -191,6 +191,17 @@ impl PolicySet {
         })
     }
 
+    pub fn constraint_profile_with_allowed_paths(
+        &self,
+        id: &str,
+        allowed_paths: Vec<String>,
+    ) -> Option<InvocationConstraintSet> {
+        self.constraint_profile(id).map(|mut constraints| {
+            constraints.allowed_paths = allowed_paths;
+            constraints
+        })
+    }
+
     pub fn apply_overrides(&mut self, overrides: PolicySetOverrides) {
         for override_class in overrides.risk_classes {
             if let Some(existing) =

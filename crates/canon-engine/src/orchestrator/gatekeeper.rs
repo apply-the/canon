@@ -43,6 +43,26 @@ pub struct ChangeGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+pub struct ImplementationGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub system_context: Option<SystemContext>,
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
+pub struct RefactorGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub system_context: Option<SystemContext>,
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
 pub struct ReviewGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -224,6 +244,57 @@ pub fn evaluate_change_gates(
             context.evidence_complete,
         ),
     ]
+}
+
+pub fn evaluate_implementation_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: ImplementationGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    let readiness = implementation_readiness_gate(contract, artifacts, context.system_context);
+    let release = implementation_release_readiness_gate(
+        contract,
+        artifacts,
+        context.validation_independence_satisfied,
+        context.evidence_complete,
+    );
+    let mut gates = vec![readiness];
+    if !gates.iter().any(|gate| matches!(gate.status, GateStatus::Blocked))
+        && !matches!(release.status, GateStatus::Blocked)
+    {
+        gates.push(implementation_execution_gate(context.owner, context.approvals));
+    }
+    gates.push(release);
+    gates
+}
+
+pub fn evaluate_refactor_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: RefactorGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    let preservation = refactor_preservation_gate(contract, artifacts, context.system_context);
+    let architecture = named_artifact_gate(
+        GateKind::Architecture,
+        contract,
+        artifacts,
+        &["structural-rationale.md", "contract-drift-check.md"],
+        "refactor architecture review requires structural rationale and contract drift review",
+    );
+    let release = refactor_release_readiness_gate(
+        contract,
+        artifacts,
+        context.validation_independence_satisfied,
+        context.evidence_complete,
+    );
+    let mut gates = vec![preservation, architecture];
+    if !gates.iter().any(|gate| matches!(gate.status, GateStatus::Blocked))
+        && !matches!(release.status, GateStatus::Blocked)
+    {
+        gates.push(refactor_execution_gate(context.owner, context.approvals));
+    }
+    gates.push(release);
+    gates
 }
 
 fn change_preservation_gate(
@@ -463,6 +534,93 @@ fn analysis_release_readiness_gate(
     }
 }
 
+fn implementation_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    system_context: Option<SystemContext>,
+) -> GateEvaluation {
+    let mut blockers = contract
+        .artifact_requirements
+        .iter()
+        .filter(|requirement| {
+            matches!(
+                requirement.file_name.as_str(),
+                "task-mapping.md"
+                    | "mutation-bounds.md"
+                    | "validation-hooks.md"
+                    | "rollback-notes.md"
+            )
+        })
+        .flat_map(|requirement| {
+            artifacts
+                .iter()
+                .find(|(file_name, _)| file_name == &requirement.file_name)
+                .map(|(_, contents)| {
+                    crate::artifacts::contract::validate_artifact(requirement, contents)
+                })
+                .unwrap_or_else(|| {
+                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                })
+        })
+        .collect::<Vec<_>>();
+
+    if !matches!(system_context, Some(SystemContext::Existing)) {
+        blockers.push(
+            "implementation planning requires `system_context = existing` so mutation bounds stay attached to an existing system"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ImplementationReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn refactor_preservation_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    system_context: Option<SystemContext>,
+) -> GateEvaluation {
+    let mut blockers = contract
+        .artifact_requirements
+        .iter()
+        .filter(|requirement| {
+            matches!(
+                requirement.file_name.as_str(),
+                "preserved-behavior.md" | "refactor-scope.md" | "no-feature-addition.md"
+            )
+        })
+        .flat_map(|requirement| {
+            artifacts
+                .iter()
+                .find(|(file_name, _)| file_name == &requirement.file_name)
+                .map(|(_, contents)| {
+                    crate::artifacts::contract::validate_artifact(requirement, contents)
+                })
+                .unwrap_or_else(|| {
+                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                })
+        })
+        .collect::<Vec<_>>();
+
+    if !matches!(system_context, Some(SystemContext::Existing)) {
+        blockers.push(
+            "refactor preservation requires `system_context = existing` so structural work stays attached to an existing system"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ChangePreservation,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
 fn change_risk_gate(
     owner: &str,
     risk: RiskClass,
@@ -515,6 +673,57 @@ fn change_risk_gate(
     }
 }
 
+fn implementation_execution_gate(owner: &str, approvals: &[ApprovalRecord]) -> GateEvaluation {
+    execution_gate(
+        owner,
+        approvals,
+        "implementation execution mutates the workspace and requires explicit approval before it can proceed",
+    )
+}
+
+fn refactor_execution_gate(owner: &str, approvals: &[ApprovalRecord]) -> GateEvaluation {
+    execution_gate(
+        owner,
+        approvals,
+        "refactor execution mutates the workspace and requires explicit approval before it can proceed",
+    )
+}
+
+fn execution_gate(
+    owner: &str,
+    approvals: &[ApprovalRecord],
+    blocker_message: &str,
+) -> GateEvaluation {
+    if owner.trim().is_empty() {
+        return GateEvaluation {
+            gate: GateKind::Execution,
+            status: GateStatus::Blocked,
+            blockers: vec![
+                "human ownership is required before execution approval can be requested"
+                    .to_string(),
+            ],
+            evaluated_at: OffsetDateTime::now_utc(),
+        };
+    }
+
+    let gate_approved = approvals
+        .iter()
+        .any(|approval| approval.matches_gate(GateKind::Execution) && approval.is_approved());
+
+    let (status, blockers) = if gate_approved {
+        (GateStatus::Overridden, Vec::new())
+    } else {
+        (GateStatus::NeedsApproval, vec![blocker_message.to_string()])
+    };
+
+    GateEvaluation {
+        gate: GateKind::Execution,
+        status,
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
 fn change_release_readiness_gate(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -531,6 +740,64 @@ fn change_release_readiness_gate(
     if !validation_independence_satisfied {
         blockers.push(
             "change readiness requires an independently recorded validation path".to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn implementation_release_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    validation_independence_satisfied: bool,
+    evidence_complete: bool,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "implementation readiness needs explicit generation and validation evidence"
+                .to_string(),
+        );
+    }
+
+    if !validation_independence_satisfied {
+        blockers.push(
+            "implementation readiness requires an independently recorded validation path"
+                .to_string(),
+        );
+    }
+
+    GateEvaluation {
+        gate: GateKind::ReleaseReadiness,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn refactor_release_readiness_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    validation_independence_satisfied: bool,
+    evidence_complete: bool,
+) -> GateEvaluation {
+    let mut blockers = validate_release_bundle(contract, artifacts);
+
+    if !evidence_complete {
+        blockers.push(
+            "refactor readiness needs explicit generation and validation evidence".to_string(),
+        );
+    }
+
+    if !validation_independence_satisfied {
+        blockers.push(
+            "refactor readiness requires an independently recorded validation path".to_string(),
         );
     }
 
@@ -883,8 +1150,9 @@ mod tests {
     use time::OffsetDateTime;
 
     use super::{
-        ChangeGateContext, PrReviewGateContext, evaluate_change_gates, evaluate_pr_review_gates,
-        evaluate_requirements_gates,
+        ChangeGateContext, ImplementationGateContext, PrReviewGateContext, RefactorGateContext,
+        evaluate_change_gates, evaluate_implementation_gates, evaluate_pr_review_gates,
+        evaluate_refactor_gates, evaluate_requirements_gates,
     };
     use crate::artifacts::contract::contract_for_mode;
     use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
@@ -1038,6 +1306,92 @@ mod tests {
         );
 
         assert_eq!(gate(&overridden, GateKind::Risk).status, GateStatus::Overridden);
+    }
+
+    #[test]
+    fn implementation_execution_gate_requires_explicit_approval_before_completion() {
+        let contract = contract_for_mode(Mode::Implementation);
+        let artifacts = valid_artifacts(&contract);
+
+        let pending = evaluate_implementation_gates(
+            &contract,
+            &artifacts,
+            ImplementationGateContext {
+                owner: "Owner",
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                approvals: &[],
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        assert_eq!(gate(&pending, GateKind::Execution).status, GateStatus::NeedsApproval);
+
+        let approvals = vec![ApprovalRecord::for_gate(
+            GateKind::Execution,
+            "Owner <owner@example.com>".to_string(),
+            ApprovalDecision::Approve,
+            "approved bounded execution".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )];
+        let approved = evaluate_implementation_gates(
+            &contract,
+            &artifacts,
+            ImplementationGateContext {
+                owner: "Owner",
+                risk: RiskClass::SystemicImpact,
+                zone: UsageZone::Red,
+                approvals: &approvals,
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        assert_eq!(gate(&approved, GateKind::Execution).status, GateStatus::Overridden);
+    }
+
+    #[test]
+    fn refactor_execution_gate_requires_explicit_approval_before_completion() {
+        let contract = contract_for_mode(Mode::Refactor);
+        let artifacts = valid_artifacts(&contract);
+
+        let pending = evaluate_refactor_gates(
+            &contract,
+            &artifacts,
+            RefactorGateContext {
+                owner: "Owner",
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                approvals: &[],
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        assert_eq!(gate(&pending, GateKind::Execution).status, GateStatus::NeedsApproval);
+
+        let approvals = vec![ApprovalRecord::for_gate(
+            GateKind::Execution,
+            "Owner <owner@example.com>".to_string(),
+            ApprovalDecision::Approve,
+            "approved bounded refactor execution".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )];
+        let approved = evaluate_refactor_gates(
+            &contract,
+            &artifacts,
+            RefactorGateContext {
+                owner: "Owner",
+                risk: RiskClass::SystemicImpact,
+                zone: UsageZone::Red,
+                approvals: &approvals,
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        assert_eq!(gate(&approved, GateKind::Execution).status, GateStatus::Overridden);
     }
 
     #[test]

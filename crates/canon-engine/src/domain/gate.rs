@@ -9,6 +9,7 @@ pub enum GateKind {
     ChangePreservation,
     Architecture,
     Risk,
+    Execution,
     ReviewDisposition,
     ReleaseReadiness,
     ImplementationReadiness,
@@ -31,6 +32,7 @@ impl std::str::FromStr for GateKind {
             "change-preservation" | "ChangePreservation" => Ok(Self::ChangePreservation),
             "architecture" | "Architecture" => Ok(Self::Architecture),
             "risk" | "Risk" => Ok(Self::Risk),
+            "execution" | "Execution" => Ok(Self::Execution),
             "review-disposition" | "ReviewDisposition" => Ok(Self::ReviewDisposition),
             "release-readiness" | "ReleaseReadiness" => Ok(Self::ReleaseReadiness),
             "implementation-readiness" | "ImplementationReadiness" => {
@@ -73,6 +75,7 @@ mod tests {
             (GateKind::ChangePreservation, "change-preservation", "ChangePreservation"),
             (GateKind::Architecture, "architecture", "Architecture"),
             (GateKind::Risk, "risk", "Risk"),
+            (GateKind::Execution, "execution", "Execution"),
             (GateKind::ReviewDisposition, "review-disposition", "ReviewDisposition"),
             (GateKind::ReleaseReadiness, "release-readiness", "ReleaseReadiness"),
             (

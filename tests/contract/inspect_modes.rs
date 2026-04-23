@@ -46,3 +46,14 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
         ])
     );
 }
+
+#[test]
+fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
+    let output =
+        cli_command().args(["inspect", "modes"]).assert().success().get_output().stdout.clone();
+
+    let text = String::from_utf8(output).expect("utf8 output");
+
+    assert!(text.contains("implementation"));
+    assert!(text.contains("refactor"));
+}

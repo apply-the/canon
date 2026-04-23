@@ -29,14 +29,14 @@ $AvailableNow = @(
   "canon-system-shaping",
   "canon-architecture",
   "canon-change",
+  "canon-implementation",
+  "canon-refactor",
   "canon-review",
   "canon-verification",
   "canon-pr-review"
 )
 
 $ModeledOnly = @(
-  "canon-implementation",
-  "canon-refactor",
   "canon-incident",
   "canon-migration"
 )
@@ -117,6 +117,8 @@ $RequirementsPath = Join-Path $SkillsDir "canon-requirements/SKILL.md"
 $ChangePath = Join-Path $SkillsDir "canon-change/SKILL.md"
 $SystemShapingPath = Join-Path $SkillsDir "canon-system-shaping/SKILL.md"
 $ArchitecturePath = Join-Path $SkillsDir "canon-architecture/SKILL.md"
+$ImplementationPath = Join-Path $SkillsDir "canon-implementation/SKILL.md"
+$RefactorPath = Join-Path $SkillsDir "canon-refactor/SKILL.md"
 $ReviewPath = Join-Path $SkillsDir "canon-review/SKILL.md"
 $VerificationPath = Join-Path $SkillsDir "canon-verification/SKILL.md"
 $PrReviewPath = Join-Path $SkillsDir "canon-pr-review/SKILL.md"
@@ -129,6 +131,12 @@ Require-Text $ChangePath '--input-text <INPUT_TEXT>' 'canon-change: must documen
 Require-Text $ChangePath '--system-context existing' 'canon-change: must bind existing system context explicitly'
 Require-Text $SystemShapingPath '--system-context <SYSTEM_CONTEXT>' 'canon-system-shaping: must require explicit system context in the command contract'
 Require-Text $ArchitecturePath '--system-context <SYSTEM_CONTEXT>' 'canon-architecture: must require explicit system context in the command contract'
+Require-Text $ImplementationPath '--input <INPUT_PATH>' 'canon-implementation: preflight must keep file-path input binding'
+Require-Text $ImplementationPath '--input-text <INPUT_TEXT>' 'canon-implementation: must document inline authored input binding'
+Require-Text $ImplementationPath '--system-context existing' 'canon-implementation: must bind existing system context explicitly'
+Require-Text $RefactorPath '--input <INPUT_PATH>' 'canon-refactor: preflight must keep file-path input binding'
+Require-Text $RefactorPath '--input-text <INPUT_TEXT>' 'canon-refactor: must document inline authored input binding'
+Require-Text $RefactorPath '--system-context existing' 'canon-refactor: must bind existing system context explicitly'
 Require-Text $ReviewPath '--input <INPUT_PATH>' 'canon-review: preflight must keep file-path input binding'
 Require-Text $ReviewPath '--input-text <INPUT_TEXT>' 'canon-review: must document inline authored input binding'
 Require-Text $VerificationPath '--input <INPUT_PATH>' 'canon-verification: preflight must keep file-path input binding'

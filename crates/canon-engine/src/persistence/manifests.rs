@@ -189,6 +189,28 @@ mod tests {
     }
 
     #[test]
+    fn from_identity_keeps_execution_heavy_modes_on_the_existing_manifest_surface() {
+        let uuid = Uuid::parse_str("33333333-0000-7000-8000-000000000003").expect("uuid");
+        let created_at = OffsetDateTime::from_unix_timestamp(1_700_000_200).expect("timestamp");
+        let identity = RunIdentity::from_parts(uuid, created_at);
+
+        let manifest = RunManifest::from_identity(
+            &identity,
+            Mode::Implementation,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            Some(SystemContext::Existing),
+            ClassificationProvenance::explicit(),
+            "Staff Engineer <staff@example.com>".to_string(),
+        );
+
+        assert_eq!(manifest.mode, Mode::Implementation);
+        assert_eq!(manifest.system_context, Some(SystemContext::Existing));
+        assert_eq!(manifest.run_id, identity.run_id);
+        assert_eq!(manifest.uuid.as_deref(), Some(identity.uuid.as_simple().to_string().as_str()));
+    }
+
+    #[test]
     fn canonicalize_reconstructs_legacy_identity_fields() {
         let uuid = Uuid::parse_str("019db71e-f1bb-7dc2-b535-213e556d16fe").expect("uuid");
         let uuid_string = uuid.to_string();

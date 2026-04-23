@@ -1,13 +1,14 @@
 version = 1
-# Requires explicit `--system-context new|existing` when starting a run.
+# Requires explicit `--system-context existing` when starting a run.
 mode = "refactor"
 emphasis = "execution-heavy"
-implementation_depth = "contract-only"
-gate_profile = ["Exploration", "ChangePreservation", "Risk", "ReleaseReadiness"]
+implementation_depth = "full"
+gate_profile = ["ChangePreservation", "Architecture", "Risk", "ReleaseReadiness"]
 artifacts = [
-    "equivalence-criteria.md",
-    "preserved-surface.md",
-    "untangling-plan.md",
-    "rollback-notes.md",
-    "validation-strategy.md",
+    "preserved-behavior.md",
+    "refactor-scope.md",
+    "structural-rationale.md",
+    "regression-evidence.md",
+    "contract-drift-check.md",
+    "no-feature-addition.md",
 ]

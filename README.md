@@ -204,6 +204,10 @@ A common progression is:
 - `architecture` when boundaries, invariants, and tradeoffs need to be fixed
 - `change` when the structure is known and the work is bounded modification of
   an existing system
+- `implementation` when the bounded plan already exists and you need governed
+  execution guidance for an existing system
+- `refactor` when the goal is structural improvement with preserved behavior
+  and no undeclared feature addition
 - `pr-review` when there is a real diff to challenge
 
 ### Quick Decision Rule
@@ -211,14 +215,18 @@ A common progression is:
 - use `system-shaping` when the structure of a capability is not yet defined
 - use `change` when the structure is known and the task is bounded
   modification with preserved behavior
+- use `implementation` when the change boundary is already fixed and the next
+  need is task mapping, mutation bounds, and safety-net-backed execution guidance
+- use `refactor` when the intent is structural cleanup of an existing system
+  and the preserved behavior boundary is already explicit
 - use `system-shaping --system-context existing` when you are working inside
   an existing system but the next need is still structural, not modification
 
-Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `change`, `review`, `verification`, and `pr-review`.
+Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `change`, `implementation`, `refactor`, `review`, `verification`, and `pr-review`.
 
 Modes that target a specific system state keep that explicit in the run
 contract: use `--system-context new|existing` for `system-shaping` and
-`architecture`, and use `--system-context existing` for `change`.
+`architecture`, and use `--system-context existing` for `change`, `implementation`, and `refactor`.
 
 Use `review` for bounded non-PR change packages or artifact bundles, `verification` to challenge claims and invariants directly, and `pr-review` only when the target is a real diff or `WORKTREE`.
 
@@ -290,6 +298,8 @@ For file-backed modes, the canonical authored-input locations are under
 - `canon-input/system-shaping.md` or `canon-input/system-shaping/`
 - `canon-input/architecture.md` or `canon-input/architecture/`
 - `canon-input/change.md` or `canon-input/change/`
+- `canon-input/implementation.md` or `canon-input/implementation/`
+- `canon-input/refactor.md` or `canon-input/refactor/`
 - `canon-input/review.md` or `canon-input/review/`
 - `canon-input/verification.md` or `canon-input/verification/`
 
@@ -299,7 +309,7 @@ tabs, or anything under `.canon/`.
 
 For modes that require target-state binding, Canon also expects an explicit
 system context. Use `--system-context new|existing` for `system-shaping` and
-`architecture`; use `--system-context existing` for `change`.
+`architecture`; use `--system-context existing` for `change`, `implementation`, and `refactor`.
 
 `canon run` and `canon inspect risk-zone` also accept explicit inline authored
 input through `--input-text` when you do not want to materialize a repo file
@@ -316,6 +326,16 @@ passing the directory itself to `canon inspect clarity` so Canon reads the full
 authored input set recursively instead of a single child file. A single
 `--input` group can also carry multiple explicit paths and still produce one
 aggregated inspection result.
+
+Starter templates for file-backed modes live under
+[`docs/templates/canon-input/`](docs/templates/canon-input/). Realistic sample
+briefs live under [`docs/examples/canon-input/`](docs/examples/canon-input/).
+
+For `implementation` and `refactor`, use the dedicated templates and examples
+there instead of starting from the `change` brief shape by hand. When those
+modes need to carry forward context from earlier packets, use an explicit
+folder-backed packet with `brief.md` and `source-map.md`; see
+[`docs/examples/canon-input/carry-forward-packets.md`](docs/examples/canon-input/carry-forward-packets.md).
 
 `pr-review` stays explicit and ref-based. It does not auto-bind from
 `canon-input/`.
@@ -679,11 +699,56 @@ with explicit evidence and disposition.
 
 ### Implementation Mode
 
-TODO: planned mode surface, not implemented end to end yet.
+Use this when the bounded plan already exists and you need Canon to carry it
+into governed execution guidance for an existing system. `implementation`
+requires `--system-context existing` plus a file-backed brief under
+`canon-input/implementation.md` or `canon-input/implementation/`.
+
+Good implementation briefs name the task mapping, mutation bounds, allowed
+paths, safety-net evidence, independent checks, rollback triggers, and rollback
+steps. Canon emits a distinct implementation packet with:
+
+- `task-mapping.md`
+- `mutation-bounds.md`
+- `implementation-notes.md`
+- `completion-evidence.md`
+- `validation-hooks.md`
+- `rollback-notes.md`
+
+Run and status summaries surface `task-mapping.md` directly and make the
+current `recommendation-only` execution posture explicit. In this tranche,
+Canon records bounded implementation guidance and evidence but does not apply
+workspace mutation on your behalf.
+
+Completed implementation runs publish through the existing surface at
+`docs/implementation/<RUN_ID>/`.
 
 ### Refactor Mode
 
-TODO: planned mode surface, not implemented end to end yet.
+Use this when the goal is structural improvement in an existing system without
+changing externally meaningful behavior. `refactor` requires
+`--system-context existing` plus a file-backed brief under
+`canon-input/refactor.md` or `canon-input/refactor/`.
+
+Good refactor briefs name the preserved behavior, approved exceptions,
+refactor scope, allowed paths, structural rationale, untouched surface,
+safety-net evidence, contract-drift conclusion, and no-feature-addition
+decision. Canon emits a distinct refactor packet with:
+
+- `preserved-behavior.md`
+- `refactor-scope.md`
+- `structural-rationale.md`
+- `regression-evidence.md`
+- `contract-drift-check.md`
+- `no-feature-addition.md`
+
+Run and status summaries surface `preserved-behavior.md` directly and make the
+current `recommendation-only` execution posture explicit. In this tranche,
+Canon records bounded structural guidance and evidence but does not apply
+workspace mutation on your behalf.
+
+Completed refactor runs publish through the existing surface at
+`docs/refactors/<RUN_ID>/`.
 
 ### Verification Mode
 
@@ -711,8 +776,8 @@ TODO: planned mode surface, not implemented end to end yet.
 
 Discoverable support-state wrappers that are still intentionally limited:
 
-- `canon-implementation`
-- `canon-refactor`
+- `canon-incident`
+- `canon-migration`
 - `canon-incident`
 - `canon-migration`
 

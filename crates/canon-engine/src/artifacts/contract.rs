@@ -141,6 +141,70 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::Implementation => vec![
+            requirement(
+                "task-mapping.md",
+                &["Summary", "Task Mapping", "Bounded Changes"],
+                &[GateKind::ImplementationReadiness, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "mutation-bounds.md",
+                &["Summary", "Mutation Bounds", "Allowed Paths"],
+                &[GateKind::Risk, GateKind::ImplementationReadiness],
+            ),
+            requirement(
+                "implementation-notes.md",
+                &["Summary", "Executed Changes", "Task Linkage"],
+                &[GateKind::ImplementationReadiness, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "completion-evidence.md",
+                &["Summary", "Completion Evidence", "Remaining Risks"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "validation-hooks.md",
+                &["Summary", "Safety-Net Evidence", "Independent Checks"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "rollback-notes.md",
+                &["Summary", "Rollback Triggers", "Rollback Steps"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Refactor => vec![
+            requirement(
+                "preserved-behavior.md",
+                &["Summary", "Preserved Behavior", "Approved Exceptions"],
+                &[GateKind::ChangePreservation, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "refactor-scope.md",
+                &["Summary", "Refactor Scope", "Allowed Paths"],
+                &[GateKind::ChangePreservation, GateKind::Risk],
+            ),
+            requirement(
+                "structural-rationale.md",
+                &["Summary", "Structural Rationale", "Untouched Surface"],
+                &[GateKind::Exploration, GateKind::ChangePreservation],
+            ),
+            requirement(
+                "regression-evidence.md",
+                &["Summary", "Safety-Net Evidence", "Regression Findings"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "contract-drift-check.md",
+                &["Summary", "Contract Drift", "Reviewer Notes"],
+                &[GateKind::Architecture, GateKind::ChangePreservation],
+            ),
+            requirement(
+                "no-feature-addition.md",
+                &["Summary", "Feature Audit", "Decision"],
+                &[GateKind::ChangePreservation, GateKind::ReleaseReadiness],
+            ),
+        ],
         Mode::Architecture => vec![
             requirement(
                 "architecture-decisions.md",

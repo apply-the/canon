@@ -25,7 +25,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    let staged_modes = [Mode::Implementation, Mode::Refactor, Mode::Incident, Mode::Migration];
+    let staged_modes = [Mode::Incident, Mode::Migration];
 
     for mode in staged_modes {
         let profile =
@@ -61,6 +61,8 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::SystemShaping,
         Mode::Change,
         Mode::Architecture,
+        Mode::Implementation,
+        Mode::Refactor,
         Mode::Verification,
         Mode::Review,
         Mode::PrReview,
@@ -75,4 +77,41 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
             mode.as_str()
         );
     }
+}
+
+#[test]
+fn promoted_execution_modes_advertise_distinct_artifact_families() {
+    let profiles = all_mode_profiles();
+
+    let implementation = profiles
+        .iter()
+        .find(|profile| profile.mode == Mode::Implementation)
+        .expect("implementation profile");
+    assert_eq!(
+        implementation.artifact_families,
+        vec![
+            "task mapping",
+            "mutation bounds",
+            "implementation notes",
+            "completion evidence",
+            "validation hooks",
+            "rollback notes",
+        ]
+    );
+    assert!(matches!(implementation.implementation_depth, ImplementationDepth::Full));
+
+    let refactor =
+        profiles.iter().find(|profile| profile.mode == Mode::Refactor).expect("refactor profile");
+    assert_eq!(
+        refactor.artifact_families,
+        vec![
+            "preserved behavior",
+            "refactor scope",
+            "structural rationale",
+            "regression evidence",
+            "contract drift check",
+            "no feature addition",
+        ]
+    );
+    assert!(matches!(refactor.implementation_depth, ImplementationDepth::Full));
 }
