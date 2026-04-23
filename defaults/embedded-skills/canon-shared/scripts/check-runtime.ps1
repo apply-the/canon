@@ -213,6 +213,8 @@ function Get-CanonicalModeInputHint([string]$CommandName) {
     'system-shaping' { return 'canon-input/system-shaping.md or canon-input/system-shaping/' }
     'architecture' { return 'canon-input/architecture.md or canon-input/architecture/' }
     'change' { return 'canon-input/change.md or canon-input/change/' }
+    'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }
+    'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }
     'verification' { return 'canon-input/verification.md or canon-input/verification/' }
     default { return $null }
   }

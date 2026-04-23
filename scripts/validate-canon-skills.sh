@@ -32,14 +32,14 @@ available_now=(
   "canon-system-shaping"
   "canon-architecture"
   "canon-change"
+  "canon-implementation"
+  "canon-refactor"
   "canon-review"
   "canon-verification"
   "canon-pr-review"
 )
 
 modeled_only=(
-  "canon-implementation"
-  "canon-refactor"
   "canon-incident"
   "canon-migration"
 )
@@ -118,10 +118,23 @@ requirements_path="${SKILLS_DIR}/canon-requirements/SKILL.md"
 change_path="${SKILLS_DIR}/canon-change/SKILL.md"
 system_shaping_path="${SKILLS_DIR}/canon-system-shaping/SKILL.md"
 architecture_path="${SKILLS_DIR}/canon-architecture/SKILL.md"
+implementation_path="${SKILLS_DIR}/canon-implementation/SKILL.md"
+refactor_path="${SKILLS_DIR}/canon-refactor/SKILL.md"
 review_path="${SKILLS_DIR}/canon-review/SKILL.md"
 verification_path="${SKILLS_DIR}/canon-verification/SKILL.md"
 pr_review_path="${SKILLS_DIR}/canon-pr-review/SKILL.md"
 clarity_path="${SKILLS_DIR}/canon-inspect-clarity/SKILL.md"
+defaults_runtime_sh="${ROOT}/defaults/embedded-skills/canon-shared/scripts/check-runtime.sh"
+defaults_runtime_ps1="${ROOT}/defaults/embedded-skills/canon-shared/scripts/check-runtime.ps1"
+agents_runtime_sh="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.sh"
+agents_runtime_ps1="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.ps1"
+
+require_text "$defaults_runtime_sh" 'implementation|refactor)' 'shared bash runtime hints must recognize implementation/refactor canonical inputs'
+require_text "$agents_runtime_sh" 'implementation|refactor)' 'materialized bash runtime hints must recognize implementation/refactor canonical inputs'
+require_text "$defaults_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'shared PowerShell runtime hints must recognize implementation canonical inputs'
+require_text "$defaults_runtime_ps1" "'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }" 'shared PowerShell runtime hints must recognize refactor canonical inputs'
+require_text "$agents_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'materialized PowerShell runtime hints must recognize implementation canonical inputs'
+require_text "$agents_runtime_ps1" "'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }" 'materialized PowerShell runtime hints must recognize refactor canonical inputs'
 
 require_text "$requirements_path" '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
 require_text "$requirements_path" '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
@@ -130,6 +143,12 @@ require_text "$change_path" '--input-text <INPUT_TEXT>' 'canon-change: must docu
 require_text "$change_path" '--system-context existing' 'canon-change: must bind existing system context explicitly'
 require_text "$system_shaping_path" '--system-context <SYSTEM_CONTEXT>' 'canon-system-shaping: must require explicit system context in the command contract'
 require_text "$architecture_path" '--system-context <SYSTEM_CONTEXT>' 'canon-architecture: must require explicit system context in the command contract'
+require_text "$implementation_path" '--input <INPUT_PATH>' 'canon-implementation: preflight must keep file-path input binding'
+require_text "$implementation_path" '--input-text <INPUT_TEXT>' 'canon-implementation: must document inline authored input binding'
+require_text "$implementation_path" '--system-context existing' 'canon-implementation: must bind existing system context explicitly'
+require_text "$refactor_path" '--input <INPUT_PATH>' 'canon-refactor: preflight must keep file-path input binding'
+require_text "$refactor_path" '--input-text <INPUT_TEXT>' 'canon-refactor: must document inline authored input binding'
+require_text "$refactor_path" '--system-context existing' 'canon-refactor: must bind existing system context explicitly'
 require_text "$review_path" '--input <INPUT_PATH>' 'canon-review: preflight must keep file-path input binding'
 require_text "$review_path" '--input-text <INPUT_TEXT>' 'canon-review: must document inline authored input binding'
 require_text "$verification_path" '--input <INPUT_PATH>' 'canon-verification: preflight must keep file-path input binding'

@@ -79,37 +79,37 @@ pub fn evaluate_request_policy(
         return decision;
     }
 
-    if request.mode == "change"
-        && matches!(
-            request.capability,
-            canon_adapters::CapabilityKind::ExecuteBoundedTransformation
-        )
+    if matches!(request.capability, canon_adapters::CapabilityKind::ExecuteBoundedTransformation)
+        && execution_mutation_profile_id(request.mode.as_str()).is_some()
     {
+        let profile_id = execution_mutation_profile_id(request.mode.as_str())
+            .expect("profile id should exist for execution mutation modes");
         match classify_change_mutation_scope(&request.requested_scope) {
             ChangeMutationScopeStatus::Missing => {
                 decision.kind = PolicyDecisionKind::Deny;
                 decision.requires_approval = false;
-                decision.rationale =
-                    "change mutation requires a closed named change surface before execution can be recommended"
-                        .to_string();
+                decision.rationale = missing_execution_scope_rationale(request.mode.as_str());
             }
             ChangeMutationScopeStatus::Expanded => {
                 decision.kind = PolicyDecisionKind::NeedsApproval;
                 decision.requires_approval = true;
                 decision.constraints.allowed_paths = request.requested_scope.clone();
-                decision.rationale = format!(
-                    "change mutation scope broadens beyond a closed change surface and requires explicit approval before it can be recommended: {}",
-                    request.requested_scope.join(", ")
+                decision.rationale = expanded_execution_scope_rationale(
+                    request.mode.as_str(),
+                    &request.requested_scope,
                 );
             }
             ChangeMutationScopeStatus::Bounded => {
                 decision.kind = PolicyDecisionKind::AllowConstrained;
-                decision.constraints =
-                    policy_set.constraint_profile("change-mutation").unwrap_or_default();
-                decision.constraints.allowed_paths = request.requested_scope.clone();
-                decision.rationale = format!(
-                    "change mutation remains recommendation-only within the declared change surface: {}",
-                    request.requested_scope.join(", ")
+                decision.constraints = policy_set
+                    .constraint_profile_with_allowed_paths(
+                        profile_id,
+                        request.requested_scope.clone(),
+                    )
+                    .unwrap_or_default();
+                decision.rationale = bounded_execution_scope_rationale(
+                    request.mode.as_str(),
+                    &request.requested_scope,
                 );
             }
         }
@@ -165,6 +165,15 @@ fn constraint_profile_id(request: &InvocationRequest) -> Option<&'static str> {
     }
 }
 
+fn execution_mutation_profile_id(mode: &str) -> Option<&'static str> {
+    match mode {
+        "change" => Some("change-mutation"),
+        "implementation" => Some("implementation-mutation"),
+        "refactor" => Some("refactor-mutation"),
+        _ => None,
+    }
+}
+
 fn constrained_rationale(request: &InvocationRequest) -> &'static str {
     match (request.mode.as_str(), request.capability) {
         ("requirements", canon_adapters::CapabilityKind::GenerateContent)
@@ -193,6 +202,67 @@ fn constrained_rationale(request: &InvocationRequest) -> &'static str {
             "pr-review critique is allowed only with summary-first retention and preserved review evidence"
         }
         _ => "invocation is constrained by policy",
+    }
+}
+
+fn missing_execution_scope_rationale(mode: &str) -> String {
+    match mode {
+        "change" => {
+            "change mutation requires a closed named change surface before execution can be recommended"
+                .to_string()
+        }
+        "implementation" => {
+            "implementation mutation requires explicit bounded paths before execution can be recommended"
+                .to_string()
+        }
+        "refactor" => {
+            "refactor mutation requires an explicit preserved refactor scope before execution can be recommended"
+                .to_string()
+        }
+        _ => "execution mutation requires explicit bounded scope before execution can be recommended"
+            .to_string(),
+    }
+}
+
+fn expanded_execution_scope_rationale(mode: &str, scope: &[String]) -> String {
+    match mode {
+        "change" => format!(
+            "change mutation scope broadens beyond a closed change surface and requires explicit approval before it can be recommended: {}",
+            scope.join(", ")
+        ),
+        "implementation" => format!(
+            "implementation mutation scope broadens beyond the declared bounded execution surface and requires explicit approval before it can be recommended: {}",
+            scope.join(", ")
+        ),
+        "refactor" => format!(
+            "refactor mutation scope broadens beyond the declared preservation surface and requires explicit approval before it can be recommended: {}",
+            scope.join(", ")
+        ),
+        _ => format!(
+            "execution mutation scope broadens beyond the declared bounded surface and requires explicit approval before it can be recommended: {}",
+            scope.join(", ")
+        ),
+    }
+}
+
+fn bounded_execution_scope_rationale(mode: &str, scope: &[String]) -> String {
+    match mode {
+        "change" => format!(
+            "change mutation remains recommendation-only within the declared change surface: {}",
+            scope.join(", ")
+        ),
+        "implementation" => format!(
+            "implementation mutation remains recommendation-only within the declared mutation bounds: {}",
+            scope.join(", ")
+        ),
+        "refactor" => format!(
+            "refactor mutation remains recommendation-only within the declared refactor scope: {}",
+            scope.join(", ")
+        ),
+        _ => format!(
+            "execution mutation remains recommendation-only within the declared bounded surface: {}",
+            scope.join(", ")
+        ),
     }
 }
 
@@ -369,6 +439,22 @@ mod tests {
                     payload_retention: crate::domain::execution::PayloadRetentionLevel::SummaryOnly,
                     max_payload_bytes: Some(4 * 1024),
                     command_profile: Some("change-mutation".to_string()),
+                    recommendation_only: true,
+                    patch_disabled: false,
+                },
+                InvocationConstraintProfile {
+                    id: "implementation-mutation".to_string(),
+                    payload_retention: crate::domain::execution::PayloadRetentionLevel::SummaryOnly,
+                    max_payload_bytes: Some(4 * 1024),
+                    command_profile: Some("implementation-mutation".to_string()),
+                    recommendation_only: true,
+                    patch_disabled: false,
+                },
+                InvocationConstraintProfile {
+                    id: "refactor-mutation".to_string(),
+                    payload_retention: crate::domain::execution::PayloadRetentionLevel::SummaryOnly,
+                    max_payload_bytes: Some(4 * 1024),
+                    command_profile: Some("refactor-mutation".to_string()),
                     recommendation_only: true,
                     patch_disabled: false,
                 },
@@ -552,6 +638,59 @@ mod tests {
         assert_eq!(
             decision.constraints.allowed_paths,
             vec!["session repository".to_string(), "auth service".to_string()]
+        );
+    }
+
+    #[test]
+    fn implementation_mutation_requests_become_recommendation_only_with_bounded_paths() {
+        let decision = evaluate_request_policy(
+            &request_with_scope(
+                "implementation",
+                CapabilityKind::ExecuteBoundedTransformation,
+                RiskClass::BoundedImpact,
+                UsageZone::Yellow,
+                vec!["src/auth".to_string(), "tests/auth".to_string()],
+            ),
+            &sample_policy_set(),
+        );
+
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::AllowConstrained
+        ));
+        assert_eq!(
+            decision.constraints.command_profile.as_deref(),
+            Some("implementation-mutation")
+        );
+        assert!(decision.constraints.recommendation_only);
+        assert_eq!(
+            decision.constraints.allowed_paths,
+            vec!["src/auth".to_string(), "tests/auth".to_string()]
+        );
+    }
+
+    #[test]
+    fn refactor_mutation_requests_become_recommendation_only_with_bounded_paths() {
+        let decision = evaluate_request_policy(
+            &request_with_scope(
+                "refactor",
+                CapabilityKind::ExecuteBoundedTransformation,
+                RiskClass::BoundedImpact,
+                UsageZone::Yellow,
+                vec!["src/reviewer".to_string(), "tests/reviewer".to_string()],
+            ),
+            &sample_policy_set(),
+        );
+
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::AllowConstrained
+        ));
+        assert_eq!(decision.constraints.command_profile.as_deref(), Some("refactor-mutation"));
+        assert!(decision.constraints.recommendation_only);
+        assert_eq!(
+            decision.constraints.allowed_paths,
+            vec!["src/reviewer".to_string(), "tests/reviewer".to_string()]
         );
     }
 

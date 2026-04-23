@@ -1,4 +1,5 @@
 use std::fs;
+use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
 use tempfile::TempDir;
@@ -27,6 +28,37 @@ fn init_workspace() -> TempDir {
         .assert()
         .success();
     workspace
+}
+
+fn git(workspace: &TempDir, args: &[&str]) {
+    let output = ProcessCommand::new("git")
+        .args(args)
+        .current_dir(workspace.path())
+        .output()
+        .expect("git command");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: stdout=`{}` stderr=`{}`",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_existing_repo(workspace: &TempDir) {
+    git(workspace, &["init", "-b", "main"]);
+    git(workspace, &["config", "user.name", "Canon Test"]);
+    git(workspace, &["config", "user.email", "canon@example.com"]);
+
+    fs::create_dir_all(workspace.path().join("src/auth")).expect("src dir");
+    fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String {\n    format!(\"revoked:{id}\")\n}\n",
+    )
+    .expect("source file");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "seed implementation repo"]);
 }
 
 fn create_requirements_run(workspace: &TempDir) -> String {
@@ -169,4 +201,85 @@ fn publish_accepts_short_id_prefix_and_explicit_destination() {
         .success();
 
     assert!(workspace.path().join("docs/public/prd").join("problem-statement.md").exists());
+}
+
+#[test]
+fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
+    let workspace = tempfile::tempdir().expect("tempdir");
+    init_existing_repo(&workspace);
+    fs::write(
+        workspace.path().join("implementation.md"),
+        "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n",
+    )
+    .expect("implementation brief");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "implementation",
+            "--system-context",
+            "existing",
+            "--risk",
+            "systemic-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "maintainer",
+            "--input",
+            "implementation.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("run json");
+    let run_id = json["run_id"].as_str().expect("run_id");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "approve",
+            "--run",
+            run_id,
+            "--target",
+            "gate:execution",
+            "--by",
+            "maintainer",
+            "--decision",
+            "approve",
+            "--rationale",
+            "approved bounded execution",
+        ])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", "@last", "--output", "json"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(format!("\"run\": \"{run_id}\"")));
+
+    cli_command().current_dir(workspace.path()).args(["publish", "@last"]).assert().success();
+
+    assert!(
+        workspace
+            .path()
+            .join("docs")
+            .join("implementation")
+            .join(run_id)
+            .join("task-mapping.md")
+            .exists()
+    );
 }

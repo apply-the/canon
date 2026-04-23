@@ -434,6 +434,36 @@ mod tests {
     }
 
     #[test]
+    fn run_command_accepts_execution_heavy_modes_without_explicit_input_flags() {
+        let cli = Cli::parse_from([
+            "canon",
+            "run",
+            "--mode",
+            "implementation",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "staff-engineer",
+        ]);
+
+        match cli.command {
+            Command::Run(run) => {
+                let RunCommand { mode, system_context, inputs, inline_inputs, .. } = *run;
+
+                assert_eq!(mode, "implementation");
+                assert_eq!(system_context.as_deref(), Some("existing"));
+                assert!(inputs.is_empty());
+                assert!(inline_inputs.is_empty());
+            }
+            other => panic!("unexpected command parsed: {other:?}"),
+        }
+    }
+
+    #[test]
     fn run_command_accepts_multiple_inputs_after_single_flag() {
         let cli = Cli::parse_from([
             "canon",
