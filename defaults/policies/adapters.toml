@@ -73,6 +73,22 @@ recommendation_only = true
 patch_disabled = false
 
 [[constraint_profile]]
+id = "implementation-mutation"
+payload_retention = "SummaryOnly"
+max_payload_bytes = 4096
+command_profile = "implementation-mutation"
+recommendation_only = true
+patch_disabled = false
+
+[[constraint_profile]]
+id = "refactor-mutation"
+payload_retention = "SummaryOnly"
+max_payload_bytes = 4096
+command_profile = "refactor-mutation"
+recommendation_only = true
+patch_disabled = false
+
+[[constraint_profile]]
 id = "pr-review-diff"
 payload_retention = "SummaryWithRetainedPayload"
 max_payload_bytes = 65536

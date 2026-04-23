@@ -2,13 +2,13 @@ version = 1
 # Requires explicit `--system-context new|existing` when starting a run.
 mode = "implementation"
 emphasis = "execution-heavy"
-implementation_depth = "skeleton"
+implementation_depth = "full"
 gate_profile = ["Risk", "ImplementationReadiness", "ReleaseReadiness"]
 artifacts = [
-    "execution-brief.md",
-    "task-bundle.md",
-    "contract-checklist.md",
-    "change-log.md",
-    "verification-hooks.md",
-    "completion-record.md",
+    "task-mapping.md",
+    "mutation-bounds.md",
+    "implementation-notes.md",
+    "completion-evidence.md",
+    "validation-hooks.md",
+    "rollback-notes.md",
 ]

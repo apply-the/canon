@@ -22,7 +22,7 @@ brutally explicit about the boundary and nearest honest alternative.
 | `canon-architecture` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-approve` |
 | `canon-review` | executable-wrapper | `available-now` | discoverable-standard | `canon-pr-review`, `canon-approve` |
 | `canon-verification` | executable-wrapper | `available-now` | discoverable-standard | `canon-inspect-evidence`, `canon-review` |
-| `canon-implementation` | support-state-wrapper | `modeled-only` | discoverable-standard | `canon-change`, `canon-pr-review` |
-| `canon-refactor` | support-state-wrapper | `modeled-only` | discoverable-standard | `canon-change`, `canon-review` |
+| `canon-implementation` | executable-wrapper | `available-now` | discoverable-standard | `canon-change`, `canon-inspect-artifacts` |
+| `canon-refactor` | executable-wrapper | `available-now` | discoverable-standard | `canon-change`, `canon-review` |
 | `canon-incident` | support-state-wrapper | `modeled-only` | discoverable-standard | `canon-change`, `canon-requirements` |
 | `canon-migration` | support-state-wrapper | `modeled-only` | discoverable-standard | `canon-change`, `canon-architecture` |

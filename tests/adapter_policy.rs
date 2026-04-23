@@ -136,6 +136,42 @@ fn change_red_or_systemic_work_becomes_recommendation_only() {
     );
     assert_eq!(
         mutation_policy_for_mode(
+            Mode::Implementation,
+            &policy_set,
+            RiskClass::SystemicImpact,
+            UsageZone::Yellow,
+        ),
+        MutationPolicy::RecommendationOnly
+    );
+    assert_eq!(
+        mutation_policy_for_mode(
+            Mode::Implementation,
+            &policy_set,
+            RiskClass::BoundedImpact,
+            UsageZone::Red,
+        ),
+        MutationPolicy::RecommendationOnly
+    );
+    assert_eq!(
+        mutation_policy_for_mode(
+            Mode::Refactor,
+            &policy_set,
+            RiskClass::SystemicImpact,
+            UsageZone::Yellow,
+        ),
+        MutationPolicy::RecommendationOnly
+    );
+    assert_eq!(
+        mutation_policy_for_mode(
+            Mode::Refactor,
+            &policy_set,
+            RiskClass::BoundedImpact,
+            UsageZone::Red,
+        ),
+        MutationPolicy::RecommendationOnly
+    );
+    assert_eq!(
+        mutation_policy_for_mode(
             Mode::Requirements,
             &policy_set,
             RiskClass::BoundedImpact,

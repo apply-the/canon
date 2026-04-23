@@ -1228,3 +1228,153 @@ where
         toml::to_string_pretty(value).map_err(|error| Error::other(error.to_string()))?;
     write_text_file(&path, &contents)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::TempDir;
+    use time::OffsetDateTime;
+
+    use super::{PersistedRunBundle, WorkspaceStore};
+    use crate::domain::artifact::ArtifactContract;
+    use crate::domain::execution::{ExecutionPosture, MutationBounds, MutationExpansionPolicy};
+    use crate::domain::mode::Mode;
+    use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::run::{
+        ClassificationProvenance, ImplementationExecutionContext, RefactorExecutionContext,
+        RunContext, RunState, UpstreamContext,
+    };
+    use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
+
+    #[test]
+    fn materialized_methods_keep_promoted_execution_artifact_lists() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        store.init_runtime_state(None).expect("init runtime state");
+
+        let implementation = fs::read_to_string(
+            workspace.path().join(".canon").join("methods").join("implementation.toml"),
+        )
+        .expect("implementation method");
+        assert!(implementation.contains("task-mapping.md"));
+        assert!(implementation.contains("validation-hooks.md"));
+        assert!(implementation.contains("rollback-notes.md"));
+        assert!(!implementation.contains("execution-brief.md"));
+        assert!(!implementation.contains("verification-hooks.md"));
+
+        let refactor = fs::read_to_string(
+            workspace.path().join(".canon").join("methods").join("refactor.toml"),
+        )
+        .expect("refactor method");
+        assert!(refactor.contains("preserved-behavior.md"));
+        assert!(refactor.contains("no-feature-addition.md"));
+        assert!(!refactor.contains("equivalence-criteria.md"));
+    }
+
+    #[test]
+    fn persist_and_load_run_context_round_trip_mode_specific_execution_metadata() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        let context = RunContext {
+            repo_root: workspace.path().display().to_string(),
+            owner: Some("staff-engineer".to_string()),
+            inputs: vec!["canon-input/implementation.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: Some(crate::domain::run::SystemContext::Existing),
+            upstream_context: Some(UpstreamContext {
+                feature_slice: Some("auth session revocation".to_string()),
+                primary_upstream_mode: Some("change".to_string()),
+                source_refs: vec![
+                    "docs/changes/R-20260422-AUTHREVOC/change-surface.md".to_string(),
+                ],
+                carried_forward_items: vec![
+                    "Revocation output formatting remains stable.".to_string(),
+                ],
+                excluded_upstream_scope: Some("login UI flow".to_string()),
+            }),
+            implementation_execution: Some(ImplementationExecutionContext {
+                plan_sources: vec!["canon-input/implementation.md".to_string()],
+                mutation_bounds: MutationBounds {
+                    declared_paths: vec!["src/auth".to_string()],
+                    owners: vec!["staff-engineer".to_string()],
+                    source_refs: vec!["canon-input/implementation.md".to_string()],
+                    expansion_policy: MutationExpansionPolicy::DenyWithoutApproval,
+                },
+                task_targets: vec!["auth-storage".to_string()],
+                safety_net: Vec::new(),
+                execution_posture: ExecutionPosture::RecommendationOnly,
+                rollback_expectations: vec!["rollback on auth regression".to_string()],
+                post_approval_execution_consumed: true,
+            }),
+            refactor_execution: Some(RefactorExecutionContext {
+                preserved_behavior: vec!["public API remains stable".to_string()],
+                structural_rationale: Some("untangle service boundaries".to_string()),
+                refactor_scope: MutationBounds {
+                    declared_paths: vec!["src/reviewer".to_string()],
+                    owners: vec!["staff-engineer".to_string()],
+                    source_refs: vec!["canon-input/refactor.md".to_string()],
+                    expansion_policy: MutationExpansionPolicy::DenyWithoutApproval,
+                },
+                safety_net: Vec::new(),
+                no_feature_addition_target: Some("no new CLI surface".to_string()),
+                allowed_exceptions: Vec::new(),
+                execution_posture: ExecutionPosture::RecommendationOnly,
+                post_approval_execution_consumed: true,
+            }),
+            inline_inputs: Vec::new(),
+            captured_at: OffsetDateTime::UNIX_EPOCH,
+        };
+
+        let bundle = PersistedRunBundle {
+            run: RunManifest {
+                run_id: "run-context-roundtrip".to_string(),
+                uuid: None,
+                short_id: None,
+                slug: None,
+                title: None,
+                mode: Mode::Implementation,
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                system_context: Some(crate::domain::run::SystemContext::Existing),
+                classification: ClassificationProvenance::explicit(),
+                owner: "staff-engineer".to_string(),
+                created_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            context: context.clone(),
+            state: RunStateManifest {
+                state: RunState::ContextCaptured,
+                updated_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            artifact_contract: ArtifactContract {
+                version: 1,
+                artifact_requirements: Vec::new(),
+                required_verification_layers: Vec::new(),
+            },
+            artifacts: Vec::new(),
+            links: LinkManifest {
+                artifacts: Vec::new(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: None,
+            },
+            gates: Vec::new(),
+            approvals: Vec::new(),
+            verification_records: Vec::new(),
+            evidence: None,
+            invocations: Vec::new(),
+        };
+
+        store.persist_run_bundle(&bundle).expect("persist run bundle");
+        let loaded = store.load_run_context("run-context-roundtrip").expect("load run context");
+
+        assert_eq!(loaded.implementation_execution, context.implementation_execution);
+        assert_eq!(loaded.refactor_execution, context.refactor_execution);
+        assert_eq!(loaded.upstream_context, context.upstream_context);
+        assert!(loaded.inline_inputs.is_empty());
+    }
+}

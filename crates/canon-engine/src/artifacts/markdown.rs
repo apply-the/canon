@@ -240,7 +240,7 @@ pub fn render_architecture_artifact(
     }
 }
 
-pub fn render_change_artifact(file_name: &str, brief_summary: &str) -> String {
+pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owner: &str) -> String {
     let normalized = brief_summary.to_lowercase();
     let system_slice = extract_marker(brief_summary, &normalized, "system slice")
         .unwrap_or("Map the bounded subsystem before change planning.".to_string());
@@ -265,7 +265,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str) -> String {
             .to_string(),
     );
     let owner = extract_marker(brief_summary, &normalized, "owner")
-        .unwrap_or("bounded-system-maintainer".to_string());
+        .unwrap_or_else(|| owner_default(default_owner));
     let risk_level = extract_marker(brief_summary, &normalized, "risk level")
         .unwrap_or("unspecified-risk".to_string());
     let zone = extract_marker(brief_summary, &normalized, "zone")
@@ -293,7 +293,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str) -> String {
         },
         "change-surface.md" => match change_surface {
             Some(value) => format!(
-                "# Change Surface\n\n## Summary\n\n{summary}\n\n## Change Surface\n\n{value}\n\n## Ownership\n\n- Primary owner: bounded-system-maintainer\n"
+                "# Change Surface\n\n## Summary\n\n{summary}\n\n## Change Surface\n\n{value}\n\n## Ownership\n\n- Primary owner: {owner}\n"
             ),
             None => format!(
                 "# Change Surface\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nName the affected modules, interfaces, and owners before change planning can proceed.\n"
@@ -308,6 +308,197 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str) -> String {
         "decision-record.md" => format!(
             "# Decision Record\n\n## Summary\n\n{summary}\n\n## Decision\n\n{decision_record}\n\n## Consequences\n\n- The preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- Which adjacent slices should stay out of scope until this change stabilizes?\n"
         ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
+pub fn render_implementation_artifact(
+    file_name: &str,
+    brief_summary: &str,
+    default_owner: &str,
+) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let task_mapping = extract_marker(brief_summary, &normalized, "task mapping")
+        .or_else(|| extract_marker(brief_summary, &normalized, "implementation plan"));
+    let bounded_changes = extract_marker(brief_summary, &normalized, "bounded changes")
+        .or_else(|| extract_marker(brief_summary, &normalized, "allowed paths"))
+        .or_else(|| extract_marker(brief_summary, &normalized, "mutation bounds"));
+    let mutation_bounds = extract_marker(brief_summary, &normalized, "mutation bounds");
+    let allowed_paths = extract_marker(brief_summary, &normalized, "allowed paths");
+    let safety_net_evidence = extract_marker(brief_summary, &normalized, "safety-net evidence")
+        .or_else(|| extract_marker(brief_summary, &normalized, "safety net evidence"));
+    let independent_checks = extract_marker(brief_summary, &normalized, "independent checks")
+        .or_else(|| extract_marker(brief_summary, &normalized, "validation strategy"));
+    let rollback_triggers = extract_marker(brief_summary, &normalized, "rollback triggers");
+    let rollback_steps = extract_marker(brief_summary, &normalized, "rollback steps");
+    let validation_evidence = extract_marker(brief_summary, &normalized, "validation evidence")
+        .unwrap_or(
+            "Validation evidence was recorded through the governed validation command.".to_string(),
+        );
+    let mutation_posture = extract_marker(brief_summary, &normalized, "mutation posture")
+        .unwrap_or(
+            "Recommendation-only posture remains active until a later run is explicitly allowed to mutate."
+                .to_string(),
+        );
+    let owner = extract_marker(brief_summary, &normalized, "owner")
+        .unwrap_or_else(|| owner_default(default_owner));
+    let risk_level = extract_marker(brief_summary, &normalized, "risk level")
+        .unwrap_or("unspecified-risk".to_string());
+    let zone = extract_marker(brief_summary, &normalized, "zone")
+        .unwrap_or("unspecified-zone".to_string());
+    let summary = render_implementation_bundle_summary(
+        file_name,
+        task_mapping.as_deref().unwrap_or(
+            "Capture an explicit implementation task map before bounded execution guidance can proceed.",
+        ),
+        mutation_bounds.as_deref().unwrap_or(
+            "Declare bounded mutation scope before implementation guidance can proceed.",
+        ),
+        &owner,
+        &risk_level,
+        &zone,
+    );
+
+    match file_name {
+        "task-mapping.md" => match (task_mapping, bounded_changes) {
+            (Some(mapping), Some(changes)) => format!(
+                "# Task Mapping\n\n## Summary\n\n{summary}\n\n## Task Mapping\n\n{mapping}\n\n## Bounded Changes\n\n{changes}\n"
+            ),
+            _ => format!(
+                "# Task Mapping\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture task mapping and bounded changes before implementation can proceed.\n"
+            ),
+        },
+        "mutation-bounds.md" => match (mutation_bounds, allowed_paths) {
+            (Some(bounds), Some(paths)) => format!(
+                "# Mutation Bounds\n\n## Summary\n\n{summary}\n\n## Mutation Bounds\n\n{bounds}\n\n## Allowed Paths\n\n{paths}\n"
+            ),
+            _ => format!(
+                "# Mutation Bounds\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nDeclare mutation bounds and allowed paths before implementation guidance can proceed.\n"
+            ),
+        },
+        "implementation-notes.md" => format!(
+            "# Implementation Notes\n\n## Summary\n\n{summary}\n\n## Executed Changes\n\n- Execution posture: {}\n- No workspace mutation was executed; this run emitted bounded implementation guidance only.\n\n## Task Linkage\n\n{}\n",
+            compact_summary_line(&mutation_posture),
+            task_mapping.as_deref().unwrap_or(
+                "Link implementation notes back to an explicit task map before mutation is attempted.",
+            )
+        ),
+        "completion-evidence.md" => format!(
+            "# Completion Evidence\n\n## Summary\n\n{summary}\n\n## Completion Evidence\n\n{validation_evidence}\n\n## Remaining Risks\n\n{}\n",
+            compact_summary_line(&mutation_posture)
+        ),
+        "validation-hooks.md" => match (safety_net_evidence, independent_checks) {
+            (Some(evidence), Some(checks)) => format!(
+                "# Validation Hooks\n\n## Summary\n\n{summary}\n\n## Safety-Net Evidence\n\n{evidence}\n\n## Independent Checks\n\n{checks}\n"
+            ),
+            _ => format!(
+                "# Validation Hooks\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture safety-net evidence and independent checks before implementation can proceed.\n"
+            ),
+        },
+        "rollback-notes.md" => match (rollback_triggers, rollback_steps) {
+            (Some(triggers), Some(steps)) => format!(
+                "# Rollback Notes\n\n## Summary\n\n{summary}\n\n## Rollback Triggers\n\n{triggers}\n\n## Rollback Steps\n\n{steps}\n"
+            ),
+            _ => format!(
+                "# Rollback Notes\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture rollback triggers and rollback steps before implementation can proceed.\n"
+            ),
+        },
+        other => render_markdown(other, brief_summary),
+    }
+}
+
+pub fn render_refactor_artifact(
+    file_name: &str,
+    brief_summary: &str,
+    default_owner: &str,
+) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let preserved_behavior = extract_marker(brief_summary, &normalized, "preserved behavior");
+    let approved_exceptions = extract_marker(brief_summary, &normalized, "approved exceptions")
+        .unwrap_or("None.".to_string());
+    let refactor_scope = extract_marker(brief_summary, &normalized, "refactor scope");
+    let allowed_paths = extract_marker(brief_summary, &normalized, "allowed paths");
+    let structural_rationale = extract_marker(brief_summary, &normalized, "structural rationale");
+    let untouched_surface = extract_marker(brief_summary, &normalized, "untouched surface");
+    let safety_net_evidence = extract_marker(brief_summary, &normalized, "safety-net evidence")
+        .or_else(|| extract_marker(brief_summary, &normalized, "safety net evidence"));
+    let regression_findings = extract_marker(brief_summary, &normalized, "regression findings")
+        .unwrap_or(
+            "No regression findings are accepted in the bounded refactor packet.".to_string(),
+        );
+    let contract_drift = extract_marker(brief_summary, &normalized, "contract drift");
+    let reviewer_notes = extract_marker(brief_summary, &normalized, "reviewer notes")
+        .unwrap_or("Reviewer confirmation is required before any drift is accepted.".to_string());
+    let feature_audit = extract_marker(brief_summary, &normalized, "feature audit");
+    let decision = extract_marker(brief_summary, &normalized, "decision");
+    let owner = extract_marker(brief_summary, &normalized, "owner")
+        .unwrap_or_else(|| owner_default(default_owner));
+    let risk_level = extract_marker(brief_summary, &normalized, "risk level")
+        .unwrap_or("unspecified-risk".to_string());
+    let zone = extract_marker(brief_summary, &normalized, "zone")
+        .unwrap_or("unspecified-zone".to_string());
+    let summary = render_refactor_bundle_summary(
+        file_name,
+        preserved_behavior.as_deref().unwrap_or(
+            "Capture the externally meaningful behavior before structural work can proceed.",
+        ),
+        refactor_scope
+            .as_deref()
+            .unwrap_or("Declare the bounded refactor scope before structural work can proceed."),
+        &owner,
+        &risk_level,
+        &zone,
+    );
+
+    match file_name {
+        "preserved-behavior.md" => match preserved_behavior {
+            Some(value) => format!(
+                "# Preserved Behavior\n\n## Summary\n\n{summary}\n\n## Preserved Behavior\n\n{value}\n\n## Approved Exceptions\n\n{approved_exceptions}\n"
+            ),
+            None => format!(
+                "# Preserved Behavior\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture preserved behavior before this refactor can proceed.\n"
+            ),
+        },
+        "refactor-scope.md" => match (refactor_scope, allowed_paths) {
+            (Some(scope), Some(paths)) => format!(
+                "# Refactor Scope\n\n## Summary\n\n{summary}\n\n## Refactor Scope\n\n{scope}\n\n## Allowed Paths\n\n{paths}\n"
+            ),
+            _ => format!(
+                "# Refactor Scope\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nDeclare the bounded refactor scope and allowed paths before this run can proceed.\n"
+            ),
+        },
+        "structural-rationale.md" => match (structural_rationale, untouched_surface) {
+            (Some(rationale), Some(untouched)) => format!(
+                "# Structural Rationale\n\n## Summary\n\n{summary}\n\n## Structural Rationale\n\n{rationale}\n\n## Untouched Surface\n\n{untouched}\n"
+            ),
+            _ => format!(
+                "# Structural Rationale\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture the structural rationale and untouched surface before this refactor can proceed.\n"
+            ),
+        },
+        "regression-evidence.md" => match safety_net_evidence {
+            Some(evidence) => format!(
+                "# Regression Evidence\n\n## Summary\n\n{summary}\n\n## Safety-Net Evidence\n\n{evidence}\n\n## Regression Findings\n\n{regression_findings}\n"
+            ),
+            None => format!(
+                "# Regression Evidence\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture safety-net evidence before this refactor can proceed.\n"
+            ),
+        },
+        "contract-drift-check.md" => match contract_drift {
+            Some(drift) => format!(
+                "# Contract Drift Check\n\n## Summary\n\n{summary}\n\n## Contract Drift\n\n{drift}\n\n## Reviewer Notes\n\n{reviewer_notes}\n"
+            ),
+            None => format!(
+                "# Contract Drift Check\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nRecord the contract drift conclusion before this refactor can proceed.\n"
+            ),
+        },
+        "no-feature-addition.md" => match (feature_audit, decision) {
+            (Some(audit), Some(decision)) => format!(
+                "# No Feature Addition\n\n## Summary\n\n{summary}\n\n## Feature Audit\n\n{audit}\n\n## Decision\n\n{decision}\n"
+            ),
+            _ => format!(
+                "# No Feature Addition\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture the feature audit and decision before this refactor can proceed.\n"
+            ),
+        },
         other => render_markdown(other, brief_summary),
     }
 }
@@ -345,8 +536,79 @@ fn render_change_bundle_summary(
     )
 }
 
+fn render_implementation_bundle_summary(
+    current_file: &str,
+    task_mapping: &str,
+    mutation_bounds: &str,
+    owner: &str,
+    risk_level: &str,
+    zone: &str,
+) -> String {
+    let detail_links = [
+        "task-mapping.md",
+        "mutation-bounds.md",
+        "implementation-notes.md",
+        "completion-evidence.md",
+        "validation-hooks.md",
+        "rollback-notes.md",
+    ]
+    .into_iter()
+    .filter(|file_name| *file_name != current_file)
+    .map(|file_name| format!("[{file_name}]({file_name})"))
+    .collect::<Vec<_>>()
+    .join(", ");
+
+    format!(
+        "- Task scope: {}\n- Mutation bounds: `{}`\n- Owner / risk / zone: `{}` / `{}` / `{}`\n- Details: {}",
+        compact_summary_line(task_mapping),
+        compact_summary_line(mutation_bounds),
+        compact_summary_line(owner),
+        compact_summary_line(risk_level),
+        compact_summary_line(zone),
+        detail_links,
+    )
+}
+
+fn render_refactor_bundle_summary(
+    current_file: &str,
+    preserved_behavior: &str,
+    refactor_scope: &str,
+    owner: &str,
+    risk_level: &str,
+    zone: &str,
+) -> String {
+    let detail_links = [
+        "preserved-behavior.md",
+        "refactor-scope.md",
+        "structural-rationale.md",
+        "regression-evidence.md",
+        "contract-drift-check.md",
+        "no-feature-addition.md",
+    ]
+    .into_iter()
+    .filter(|file_name| *file_name != current_file)
+    .map(|file_name| format!("[{file_name}]({file_name})"))
+    .collect::<Vec<_>>()
+    .join(", ");
+
+    format!(
+        "- Preserved behavior: {}\n- Refactor scope: `{}`\n- Owner / risk / zone: `{}` / `{}` / `{}`\n- Details: {}",
+        compact_summary_line(preserved_behavior),
+        compact_summary_line(refactor_scope),
+        compact_summary_line(owner),
+        compact_summary_line(risk_level),
+        compact_summary_line(zone),
+        detail_links,
+    )
+}
+
 fn compact_summary_line(value: &str) -> String {
     value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn owner_default(default_owner: &str) -> String {
+    let trimmed = default_owner.trim();
+    if trimmed.is_empty() { "bounded-system-maintainer".to_string() } else { trimmed.to_string() }
 }
 
 fn preserve_markdown_block(value: &str) -> String {
@@ -1093,8 +1355,46 @@ fn extract_inline_marker(source: &str, normalized: &str, marker: &str) -> Option
     let marker_with_colon = format!("{marker}:");
     let start = normalized.find(&marker_with_colon)?;
     let remainder = &source[start + marker_with_colon.len()..];
-    let line = remainder.lines().next()?.trim();
-    if line.is_empty() { None } else { Some(line.to_string()) }
+    let mut lines = remainder.lines();
+    let line = lines.next()?.trim();
+    if !line.is_empty() {
+        return Some(line.to_string());
+    }
+
+    let mut section_lines = Vec::new();
+    for next_line in lines {
+        let trimmed = next_line.trim_end();
+        let normalized_line = trimmed.trim();
+
+        if normalized_line.is_empty() {
+            if !section_lines.is_empty() {
+                break;
+            }
+            continue;
+        }
+
+        if looks_like_inline_marker(normalized_line) || normalized_line.starts_with('#') {
+            break;
+        }
+
+        section_lines.push(trimmed);
+    }
+
+    let section = trim_multiline_block(&section_lines.join("\n"));
+    if section.is_empty() { None } else { Some(section) }
+}
+
+fn looks_like_inline_marker(line: &str) -> bool {
+    if line.starts_with(['-', '*', '+']) {
+        return false;
+    }
+
+    let Some((prefix, _)) = line.split_once(':') else {
+        return false;
+    };
+    let prefix = prefix.trim();
+    !prefix.is_empty()
+        && prefix.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, ' ' | '-' | '_'))
 }
 
 fn extract_markdown_section(source: &str, marker: &str) -> Option<String> {
@@ -1262,7 +1562,7 @@ mod tests {
     fn render_change_surface_preserves_markdown_bullets() {
         let source = "# Change Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Change Surface\n- Public API entrypoints\n- Debug logging only\n\n## Owner\nLead Eng\n\n## Risk Level\nlow-impact\n\n## Zone\ngreen\n";
 
-        let rendered = render_change_artifact("change-surface.md", source);
+        let rendered = render_change_artifact("change-surface.md", source, "");
 
         assert!(
             rendered
@@ -1275,7 +1575,7 @@ mod tests {
     fn render_change_validation_strategy_preserves_markdown_bullets() {
         let source = "# Change Brief\n\n## System Slice\nSchema validation\n\n## Intended Change\nAdd debug logging for null arguments.\n\n## Validation Strategy\n- Unit tests\n- Log assertion checks\n";
 
-        let rendered = render_change_artifact("validation-strategy.md", source);
+        let rendered = render_change_artifact("validation-strategy.md", source, "");
 
         assert!(
             rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
@@ -1309,8 +1609,8 @@ mod tests {
     fn render_change_artifact_reports_missing_context_and_default_metadata() {
         let source = "# Change Brief\n\n## System Slice\nSession repository\n\n## Intended Change\nStabilize resumable execution\n";
 
-        let invariants = render_change_artifact("legacy-invariants.md", source);
-        let decision = render_change_artifact("decision-record.md", source);
+        let invariants = render_change_artifact("legacy-invariants.md", source, "");
+        let decision = render_change_artifact("decision-record.md", source, "");
 
         assert!(invariants.contains("## Missing Context\n\nCapture preserved behavior before this run can pass change preservation."));
         assert!(decision.contains(

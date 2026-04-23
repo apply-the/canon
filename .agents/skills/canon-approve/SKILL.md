@@ -74,6 +74,7 @@ Optional:
 ## Next-Step Guidance
 
 - Recommend `$canon-resume` first when Canon accepted the approval and continuation is still required.
+- For execution-gated `implementation` and `refactor`, expect Canon to remain in `AwaitingApproval` with no remaining approval targets until `$canon-resume` consumes the post-approval continuation.
 - Use `$canon-status` only if Canon did not accept the approval or if the workflow no longer needs continuation.
 - If a host renders chips, preserve `DECISION` and `RATIONALE` as explicit approval inputs, resolve `BY` from Git identity when available, and never rename the approval action to `Proceed with generation`.
 
