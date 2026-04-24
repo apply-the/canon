@@ -181,7 +181,7 @@ fn render_mode_result(
         lines.push("Action Chips:".to_string());
         for chip in &mode_result.action_chips {
             let recommended = if chip.recommended { " (recommended)" } else { "" };
-            lines.push(format!("- {} [{}]{}", chip.label, chip.skill, recommended));
+            lines.push(format!("- {}{}", chip.text_fallback, recommended));
         }
     }
 }
@@ -853,6 +853,10 @@ mod tests {
             }],
             approval_targets: Vec::new(),
             artifact_paths: vec![".canon/artifacts/run-123/requirements/problem-statement.md".to_string()],
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
             mode_result: Some(ModeResultSummary {
                 headline: "Requirements packet ready for downstream review.".to_string(),
                 artifact_packet_summary: "Primary artifact is ready.".to_string(),
@@ -907,6 +911,10 @@ mod tests {
             blocked_gates: Vec::new(),
             approval_targets: vec!["invocation:req-1".to_string()],
             artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
             mode_result: None,
             recommended_next_action: Some(RecommendedActionSummary {
                 action: "inspect-evidence".to_string(),

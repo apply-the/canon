@@ -283,3 +283,68 @@ fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
             .exists()
     );
 }
+
+#[test]
+fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
+    let workspace = tempfile::tempdir().expect("tempdir");
+    init_existing_repo(&workspace);
+    fs::create_dir_all(workspace.path().join("canon-input").join("backlog"))
+        .expect("backlog packet dir");
+    fs::write(
+        workspace.path().join("canon-input").join("backlog").join("brief.md"),
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+    )
+    .expect("backlog brief");
+    fs::write(
+        workspace.path().join("canon-input").join("backlog").join("priorities.md"),
+        "# Priorities\n\n- Ship the rollback-safe slice first.\n",
+    )
+    .expect("backlog priorities");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "backlog",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "maintainer",
+            "--input",
+            "canon-input/backlog",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("run json");
+    let run_id = json["run_id"].as_str().expect("run_id");
+    let short = &run_id[run_id.len() - 8..];
+
+    cli_command().current_dir(workspace.path()).args(["publish", "@last"]).assert().success();
+
+    assert!(
+        workspace
+            .path()
+            .join("docs")
+            .join("planning")
+            .join(run_id)
+            .join("backlog-overview.md")
+            .exists()
+    );
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", short, "--output", "json"])
+        .assert()
+        .success()
+        .stdout(predicates::str::contains(format!("\"run\": \"{run_id}\"")));
+}

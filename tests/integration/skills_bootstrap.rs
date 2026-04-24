@@ -307,6 +307,24 @@ fn skills_list_returns_all_embedded_skills() {
     assert!(names.contains(&"canon-verification"), "should list canon-verification");
     assert!(names.contains(&"canon-pr-review"), "should list canon-pr-review");
     assert!(names.contains(&"canon-discovery"), "should list canon-discovery");
+    assert!(names.contains(&"canon-backlog"), "should list canon-backlog");
+}
+
+#[test]
+fn init_with_codex_materializes_backlog_skill_and_available_now_support_state() {
+    let workspace = TempDir::new().expect("temp dir");
+
+    let mut command = cli_command();
+    command.current_dir(workspace.path()).args(["init", "--ai", "codex"]).assert().success();
+
+    let backlog_skill =
+        workspace.path().join(".agents").join("skills").join("canon-backlog").join("SKILL.md");
+    assert!(backlog_skill.exists(), "canon-backlog/SKILL.md should exist in .agents/skills");
+    let contents = std::fs::read_to_string(backlog_skill).expect("read backlog skill");
+    assert!(
+        contents.contains("available-now"),
+        "backlog skill should advertise available-now support"
+    );
 }
 
 #[cfg(unix)]

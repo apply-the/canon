@@ -60,6 +60,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::Discovery,
         Mode::SystemShaping,
         Mode::Change,
+        Mode::Backlog,
         Mode::Architecture,
         Mode::Implementation,
         Mode::Refactor,
@@ -82,6 +83,23 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
 #[test]
 fn promoted_execution_modes_advertise_distinct_artifact_families() {
     let profiles = all_mode_profiles();
+
+    let backlog =
+        profiles.iter().find(|profile| profile.mode == Mode::Backlog).expect("backlog profile");
+    assert_eq!(
+        backlog.artifact_families,
+        vec![
+            "backlog overview",
+            "epic tree",
+            "capability map",
+            "dependency map",
+            "delivery slices",
+            "sequencing plan",
+            "acceptance anchors",
+            "planning risks",
+        ]
+    );
+    assert!(matches!(backlog.implementation_depth, ImplementationDepth::Full));
 
     let implementation = profiles
         .iter()

@@ -28,6 +28,7 @@ pub(crate) fn summarize_mode_result(
         Mode::SystemShaping => summarize_system_shaping_mode_result(artifacts),
         Mode::Architecture => summarize_architecture_mode_result(artifacts),
         Mode::Change => summarize_change_mode_result(artifacts),
+        Mode::Backlog => summarize_backlog_mode_result(artifacts),
         Mode::Implementation => summarize_implementation_mode_result(artifacts),
         Mode::Refactor => summarize_refactor_mode_result(artifacts),
         Mode::Review => summarize_review_mode_result(artifacts),
@@ -76,7 +77,9 @@ pub(crate) fn build_action_chips_for(
             visibility_condition: "state is AwaitingApproval or Completed".to_string(),
             recommended: matches!(state, RunState::AwaitingApproval)
                 && !approval_targets.is_empty(),
-            text_fallback: format!("Use $canon-inspect-evidence for run {run_id}."),
+            text_fallback: format!(
+                "Inspect evidence for run {run_id}: `canon inspect evidence --run {run_id}`."
+            ),
         });
     }
 
@@ -100,7 +103,7 @@ pub(crate) fn build_action_chips_for(
                     "state is AwaitingApproval and Canon issued an approval target".to_string(),
                 recommended: false,
                 text_fallback: format!(
-                    "Review the packet for run {run_id}, then approve using $canon-approve."
+                    "Approve target {target} for run {run_id}: `canon approve --run {run_id} --target {target} --by <BY> --decision <DECISION> --rationale <RATIONALE>`."
                 ),
             });
         }
@@ -120,7 +123,7 @@ pub(crate) fn build_action_chips_for(
                         .to_string(),
                 recommended: true,
                 text_fallback: format!(
-                    "Use $canon-resume for run {run_id} to continue post-approval execution."
+                    "Resume run {run_id} to continue post-approval execution: `canon resume --run {run_id}`."
                 ),
             });
         }
@@ -480,6 +483,73 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
             primary.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&change_surface, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+fn summarize_backlog_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "backlog-overview.md")?;
+    let risks_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "planning-risks.md");
+    let slices_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "delivery-slices.md");
+
+    let delivery_intent = extract_context_section(&primary.contents, "Delivery Intent")
+        .or_else(|| extract_context_section(&primary.contents, "Summary"))
+        .unwrap_or_else(|| "NOT CAPTURED - Delivery intent summary is missing.".to_string());
+    let posture = extract_context_section(&primary.contents, "Decomposition Posture")
+        .unwrap_or_else(|| "NOT CAPTURED - Decomposition posture is missing.".to_string());
+    let planning_horizon = extract_context_section(&primary.contents, "Planning Horizon")
+        .unwrap_or_else(|| "NOT CAPTURED - Planning horizon is missing.".to_string());
+    let closure_findings = risks_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Closure Findings"))
+        .unwrap_or_else(|| "NOT CAPTURED - Closure findings are missing.".to_string());
+    let slice_count = slices_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Delivery Slices"))
+        .map(|section| count_markdown_entries(&section))
+        .unwrap_or(0);
+
+    let full_packet = artifacts.iter().any(|artifact| artifact.record.file_name == "epic-tree.md");
+    let missing_context_markers = count_missing_context_markers([
+        &delivery_intent,
+        &posture,
+        &planning_horizon,
+        &closure_findings,
+    ]);
+
+    let headline = if full_packet && missing_context_markers == 0 {
+        "Backlog packet ready for downstream execution planning.".to_string()
+    } else if full_packet {
+        format!(
+            "Backlog packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    } else {
+        "Backlog packet is closure-limited and surfaces planning risks explicitly.".to_string()
+    };
+    let artifact_packet_summary = if full_packet {
+        format!(
+            "Primary artifact stays planning-level and the packet records {slice_count} delivery slice set(s). Planning horizon: {}.",
+            truncate_context_excerpt(&planning_horizon, 120)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but decomposition stayed risk-only. Closure findings: {}.",
+            truncate_context_excerpt(&closure_findings, 140)
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: None,
+        primary_artifact_title: "Backlog Overview".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&delivery_intent, 320),
         action_chips: Vec::new(),
     })
 }
@@ -1018,7 +1088,7 @@ mod tests {
     }
 
     #[test]
-    fn approve_chip_text_fallback_is_human_readable() {
+    fn approve_chip_text_fallback_includes_runnable_command() {
         let chips = build_action_chips_for(
             RunState::AwaitingApproval,
             &["gate:execution".to_string()],
@@ -1027,8 +1097,8 @@ mod tests {
         );
         let approve = chips.iter().find(|c| c.id == "approve-gate-execution").unwrap();
         assert!(
-            !approve.text_fallback.contains("gate:execution"),
-            "text_fallback should not expose internal gate IDs: {}",
+            approve.text_fallback.contains("canon approve --run run-42 --target gate:execution"),
+            "text_fallback should embed the exact canon approve command: {}",
             approve.text_fallback
         );
         assert!(approve.text_fallback.contains("run-42"));
