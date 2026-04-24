@@ -42,6 +42,7 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
             upstream_context: None,
             implementation_execution: None,
             refactor_execution: None,
+            backlog_planning: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         },

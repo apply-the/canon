@@ -6,7 +6,7 @@ use crate::domain::artifact::ArtifactContract;
 use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
-use crate::domain::run::SystemContext;
+use crate::domain::run::{ClosureAssessment, ClosureDecompositionScope, SystemContext};
 
 pub struct DiscoveryGateContext<'a> {
     pub owner: &'a str,
@@ -31,6 +31,17 @@ pub struct ArchitectureGateContext<'a> {
     pub zone: UsageZone,
     pub approvals: &'a [ApprovalRecord],
     pub evidence_complete: bool,
+}
+
+pub struct BacklogGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub system_context: Option<SystemContext>,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+    pub closure_assessment: &'a ClosureAssessment,
 }
 
 pub struct ChangeGateContext<'a> {
@@ -242,6 +253,56 @@ pub fn evaluate_change_gates(
             artifacts,
             context.validation_independence_satisfied,
             context.evidence_complete,
+        ),
+    ]
+}
+
+pub fn evaluate_backlog_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: BacklogGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    let effective_contract = crate::artifacts::contract::backlog_contract_for_closure(
+        contract,
+        context.closure_assessment,
+    );
+    let exploration_names: &[&str] = if matches!(
+        context.closure_assessment.decomposition_scope,
+        ClosureDecompositionScope::RiskOnlyPacket
+    ) {
+        &["backlog-overview.md"]
+    } else {
+        &["backlog-overview.md", "capability-to-epic-map.md"]
+    };
+
+    vec![
+        named_artifact_gate(
+            GateKind::Exploration,
+            &effective_contract,
+            artifacts,
+            exploration_names,
+            "backlog requires an overview and capability mapping before decomposition can proceed",
+        ),
+        backlog_architecture_gate(
+            &effective_contract,
+            artifacts,
+            context.system_context,
+            context.closure_assessment,
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone backlog work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            &effective_contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "backlog readiness requires persisted context, critique, and repository validation evidence",
         ),
     ]
 }
@@ -679,6 +740,60 @@ fn implementation_execution_gate(owner: &str, approvals: &[ApprovalRecord]) -> G
         approvals,
         "implementation execution mutates the workspace and requires explicit approval before it can proceed",
     )
+}
+
+fn backlog_architecture_gate(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    system_context: Option<SystemContext>,
+    closure_assessment: &ClosureAssessment,
+) -> GateEvaluation {
+    let mut blockers = if matches!(
+        closure_assessment.decomposition_scope,
+        ClosureDecompositionScope::RiskOnlyPacket
+    ) {
+        Vec::new()
+    } else {
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["epic-tree.md", "dependency-map.md", "delivery-slices.md"],
+            "backlog architecture review requires explicit epics, dependencies, and delivery slices",
+        )
+        .blockers
+    };
+
+    if !matches!(system_context, Some(SystemContext::Existing)) {
+        blockers.push(
+            "backlog planning requires `system_context = existing` so decomposition stays attached to an existing system"
+                .to_string(),
+        );
+    }
+
+    if matches!(closure_assessment.status, crate::domain::run::ClosureStatus::Blocked) {
+        blockers.extend(
+                closure_assessment
+                    .findings
+                    .iter()
+                    .filter(|finding| {
+                        matches!(finding.severity, crate::domain::run::ClosureFindingSeverity::Blocking)
+                    })
+                    .map(|finding| {
+                        format!(
+                            "closure finding `{}` on {} requires follow-up before architecture review can pass",
+                            finding.category, finding.affected_scope
+                        )
+                    }),
+            );
+    }
+
+    GateEvaluation {
+        gate: GateKind::Architecture,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
 }
 
 fn refactor_execution_gate(owner: &str, approvals: &[ApprovalRecord]) -> GateEvaluation {

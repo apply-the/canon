@@ -1,5 +1,8 @@
 version = 1
 
+# Backlog mode reuses the existing Exploration, Architecture, Risk, and
+# ReleaseReadiness gates; it does not introduce a new gate kind.
+
 mandatory_gates = [
     "Exploration",
     "ChangePreservation",

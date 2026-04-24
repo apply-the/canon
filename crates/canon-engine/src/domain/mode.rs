@@ -13,6 +13,7 @@ pub enum Mode {
     Discovery,
     SystemShaping,
     Change,
+    Backlog,
     Architecture,
     Implementation,
     Refactor,
@@ -55,6 +56,7 @@ impl Mode {
             Self::Discovery => "discovery",
             Self::SystemShaping => "system-shaping",
             Self::Change => "change",
+            Self::Backlog => "backlog",
             Self::Architecture => "architecture",
             Self::Implementation => "implementation",
             Self::Refactor => "refactor",
@@ -73,6 +75,7 @@ impl Mode {
             Self::SystemShaping,
             Self::Architecture,
             Self::Change,
+            Self::Backlog,
             Self::PrReview,
             Self::Implementation,
             Self::Refactor,
@@ -99,6 +102,7 @@ impl std::str::FromStr for Mode {
             "discovery" => Ok(Self::Discovery),
             "system-shaping" => Ok(Self::SystemShaping),
             "change" => Ok(Self::Change),
+            "backlog" => Ok(Self::Backlog),
             "architecture" => Ok(Self::Architecture),
             "implementation" => Ok(Self::Implementation),
             "refactor" => Ok(Self::Refactor),
@@ -120,8 +124,8 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     };
     use ImplementationDepth::{Full, Skeleton};
     use Mode::{
-        Architecture as ArchitectureMode, Change, Discovery, Implementation, Incident, Migration,
-        PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
+        Architecture as ArchitectureMode, Backlog, Change, Discovery, Implementation, Incident,
+        Migration, PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -206,6 +210,24 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
                 "implementation plan",
                 "validation strategy",
                 "decision record",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
+        },
+        ModeProfile {
+            mode: Backlog,
+            purpose: "Decompose bounded upstream decisions into credible delivery epics, slices, and sequencing.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Exploration, Architecture, Risk, ReleaseReadiness],
+            artifact_families: vec![
+                "backlog overview",
+                "epic tree",
+                "capability map",
+                "dependency map",
+                "delivery slices",
+                "sequencing plan",
+                "acceptance anchors",
+                "planning risks",
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },

@@ -36,6 +36,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "system-shaping",
             "architecture",
             "change",
+            "backlog",
             "pr-review",
             "implementation",
             "refactor",
@@ -54,6 +55,7 @@ fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
 
     let text = String::from_utf8(output).expect("utf8 output");
 
+    assert!(text.contains("backlog"));
     assert!(text.contains("implementation"));
     assert!(text.contains("refactor"));
 }

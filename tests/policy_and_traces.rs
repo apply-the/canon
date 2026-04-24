@@ -181,6 +181,64 @@ fn requirements_run_persists_a_trace_stream_and_links_it_from_the_run() {
 }
 
 #[test]
+fn downgraded_backlog_run_persists_trace_stream_and_risk_only_evidence_refs() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_implementation_repo(&workspace);
+
+    let packet_root = workspace.path().join("canon-input").join("backlog");
+    fs::create_dir_all(&packet_root).expect("packet root");
+    fs::write(
+        packet_root.join("brief.md"),
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n",
+    )
+    .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    service.init(None).expect("init");
+    let summary = service
+        .run(RunRequest {
+            mode: Mode::Backlog,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: Some(canon_engine::domain::run::SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "planner".to_string(),
+            inputs: vec!["canon-input/backlog".to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        })
+        .expect("backlog run");
+
+    assert_eq!(summary.state, "Completed");
+    assert_eq!(summary.artifact_count, 2);
+
+    let trace_path =
+        workspace.path().join(".canon").join("traces").join(format!("{}.jsonl", summary.run_id));
+    assert!(trace_path.exists(), "trace stream should exist");
+
+    let trace_contents = fs::read_to_string(&trace_path).expect("trace contents");
+    assert!(
+        trace_contents.contains("\"capability\":\"EmitArtifact\""),
+        "trace stream should record artifact writes for downgraded backlog runs"
+    );
+
+    let evidence = WorkspaceStore::new(workspace.path())
+        .load_evidence_bundle(&summary.run_id)
+        .expect("evidence bundle load")
+        .expect("evidence bundle");
+    assert_eq!(evidence.artifact_refs.len(), 2);
+    assert!(
+        evidence.artifact_refs.iter().all(
+            |path| path.ends_with("backlog-overview.md") || path.ends_with("planning-risks.md")
+        ),
+        "downgraded backlog evidence should only reference the risk-only packet: {:?}",
+        evidence.artifact_refs
+    );
+}
+
+#[test]
 fn implementation_run_persists_recommendation_only_mutation_traces() {
     let workspace = TempDir::new().expect("temp dir");
     init_implementation_repo(&workspace);

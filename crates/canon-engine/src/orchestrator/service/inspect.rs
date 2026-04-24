@@ -123,6 +123,8 @@ impl EngineService {
                     run_context.as_ref().and_then(|context| context.system_context);
                 let upstream_context =
                     run_context.as_ref().and_then(|context| context.upstream_context.as_ref());
+                let backlog_planning =
+                    run_context.as_ref().and_then(|context| context.backlog_planning.as_ref());
                 let entries = store
                     .load_evidence_bundle(&run_id)?
                     .map(|evidence| {
@@ -143,6 +145,31 @@ impl EngineService {
                                 .unwrap_or_default(),
                             excluded_upstream_scope: upstream_context
                                 .and_then(|context| context.excluded_upstream_scope.clone()),
+                            closure_status: backlog_planning.map(|planning| {
+                                planning.closure_assessment.status.as_str().to_string()
+                            }),
+                            decomposition_scope: backlog_planning.map(|planning| {
+                                planning.closure_assessment.decomposition_scope.as_str().to_string()
+                            }),
+                            closure_findings: backlog_planning
+                                .map(|planning| {
+                                    planning
+                                        .closure_assessment
+                                        .findings
+                                        .iter()
+                                        .map(|finding| ClosureFindingInspectSummary {
+                                            category: finding.category.clone(),
+                                            severity: finding.severity.as_str().to_string(),
+                                            affected_scope: finding.affected_scope.clone(),
+                                            recommended_followup: finding
+                                                .recommended_followup
+                                                .clone(),
+                                        })
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default(),
+                            closure_notes: backlog_planning
+                                .and_then(|planning| planning.closure_assessment.notes.clone()),
                             generation_paths: evidence
                                 .generation_paths
                                 .into_iter()
