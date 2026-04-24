@@ -1,6 +1,7 @@
 use crate::domain::artifact::{ArtifactContract, ArtifactFormat, ArtifactRequirement};
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
+use crate::domain::run::{ClosureAssessment, ClosureDecompositionScope};
 use crate::domain::verification::VerificationLayer;
 
 pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
@@ -139,6 +140,55 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 "decision-record.md",
                 &["Summary", "Decision", "Consequences", "Unresolved Questions"],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Backlog => vec![
+            requirement(
+                "backlog-overview.md",
+                &[
+                    "Summary",
+                    "Scope",
+                    "Planning Horizon",
+                    "Source Inputs",
+                    "Delivery Intent",
+                    "Decomposition Posture",
+                ],
+                &[GateKind::Exploration, GateKind::Risk],
+            ),
+            requirement(
+                "epic-tree.md",
+                &["Summary", "Epic Tree", "Scope Boundaries", "Source Trace Links"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "capability-to-epic-map.md",
+                &["Summary", "Capability Mapping", "Source Trace Links", "Planning Gaps"],
+                &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
+                "dependency-map.md",
+                &["Summary", "Dependencies", "Blocking Edges", "External Dependencies"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "delivery-slices.md",
+                &["Summary", "Delivery Slices", "Slice Boundaries", "Dependency Links"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "sequencing-plan.md",
+                &["Summary", "Sequencing", "Ordering Rationale", "Readiness Signals"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "acceptance-anchors.md",
+                &["Summary", "Acceptance Anchors", "Source Trace Links", "Deferred Detail"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "planning-risks.md",
+                &["Summary", "Closure Findings", "Planning Risks", "Follow-Up Triggers"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
         ],
         Mode::Implementation => vec![
@@ -362,6 +412,21 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         version: 1,
         artifact_requirements: files,
         required_verification_layers: vec![VerificationLayer::SelfCritique],
+    }
+}
+
+pub fn backlog_contract_for_closure(
+    contract: &ArtifactContract,
+    closure_assessment: &ClosureAssessment,
+) -> ArtifactContract {
+    if matches!(closure_assessment.decomposition_scope, ClosureDecompositionScope::RiskOnlyPacket) {
+        let mut filtered = contract.clone();
+        filtered.artifact_requirements.retain(|requirement| {
+            matches!(requirement.file_name.as_str(), "backlog-overview.md" | "planning-risks.md")
+        });
+        filtered
+    } else {
+        contract.clone()
     }
 }
 

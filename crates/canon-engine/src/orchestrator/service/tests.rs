@@ -156,7 +156,10 @@ fn build_action_chips_for_emits_full_frontend_contract_fields() {
     assert_eq!(inspect_chip.id, "inspect-evidence");
     assert_eq!(inspect_chip.intent, "Inspect");
     assert!(inspect_chip.recommended);
-    assert_eq!(inspect_chip.text_fallback, "Use $canon-inspect-evidence for run run-123.");
+    assert_eq!(
+        inspect_chip.text_fallback,
+        "Inspect evidence for run run-123: `canon inspect evidence --run run-123`."
+    );
 
     let approve_chip = &chips[2];
     assert_eq!(approve_chip.id, "approve-gate-execution");
@@ -169,7 +172,7 @@ fn build_action_chips_for_emits_full_frontend_contract_fields() {
     );
     assert_eq!(
         approve_chip.text_fallback,
-        "Review the packet for run run-123, then approve using $canon-approve."
+        "Approve target gate:execution for run run-123: `canon approve --run run-123 --target gate:execution --by <BY> --decision <DECISION> --rationale <RATIONALE>`."
     );
 }
 
@@ -245,7 +248,8 @@ fn engine_service_resolves_relative_and_absolute_input_paths() {
 }
 
 #[test]
-fn canonical_mode_input_binding_is_defined_for_promoted_execution_modes() {
+fn canonical_mode_input_binding_is_defined_for_canonical_bound_modes() {
+    assert_eq!(canonical_mode_input_binding(Mode::Backlog), Some(("backlog.md", "backlog")));
     assert_eq!(
         canonical_mode_input_binding(Mode::Implementation),
         Some(("implementation.md", "implementation"))
@@ -294,6 +298,25 @@ fn auto_bind_canonical_mode_inputs_uses_single_file_when_directory_is_absent() {
     assert_eq!(
         service.auto_bind_canonical_mode_inputs(Mode::Refactor, &[], &[]),
         vec!["canon-input/refactor.md".to_string()]
+    );
+}
+
+#[test]
+fn auto_bind_canonical_mode_inputs_supports_backlog() {
+    let workspace = TempDir::new().expect("temp dir");
+    let canon_input = workspace.path().join("canon-input");
+    std::fs::create_dir_all(&canon_input).expect("canon-input dir");
+    std::fs::write(
+        canon_input.join("backlog.md"),
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded backlog packet.\n",
+    )
+    .expect("backlog file");
+
+    let service = EngineService::new(workspace.path());
+
+    assert_eq!(
+        service.auto_bind_canonical_mode_inputs(Mode::Backlog, &[], &[]),
+        vec!["canon-input/backlog.md".to_string()]
     );
 }
 
@@ -614,7 +637,7 @@ fn build_action_chips_for_emits_resume_when_awaiting_continuation_without_target
     assert_eq!(resume_chip.prefilled_args.get("RUN_ID"), Some(&"run-123".to_string()));
     assert_eq!(
         resume_chip.text_fallback,
-        "Use $canon-resume for run run-123 to continue post-approval execution."
+        "Resume run run-123 to continue post-approval execution: `canon resume --run run-123`."
     );
     assert!(resume_chip.recommended);
 }

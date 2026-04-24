@@ -97,6 +97,7 @@ fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::Discovery => "docs/discovery",
         Mode::SystemShaping => "docs/architecture/shaping",
         Mode::Change => "docs/changes",
+        Mode::Backlog => "docs/planning",
         Mode::Architecture => "docs/architecture/decisions",
         Mode::Implementation => "docs/implementation",
         Mode::Refactor => "docs/refactors",
@@ -140,6 +141,7 @@ mod tests {
     #[test]
     fn default_publish_directory_maps_supported_modes() {
         assert_eq!(default_publish_directory(Mode::Requirements), "specs");
+        assert_eq!(default_publish_directory(Mode::Backlog), "docs/planning");
         assert_eq!(default_publish_directory(Mode::Architecture), "docs/architecture/decisions");
         assert_eq!(default_publish_directory(Mode::PrReview), "docs/reviews/prs");
     }

@@ -4,10 +4,10 @@ This file captures candidate product features that are intentionally beyond the
 current implementation slice.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
-`system-shaping`, `architecture`, `change`, `review`,
-`verification`, and `pr-review`. The next roadmap should prioritize
-completing the remaining modeled modes before widening Canon's surface area
-further.
+`system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
+`refactor`, `review`, `verification`, and `pr-review`. The next roadmap
+should prioritize the remaining modeled modes and selected quality/deployment
+work instead of reopening already delivered mode surfaces.
 
 
 ## Feature: High-Risk Operational Programs
@@ -142,179 +142,405 @@ vocabulary for domain work.
 - It should follow completion of the remaining modeled modes because it
   strengthens existing workflows instead of closing a missing one.
 
-## Feature: Backlog Mode — Delivery Decomposition
+## Delivered Recently
+
+- `backlog` is no longer a roadmap candidate. It now ships as a governed mode
+  that publishes to `docs/planning/<RUN_ID>/` and preserves downstream handoff
+  context through epics, slices, dependencies, sequencing, acceptance anchors,
+  and planning risks.
+- `canon-backlog` skill now requires the assistant to author the real backlog
+  body (Epic Tree, Capability To Epic Map, Dependency Map, Delivery Slices,
+  Sequencing Plan, Acceptance Anchors, Planning Risks) before invoking Canon,
+  and the renderer preserves those authored sections verbatim instead of
+  emitting templated placeholders.
+
+## Feature: Mode Authoring Specialization (Skills As Real AI Authors)
 
 ### Outcome
 
-Canon transforms bounded architecture decisions and system shape into governed
-epics, delivery slices, dependencies, and sequencing without descending into
-false task details or ignoring architecture closure gaps.
+Every governed Canon mode that produces a multi-artifact packet treats the AI
+assistant as the actual author of the per-artifact body, the same way
+`canon-backlog` and SpecKit's `/speckit.tasks` do today. Canon stays the
+governor, validator, and persister; the model stays responsible for producing
+real, source-grounded content for each artifact, not a templated echo of the
+brief.
+
+### Problem We Are Solving
+
+- Today most generative modes ship a *Clarification Loop* and a *Provenance
+  Sidecar*, but they do not enforce a per-artifact authored body shape.
+- When the AI submits a thin brief, the renderer fills artifacts with generic
+  scaffolding ("Establish a bounded foundation", "Deliver visible slices"),
+  which the user correctly perceives as Canon "producing nothing".
+- The fix already shipped for `backlog` is a repeatable pattern: required H2
+  sections per artifact, renderer preserves authored sections verbatim, and an
+  explicit `## Missing Authored Body` marker when the model failed to author
+  the section.
 
 ### Modes In Scope
 
-- `backlog`
+- `requirements`
+- `discovery`
+- `system-shaping`
+- `architecture`
+- `change`
+- `implementation`
+- `refactor`
+- `review`
+- `verification`
+- `pr-review`
+- `incident` (after promotion)
+- `migration` (after promotion)
 
-### Problem This Solves
+### First Slice
 
-Currently, Canon has governance for understanding problems (`discovery`,
-`requirements`), shaping systems (`system-shaping`), making decisions
-(`architecture`), and executing changes (`implementation`, `refactor`). But
-there is no governed mode that bridges from "we have decided what to build" to
-"here is the decomposition into deliverable work".
-
-Today that gap means either:
-
-- Architecture artifacts get handed off informally to task splitting,
-- Backlog planning happens outside Canon with no connection to gated decisions,
-- Or implementation mode runs on unbounded problem spaces instead of bounded
-  slices.
-
-### Input Shape
-
-A backlog brief with explicit source references and delivery intent:
-
-```
-canon-input/backlog/
-  brief.md
-  priorities.md
-  context-links.md
-```
-
-or single file:
-
-```
-canon-input/backlog.md
-```
-
-### Good Input Should Include
-
-- Source artifact references (which `architecture`, `system-shaping`,
-  `requirements`, or `discovery` packets drive this backlog)
-- Delivery horizon and priorities
-- Known constraints (team, time, dependency)
-- Desired granularity (epic only, epic+slice, epic+slice+story-candidate)
-- Out-of-scope items and deferrable parts
-
-### What Canon Emits
-
-Backlog produces a delivery decomposition packet with these artifacts:
-
-- `backlog-overview.md` — scope, horizon, sources, strategy
-- `epic-tree.md` — initiative/epic/sub-epic hierarchy with clear boundaries
-- `capability-to-epic-map.md` — traces from system-shaping/architecture
-  capabilities to backlog structure
-- `dependency-map.md` — explicit cross-epic and external dependencies
-- `delivery-slices.md` — implementable vertical slices per epic, with
-  foundation vs. feature distinction
-- `sequencing-plan.md` — execution order, parallelism, and critical path
-- `acceptance-anchors.md` — how to recognize each epic or slice as complete
-  (not full acceptance criteria, but bounded enough to steer)
-- `planning-risks.md` — gaps where architecture is not yet closed,
-  underestimated dependencies, or epics too large to commit
-
-### Key Constraints
-
-#### Granularity Discipline
-
-Backlog stops at **delivery slices and story candidates**. It does not emit
-fine-grained task lists; that is implementation-mode work. If the backlog
-reaches too far into task minutiae, it discovers false details and loses
-credibility.
-
-#### Architecture Closure Check
-
-If the source architecture is too vague, `backlog` mode gates or downgrades
-the result. It must be able to say:
-
-> "Architecture is not sufficiently closed for credible decomposition."
-
-This is a feature, not a bug.
-
-#### No Blind Task Generation
-
-Backlog does not decompose based on guesses about team capacity, story point
-totals, or mechanical task splitting. Every slice and epic must be anchored in
-either:
-
-- the bounded scope from `architecture` or `system-shaping`,
-- an explicit dependency identified in the decomposition,
-- or a named gap that the backlog calls out as unsettled.
-
-#### Reusable Outside Canon
-
-The emitted artifacts must remain credible and useful when read as a standalone
-planning document. Backlog is not scaffolding for a later mode; it is a
-durable decomposition that implementation and review modes consume.
-
-### Typical Flow
-
-```
-architecture (or system-shaping) → backlog → implementation
-```
-
-In simpler cases:
-
-```
-requirements → system-shaping → backlog
-```
-
-Or direct:
-
-```
-system-shaping → backlog → implementation
-```
-
-### Typical Handoff After This Mode
-
-- publish the approved backlog packet with `canon publish <RUN_ID>` to
-  `docs/planning/<RUN_ID>/`, or use `--to` for a different public destination
-- pass individual slices or epics into `implementation` mode once they are
-  approved and the blocking dependencies are resolved
-- return to `architecture` only if decomposition reveals architecture is too
-  vague or incomplete
-- use the `capability-to-epic-map.md` and `dependency-map.md` to keep later
-  work traceable back to earlier decisions
-
-### Common Mistakes
-
-- using Backlog before architecture or shape is actually bounded
-- descending into task-level granularity instead of staying at slice/story
-  candidate level
-- treating Backlog as a Jira ticket generator instead of a bounded
-  decomposition artifact
-- ignoring architecture closure gaps and pretending decomposition is credible
-  anyway
-- generating false priorities without explicit source input
-- omitting dependency tracking and sequencing
+- Define a shared `Author <Mode> Body Before Invoking Canon` skill section that
+  enumerates the required H2 sections for each emitted artifact in that mode,
+  mirroring the new `canon-backlog` skill section.
+- Update each per-mode renderer in `crates/canon-engine/src/artifacts/markdown.rs`
+  to extract the authored H2 sections via `extract_marker` and render them
+  verbatim, falling back to a placeholder + explicit `## Missing Authored Body`
+  marker only when the section is absent.
+- Pass the raw authored `context_summary` through to the evidence-backed
+  summary in each `mode_*` orchestrator file so the renderer actually sees the
+  authored body.
+- Keep the existing critique-first posture and Provenance Sidecar.
 
 ### Why This Feature
 
-- It completes the pipeline from problem understanding through approved
-  decisions to deliverable decomposition.
-- It prevents architecture artifacts from being handed off informally or
-  getting lost in untracked task splitting.
-- It maintains traceability and governance over how decisions become work.
-- It lets later modes (`implementation`, `review`) stay focused on execution or
-  verification instead of also trying to decompose.
+- It generalizes the only fix that turned `backlog` from a placeholder
+  generator into a real backlog producer.
+- It keeps Canon honest: when the AI did not do the work, the artifact says so
+  out loud instead of pretending.
+- It is strictly additive to the current orchestrator and skill structure; no
+  domain model changes required.
 
-### Why After Remaining Modes Completion
+## Feature: Industry-Standard Artifact Shapes
 
-- `backlog` depends on closure of architecture or system-shaping decisions, so
-  it makes sense as a follow-on.
-- Prioritizing remaining modeled modes (`incident`, `migration`) is higher
-  priority than adding new planning modes, since backlog works well with
-  existing infrastructure and only requires a new skill and mode implementation.
-- This feature enables better execution flow for the later implemented modes
-  without blocking their completion.
+### Outcome
 
-### Possible Names
+When a Canon mode has a well-known industry artifact shape, the skill guides
+the AI to author the body in that shape, and the renderer recognizes and
+preserves it. Users can trust that `architecture` produces a real C4-style
+packet, `requirements` produces a real PRD, `change` produces a real ADR,
+`pr-review` produces real Conventional Comments, and so on.
 
-- `backlog` (team-familiar, tool-obvious)
-- `delivery-planning` (more methodological)
-- `decomposition` (more technical)
-- `roadmapping` (less actionable but less Jira-flavored)
+### Problem We Are Solving
 
-Recommendation: stick with `backlog` for clarity.
+- The AI authoring skills today are domain-neutral and underspecify artifact
+  shape, so output drifts toward Canon-internal headings instead of the shapes
+  reviewers and engineers already read elsewhere.
+- The `Stronger Review And Architecture Outputs` feature already calls out C4
+  for `architecture` and Conventional Comments for `pr-review`. This feature
+  generalizes that direction and binds it into the authoring contract.
+
+### Mode To Shape Mapping (First Slice)
+
+- `requirements` → PRD shape (Problem, Outcomes, Users, Use Cases, Constraints,
+  Success Metrics, Open Questions, Out of Scope) and a Lean Canvas seed
+  artifact when the input is product-shaped rather than engineering-shaped.
+- `discovery` → Opportunity Solution Tree seed (Outcome, Opportunities,
+  Solutions, Assumption Tests) and a Jobs-To-Be-Done framing when the input
+  surface supports it.
+- `system-shaping` → Domain map seed (bounded contexts, ubiquitous language,
+  core vs supporting subdomains) aligned with the upcoming
+  `Domain Modeling And Boundary Design` feature.
+- `architecture` → C4 model (System Context, Container, Component) plus an ADR
+  per architecturally significant decision, alongside the existing critique
+  artifacts.
+- `change` → ADR-shaped decision record (Context, Decision, Status,
+  Consequences) attached to the change surface.
+- `implementation` → Task mapping plus a contract test plan shape and an
+  Implementation Notes shape that links each task to the bounded slice it
+  implements.
+- `refactor` → Preserved Behavior matrix in invariant-vs-mechanism form, plus
+  a structural-rationale ADR.
+- `review` → Findings shape compatible with reviewer workflows (Severity,
+  Location, Rationale, Recommended Change).
+- `pr-review` → Conventional Comments shape (`praise`, `nitpick`, `suggestion`,
+  `issue`, `todo`, `question`, `thought`, `chore`) per finding.
+- `verification` → Claims/Evidence/Independence matrix.
+
+### First Slice
+
+- Pick three high-leverage modes for the initial pass: `architecture` (C4 +
+  ADR), `requirements` (PRD), and `pr-review` (Conventional Comments).
+- For each, extend the skill with the required H2 sections in the chosen
+  industry shape, extend the renderer to recognize and preserve those
+  sections, and add per-shape unit tests.
+- Defer the remaining modes to a second slice once the first three prove the
+  authoring + renderer contract.
+
+### Why This Feature
+
+- It makes Canon outputs directly readable in the workflows users already have
+  (Backstage docs, ADR repos, PR review tooling).
+- It reduces the chance that the AI invents idiosyncratic structure per run.
+- It strengthens the existing modes instead of widening Canon into new runtime
+  domains.
+
+### Relationship To Existing Features
+
+- Subsumes the `architecture` C4 work in
+  `Stronger Review And Architecture Outputs` and the `pr-review` Conventional
+  Comments work in the same feature.
+- Composes with `Domain Modeling And Boundary Design` for `system-shaping`.
+
+## Feature: Cybersecurity Risk Assessment Mode
+
+### Outcome
+
+Canon governs an explicit security-risk-assessment workflow that produces a
+real, reviewable threat model and risk register grounded in the source the AI
+actually read, instead of leaving security as an implicit concern of other
+modes.
+
+### Mode
+
+- New mode: `security-assessment` (working name; final name to be decided
+  during the planning run).
+
+### Why A Dedicated Mode
+
+- Security risk assessment is a recognized engineering workflow with its own
+  artifact shapes (threat model, risk register, mitigation plan) and its own
+  reviewers.
+- Folding it into `architecture` or `change` hides it and produces weaker
+  output than a dedicated mode with a critique-first posture aimed
+  specifically at threats and mitigations.
+- It composes with the rest of Canon: `architecture` defines the surface,
+  `security-assessment` interrogates that surface for threats, `change` and
+  `implementation` carry the mitigations into bounded execution.
+
+### First Slice Artifact Contract
+
+- `assessment-overview.md` — bounded scope, in-scope assets, trust boundaries,
+  data classifications, and out-of-scope assets.
+- `threat-model.md` — STRIDE-shaped threats per trust boundary or asset, with
+  attacker-goal framing.
+- `risk-register.md` — likelihood × impact rated risks with owner, status, and
+  source trace links.
+- `mitigations.md` — proposed controls, mapped to risk-register entries, with
+  preserved-vs-changed-behavior framing.
+- `assumptions-and-gaps.md` — explicit unverified assumptions, missing telemetry,
+  and unobservable surfaces.
+- `compliance-anchors.md` — references to applicable standards (OWASP ASVS,
+  CIS, ISO 27001 control families, GDPR articles when in scope) without
+  pretending Canon performs a compliance audit.
+- `assessment-evidence.md` — independent verification notes, separate from the
+  generation lineage.
+
+### Required Authored H2 Sections
+
+The assistant must author the body before invoking Canon, mirroring the
+backlog pattern: scope, asset inventory, trust boundaries, STRIDE-per-boundary,
+risk register, mitigation plan, assumptions, and compliance anchors. Generic
+boilerplate fails the run.
+
+### Required Inputs
+
+- `RISK`
+- `ZONE`
+- at least one of: an architecture run id, an authored architecture packet, or
+  a real source surface (code paths, infra-as-code, threat-relevant configs).
+
+### Why This Feature
+
+- Closes a real gap: today `architecture` and `change` mention security as a
+  constraint but do not produce a reviewable security artifact.
+- Gives downstream `pr-review`, `verification`, and `incident` a concrete
+  upstream to reference.
+- Stays within Canon's recommendation-only posture for v0.x; mitigations are
+  proposed, not auto-applied.
+
+### Why This Order
+
+- It depends on the *Mode Authoring Specialization* and *Industry-Standard
+  Artifact Shapes* features so it can be authored as a real STRIDE/risk
+  packet from day one rather than as a placeholder mode.
+
+## Feature: Supply Chain And Legacy Analysis Mode
+
+### Outcome
+
+Canon governs a bounded analysis of an existing codebase's supply chain and
+legacy posture, producing a reviewable packet with the SBOM, known-vulnerability
+triage, license-compliance posture, and a legacy-modernization snapshot.
+Canon does not reimplement scanners; it orchestrates established tools as
+governed adapters and turns their raw output into a critique-first artifact
+set.
+
+### Mode
+
+- New mode: `supply-chain-analysis` (working name; final name to be decided
+  during the planning run).
+
+### Why A Dedicated Mode
+
+- SBOM, CVE triage, license compatibility, and legacy-modernization framing
+  are all reads against an existing system, not changes to it. They fit
+  Canon's analysis posture, not its execution posture.
+- Today no Canon mode produces a defensible answer to "is it safe and legal to
+  ship this dependency surface, and what does the legacy debt look like?"
+- Folding this into `architecture`, `change`, or `security-assessment` hides
+  the supply-chain dimension and dilutes each mode's purpose.
+
+### Tool Composition (Recommendation, Not Reimplementation)
+
+- SBOM generation: Syft (or equivalent) per ecosystem.
+- Vulnerability triage: OSV-Scanner, Grype, GitHub Advisory Database lookups,
+  and ecosystem-native sources such as `cargo audit`, `npm audit`, `pip-audit`,
+  `govulncheck`.
+- License analysis: ScanCode Toolkit, `cargo deny`, `license-checker`, or
+  ecosystem-native equivalents, with explicit policy for commercial vs OSS
+  compatibility.
+- Legacy posture: ecosystem-native version, EOL, and abandonment signals
+  (e.g. `cargo outdated`, `npm outdated`, `pip list --outdated`,
+  endoflife.date references).
+
+Each tool runs as a governed adapter invocation through the existing
+request/decision/evidence pipeline. Canon never invents scanner output and
+never claims a vulnerability without a tool-backed source.
+
+### Pre-Run Clarification Loop
+
+Before invoking any scanner, the assistant MUST run a short clarification
+loop with the user when required information is not present in the authored
+brief. Defaults are never silently assumed for choices that change the
+license-compatibility verdict or the toolchain that gets executed.
+
+Required clarifications, asked in this order, only when the brief does not
+already answer them:
+
+1. **Project licensing posture.** Ask whether the project is `commercial`
+   (proprietary, distributed under a non-OSI license), `oss-permissive`
+   (MIT/Apache/BSD class), `oss-copyleft` (GPL/AGPL/MPL class), or `mixed`.
+   This drives `license-compliance.md`. There is no default.
+2. **Distribution model.** Ask whether dependencies will be distributed
+   (binary shipped, container image published, library released) or only
+   used internally. Copyleft obligations and SBOM expectations differ.
+3. **Ecosystem confirmation.** Show the ecosystems Canon detected from
+   manifests and ask the user to confirm or remove any that are
+   intentionally out of scope.
+4. **Out-of-scope components.** Ask for vendored, third-party, or generated
+   directories that should be excluded from the scan surface.
+5. **Tool licensing preference.** Ask whether the user authorizes Canon to
+   propose installation of scanners that are not OSI-approved open source
+   (for example, source-available, free-tier-only, or commercial scanners).
+   The default is `oss-only`. Canon never proposes a non-OSS scanner unless
+   the user opts in here, and even then only as an alternative alongside an
+   OSS option.
+
+The clarification loop must batch these questions (3 to 5 per round, never
+more than 7), accept inline answers, and write the user's responses into
+the run's provenance sidecar so the policy decisions per finding can be
+traced back to a real authored choice rather than to an inferred default.
+
+If the user refuses to answer a question that materially changes the verdict
+(licensing posture, tool licensing preference), the run stops with an
+explicit `## Missing Authored Decision` marker. Canon does not guess.
+
+### Toolchain Detection And Install Prompting
+
+Canon must detect which scanners are needed for the ecosystems present in the
+repository, check whether each one is on `PATH`, and prompt the user for an
+explicit installation decision when a required scanner is missing. The
+assistant never installs anything silently and never bypasses the missing
+tool by inventing the scan result.
+
+- Ecosystem detection is driven by the manifests present in the source
+  surface (`Cargo.toml`, `package.json` / `pnpm-lock.yaml` / `yarn.lock`,
+  `pyproject.toml` / `requirements.txt` / `poetry.lock`, `go.mod`, `pom.xml`
+  / `build.gradle`, `Gemfile`, `composer.json`, `*.csproj`, `pubspec.yaml`,
+  etc.). Each detected ecosystem maps to a required scanner set.
+- For each missing scanner, Canon emits a structured prompt that includes:
+  the scanner name, the ecosystem it serves, why it is needed, the supported
+  install commands per platform (Homebrew, `winget`, `apt`, language-native
+  installers), the upstream project URL, and the SPDX license identifier.
+- Canon proposes installation **only for OSI-approved open source tools** by
+  default. Closed-source, source-available, or commercially-licensed scanners
+  are never auto-suggested by Canon. The user can opt in to non-OSS scanner
+  proposals through the *Pre-Run Clarification Loop*; even then, Canon must
+  also surface an OSS alternative whenever one exists, and must record the
+  user's authorization in the provenance sidecar.
+- The user's install decision is recorded as a Canon decision artifact with
+  three possible outcomes: `installed` (with the install command actually
+  run), `skipped` (with rationale, and the affected scanner output marked as
+  `unavailable` in the packet), or `replaced` (the user pointed Canon at an
+  alternative OSS scanner that covers the same capability).
+- When a scanner is skipped, the corresponding sections of
+  `vulnerability-triage.md`, `license-compliance.md`, or `legacy-posture.md`
+  must carry an explicit `## Coverage Gap` marker naming the missing scanner
+  and the ecosystem left uncovered, so downstream readers see the gap
+  instead of assuming the surface was scanned.
+- Installation itself stays a user action. Canon shows the command,
+  Canon does not execute the install. This preserves the recommendation-only
+  posture and avoids privileged side effects in a governed run.
+
+### First Slice Artifact Contract
+
+- `analysis-overview.md` — bounded scope (which ecosystems, which manifests,
+  which paths), commercial vs OSS posture declaration, and out-of-scope
+  components.
+- `sbom-bundle.md` — human-readable index pointing at machine SBOMs
+  (CycloneDX or SPDX) emitted alongside the packet.
+- `vulnerability-triage.md` — known vulnerabilities grouped by severity, with
+  exploitability framing, affected component, fixed version, and triage
+  decision (`accept`, `mitigate`, `defer with rationale`).
+- `license-compliance.md` — license inventory grouped by compatibility class,
+  flagged incompatibilities for the declared posture (commercial vs OSS),
+  and license obligations the project must honor.
+- `legacy-posture.md` — outdated, EOL, and abandoned dependencies with
+  modernization recommendations bounded to slice level (no task breakdown).
+- `policy-decisions.md` — explicit accept/reject decisions per finding, tied
+  to the source manifest line and to a decision rationale.
+- `analysis-evidence.md` — independent verification notes, tool versions,
+  scan timestamps, and source manifests, separate from the generation
+  lineage.
+
+### Required Authored H2 Sections
+
+The assistant must author the body before invoking Canon, mirroring the
+backlog and security patterns: declared scope, commercial-vs-OSS posture,
+ecosystems in scope, scanner selection rationale, triage decisions per
+finding, modernization slices. Generic boilerplate fails the run.
+
+### Required Inputs
+
+- `RISK`
+- `ZONE`
+- a real source surface (manifest paths such as `Cargo.toml`, `package.json`,
+  `pyproject.toml`, `go.mod`, `pom.xml`, or a repository root containing
+  them).
+- explicit declaration of commercial vs OSS posture so license compliance is
+  evaluated against the right policy class.
+
+### Why This Feature
+
+- Closes a real gap: today Canon has no defensible answer for SBOM,
+  vulnerability, or license posture.
+- Makes Canon useful for commercial teams that must justify dependency
+  choices and modernization roadmaps to stakeholders or auditors.
+- Stays within Canon's recommendation-only posture: scans are evidence,
+  triage decisions are authored, no automatic dependency rewrites.
+
+### Relationship To Other Features
+
+- Composes with `Cybersecurity Risk Assessment Mode`: supply-chain findings
+  feed the threat model and risk register; the security mode does not
+  duplicate scanner orchestration.
+- Composes with `Refactor` and the future `Migration` mode: legacy posture
+  produces the bounded slices those modes can pick up.
+- Depends on the *Governed Execution Adapters* primitives already shipped, so
+  scanner adapters slot into the existing capability and decision pipeline.
+
+### Why This Order
+
+- It depends on *Mode Authoring Specialization* so the packet has authored
+  triage decisions instead of raw scanner dumps.
+- It depends on *Industry-Standard Artifact Shapes* so SBOM, vulnerability,
+  and license outputs use CycloneDX/SPDX, CVSS, and SPDX license identifiers
+  rather than Canon-internal vocabulary.
 
 ## Feature: Distribution Channels Beyond GitHub Releases
 

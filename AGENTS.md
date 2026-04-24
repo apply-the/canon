@@ -35,10 +35,12 @@ Auto-generated from all feature plans. Last updated: 2026-04-23
 
 ## Active Modes and Risk Profile
 
-- Full v0.1 depth: `requirements`, `change`, `pr-review`
-- First-class modeled modes: `discovery`, `system-shaping`, `architecture`,
-  `implementation`, `refactor`, `verification`, `review`, `incident`,
-  `migration`
+- Full v0.1 depth: `requirements`, `discovery`, `system-shaping`,
+  `architecture`, `backlog`, `change`, `implementation`, `refactor`,
+  `verification`, `review`, `pr-review`
+- First-class modeled modes: `discovery`, `requirements`, `system-shaping`,
+  `architecture`, `backlog`, `change`, `implementation`, `refactor`,
+  `verification`, `review`, `pr-review`, `incident`, `migration`
 - Current planning feature risk: `Systemic Impact`
 
 ## Project Structure
@@ -57,6 +59,10 @@ tests/
   fixtures/
   snapshots/
 ```
+
+## Specs rules
+Crate versioning follows Semantic Versioning.
+Before 1.0.0, breaking changes MAY occur in minor versions.
 
 ## Commands
 
@@ -78,9 +84,9 @@ tests/
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 012-backlog-mode: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 010-controlled-execution-modes: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 009-run-id-display: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`,
-- 008-mode-context-split: Added Rust 1.95.0 + existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->
@@ -90,6 +96,7 @@ tests/
   Copilot environments that load `.agents/skills/`.
 - Available-now Codex skills: `canon-init`, `canon-discovery`,
   `canon-requirements`, `canon-system-shaping`, `canon-architecture`,
+  `canon-backlog`,
   `canon-status`, `canon-inspect-invocations`, `canon-inspect-evidence`,
   `canon-inspect-artifacts`, `canon-inspect-clarity`, `canon-approve`, `canon-resume`,
   `canon-change`, `canon-pr-review`.

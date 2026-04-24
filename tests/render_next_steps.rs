@@ -171,3 +171,33 @@ fn completed_renderers_do_not_force_evidence_follow_up() {
         assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
     }
 }
+
+#[test]
+fn completed_renderers_handle_backlog_primary_artifacts_for_handoff() {
+    let expected = concat!(
+        "Recommended Next Step:\n",
+        "- None. The run result is already readable for run run-backlog.\n",
+        "\n",
+        "Possible Actions:\n",
+        "- Open the primary artifact at .canon/artifacts/run-backlog/backlog/backlog-overview.md directly when your host supports it.\n",
+        "- Use $canon-inspect-artifacts for the full emitted packet on run run-backlog.\n",
+        "- Use $canon-inspect-evidence only if you need lineage or policy rationale for run run-backlog.\n"
+    );
+
+    let shell_output = run_shell(
+        "status-completed",
+        "run-backlog",
+        "",
+        ".canon/artifacts/run-backlog/backlog/backlog-overview.md",
+    );
+    assert_eq!(shell_output, expected);
+
+    if let Some(powershell_output) = run_powershell(
+        "status-completed",
+        "run-backlog",
+        "",
+        ".canon/artifacts/run-backlog/backlog/backlog-overview.md",
+    ) {
+        assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
+    }
+}

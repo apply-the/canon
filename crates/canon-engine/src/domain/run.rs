@@ -124,6 +124,8 @@ pub struct RunContext {
     pub implementation_execution: Option<ImplementationExecutionContext>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub refactor_execution: Option<RefactorExecutionContext>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backlog_planning: Option<BacklogPlanningContext>,
     #[serde(default, skip)]
     pub inline_inputs: Vec<InlineInput>,
     pub captured_at: OffsetDateTime,
@@ -174,6 +176,130 @@ pub struct RefactorExecutionContext {
     pub execution_posture: ExecutionPosture,
     #[serde(default, skip_serializing_if = "is_false")]
     pub post_approval_execution_consumed: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BacklogGranularity {
+    EpicOnly,
+    EpicPlusSlice,
+    EpicPlusSlicePlusStoryCandidate,
+}
+
+impl BacklogGranularity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::EpicOnly => "epic-only",
+            Self::EpicPlusSlice => "epic-plus-slice",
+            Self::EpicPlusSlicePlusStoryCandidate => "epic-plus-slice-plus-story-candidate",
+        }
+    }
+
+    pub fn from_label(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "epic-only" => Some(Self::EpicOnly),
+            "epic-plus-slice" => Some(Self::EpicPlusSlice),
+            "epic-plus-slice-plus-story-candidate" => Some(Self::EpicPlusSlicePlusStoryCandidate),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClosureStatus {
+    Sufficient,
+    Downgraded,
+    Blocked,
+}
+
+impl ClosureStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Sufficient => "sufficient",
+            Self::Downgraded => "downgraded",
+            Self::Blocked => "blocked",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClosureDecompositionScope {
+    FullPacket,
+    RiskOnlyPacket,
+}
+
+impl ClosureDecompositionScope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::FullPacket => "full-packet",
+            Self::RiskOnlyPacket => "risk-only-packet",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClosureFindingSeverity {
+    Warning,
+    Blocking,
+}
+
+impl ClosureFindingSeverity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Warning => "warning",
+            Self::Blocking => "blocking",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClosureFinding {
+    pub category: String,
+    pub severity: ClosureFindingSeverity,
+    pub affected_scope: String,
+    pub recommended_followup: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClosureAssessment {
+    pub status: ClosureStatus,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub findings: Vec<ClosureFinding>,
+    pub decomposition_scope: ClosureDecompositionScope,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+}
+
+impl ClosureAssessment {
+    pub fn sufficient() -> Self {
+        Self {
+            status: ClosureStatus::Sufficient,
+            findings: Vec::new(),
+            decomposition_scope: ClosureDecompositionScope::FullPacket,
+            notes: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BacklogPlanningContext {
+    pub mode: String,
+    pub delivery_intent: String,
+    pub desired_granularity: BacklogGranularity,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub planning_horizon: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub source_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub priority_inputs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub constraints: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub out_of_scope: Vec<String>,
+    pub closure_assessment: ClosureAssessment,
 }
 
 fn is_false(value: &bool) -> bool {
@@ -313,7 +439,9 @@ mod tests {
     use time::OffsetDateTime;
 
     use super::{
-        ImplementationExecutionContext, RefactorExecutionContext, RunContext, UpstreamContext,
+        BacklogGranularity, BacklogPlanningContext, ClosureAssessment, ClosureDecompositionScope,
+        ClosureFinding, ClosureFindingSeverity, ClosureStatus, ImplementationExecutionContext,
+        RefactorExecutionContext, RunContext, UpstreamContext,
     };
     use crate::domain::execution::{
         ExecutionPosture, MutationBounds, MutationExpansionPolicy, SafetyNetEvidence,
@@ -340,6 +468,7 @@ mod tests {
             upstream_context: None,
             implementation_execution: None,
             refactor_execution: None,
+            backlog_planning: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         })
@@ -347,6 +476,7 @@ mod tests {
 
         assert!(!context_toml.contains("implementation_execution"));
         assert!(!context_toml.contains("refactor_execution"));
+        assert!(!context_toml.contains("backlog_planning"));
 
         let context: RunContext = toml::from_str(&context_toml).expect("context toml");
 
@@ -354,6 +484,7 @@ mod tests {
         assert!(context.upstream_context.is_none());
         assert!(context.implementation_execution.is_none());
         assert!(context.refactor_execution.is_none());
+        assert!(context.backlog_planning.is_none());
     }
 
     #[test]
@@ -418,6 +549,27 @@ mod tests {
                 execution_posture: ExecutionPosture::RecommendationOnly,
                 post_approval_execution_consumed: false,
             }),
+            backlog_planning: Some(BacklogPlanningContext {
+                mode: "backlog".to_string(),
+                delivery_intent: "Prepare a bounded roadmap for auth-session hardening.".to_string(),
+                desired_granularity: BacklogGranularity::EpicPlusSlice,
+                planning_horizon: Some("next two releases".to_string()),
+                source_refs: vec!["docs/changes/R-20260422-AUTHREVOC/implementation-plan.md".to_string()],
+                priority_inputs: vec!["Reduce auth-session rollback risk first.".to_string()],
+                constraints: vec!["Keep the packet above task-level planning.".to_string()],
+                out_of_scope: vec!["Login UI redesign".to_string()],
+                closure_assessment: ClosureAssessment {
+                    status: ClosureStatus::Downgraded,
+                    findings: vec![ClosureFinding {
+                        category: "missing-exclusion".to_string(),
+                        severity: ClosureFindingSeverity::Warning,
+                        affected_scope: "whole-run".to_string(),
+                        recommended_followup: "Strengthen the explicit exclusions before downstream implementation planning.".to_string(),
+                    }],
+                    decomposition_scope: ClosureDecompositionScope::RiskOnlyPacket,
+                    notes: Some("The backlog packet stayed closure-limited in this sample.".to_string()),
+                },
+            }),
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         };
@@ -431,5 +583,7 @@ mod tests {
         assert!(serialized.contains("primary_upstream_mode = \"change\""));
         assert!(serialized.contains("[refactor_execution]"));
         assert!(serialized.contains("[refactor_execution.refactor_scope]"));
+        assert!(serialized.contains("[backlog_planning]"));
+        assert!(serialized.contains("desired_granularity = \"epic-plus-slice\""));
     }
 }

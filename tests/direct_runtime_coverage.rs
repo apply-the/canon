@@ -29,6 +29,7 @@ fn request(
         zone,
         system_context: match mode {
             Mode::Change
+            | Mode::Backlog
             | Mode::SystemShaping
             | Mode::Architecture
             | Mode::Implementation
@@ -92,6 +93,10 @@ fn complete_refactor_brief() -> &'static str {
     "# Refactor Brief\n\nPreserved Behavior: session revocation formatting and audit ordering remain externally unchanged.\nApproved Exceptions: none.\nRefactor Scope: auth session boundary and repository composition only.\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nStructural Rationale: isolate persistence concerns without changing externally meaningful behavior.\nUntouched Surface: public auth API, tests/session.md, and deployment wiring stay unchanged.\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before structural cleanup.\nRegression Findings: no regression findings are accepted in the bounded packet.\nContract Drift: no public contract drift is allowed.\nReviewer Notes: review packet confirms behavior preservation remains explicit.\nFeature Audit: no new feature behavior is introduced in this refactor packet.\nDecision: preserve behavior and stop if the surface expands.\n"
 }
 
+fn complete_backlog_brief() -> &'static str {
+    "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n- Keep dependency blockers explicit.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n"
+}
+
 fn init_review_repo(workspace: &TempDir) {
     git(workspace, &["init", "-b", "main"]);
     git(workspace, &["config", "user.name", "Canon Test"]);
@@ -139,6 +144,33 @@ fn artifact_names(entries: &[InspectEntry]) -> Vec<String> {
             other => panic!("expected name entry, got {other:?}"),
         })
         .collect()
+}
+
+fn find_run_context_toml(workspace: &TempDir, run_id: &str) -> std::path::PathBuf {
+    let runs_root = workspace.path().join(".canon").join("runs");
+    for year_entry in fs::read_dir(&runs_root).expect("runs root") {
+        let year_entry = year_entry.expect("year entry");
+        if !year_entry.path().is_dir() {
+            continue;
+        }
+        for month_entry in fs::read_dir(year_entry.path()).expect("month dir") {
+            let month_entry = month_entry.expect("month entry");
+            if !month_entry.path().is_dir() {
+                continue;
+            }
+            for run_entry in fs::read_dir(month_entry.path()).expect("run dir") {
+                let run_entry = run_entry.expect("run entry");
+                let name = run_entry.file_name();
+                let Some(name) = name.to_str() else {
+                    continue;
+                };
+                if name == run_id || name.starts_with(&format!("{run_id}--")) {
+                    return run_entry.path().join("context.toml");
+                }
+            }
+        }
+    }
+    panic!("context.toml not found for run {run_id}");
 }
 
 #[test]
@@ -428,6 +460,72 @@ fn change_direct_run_records_validation_paths_and_runtime_details() {
 }
 
 #[test]
+fn backlog_direct_run_emits_full_packet_and_persists_planning_context() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("backlog.md"), complete_backlog_brief()).expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Backlog,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "planner",
+            vec!["backlog.md"],
+        ))
+        .expect("backlog run");
+
+    assert_eq!(summary.state, "Completed");
+    assert_eq!(summary.invocations_total, 4);
+    assert_eq!(summary.artifact_count, 8);
+    assert!(summary.approval_targets.is_empty());
+    assert!(
+        summary.mode_result.as_ref().is_some_and(|result| {
+            result.primary_artifact_path.ends_with("backlog-overview.md")
+        })
+    );
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("backlog-overview.md")));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("planning-risks.md")));
+
+    let artifacts = service
+        .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
+        .expect("inspect artifacts");
+    let artifact_paths = artifact_names(&artifacts.entries);
+    assert_eq!(artifact_paths.len(), 8);
+    assert!(artifact_paths.iter().any(|path| path.ends_with("epic-tree.md")));
+    assert!(artifact_paths.iter().any(|path| path.ends_with("delivery-slices.md")));
+
+    let evidence = service
+        .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
+        .expect("inspect evidence");
+    let evidence_entry = match evidence.entries.first().expect("evidence entry") {
+        InspectEntry::Evidence(entry) => entry,
+        other => panic!("expected evidence entry, got {other:?}"),
+    };
+    assert!(!evidence_entry.generation_paths.is_empty());
+    assert!(!evidence_entry.validation_paths.is_empty());
+    assert_eq!(evidence_entry.execution_posture, None);
+    assert_eq!(evidence_entry.artifact_provenance_links.len(), 8);
+
+    let context_toml = fs::read_to_string(find_run_context_toml(&workspace, &summary.run_id))
+        .expect("context.toml");
+    assert!(context_toml.contains("[backlog_planning]"));
+    assert!(context_toml.contains(
+        "delivery_intent = \"Prepare a bounded delivery backlog for auth session hardening.\""
+    ));
+    assert!(context_toml.contains("planning_horizon = \"next two releases\""));
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Completed");
+    assert!(
+        status.mode_result.as_ref().is_some_and(|result| {
+            result.primary_artifact_path.ends_with("backlog-overview.md")
+        })
+    );
+}
+
+#[test]
 fn implementation_direct_run_surfaces_recommendation_only_posture_and_bounded_artifacts() {
     let workspace = TempDir::new().expect("temp dir");
     init_change_repo(&workspace);
@@ -585,7 +683,13 @@ fn shell_adapter_reports_worktree_diff_and_enforces_mutation_policy() {
 
 #[test]
 fn artifact_contract_helpers_cover_analysis_profiles_and_validation_failures() {
-    for mode in [Mode::Discovery, Mode::SystemShaping, Mode::Architecture, Mode::Implementation] {
+    for mode in [
+        Mode::Discovery,
+        Mode::SystemShaping,
+        Mode::Architecture,
+        Mode::Backlog,
+        Mode::Implementation,
+    ] {
         let contract = contract_for_mode(mode);
         assert!(!contract.artifact_requirements.is_empty());
 

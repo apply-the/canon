@@ -126,7 +126,10 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     assert_eq!(inspect_chip["intent"].as_str(), Some("Inspect"));
     assert_eq!(
         inspect_chip["text_fallback"].as_str(),
-        Some(format!("Use $canon-inspect-evidence for run {run_id}.").as_str())
+        Some(
+            format!("Inspect evidence for run {run_id}: `canon inspect evidence --run {run_id}`.")
+                .as_str()
+        )
     );
 
     assert!(artifact_root.join("task-mapping.md").exists());
