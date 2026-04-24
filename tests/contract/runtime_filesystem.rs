@@ -33,6 +33,10 @@ fn init_materializes_the_runtime_contract_layout() {
     assert!(canon.join("runs").exists(), "runs directory should exist");
     assert!(canon.join("artifacts").exists(), "artifacts directory should exist");
     assert!(
+        canon.join("methods").join("backlog.toml").exists(),
+        "backlog method file should exist"
+    );
+    assert!(
         canon.join("methods").join("requirements.toml").exists(),
         "requirements method file should exist"
     );

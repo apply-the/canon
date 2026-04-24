@@ -1,3 +1,5 @@
+use crate::domain::run::BacklogPlanningContext;
+use crate::orchestrator::service::context_parse::truncate_context_excerpt;
 use crate::review::findings::{FindingCategory, ReviewFinding, ReviewPacket};
 use crate::review::summary::{ReviewSummary, summary_severity_label};
 
@@ -308,6 +310,205 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
         "decision-record.md" => format!(
             "# Decision Record\n\n## Summary\n\n{summary}\n\n## Decision\n\n{decision_record}\n\n## Consequences\n\n- The preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- Which adjacent slices should stay out of scope until this change stabilizes?\n"
         ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
+pub fn render_backlog_artifact(
+    file_name: &str,
+    brief_summary: &str,
+    planning_context: &BacklogPlanningContext,
+) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let delivery_intent = extract_marker(brief_summary, &normalized, "delivery intent")
+        .unwrap_or_else(|| planning_context.delivery_intent.clone());
+    let planning_horizon = extract_marker(brief_summary, &normalized, "planning horizon")
+        .or_else(|| planning_context.planning_horizon.clone())
+        .unwrap_or_else(|| "No explicit planning horizon was authored.".to_string());
+    let source_refs = extract_marker(brief_summary, &normalized, "source references")
+        .or_else(|| extract_marker(brief_summary, &normalized, "source inputs"))
+        .unwrap_or_else(|| {
+            render_string_list(
+                &planning_context.source_refs,
+                "- No explicit source references were recorded.",
+            )
+        });
+    let priorities =
+        extract_marker(brief_summary, &normalized, "priorities").unwrap_or_else(|| {
+            render_string_list(
+                &planning_context.priority_inputs,
+                "- No explicit planning priorities were recorded.",
+            )
+        });
+    let constraints =
+        extract_marker(brief_summary, &normalized, "constraints").unwrap_or_else(|| {
+            render_string_list(
+                &planning_context.constraints,
+                "- No explicit planning constraints were recorded.",
+            )
+        });
+    let out_of_scope =
+        extract_marker(brief_summary, &normalized, "out of scope").unwrap_or_else(|| {
+            render_string_list(
+                &planning_context.out_of_scope,
+                "- No explicit exclusions were recorded.",
+            )
+        });
+    let closure_findings = extract_marker(brief_summary, &normalized, "closure findings")
+        .unwrap_or_else(|| {
+            if planning_context.closure_assessment.findings.is_empty() {
+                "- No closure findings remain open.".to_string()
+            } else {
+                planning_context
+                    .closure_assessment
+                    .findings
+                    .iter()
+                    .map(|finding| {
+                        format!(
+                            "- [{}] {} on {}. Follow-up: {}",
+                            finding.severity.as_str(),
+                            finding.category,
+                            finding.affected_scope,
+                            finding.recommended_followup
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
+        });
+    let generated_framing = extract_marker(brief_summary, &normalized, "generated framing")
+        .unwrap_or_else(|| "Generated backlog framing was not recorded.".to_string());
+    let critique_evidence = extract_marker(brief_summary, &normalized, "critique evidence")
+        .unwrap_or_else(|| "Critique evidence was not recorded.".to_string());
+    let validation_evidence = extract_marker(brief_summary, &normalized, "validation evidence")
+        .unwrap_or_else(|| "Validation evidence was not recorded.".to_string());
+    let decomposition_posture = planning_context.closure_assessment.decomposition_scope.as_str();
+
+    // Authored bodies. When the agent (or the user) supplies these sections in
+    // the backlog input, we render them verbatim and skip the templated
+    // fallback. This is what turns backlog mode into a real backlog instead of
+    // a boilerplate echo of the brief.
+    let authored_epic_tree = extract_marker(brief_summary, &normalized, "epic tree");
+    let authored_capability_map =
+        extract_marker(brief_summary, &normalized, "capability to epic map")
+            .or_else(|| extract_marker(brief_summary, &normalized, "capability map"))
+            .or_else(|| extract_marker(brief_summary, &normalized, "capability mapping"));
+    let authored_dependency_map = extract_marker(brief_summary, &normalized, "dependency map")
+        .or_else(|| extract_marker(brief_summary, &normalized, "dependencies"));
+    let authored_delivery_slices = extract_marker(brief_summary, &normalized, "delivery slices")
+        .or_else(|| extract_marker(brief_summary, &normalized, "slices"));
+    let authored_sequencing = extract_marker(brief_summary, &normalized, "sequencing plan")
+        .or_else(|| extract_marker(brief_summary, &normalized, "sequencing"));
+    let authored_acceptance = extract_marker(brief_summary, &normalized, "acceptance anchors")
+        .or_else(|| extract_marker(brief_summary, &normalized, "acceptance criteria"));
+    let authored_planning_risks = extract_marker(brief_summary, &normalized, "planning risks")
+        .or_else(|| extract_marker(brief_summary, &normalized, "risks"));
+
+    match file_name {
+        "backlog-overview.md" => format!(
+            "# Backlog Overview\n\n## Summary\n\n{}\n\n## Scope\n\n{}\n\n## Planning Horizon\n\n{}\n\n## Source Inputs\n\n{}\n\n## Delivery Intent\n\n{}\n\n## Decomposition Posture\n\n{}\n",
+            delivery_intent,
+            truncate_context_excerpt(&generated_framing, 260),
+            planning_horizon,
+            source_refs,
+            delivery_intent,
+            decomposition_posture,
+        ),
+        "epic-tree.md" => match authored_epic_tree {
+            Some(body) => format!(
+                "# Epic Tree\n\n## Summary\n\n{}\n\n## Epic Tree\n\n{}\n\n## Scope Boundaries\n\n- Preserve planning-only granularity at {}.\n- Keep excluded work explicit: {}\n\n## Source Trace Links\n\n{}\n",
+                delivery_intent,
+                body,
+                planning_context.desired_granularity.as_str(),
+                truncate_context_excerpt(&out_of_scope, 200),
+                source_refs,
+            ),
+            None => format!(
+                "# Epic Tree\n\n## Summary\n\n{}\n\n## Epic Tree\n\n- Initiative: {}\n- Epic 1: Establish a bounded foundation for {}\n- Epic 2: Deliver visible slices without descending into task plans\n\n## Scope Boundaries\n\n- Preserve planning-only granularity at {}.\n- Keep excluded work explicit: {}\n\n## Source Trace Links\n\n{}\n\n## Missing Authored Body\n\nNo `## Epic Tree` section was authored in the backlog input; the entries above are placeholders. Add a real epic tree to the input to replace them.\n",
+                delivery_intent,
+                truncate_context_excerpt(&delivery_intent, 120),
+                truncate_context_excerpt(&delivery_intent, 120),
+                planning_context.desired_granularity.as_str(),
+                truncate_context_excerpt(&out_of_scope, 200),
+                source_refs,
+            ),
+        },
+        "capability-to-epic-map.md" => match authored_capability_map {
+            Some(body) => format!(
+                "# Capability To Epic Map\n\n## Summary\n\n{}\n\n## Capability Mapping\n\n{}\n\n## Source Trace Links\n\n{}\n\n## Planning Gaps\n\n{}\n",
+                delivery_intent, body, source_refs, closure_findings,
+            ),
+            None => format!(
+                "# Capability To Epic Map\n\n## Summary\n\n{}\n\n## Capability Mapping\n\n- Source capability set remains anchored to the authored delivery intent.\n- Priority inputs shape which epic lands first: {}\n\n## Source Trace Links\n\n{}\n\n## Planning Gaps\n\n{}\n\n## Missing Authored Body\n\nNo `## Capability To Epic Map` section was authored in the backlog input.\n",
+                delivery_intent,
+                truncate_context_excerpt(&priorities, 200),
+                source_refs,
+                closure_findings,
+            ),
+        },
+        "dependency-map.md" => match authored_dependency_map {
+            Some(body) => format!(
+                "# Dependency Map\n\n## Summary\n\n{}\n\n## Dependencies\n\n{}\n\n## Blocking Edges\n\n{}\n\n## External Dependencies\n\n- Any external blockers must remain visible in planning risks before downstream implementation work starts.\n",
+                delivery_intent, body, closure_findings,
+            ),
+            None => format!(
+                "# Dependency Map\n\n## Summary\n\n{}\n\n## Dependencies\n\n- Shared planning constraints: {}\n- Source references remain the upstream dependency basis.\n\n## Blocking Edges\n\n{}\n\n## External Dependencies\n\n- Any external blockers must remain visible in planning risks before downstream implementation work starts.\n\n## Missing Authored Body\n\nNo `## Dependency Map` section was authored in the backlog input.\n",
+                delivery_intent,
+                truncate_context_excerpt(&constraints, 220),
+                closure_findings,
+            ),
+        },
+        "delivery-slices.md" => match authored_delivery_slices {
+            Some(body) => format!(
+                "# Delivery Slices\n\n## Summary\n\n{}\n\n## Delivery Slices\n\n{}\n\n## Slice Boundaries\n\n- Slices stay above task level and stop at implementation-ready decomposition.\n- Excluded work stays explicit: {}\n\n## Dependency Links\n\n{}\n",
+                delivery_intent,
+                body,
+                truncate_context_excerpt(&out_of_scope, 220),
+                source_refs,
+            ),
+            None => format!(
+                "# Delivery Slices\n\n## Summary\n\n{}\n\n## Delivery Slices\n\n- Slice 1: Establish the bounded planning and dependency spine.\n- Slice 2: Deliver the first user-visible outcome tied to the highest-priority source input.\n- Slice 3: Address the highest planning risk before broader rollout.\n\n## Slice Boundaries\n\n- Slices stay above task level and stop at implementation-ready decomposition.\n- Excluded work stays explicit: {}\n\n## Dependency Links\n\n{}\n\n## Missing Authored Body\n\nNo `## Delivery Slices` section was authored in the backlog input; the slices above are placeholders.\n",
+                delivery_intent,
+                truncate_context_excerpt(&out_of_scope, 220),
+                source_refs,
+            ),
+        },
+        "sequencing-plan.md" => match authored_sequencing {
+            Some(body) => format!(
+                "# Sequencing Plan\n\n## Summary\n\n{}\n\n## Sequencing\n\n{}\n\n## Ordering Rationale\n\n{}\n\n## Readiness Signals\n\n- A downstream implementation reader can identify one bounded slice, its dependencies, and its acceptance anchor without hidden context.\n- Closure findings remain explicit if they still weaken confidence.\n",
+                delivery_intent,
+                body,
+                truncate_context_excerpt(&priorities, 220),
+            ),
+            None => format!(
+                "# Sequencing Plan\n\n## Summary\n\n{}\n\n## Sequencing\n\n1. Establish the bounded foundation implied by the source inputs.\n2. Deliver the first slice that resolves the highest-priority planning pressure.\n3. Sequence follow-on slices only after named dependency blockers are visible.\n\n## Ordering Rationale\n\n{}\n\n## Readiness Signals\n\n- A downstream implementation reader can identify one bounded slice, its dependencies, and its acceptance anchor without hidden context.\n- Closure findings remain explicit if they still weaken confidence.\n\n## Missing Authored Body\n\nNo `## Sequencing` or `## Sequencing Plan` section was authored in the backlog input.\n",
+                delivery_intent,
+                truncate_context_excerpt(&priorities, 220),
+            ),
+        },
+        "acceptance-anchors.md" => match authored_acceptance {
+            Some(body) => format!(
+                "# Acceptance Anchors\n\n## Summary\n\n{}\n\n## Acceptance Anchors\n\n{}\n\n## Source Trace Links\n\n{}\n\n## Deferred Detail\n\n- Task breakdown, tracker-specific work items, and executable test plans remain downstream work.\n",
+                delivery_intent, body, source_refs,
+            ),
+            None => format!(
+                "# Acceptance Anchors\n\n## Summary\n\n{}\n\n## Acceptance Anchors\n\n- Anchor A: the first delivery slice is bounded enough for downstream implementation planning.\n- Anchor B: dependency blockers are named rather than implied.\n- Anchor C: priority and source traceability remain readable in the packet.\n\n## Source Trace Links\n\n{}\n\n## Deferred Detail\n\n- Task breakdown, tracker-specific work items, and executable test plans remain downstream work.\n\n## Missing Authored Body\n\nNo `## Acceptance Anchors` section was authored in the backlog input.\n",
+                delivery_intent, source_refs,
+            ),
+        },
+        "planning-risks.md" => match authored_planning_risks {
+            Some(body) => format!(
+                "# Planning Risks\n\n## Summary\n\n{}\n\n## Closure Findings\n\n{}\n\n## Planning Risks\n\n{}\n\n## Follow-Up Triggers\n\n- Return to architecture or change when closure findings stay blocking.\n- Strengthen the authored backlog brief when exclusions or priorities remain vague.\n- Re-run backlog only after the bounded upstream packet becomes more credible.\n",
+                delivery_intent, closure_findings, body,
+            ),
+            None => format!(
+                "# Planning Risks\n\n## Summary\n\n{}\n\n## Closure Findings\n\n{}\n\n## Planning Risks\n\n- Sequencing uncertainty: {}\n- Hidden dependency risk: {}\n- Granularity drift risk: backlog output must stay above task level.\n\n## Follow-Up Triggers\n\n- Return to architecture or change when closure findings stay blocking.\n- Strengthen the authored backlog brief when exclusions or priorities remain vague.\n- Re-run backlog only after the bounded upstream packet becomes more credible.\n",
+                delivery_intent,
+                closure_findings,
+                truncate_context_excerpt(&critique_evidence, 220),
+                truncate_context_excerpt(&validation_evidence, 220),
+            ),
+        },
         other => render_markdown(other, brief_summary),
     }
 }

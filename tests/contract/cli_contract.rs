@@ -178,6 +178,51 @@ fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() 
 }
 
 #[test]
+fn run_backlog_auto_binds_canonical_input_and_emits_a_planning_packet() {
+    let workspace = tempfile::TempDir::new().expect("temp dir");
+    init_existing_repo(&workspace);
+    std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
+    std::fs::write(
+        workspace.path().join("canon-input").join("backlog.md"),
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+    )
+    .expect("backlog brief");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "backlog",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "staff-engineer",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+
+    assert_eq!(json["state"].as_str(), Some("Completed"));
+    assert_eq!(json["mode"].as_str(), Some("backlog"));
+    assert!(
+        json["mode_result"]["primary_artifact_path"]
+            .as_str()
+            .is_some_and(|path| path.ends_with("backlog-overview.md"))
+    );
+}
+
+#[test]
 fn inspect_risk_zone_supports_inline_authored_input() {
     let workspace = tempfile::TempDir::new().expect("temp dir");
 

@@ -290,3 +290,84 @@ fn inspect_evidence_reflects_approved_recommendation_after_resume() {
         Some("approved-recommendation")
     );
 }
+
+#[test]
+fn inspect_invocations_and_evidence_capture_completed_backlog_runs() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_existing_repo(&workspace);
+
+    let packet_root = workspace.path().join("canon-input").join("backlog");
+    fs::create_dir_all(&packet_root).expect("packet root");
+    fs::write(
+        packet_root.join("brief.md"),
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+    )
+    .expect("brief");
+    fs::write(
+        packet_root.join("priorities.md"),
+        "# Priorities\n\n- Ship the rollback-safe slice first.\n- Keep dependency blockers explicit.\n",
+    )
+    .expect("priorities");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "backlog",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "planner",
+            "--input",
+            "canon-input/backlog",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
+    let run_id = json["run_id"].as_str().expect("run id");
+
+    let invocations = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let invocation_json: serde_json::Value = serde_json::from_slice(&invocations).expect("json");
+    let entries = invocation_json["entries"].as_array().expect("invocation entries");
+    assert_eq!(entries.len(), 4);
+    assert!(entries.iter().any(|entry| entry["capability"] == "ReadRepository"));
+    assert!(entries.iter().any(|entry| entry["capability"] == "GenerateContent"));
+    assert!(entries.iter().any(|entry| entry["capability"] == "CritiqueContent"));
+    assert!(entries.iter().any(|entry| entry["capability"] == "ValidateWithTool"));
+    assert!(entries.iter().all(|entry| entry["recommendation_only"].as_bool() == Some(false)));
+
+    let evidence = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "evidence", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let evidence_json: serde_json::Value = serde_json::from_slice(&evidence).expect("json");
+    let evidence_entry = &evidence_json["entries"][0];
+    assert!(evidence_entry["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
+    assert!(evidence_entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
+    assert!(
+        evidence_entry["artifact_provenance_links"]
+            .as_array()
+            .is_some_and(|paths| paths.len() == 8)
+    );
+}

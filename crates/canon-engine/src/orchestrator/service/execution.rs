@@ -165,6 +165,7 @@ mod tests {
                 rollback_expectations: Vec::new(),
             }),
             refactor_execution: None,
+            backlog_planning: None,
         }
     }
 

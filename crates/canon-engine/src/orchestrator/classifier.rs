@@ -14,6 +14,7 @@ pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
         Mode::SystemShaping
         | Mode::Architecture
         | Mode::Change
+        | Mode::Backlog
         | Mode::Implementation
         | Mode::Refactor
         | Mode::Migration
@@ -37,9 +38,11 @@ pub fn validate_system_context(
             mode.as_str(),
             supported_system_context_usage(mode)
         )),
-        (_, Some(SystemContext::New)) if matches!(mode, Mode::Change) => {
-            Err("mode `change` currently supports only --system-context existing in this release"
-                .to_string())
+        (_, Some(SystemContext::New)) if matches!(mode, Mode::Change | Mode::Backlog) => {
+            Err(format!(
+                "mode `{}` currently supports only --system-context existing in this release",
+                mode.as_str()
+            ))
         }
         _ => Ok(()),
     }
@@ -47,7 +50,7 @@ pub fn validate_system_context(
 
 fn supported_system_context_usage(mode: Mode) -> &'static str {
     match mode {
-        Mode::Change => "existing",
+        Mode::Change | Mode::Backlog => "existing",
         _ => "new|existing",
     }
 }
@@ -539,6 +542,17 @@ mod tests {
             .expect_err("change should reject new-system context");
 
         assert!(missing.contains("mode `change` requires --system-context existing"));
+        assert!(invalid.contains("only --system-context existing"));
+    }
+
+    #[test]
+    fn backlog_requires_existing_system_context() {
+        let missing = validate_system_context(Mode::Backlog, None)
+            .expect_err("backlog should require explicit context");
+        let invalid = validate_system_context(Mode::Backlog, Some(SystemContext::New))
+            .expect_err("backlog should reject new-system context");
+
+        assert!(missing.contains("mode `backlog` requires --system-context existing"));
         assert!(invalid.contains("only --system-context existing"));
     }
 

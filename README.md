@@ -202,6 +202,8 @@ A common progression is:
 - `system-shaping` when the next question is how a capability should be
   structured
 - `architecture` when boundaries, invariants, and tradeoffs need to be fixed
+- `backlog` when bounded upstream decisions need to become governed epics,
+  slices, dependencies, and sequencing before execution work starts
 - `change` when the structure is known and the work is bounded modification of
   an existing system
 - `implementation` when the bounded plan already exists and you need governed
@@ -213,6 +215,8 @@ A common progression is:
 ### Quick Decision Rule
 
 - use `system-shaping` when the structure of a capability is not yet defined
+- use `backlog` when the structure is already bounded and the next need is
+  durable delivery decomposition rather than immediate execution
 - use `change` when the structure is known and the task is bounded
   modification with preserved behavior
 - use `implementation` when the change boundary is already fixed and the next
@@ -222,11 +226,11 @@ A common progression is:
 - use `system-shaping --system-context existing` when you are working inside
   an existing system but the next need is still structural, not modification
 
-Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `change`, `implementation`, `refactor`, `review`, `verification`, and `pr-review`.
+Implemented end to end today: `requirements`, `discovery`, `system-shaping`, `architecture`, `backlog`, `change`, `implementation`, `refactor`, `review`, `verification`, and `pr-review`.
 
 Modes that target a specific system state keep that explicit in the run
 contract: use `--system-context new|existing` for `system-shaping` and
-`architecture`, and use `--system-context existing` for `change`, `implementation`, and `refactor`.
+`architecture`, and use `--system-context existing` for `backlog`, `change`, `implementation`, and `refactor`.
 
 Use `review` for bounded non-PR change packages or artifact bundles, `verification` to challenge claims and invariants directly, and `pr-review` only when the target is a real diff or `WORKTREE`.
 

@@ -1,0 +1,20 @@
+version = 1
+mode = "backlog"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = [
+    "Exploration",
+    "Architecture",
+    "Risk",
+    "ReleaseReadiness",
+]
+artifacts = [
+    "backlog-overview.md",
+    "epic-tree.md",
+    "capability-to-epic-map.md",
+    "dependency-map.md",
+    "delivery-slices.md",
+    "sequencing-plan.md",
+    "acceptance-anchors.md",
+    "planning-risks.md",
+]

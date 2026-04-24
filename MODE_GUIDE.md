@@ -57,6 +57,8 @@ specific LLM provider; the assistant in the chat is the model.
 ## Quick Decision Rule
 
 - use `system-shaping` when the structure of a capability is not yet defined
+- use `backlog` when upstream scope is already bounded and the next need is
+  governed delivery decomposition rather than execution guidance
 - use `change` when the structure is known and the task is bounded
   modification with preserved behavior
 - use `system-shaping --system-context existing` when you are working inside
@@ -68,6 +70,7 @@ specific LLM provider; the assistant in the chat is the model.
 - [`requirements`](#mode-requirements)
 - [`system-shaping`](#mode-system-shaping)
 - [`architecture`](#mode-architecture)
+- [`backlog`](#mode-backlog)
 - [`change`](#mode-change)
 - [`implementation`](#mode-implementation)
 - [`refactor`](#mode-refactor)
@@ -87,6 +90,7 @@ convention:
 - `discovery`: `canon-input/discovery.md` or `canon-input/discovery/`
 - `system-shaping`: `canon-input/system-shaping.md` or `canon-input/system-shaping/`
 - `architecture`: `canon-input/architecture.md` or `canon-input/architecture/`
+- `backlog`: `canon-input/backlog.md` or `canon-input/backlog/`
 - `change`: `canon-input/change.md` or `canon-input/change/`
 - `implementation`: `canon-input/implementation.md` or `canon-input/implementation/`
 - `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
@@ -122,7 +126,7 @@ authored content.
 Modes that target a specific system state also require an explicit
 `--system-context` binding. Use `--system-context new|existing` for
 `system-shaping` and `architecture`; use `--system-context existing` for
-`change`, `implementation`, and `refactor`.
+`backlog`, `change`, `implementation`, and `refactor`.
 
 `review` is stricter in the current runtime slice: it expects exactly one
 authored review packet at `canon-input/review.md` or `canon-input/review/`.
@@ -163,6 +167,7 @@ Default publish targets by mode:
 - `discovery` -> `docs/discovery/<RUN_ID>/`
 - `system-shaping` -> `docs/architecture/shaping/<RUN_ID>/`
 - `architecture` -> `docs/architecture/decisions/<RUN_ID>/`
+- `backlog` -> `docs/planning/<RUN_ID>/`
 - `change` -> `docs/changes/<RUN_ID>/`
 - `implementation` -> `docs/implementation/<RUN_ID>/`
 - `refactor` -> `docs/refactors/<RUN_ID>/`
@@ -200,11 +205,13 @@ flowchart TD
   I -->|existing| SSE[system-shaping + system_context=existing]
   SSN --> ARCN[architecture + system_context=new]
   SSE --> ARCE[architecture + system_context=existing]
-  H -->|No| J{Is this a bounded modification in an existing system?}
-  J -->|Yes| CH[change + system_context=existing]
-  J -->|No| K{Execution mode needed?}
-  K -->|Implementation guidance| IMPL[implementation + system_context=existing]
-  K -->|Structural cleanup guidance| REFA[refactor + system_context=existing]
+  H -->|No| J{Do you need governed delivery decomposition from bounded decisions?}
+  J -->|Yes| BL[backlog + system_context=existing]
+  J -->|No| K{Is this a bounded modification in an existing system?}
+  K -->|Yes| CH[change + system_context=existing]
+  K -->|No| L{Execution mode needed?}
+  L -->|Implementation guidance| IMPL[implementation + system_context=existing]
+  L -->|Structural cleanup guidance| REFA[refactor + system_context=existing]
 ```
 
 ### 2) End-to-End Flow For Implemented Modes
@@ -215,10 +222,14 @@ flowchart LR
   R --> SS[system-shaping]
   R --> CH[change]
   R --> ARC[architecture]
+  R --> BL[backlog]
   SS --> ARC
+  SS --> BL[backlog]
   SS --> CH
   ARC --> CH
-  CH --> IMPL[implementation]
+  ARC --> BL
+  BL --> IMPL[implementation]
+  CH --> IMPL
   CH --> REFA[refactor]
   IMPL --> RV[review]
   REFA --> RV
@@ -603,6 +614,112 @@ not a failure in the mode itself.
 Instead of generic templates, Canon uses realistic bounded documents.
 See [docs/examples/canon-input/architecture-state-management.md](docs/examples/canon-input/architecture-state-management.md)
 for a populated example of an Architecture brief.
+
+## Mode: backlog
+
+### Use It For
+
+Turn bounded upstream decisions into a durable backlog packet with epics,
+delivery slices, dependencies, sequencing, acceptance anchors, and planning
+risks.
+
+### Typical Upstream Sources
+
+- an `architecture` packet whose boundaries and tradeoffs are already explicit
+- a `system-shaping` packet whose capability structure is closed enough for
+  decomposition
+- a bounded backlog brief authored directly under `canon-input/`
+
+### Input Shape
+
+A file-backed backlog brief or packet under `canon-input/backlog.md` or
+`canon-input/backlog/`.
+
+For a folder-backed packet, use:
+
+- `brief.md` for the authoritative backlog brief
+- `priorities.md` for explicit ordering intent and exclusions
+- optional `context-links.md` for carried-forward source references
+
+This mode requires explicit `--system-context existing` when you start the
+run.
+
+### Good Input Should Include
+
+- source artifact references that bound the backlog
+- delivery intent and planning horizon
+- desired granularity
+- explicit priorities or exclusions
+- known dependency constraints
+- out-of-scope or deferred work
+
+### Questions This Mode Answers
+
+- how bounded upstream decisions decompose into epics and slices
+- which dependencies and sequencing constraints matter for execution planning
+- what acceptance anchors a later implementation lead should preserve
+- where closure is still weak enough to block or downgrade decomposition
+
+### Questions This Mode Does Not Answer Well
+
+- what the product problem is if it is still unclear
+- how to settle unresolved capability boundaries or ownership questions
+- what exact code mutations should happen next
+- how to review a real diff
+
+### What Canon Emits
+
+Backlog produces a delivery decomposition packet with these artifacts:
+
+- `backlog-overview.md`
+- `epic-tree.md`
+- `capability-to-epic-map.md`
+- `dependency-map.md`
+- `delivery-slices.md`
+- `sequencing-plan.md`
+- `acceptance-anchors.md`
+- `planning-risks.md`
+
+The packet stays above task level. It is meant to remain publishable and
+readable outside Canon as a standalone planning artifact.
+
+### Closure and Downgrade Behavior
+
+Backlog does not pretend decomposition is credible when upstream closure is
+weak. If source constraints, ownership boundaries, or dependencies are still
+materially unresolved, Canon either blocks the run or completes it in a
+closure-limited form.
+
+Closure-limited runs emit only:
+
+- `backlog-overview.md`
+- `planning-risks.md`
+
+Use that signal to return to `system-shaping` or `architecture` instead of
+carrying false precision into execution.
+
+### Typical Handoff After This Mode
+
+- publish the approved backlog packet with `canon publish <RUN_ID>` to `docs/planning/<RUN_ID>/`, or use `--to` for another public destination
+- move into `implementation` only after selecting a bounded slice from the packet
+- return to `architecture` or `system-shaping` if closure findings show the source decisions are still too weak
+- use `dependency-map.md`, `sequencing-plan.md`, and `acceptance-anchors.md` to keep later execution work traceable to earlier decisions
+
+### Common Mistakes
+
+- using Backlog before the upstream architecture or shape is actually bounded
+- descending into task lists or tracker-specific execution detail
+- treating Backlog as a generic ticket generator instead of a governed planning mode
+- hiding contradictory inputs or missing dependency ownership instead of surfacing them as closure findings or planning risks
+
+### Example Input
+
+Instead of generic templates, Canon uses realistic bounded documents.
+Start from [docs/templates/canon-input/backlog.md](docs/templates/canon-input/backlog.md)
+for the canonical brief structure, then see
+[docs/examples/canon-input/backlog-auth-session-hardening.md](docs/examples/canon-input/backlog-auth-session-hardening.md)
+for a populated backlog example.
+
 
 ## Mode: change
 

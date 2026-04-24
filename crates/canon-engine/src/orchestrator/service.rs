@@ -52,6 +52,7 @@ pub(crate) mod patch;
 pub(crate) mod summarizers;
 
 mod inspect;
+mod mode_backlog;
 mod mode_change;
 mod mode_discovery;
 mod mode_pr_review;
@@ -217,6 +218,14 @@ pub struct InvocationInspectSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ClosureFindingInspectSummary {
+    pub category: String,
+    pub severity: String,
+    pub affected_scope: String,
+    pub recommended_followup: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EvidenceInspectSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub execution_posture: Option<String>,
@@ -230,6 +239,14 @@ pub struct EvidenceInspectSummary {
     pub carried_forward_items: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub excluded_upstream_scope: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decomposition_scope: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub closure_findings: Vec<ClosureFindingInspectSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure_notes: Option<String>,
     pub generation_paths: Vec<String>,
     pub validation_paths: Vec<String>,
     pub denied_invocations: Vec<String>,
@@ -329,6 +346,14 @@ pub struct RunSummary {
     pub blocked_gates: Vec<GateInspectSummary>,
     pub approval_targets: Vec<String>,
     pub artifact_paths: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decomposition_scope: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub closure_findings: Vec<ClosureFindingInspectSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure_notes: Option<String>,
     pub mode_result: Option<ModeResultSummary>,
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
@@ -346,6 +371,14 @@ pub struct StatusSummary {
     pub blocked_gates: Vec<GateInspectSummary>,
     pub approval_targets: Vec<String>,
     pub artifact_paths: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure_status: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decomposition_scope: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub closure_findings: Vec<ClosureFindingInspectSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub closure_notes: Option<String>,
     pub mode_result: Option<ModeResultSummary>,
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
@@ -421,6 +454,10 @@ pub(super) struct RunRuntimeDetails {
     blocked_gates: Vec<GateInspectSummary>,
     approval_targets: Vec<String>,
     artifact_paths: Vec<String>,
+    closure_status: Option<String>,
+    decomposition_scope: Option<String>,
+    closure_findings: Vec<ClosureFindingInspectSummary>,
+    closure_notes: Option<String>,
     mode_result: Option<ModeResultSummary>,
     recommended_next_action: Option<RecommendedActionSummary>,
 }
@@ -532,6 +569,7 @@ impl EngineService {
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
             Mode::Change => self.run_change(&store, request, policy_set),
+            Mode::Backlog => self.run_backlog(&store, request, policy_set),
             Mode::Implementation => self.run_implementation(&store, request, policy_set),
             Mode::Refactor => self.run_refactor(&store, request, policy_set),
             Mode::Architecture => self.run_architecture(&store, request, policy_set),
@@ -1052,6 +1090,10 @@ impl EngineService {
             blocked_gates: details.blocked_gates,
             approval_targets: details.approval_targets,
             artifact_paths: details.artifact_paths,
+            closure_status: details.closure_status,
+            decomposition_scope: details.decomposition_scope,
+            closure_findings: details.closure_findings,
+            closure_notes: details.closure_notes,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
@@ -1635,6 +1677,10 @@ impl EngineService {
             blocked_gates: details.blocked_gates,
             approval_targets: details.approval_targets,
             artifact_paths: details.artifact_paths,
+            closure_status: details.closure_status,
+            decomposition_scope: details.decomposition_scope,
+            closure_findings: details.closure_findings,
+            closure_notes: details.closure_notes,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
@@ -1652,6 +1698,8 @@ impl EngineService {
         let gates = store.load_gate_evaluations(run_id).unwrap_or_default();
         let context = store.load_run_context(run_id).ok();
         let system_context = context.as_ref().and_then(|context| context.system_context);
+        let backlog_planning =
+            context.as_ref().and_then(|context| context.backlog_planning.as_ref());
 
         let persisted_artifacts = store
             .load_artifact_contract(run_id)
@@ -1730,6 +1778,28 @@ impl EngineService {
             .map(|bundle| bundle.validation_paths.iter().all(|path| path.independence.sufficient))
             .unwrap_or(true);
 
+        let closure_status = backlog_planning
+            .map(|planning| planning.closure_assessment.status.as_str().to_string());
+        let decomposition_scope = backlog_planning
+            .map(|planning| planning.closure_assessment.decomposition_scope.as_str().to_string());
+        let closure_findings = backlog_planning
+            .map(|planning| {
+                planning
+                    .closure_assessment
+                    .findings
+                    .iter()
+                    .map(|finding| ClosureFindingInspectSummary {
+                        category: finding.category.clone(),
+                        severity: finding.severity.as_str().to_string(),
+                        affected_scope: finding.affected_scope.clone(),
+                        recommended_followup: finding.recommended_followup.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let closure_notes =
+            backlog_planning.and_then(|planning| planning.closure_assessment.notes.clone());
+
         let recommended_next_action = recommend_next_action(
             state,
             mode_result.as_ref(),
@@ -1755,6 +1825,10 @@ impl EngineService {
             blocked_gates,
             approval_targets,
             artifact_paths,
+            closure_status,
+            decomposition_scope,
+            closure_findings,
+            closure_notes,
             mode_result,
             recommended_next_action,
         })
@@ -1811,6 +1885,7 @@ impl EngineService {
             upstream_context,
             implementation_execution,
             refactor_execution,
+            backlog_planning: None,
             inline_inputs: request.transient_inline_inputs(),
             captured_at,
         }
@@ -2375,6 +2450,7 @@ fn capability_tag(capability: CapabilityKind) -> &'static str {
 
 fn canonical_mode_input_binding(mode: Mode) -> Option<(&'static str, &'static str)> {
     match mode {
+        Mode::Backlog => Some(("backlog.md", "backlog")),
         Mode::Implementation => Some(("implementation.md", "implementation")),
         Mode::Refactor => Some(("refactor.md", "refactor")),
         _ => None,

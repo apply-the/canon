@@ -193,6 +193,10 @@ impl EngineService {
                 blocked_gates: details.blocked_gates,
                 approval_targets: details.approval_targets,
                 artifact_paths: details.artifact_paths,
+                closure_status: details.closure_status,
+                decomposition_scope: details.decomposition_scope,
+                closure_findings: details.closure_findings,
+                closure_notes: details.closure_notes,
                 mode_result: details.mode_result,
                 recommended_next_action: details.recommended_next_action,
             });
@@ -472,6 +476,10 @@ impl EngineService {
             blocked_gates: details.blocked_gates,
             approval_targets: details.approval_targets,
             artifact_paths: details.artifact_paths,
+            closure_status: details.closure_status,
+            decomposition_scope: details.decomposition_scope,
+            closure_findings: details.closure_findings,
+            closure_notes: details.closure_notes,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
