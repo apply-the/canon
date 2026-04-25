@@ -6,6 +6,7 @@ gate_profile = ["Risk", "Architecture", "ReviewDisposition", "ReleaseReadiness"]
 artifacts = [
     "pr-analysis.md",
     "boundary-check.md",
+    "conventional-comments.md",
     "duplication-check.md",
     "contract-drift.md",
     "missing-tests.md",

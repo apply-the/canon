@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-23
+Auto-generated from all feature plans. Last updated: 2026-04-24
 
 ## Governing Constitution
 
@@ -28,6 +28,7 @@ Auto-generated from all feature plans. Last updated: 2026-04-23
 - Local filesystem under `.canon/` only; TOML manifests, Markdown (009-run-id-display)
 - Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time` (010-controlled-execution-modes)
 - Local filesystem under `.canon/`, TOML manifests and `context.toml`, Markdown artifacts, repo-local skill source documents under `defaults/embedded-skills/` and `.agents/skills/` (010-controlled-execution-modes)
+- Local filesystem under `.canon/` for runtime artifacts and (013-pr-review-comments)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -84,9 +85,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 013-pr-review-comments: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`,
 - 012-backlog-mode: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 010-controlled-execution-modes: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
-- 009-run-id-display: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`,
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->

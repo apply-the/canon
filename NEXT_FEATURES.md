@@ -46,32 +46,29 @@ compatibility, and containment matter more than ordinary implementation flow.
 - They benefit from nearly every earlier roadmap improvement, but they still
   belong ahead of output-polish, packaging, and protocol expansion.
 
-## Feature: Stronger Review And Architecture Outputs
+## Feature: Stronger Architecture Outputs
 
 ### Outcome
 
-Canon makes already-delivered critique modes more directly reusable in real
-engineering workflows by emitting `pr-review` feedback in a Conventional
-Comments shape and extending `architecture` packets with C4 model documents.
+Canon makes already-delivered architecture critique more reusable in real
+engineering workflows by extending `architecture` packets with C4 model
+documents and stronger external communication shapes.
 
 ### Modes In Scope
 
-- `pr-review`
 - `architecture`
 
-### Why These Modes Belong Together
+### Why This Mode Belongs Here
 
-- They are already delivered end to end, so the next value step is output
-  quality and interoperability with human workflows.
-- Both produce artifacts that are read outside Canon and benefit from stronger
-  standardization.
-- They improve downstream handoff into pull request review and architecture
-  communication without widening Canon into new runtime domains.
+- `architecture` is already delivered end to end, so the next value step is
+  output quality and interoperability with human workflows.
+- Architecture artifacts are routinely read outside Canon and benefit from
+  stronger standardization.
+- This improves downstream handoff into architecture communication without
+  widening Canon into a new runtime domain.
 
 ### First Slice
 
-- Teach `pr-review` to structure review findings so they can be consumed as
-  Conventional Comments for code review.
 - Extend `architecture` output contracts to include C4 model documents,
   starting with system context, container, and component views when the
   authored input supports them.
@@ -153,6 +150,10 @@ vocabulary for domain work.
   Sequencing Plan, Acceptance Anchors, Planning Risks) before invoking Canon,
   and the renderer preserves those authored sections verbatim instead of
   emitting templated placeholders.
+- `pr-review` now emits `conventional-comments.md` as a reviewer-facing
+  companion to `review-summary.md`, publishes it under
+  `docs/reviews/prs/<RUN_ID>/`, and preserves the existing review-disposition
+  gate and primary artifact semantics.
 
 ## Feature: Mode Authoring Specialization (Skills As Real AI Authors)
 
@@ -197,6 +198,9 @@ brief.
 - Define a shared `Author <Mode> Body Before Invoking Canon` skill section that
   enumerates the required H2 sections for each emitted artifact in that mode,
   mirroring the new `canon-backlog` skill section.
+- For decision-heavy modes, require authored `## Options Considered`,
+  `## Recommended Option`, and `## Rejected Alternatives` sections so Canon
+  preserves real tradeoffs instead of only the final answer.
 - Update each per-mode renderer in `crates/canon-engine/src/artifacts/markdown.rs`
   to extract the authored H2 sections via `extract_marker` and render them
   verbatim, falling back to a placeholder + explicit `## Missing Authored Body`
@@ -221,18 +225,21 @@ brief.
 
 When a Canon mode has a well-known industry artifact shape, the skill guides
 the AI to author the body in that shape, and the renderer recognizes and
-preserves it. Users can trust that `architecture` produces a real C4-style
-packet, `requirements` produces a real PRD, `change` produces a real ADR,
-`pr-review` produces real Conventional Comments, and so on.
+preserves it. Users can trust that delivered `pr-review` already produces real
+Conventional Comments, and future slices should make `architecture` produce a
+real C4-style packet, `requirements` produce a real PRD, `change` produce a
+real ADR, and so on. Where the mode ends in a real engineering decision, the
+artifact shape should also make the alternatives visible instead of only
+preserving the winning choice.
 
 ### Problem We Are Solving
 
 - The AI authoring skills today are domain-neutral and underspecify artifact
   shape, so output drifts toward Canon-internal headings instead of the shapes
   reviewers and engineers already read elsewhere.
-- The `Stronger Review And Architecture Outputs` feature already calls out C4
-  for `architecture` and Conventional Comments for `pr-review`. This feature
-  generalizes that direction and binds it into the authoring contract.
+- The delivered `pr-review` Conventional Comments slice proved the pattern, and
+  the remaining architecture C4 work plus other mode-specific shapes should now
+  bind that direction into the broader authoring contract.
 
 ### Mode To Shape Mapping (First Slice)
 
@@ -244,27 +251,34 @@ packet, `requirements` produces a real PRD, `change` produces a real ADR,
   surface supports it.
 - `system-shaping` → Domain map seed (bounded contexts, ubiquitous language,
   core vs supporting subdomains) aligned with the upcoming
-  `Domain Modeling And Boundary Design` feature.
+  `Domain Modeling And Boundary Design` feature, plus candidate structural
+  patterns (modular monolith vs services, sync orchestration vs events, etc.)
+  with pros/cons when the source leaves room for a real choice.
 - `architecture` → C4 model (System Context, Container, Component) plus an ADR
   per architecturally significant decision, alongside the existing critique
-  artifacts.
+  artifacts and explicit `Options Considered`, `Decision Drivers`, `Pros`,
+  `Cons`, and `Operational Tradeoffs` sections.
 - `change` → ADR-shaped decision record (Context, Decision, Status,
-  Consequences) attached to the change surface.
+  Consequences) attached to the change surface, with a design-pattern-choice
+  appendix when the change materially hinges on choosing Strategy vs State,
+  pipeline vs direct composition, adapter vs direct integration, and similar
+  bounded alternatives.
 - `implementation` → Task mapping plus a contract test plan shape and an
   Implementation Notes shape that links each task to the bounded slice it
-  implements.
+  implements, plus a framework/library evaluation dossier when execution
+  depends on choosing a concrete stack.
 - `refactor` → Preserved Behavior matrix in invariant-vs-mechanism form, plus
   a structural-rationale ADR.
 - `review` → Findings shape compatible with reviewer workflows (Severity,
   Location, Rationale, Recommended Change).
-- `pr-review` → Conventional Comments shape (`praise`, `nitpick`, `suggestion`,
-  `issue`, `todo`, `question`, `thought`, `chore`) per finding.
+- `pr-review` → Conventional Comments shape is now the delivered reference
+  implementation for reviewer-facing standardization.
 - `verification` → Claims/Evidence/Independence matrix.
 
 ### First Slice
 
-- Pick three high-leverage modes for the initial pass: `architecture` (C4 +
-  ADR), `requirements` (PRD), and `pr-review` (Conventional Comments).
+- Pick three high-leverage modes for the next pass: `architecture` (C4 + ADR),
+  `requirements` (PRD), and `change` (ADR + pattern-choice appendix).
 - For each, extend the skill with the required H2 sections in the chosen
   industry shape, extend the renderer to recognize and preserve those
   sections, and add per-shape unit tests.
@@ -281,10 +295,111 @@ packet, `requirements` produces a real PRD, `change` produces a real ADR,
 
 ### Relationship To Existing Features
 
-- Subsumes the `architecture` C4 work in
-  `Stronger Review And Architecture Outputs` and the `pr-review` Conventional
-  Comments work in the same feature.
+- Subsumes the remaining `architecture` C4 work in
+  `Stronger Architecture Outputs` and generalizes the delivered `pr-review`
+  Conventional Comments pattern into other modes.
 - Composes with `Domain Modeling And Boundary Design` for `system-shaping`.
+- Provides the natural artifact homes for the option-analysis feature below,
+  especially `Options Considered`, `Why Not`, and evaluation dossiers.
+
+## Feature: Decision Alternatives, Pattern Choices, And Framework Evaluations
+
+### Outcome
+
+Canon becomes a real engineering companion for decision-heavy work: instead of
+jumping straight to one recommendation, it presents 2 to 4 viable
+alternatives, compares them explicitly, and recommends one with clear
+rationale grounded in the user's constraints, the real source surface, and
+observable ecosystem signals.
+
+### Problem We Are Solving
+
+- Today Canon is strongest when the user already knows the shape of the answer,
+  but many high-value engineering conversations are about choosing between
+  multiple valid approaches before implementation starts.
+- An architecture packet, ADR, or implementation plan that records only the
+  selected option loses most of the reasoning value. Teams later ask: what did
+  we reject, why, and what would make us revisit that decision?
+- Framework and library recommendations are especially weak if they do not
+  compare ecosystem health, feature fit, maturity, and operational cost.
+
+### Decision Surfaces In Scope
+
+- Architecture choice: modular monolith vs service split, synchronous API vs
+  event-driven, relational vs document vs stream-first persistence, hosted vs
+  self-managed infrastructure.
+- Design-pattern choice: Strategy vs State, Observer vs domain events,
+  Decorator vs middleware pipeline, adapter layer vs direct integration,
+  orchestrator vs choreography.
+- Framework / library / platform choice: web framework, UI stack, ORM, queue,
+  auth provider, workflow engine, search engine, test runner, scanner suite,
+  and similar bounded stack decisions.
+- Build-vs-buy and OSS-vs-commercial choices where Canon stays
+  recommendation-only and keeps explicit approval boundaries.
+
+### Required Comparison Packet Shape
+
+- `decision-summary.md` — the decision to be made, current constraints, the
+  recommended option, and the trigger that would reopen the decision.
+- `options-matrix.md` — 2 to 4 viable options with explicit pros, cons, risks,
+  and fit against the named constraints.
+- `tradeoff-analysis.md` — decision drivers, non-goals, irreversible costs,
+  lock-in risk, migration pressure, operational burden, and team-skill impact.
+- `ecosystem-health.md` — maintenance cadence, release freshness, contributor
+  spread, issue responsiveness, stars/forks as weak signals only,
+  documentation quality, plugin ecosystem, and LTS/commercial support when
+  relevant.
+- `adoption-and-migration.md` — migration complexity, coexistence strategy,
+  exit cost, training burden, backward-compatibility impact, and rollout risk.
+- `decision-evidence.md` — links to source artifacts, package registries,
+  project metadata, release notes, GitHub activity, benchmark references, and
+  user-provided constraints.
+
+### Evaluation Rules
+
+- Canon must never pretend a comparison exists when the choice is already
+  constrained to one viable option; it should say that the decision is already
+  materially closed.
+- Stars are advisory only and must never be the decisive signal on their own.
+- Framework recommendations should account for maintenance status, release
+  cadence, maturity, feature fit, documentation quality, ecosystem depth,
+  licensing, security posture, operational burden, and migration cost.
+- When live ecosystem data is missing, stale, or unavailable, Canon marks
+  `## Missing Evidence` instead of inventing confidence.
+- Closed-source or paid products may be compared when the user allows them,
+  but OSS and commercial options must be labeled clearly and evaluated against
+  the same declared constraints.
+
+### First Slice
+
+- Add an option-analysis shape to `architecture`: `Decision Drivers`, `Options
+  Considered`, `Pros`, `Cons`, `Recommendation`, and `Why Not The Others`.
+- Add a pattern-selection shape to `system-shaping` and `change` for
+  pattern-heavy problems where structure is the real decision.
+- Add a framework/library evaluation shape to `implementation` and
+  `migration` when the bounded task includes selecting a concrete stack.
+- Add read-only evidence collectors for registry, GitHub, release, and
+  project-health signals so comparisons are backed by real evidence rather
+  than vibes.
+- Keep final selections recommendation-only in v0.x.
+
+### Why This Feature
+
+- It turns Canon from a packet generator into a real decision companion.
+- It creates durable reasoning artifacts teams can revisit months later when a
+  framework, pattern, or platform choice stops fitting.
+- It reduces hindsight debates because rejected options remain visible instead
+  of disappearing from the record.
+
+### Relationship To Existing Features
+
+- Depends on *Mode Authoring Specialization* so option packets are authored
+  explicitly rather than inferred from a final choice.
+- Composes with *Industry-Standard Artifact Shapes* because ADRs, PRDs, and
+  architecture packets are the natural homes for `Options Considered` and
+  tradeoff analysis.
+- Feeds *Supply Chain And Legacy Analysis Mode* when ecosystem health,
+  maintenance posture, and migration cost matter to the recommendation.
 
 ## Feature: Cybersecurity Risk Assessment Mode
 
