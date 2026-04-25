@@ -893,6 +893,78 @@ mod tests {
     }
 
     #[test]
+    fn run_summary_markdown_renders_operational_mode_action_chips() {
+        let summary = RunSummary {
+            run_id: "run-incident-123".to_string(),
+            uuid: None,
+            owner: "Owner".to_string(),
+            mode: "incident".to_string(),
+            risk: "systemic-impact".to_string(),
+            zone: "red".to_string(),
+            system_context: Some("existing".to_string()),
+            state: "AwaitingApproval".to_string(),
+            artifact_count: 6,
+            invocations_total: 4,
+            invocations_denied: 0,
+            invocations_pending_approval: 1,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: vec!["gate:risk".to_string()],
+            artifact_paths: vec![".canon/artifacts/run-incident-123/incident/incident-frame.md".to_string()],
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            mode_result: Some(ModeResultSummary {
+                headline: "Incident packet ready for governed containment review.".to_string(),
+                artifact_packet_summary:
+                    "Primary artifact bounds the active incident surface and preserves containment posture."
+                        .to_string(),
+                execution_posture: Some("recommendation-only".to_string()),
+                primary_artifact_title: "Incident Frame".to_string(),
+                primary_artifact_path:
+                    ".canon/artifacts/run-incident-123/incident/incident-frame.md".to_string(),
+                primary_artifact_action: ResultActionSummary {
+                    id: "open-primary-artifact".to_string(),
+                    label: "Open primary artifact".to_string(),
+                    host_action: "open-file".to_string(),
+                    target:
+                        ".canon/artifacts/run-incident-123/incident/incident-frame.md".to_string(),
+                    text_fallback:
+                        "Open the primary artifact at .canon/artifacts/run-incident-123/incident/incident-frame.md."
+                            .to_string(),
+                },
+                result_excerpt: "Containment stays bounded to payments-api and checkout flow."
+                    .to_string(),
+                action_chips: vec![canon_engine::ActionChip {
+                    id: "inspect-evidence".to_string(),
+                    label: "Inspect evidence".to_string(),
+                    skill: "canon-inspect-evidence".to_string(),
+                    intent: "Inspect".to_string(),
+                    prefilled_args: std::collections::BTreeMap::new(),
+                    required_user_inputs: Vec::new(),
+                    visibility_condition:
+                        "state is AwaitingApproval or Completed".to_string(),
+                    recommended: true,
+                    text_fallback:
+                        "Inspect evidence for run run-incident-123: canon inspect evidence --run run-incident-123."
+                            .to_string(),
+                }],
+            }),
+            recommended_next_action: None,
+        };
+
+        let markdown = render_run_summary_markdown(&summary);
+
+        assert!(markdown.contains("Mode: incident"));
+        assert!(markdown.contains("Execution Posture: recommendation-only"));
+        assert!(markdown.contains("Action Chips:"));
+        assert!(markdown.contains(
+            "Inspect evidence for run run-incident-123: canon inspect evidence --run run-incident-123. (recommended)"
+        ));
+    }
+
+    #[test]
     fn run_summary_markdown_keeps_mandatory_next_step_for_gated_runs() {
         let summary = RunSummary {
             run_id: "run-456".to_string(),

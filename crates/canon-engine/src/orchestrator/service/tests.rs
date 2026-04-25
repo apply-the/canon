@@ -4,7 +4,8 @@ use super::{
     approved_execution_mutation_rationale, build_action_chips_for, canonical_mode_input_binding,
     capability_tag, execution_continuation_pending, extract_change_surface_entries,
     preserve_multiline_summary, recommend_next_action, resolved_execution_posture_label,
-    run_state_from_gates, set_execution_posture, set_post_approval_execution_consumed,
+    resolved_execution_posture_label_for_mode, run_state_from_gates, set_execution_posture,
+    set_post_approval_execution_consumed,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
 use crate::domain::execution::ExecutionPosture;
@@ -250,12 +251,42 @@ fn engine_service_resolves_relative_and_absolute_input_paths() {
 #[test]
 fn canonical_mode_input_binding_is_defined_for_canonical_bound_modes() {
     assert_eq!(canonical_mode_input_binding(Mode::Backlog), Some(("backlog.md", "backlog")));
+    assert_eq!(canonical_mode_input_binding(Mode::Incident), Some(("incident.md", "incident")));
     assert_eq!(
         canonical_mode_input_binding(Mode::Implementation),
         Some(("implementation.md", "implementation"))
     );
+    assert_eq!(canonical_mode_input_binding(Mode::Migration), Some(("migration.md", "migration")));
     assert_eq!(canonical_mode_input_binding(Mode::Refactor), Some(("refactor.md", "refactor")));
     assert_eq!(canonical_mode_input_binding(Mode::Requirements), None);
+}
+
+#[test]
+fn auto_bind_canonical_mode_inputs_supports_incident_and_migration_files() {
+    let workspace = TempDir::new().expect("temp dir");
+    let canon_input = workspace.path().join("canon-input");
+    std::fs::create_dir_all(&canon_input).expect("canon-input dir");
+    std::fs::write(
+        canon_input.join("incident.md"),
+        "# Incident Brief\n\n## Incident Scope\n- payments\n",
+    )
+    .expect("incident file");
+    std::fs::write(
+        canon_input.join("migration.md"),
+        "# Migration Brief\n\n## Current State\n- v1\n",
+    )
+    .expect("migration file");
+
+    let service = EngineService::new(workspace.path());
+
+    assert_eq!(
+        service.auto_bind_canonical_mode_inputs(Mode::Incident, &[], &[]),
+        vec!["canon-input/incident.md".to_string()]
+    );
+    assert_eq!(
+        service.auto_bind_canonical_mode_inputs(Mode::Migration, &[], &[]),
+        vec!["canon-input/migration.md".to_string()]
+    );
 }
 
 #[test]
@@ -545,6 +576,19 @@ fn resolved_execution_posture_label_keeps_recommendation_only_until_resume_runs(
         resolved_execution_posture_label(Some(&context), &approvals).as_deref(),
         Some("recommendation-only")
     );
+}
+
+#[test]
+fn resolved_execution_posture_label_for_mode_defaults_operational_modes_to_recommendation_only() {
+    assert_eq!(
+        resolved_execution_posture_label_for_mode(Mode::Incident, None, &[]).as_deref(),
+        Some("recommendation-only")
+    );
+    assert_eq!(
+        resolved_execution_posture_label_for_mode(Mode::Migration, None, &[]).as_deref(),
+        Some("recommendation-only")
+    );
+    assert_eq!(resolved_execution_posture_label_for_mode(Mode::Backlog, None, &[]), None);
 }
 
 #[test]

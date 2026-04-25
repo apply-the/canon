@@ -64,6 +64,24 @@ pub struct ImplementationGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+pub struct IncidentGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
+pub struct MigrationGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
 pub struct RefactorGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -327,6 +345,161 @@ pub fn evaluate_implementation_gates(
     }
     gates.push(release);
     gates
+}
+
+pub fn evaluate_incident_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: IncidentGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone incident work requires explicit approval before it can proceed",
+        ),
+        operational_capture_gate(
+            named_artifact_gate(
+                GateKind::IncidentContainment,
+                contract,
+                artifacts,
+                &["incident-frame.md", "blast-radius-map.md", "containment-plan.md"],
+                "incident containment requires an explicit incident frame, blast radius map, and containment plan",
+            ),
+            artifacts,
+            &["incident-frame.md", "blast-radius-map.md", "containment-plan.md"],
+            GateKind::IncidentContainment,
+        ),
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["incident-frame.md", "incident-decision-record.md"],
+            "incident review requires an incident frame and decision record before architecture can pass",
+        ),
+        operational_capture_gate(
+            analysis_release_readiness_gate(
+                GateKind::ReleaseReadiness,
+                contract,
+                artifacts,
+                context.validation_independence_satisfied,
+                context.evidence_complete,
+                "incident readiness requires persisted context, critique, and follow-up verification evidence",
+            ),
+            artifacts,
+            &[
+                "incident-frame.md",
+                "blast-radius-map.md",
+                "containment-plan.md",
+                "incident-decision-record.md",
+                "follow-up-verification.md",
+            ],
+            GateKind::ReleaseReadiness,
+        ),
+    ]
+}
+
+pub fn evaluate_migration_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: MigrationGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Exploration,
+            contract,
+            artifacts,
+            &["source-target-map.md"],
+            "migration exploration requires a bounded source-target map",
+        ),
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["source-target-map.md", "compatibility-matrix.md", "decision-record.md"],
+            "migration architecture review requires source-target mapping, compatibility posture, and decision capture",
+        ),
+        operational_capture_gate(
+            named_artifact_gate(
+                GateKind::MigrationSafety,
+                contract,
+                artifacts,
+                &[
+                    "compatibility-matrix.md",
+                    "sequencing-plan.md",
+                    "fallback-plan.md",
+                    "migration-verification-report.md",
+                ],
+                "migration safety requires compatibility, sequencing, fallback, and verification artifacts",
+            ),
+            artifacts,
+            &[
+                "compatibility-matrix.md",
+                "sequencing-plan.md",
+                "fallback-plan.md",
+                "migration-verification-report.md",
+            ],
+            GateKind::MigrationSafety,
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone migration work requires explicit approval before it can proceed",
+        ),
+        operational_capture_gate(
+            analysis_release_readiness_gate(
+                GateKind::ReleaseReadiness,
+                contract,
+                artifacts,
+                context.validation_independence_satisfied,
+                context.evidence_complete,
+                "migration readiness requires persisted context, critique, and verification evidence",
+            ),
+            artifacts,
+            &[
+                "source-target-map.md",
+                "compatibility-matrix.md",
+                "sequencing-plan.md",
+                "fallback-plan.md",
+                "migration-verification-report.md",
+                "decision-record.md",
+            ],
+            GateKind::ReleaseReadiness,
+        ),
+    ]
+}
+
+fn operational_capture_gate(
+    mut evaluation: GateEvaluation,
+    artifacts: &[(String, String)],
+    names: &[&str],
+    gate: GateKind,
+) -> GateEvaluation {
+    evaluation.blockers.extend(
+        names
+            .iter()
+            .filter_map(|name| {
+                artifacts.iter().find(|(file_name, _)| file_name == name).and_then(
+                    |(file_name, contents)| {
+                        if contents.contains("NOT CAPTURED") {
+                            Some(format!(
+                                "{file_name} still contains uncaptured operational evidence and blocks {} review",
+                                gate.as_str()
+                            ))
+                        } else {
+                            None
+                        }
+                    },
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+    evaluation.status = gate_status_from_blockers(&evaluation.blockers);
+    evaluation
 }
 
 pub fn evaluate_refactor_gates(
@@ -1265,13 +1438,14 @@ mod tests {
     use time::OffsetDateTime;
 
     use super::{
-        ChangeGateContext, ImplementationGateContext, PrReviewGateContext, RefactorGateContext,
-        evaluate_change_gates, evaluate_implementation_gates, evaluate_pr_review_gates,
-        evaluate_refactor_gates, evaluate_requirements_gates,
+        ChangeGateContext, ImplementationGateContext, IncidentGateContext, MigrationGateContext,
+        PrReviewGateContext, RefactorGateContext, evaluate_change_gates,
+        evaluate_implementation_gates, evaluate_incident_gates, evaluate_migration_gates,
+        evaluate_pr_review_gates, evaluate_refactor_gates, evaluate_requirements_gates,
     };
     use crate::artifacts::contract::contract_for_mode;
     use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
-    use crate::domain::artifact::{ArtifactContract, ArtifactRequirement};
+    use crate::domain::artifact::{ArtifactContract, ArtifactFormat, ArtifactRequirement};
     use crate::domain::execution::DeniedInvocation;
     use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
     use crate::domain::mode::Mode;
@@ -1302,6 +1476,107 @@ mod tests {
 
     fn gate(evaluations: &[GateEvaluation], kind: GateKind) -> &GateEvaluation {
         evaluations.iter().find(|evaluation| evaluation.gate == kind).expect("gate present")
+    }
+
+    fn artifact_requirement(
+        file_name: &str,
+        sections: &[&str],
+        gates: &[GateKind],
+    ) -> ArtifactRequirement {
+        ArtifactRequirement {
+            file_name: file_name.to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: sections.iter().map(ToString::to_string).collect(),
+            gates: gates.to_vec(),
+        }
+    }
+
+    fn incident_contract() -> ArtifactContract {
+        ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![
+                artifact_requirement(
+                    "incident-frame.md",
+                    &[
+                        "Summary",
+                        "Incident Scope",
+                        "Trigger And Current State",
+                        "Operational Constraints",
+                    ],
+                    &[GateKind::Risk, GateKind::IncidentContainment, GateKind::Architecture],
+                ),
+                artifact_requirement(
+                    "blast-radius-map.md",
+                    &[
+                        "Summary",
+                        "Impacted Surfaces",
+                        "Propagation Paths",
+                        "Confidence And Unknowns",
+                    ],
+                    &[GateKind::IncidentContainment],
+                ),
+                artifact_requirement(
+                    "containment-plan.md",
+                    &["Summary", "Immediate Actions", "Ordered Sequence", "Stop Conditions"],
+                    &[GateKind::IncidentContainment],
+                ),
+                artifact_requirement(
+                    "incident-decision-record.md",
+                    &["Summary", "Decision Points", "Approved Actions", "Deferred Actions"],
+                    &[GateKind::Architecture],
+                ),
+                artifact_requirement(
+                    "follow-up-verification.md",
+                    &["Summary", "Verification Checks", "Release Readiness", "Follow-Up Work"],
+                    &[GateKind::ReleaseReadiness],
+                ),
+            ],
+            required_verification_layers: Vec::new(),
+        }
+    }
+
+    fn migration_contract() -> ArtifactContract {
+        ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![
+                artifact_requirement(
+                    "source-target-map.md",
+                    &["Summary", "Current State", "Target State", "Transition Boundaries"],
+                    &[GateKind::Exploration, GateKind::Architecture],
+                ),
+                artifact_requirement(
+                    "compatibility-matrix.md",
+                    &[
+                        "Summary",
+                        "Guaranteed Compatibility",
+                        "Temporary Incompatibilities",
+                        "Coexistence Rules",
+                    ],
+                    &[GateKind::Architecture, GateKind::MigrationSafety],
+                ),
+                artifact_requirement(
+                    "sequencing-plan.md",
+                    &["Summary", "Ordered Steps", "Parallelizable Work", "Cutover Criteria"],
+                    &[GateKind::MigrationSafety],
+                ),
+                artifact_requirement(
+                    "fallback-plan.md",
+                    &["Summary", "Rollback Triggers", "Fallback Paths", "Re-Entry Criteria"],
+                    &[GateKind::MigrationSafety],
+                ),
+                artifact_requirement(
+                    "migration-verification-report.md",
+                    &["Summary", "Verification Checks", "Residual Risks", "Release Readiness"],
+                    &[GateKind::MigrationSafety, GateKind::ReleaseReadiness],
+                ),
+                artifact_requirement(
+                    "decision-record.md",
+                    &["Summary", "Migration Decisions", "Deferred Decisions", "Approval Notes"],
+                    &[GateKind::Architecture],
+                ),
+            ],
+            required_verification_layers: Vec::new(),
+        }
     }
 
     #[test]
@@ -1464,6 +1739,111 @@ mod tests {
             },
         );
         assert_eq!(gate(&approved, GateKind::Execution).status, GateStatus::Overridden);
+    }
+
+    #[test]
+    fn incident_gates_require_containment_artifacts_and_risk_approval() {
+        let contract = incident_contract();
+        let artifacts = valid_artifacts(&contract);
+
+        let gated = evaluate_incident_gates(
+            &contract,
+            &artifacts,
+            IncidentGateContext {
+                owner: "Owner",
+                risk: RiskClass::SystemicImpact,
+                zone: UsageZone::Red,
+                approvals: &[],
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+
+        assert_eq!(gate(&gated, GateKind::Risk).status, GateStatus::NeedsApproval);
+        assert_eq!(gate(&gated, GateKind::IncidentContainment).status, GateStatus::Passed);
+        assert_eq!(gate(&gated, GateKind::Architecture).status, GateStatus::Passed);
+        assert_eq!(gate(&gated, GateKind::ReleaseReadiness).status, GateStatus::Passed);
+    }
+
+    #[test]
+    fn incident_gates_block_when_operational_evidence_is_not_captured() {
+        let contract = incident_contract();
+        let mut artifacts = valid_artifacts(&contract);
+        artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "blast-radius-map.md")
+            .expect("blast radius artifact")
+            .1
+            .push_str("\n\nNOT CAPTURED");
+
+        let gated = evaluate_incident_gates(
+            &contract,
+            &artifacts,
+            IncidentGateContext {
+                owner: "Owner",
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                approvals: &[],
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+
+        assert_eq!(gate(&gated, GateKind::IncidentContainment).status, GateStatus::Blocked);
+        assert_eq!(gate(&gated, GateKind::ReleaseReadiness).status, GateStatus::Blocked);
+    }
+
+    #[test]
+    fn migration_gates_require_migration_safety_packet_and_pass_when_present() {
+        let contract = migration_contract();
+        let artifacts = valid_artifacts(&contract);
+
+        let evaluations = evaluate_migration_gates(
+            &contract,
+            &artifacts,
+            MigrationGateContext {
+                owner: "Owner",
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                approvals: &[],
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+
+        assert_eq!(gate(&evaluations, GateKind::Exploration).status, GateStatus::Passed);
+        assert_eq!(gate(&evaluations, GateKind::Architecture).status, GateStatus::Passed);
+        assert_eq!(gate(&evaluations, GateKind::MigrationSafety).status, GateStatus::Passed);
+        assert_eq!(gate(&evaluations, GateKind::Risk).status, GateStatus::Passed);
+        assert_eq!(gate(&evaluations, GateKind::ReleaseReadiness).status, GateStatus::Passed);
+    }
+
+    #[test]
+    fn migration_gates_block_when_fallback_plan_is_not_captured() {
+        let contract = migration_contract();
+        let mut artifacts = valid_artifacts(&contract);
+        artifacts
+            .iter_mut()
+            .find(|(file_name, _)| file_name == "fallback-plan.md")
+            .expect("fallback plan artifact")
+            .1
+            .push_str("\n\nNOT CAPTURED");
+
+        let evaluations = evaluate_migration_gates(
+            &contract,
+            &artifacts,
+            MigrationGateContext {
+                owner: "Owner",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+
+        assert_eq!(gate(&evaluations, GateKind::MigrationSafety).status, GateStatus::Blocked);
+        assert_eq!(gate(&evaluations, GateKind::ReleaseReadiness).status, GateStatus::Blocked);
     }
 
     #[test]

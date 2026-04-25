@@ -25,7 +25,13 @@ pub fn publish_run(
     let manifest = store.load_run_manifest(run_id)?;
     let state = store.load_run_state(run_id)?;
 
-    if state.state != RunState::Completed {
+    let operational_packet_publishable = matches!(manifest.mode, Mode::Incident | Mode::Migration)
+        && matches!(
+            state.state,
+            RunState::AwaitingApproval | RunState::Blocked | RunState::Completed
+        );
+
+    if state.state != RunState::Completed && !operational_packet_publishable {
         return Err(EngineError::Validation(format!(
             "cannot publish run `{run_id}` while state is `{:?}`; approval and resume must complete first",
             state.state

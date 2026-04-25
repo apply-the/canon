@@ -117,6 +117,7 @@ impl EngineService {
             }
             InspectTarget::Evidence { run_id } => {
                 let run_id = self.resolve_run(&run_id)?;
+                let mode = store.load_run_manifest(&run_id)?.mode;
                 let run_context = store.load_run_context(&run_id).ok();
                 let approvals = store.load_approval_records(&run_id).unwrap_or_default();
                 let system_context =
@@ -129,7 +130,8 @@ impl EngineService {
                     .load_evidence_bundle(&run_id)?
                     .map(|evidence| {
                         vec![InspectEntry::Evidence(EvidenceInspectSummary {
-                            execution_posture: resolved_execution_posture_label(
+                            execution_posture: resolved_execution_posture_label_for_mode(
+                                mode,
                                 run_context.as_ref(),
                                 &approvals,
                             ),

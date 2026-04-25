@@ -58,4 +58,8 @@ fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
     assert!(text.contains("backlog"));
     assert!(text.contains("implementation"));
     assert!(text.contains("refactor"));
+    assert!(text.contains("incident"));
+    assert!(text.contains("migration"));
+    assert_eq!(text.matches("incident").count(), 1);
+    assert_eq!(text.matches("migration").count(), 1);
 }

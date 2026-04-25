@@ -148,3 +148,88 @@ fn inspect_artifacts_rejects_manifest_records_that_escape_run_directory() {
         "unexpected error: {error}"
     );
 }
+
+#[test]
+fn persist_operational_artifact_bundle_rejects_escape_paths() {
+    let workspace = TempDir::new().expect("temp dir");
+    let store = WorkspaceStore::new(workspace.path());
+    let run_id = "run-operational-artifact-confinement";
+
+    let bundle = PersistedRunBundle {
+        run: RunManifest {
+            run_id: run_id.to_string(),
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: None,
+            mode: Mode::Incident,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: Some(canon_engine::domain::run::SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "owner@example.com".to_string(),
+            created_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        context: RunContext {
+            repo_root: workspace.path().display().to_string(),
+            owner: Some("owner@example.com".to_string()),
+            inputs: vec!["incident.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: Some(canon_engine::domain::run::SystemContext::Existing),
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            inline_inputs: Vec::new(),
+            captured_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        state: RunStateManifest {
+            state: RunState::Blocked,
+            updated_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        artifact_contract: ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![ArtifactRequirement {
+                file_name: "incident-frame.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                required_sections: Vec::new(),
+                gates: Vec::new(),
+            }],
+            required_verification_layers: Vec::new(),
+        },
+        artifacts: vec![PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "incident-frame.md".to_string(),
+                relative_path: "../incident-frame.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Incident Frame\n".to_string(),
+        }],
+        links: LinkManifest {
+            artifacts: Vec::new(),
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: Vec::new(),
+        verification_records: Vec::new(),
+        evidence: None,
+        invocations: Vec::new(),
+    };
+
+    let error = store
+        .persist_run_bundle(&bundle)
+        .expect_err("invalid operational artifact path should fail");
+
+    assert_eq!(error.kind(), ErrorKind::InvalidData);
+    assert!(
+        error
+            .to_string()
+            .contains("must not escape .canon/artifacts/ with traversal or root components"),
+        "unexpected error: {error}"
+    );
+}
