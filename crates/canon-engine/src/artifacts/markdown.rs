@@ -238,7 +238,41 @@ pub fn render_architecture_artifact(
         "readiness-assessment.md" => format!(
             "# Readiness Assessment\n\n## Summary\n\n{context_summary}\n\n## Readiness Status\n\nArchitecture analysis is ready for downstream consumption once approvals and unresolved questions are addressed.\n\n## Blockers\n\n{critique_summary}\n\n## Accepted Risks\n\n{generation_summary}\n"
         ),
+        "system-context.md" => {
+            render_c4_artifact("System Context", "system context", context_summary)
+        }
+        "container-view.md" => render_c4_artifact("Container View", "containers", context_summary),
+        "component-view.md" => render_c4_artifact("Component View", "components", context_summary),
         other => render_markdown(other, context_summary),
+    }
+}
+
+/// Shared marker emitted by C4 architecture artifacts when the authored brief
+/// did not include the canonical H2 section. Tests rely on this exact text.
+pub const C4_MISSING_AUTHORED_BODY_MARKER: &str = "## Missing Authored Body";
+
+fn render_c4_artifact(title: &str, marker: &str, context_summary: &str) -> String {
+    let normalized = context_summary.to_lowercase();
+    let canonical = canonical_c4_heading(marker);
+    match extract_marker(context_summary, &normalized, marker) {
+        Some(body) if !body.trim().is_empty() => {
+            format!("# {title}\n\n{canonical}\n\n{body}\n")
+        }
+        _ => {
+            format!(
+                "# {title}\n\n{canonical}\n\n{marker_heading}\n\nNo `{canonical}` section was authored in the supplied brief.\nAuthor this section in the architecture brief and rerun.\n",
+                marker_heading = C4_MISSING_AUTHORED_BODY_MARKER,
+            )
+        }
+    }
+}
+
+fn canonical_c4_heading(marker: &str) -> &'static str {
+    match marker {
+        "system context" => "## System Context",
+        "containers" => "## Containers",
+        "components" => "## Components",
+        _ => "## (unknown C4 section)",
     }
 }
 

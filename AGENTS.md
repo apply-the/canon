@@ -30,6 +30,8 @@ Auto-generated from all feature plans. Last updated: 2026-04-25
 - Local filesystem under `.canon/`, TOML manifests and `context.toml`, Markdown artifacts, repo-local skill source documents under `defaults/embedded-skills/` and `.agents/skills/` (010-controlled-execution-modes)
 - Local filesystem under `.canon/` for runtime artifacts and (013-pr-review-comments)
 - Local filesystem under `.canon/` for runtime artifacts and evidence, plus published markdown under `docs/incidents/` and `docs/migrations/` (014-high-risk-ops)
+- Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`); `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`. (015-architecture-c4)
+- local filesystem under `.canon/`; no schema or layout changes; published architecture artifacts continue to land in their existing publish destination. (015-architecture-c4)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -86,9 +88,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 015-architecture-c4: Added Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`); `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
 - 014-high-risk-ops: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 013-pr-review-comments: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`,
-- 012-backlog-mode: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->

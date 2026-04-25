@@ -10,43 +10,6 @@ Current end-to-end depth exists for `requirements`, `discovery`,
 distribution, and authoring improvements instead of reopening already
 delivered mode surfaces.
 
-## Feature: Stronger Architecture Outputs
-
-### Outcome
-
-Canon makes already-delivered architecture critique more reusable in real
-engineering workflows by extending `architecture` packets with C4 model
-documents and stronger external communication shapes.
-
-### Modes In Scope
-
-- `architecture`
-
-### Why This Mode Belongs Here
-
-- `architecture` is already delivered end to end, so the next value step is
-  output quality and interoperability with human workflows.
-- Architecture artifacts are routinely read outside Canon and benefit from
-  stronger standardization.
-- This improves downstream handoff into architecture communication without
-  widening Canon into a new runtime domain.
-
-### First Slice
-
-- Extend `architecture` output contracts to include C4 model documents,
-  starting with system context, container, and component views when the
-  authored input supports them.
-- Keep the existing decision, invariants, boundary, and tradeoff artifacts so
-  architecture remains critique-first instead of collapsing into diagram-only
-  output.
-
-### Why This Feature Comes After Mode Completion
-
-- It deepens the usefulness of modes Canon already ships instead of increasing
-  mode coverage.
-- It should follow the now-complete mode-coverage slice because it is
-  output-quality work, not closure of a missing workflow.
-
 ## Feature: Domain Modeling And Boundary Design
 
 ### Outcome
@@ -104,6 +67,15 @@ vocabulary for domain work.
   existing workflows instead of closing a missing one.
 
 ## Delivered Recently
+
+- `architecture` now extends its packet with three C4 artifacts —
+  `system-context.md` (Architecture + Exploration gates), `container-view.md`
+  (Architecture gate), and `component-view.md` (Architecture +
+  ReleaseReadiness gates). The renderer preserves authored `## System Context`,
+  `## Containers`, and `## Components` sections verbatim and emits an explicit
+  `## Missing Authored Body` block referencing the canonical heading whenever
+  the brief omits a section. Existing decision, invariant, tradeoff, boundary,
+  and readiness artifacts are unchanged.
 
 - `incident` now ships as a governed operational mode that emits a six-artifact
   containment packet, remains recommendation-only, can stop for explicit risk
@@ -267,8 +239,9 @@ preserving the winning choice.
 
 ### Relationship To Existing Features
 
-- Subsumes the remaining `architecture` C4 work in
-  `Stronger Architecture Outputs` and generalizes the delivered `pr-review`
+- Builds on the now-delivered `architecture` C4 packet by generalizing
+  community-standard artifact shapes (ADRs, RFCs, runbooks) into the rest of
+  Canon's mode coverage, and generalizes the delivered `pr-review`
   Conventional Comments pattern into other modes.
 - Composes with `Domain Modeling And Boundary Design` for `system-shaping`.
 - Provides the natural artifact homes for the option-analysis feature below,
