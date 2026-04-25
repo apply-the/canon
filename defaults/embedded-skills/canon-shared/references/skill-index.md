@@ -1,8 +1,8 @@
 # Canon Skill Index
 
-All Canon skills are discoverable through `$`. Available-now skills drive the
-real Canon CLI. Remaining modeled-only skills stay visible, but they must stay
-brutally explicit about the boundary and nearest honest alternative.
+All Canon skills are discoverable through `$`. Every listed skill drives the
+real Canon CLI today. If intentionally limited skills are added later, they
+must stay brutally explicit about the boundary and nearest honest alternative.
 
 | Skill | Class | Support State | Visibility | Nearest Related Skills |
 | --- | --- | --- | --- | --- |
@@ -25,5 +25,5 @@ brutally explicit about the boundary and nearest honest alternative.
 | `canon-backlog` | executable-wrapper | `available-now` | discoverable-standard | `canon-architecture`, `canon-implementation` |
 | `canon-implementation` | executable-wrapper | `available-now` | discoverable-standard | `canon-change`, `canon-inspect-artifacts` |
 | `canon-refactor` | executable-wrapper | `available-now` | discoverable-standard | `canon-change`, `canon-review` |
-| `canon-incident` | support-state-wrapper | `modeled-only` | discoverable-standard | `canon-change`, `canon-requirements` |
-| `canon-migration` | support-state-wrapper | `modeled-only` | discoverable-standard | `canon-change`, `canon-architecture` |
+| `canon-incident` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-artifacts` |
+| `canon-migration` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-artifacts` |

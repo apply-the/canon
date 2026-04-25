@@ -122,7 +122,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
         Architecture, ChangePreservation, Exploration, ImplementationReadiness,
         IncidentContainment, MigrationSafety, ReleaseReadiness, ReviewDisposition, Risk,
     };
-    use ImplementationDepth::{Full, Skeleton};
+    use ImplementationDepth::Full;
     use Mode::{
         Architecture as ArchitectureMode, Backlog, Change, Discovery, Implementation, Incident,
         Migration, PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
@@ -314,7 +314,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             mode: Incident,
             purpose: "Bound investigation and containment work during failures.",
             emphasis: AnalysisHeavy,
-            implementation_depth: Skeleton,
+            implementation_depth: Full,
             gate_profile: vec![Risk, IncidentContainment, Architecture, ReleaseReadiness],
             artifact_families: vec![
                 "incident frame",
@@ -330,7 +330,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             mode: Migration,
             purpose: "Manage movement between systems or contracts with explicit compatibility control.",
             emphasis: AnalysisHeavy,
-            implementation_depth: Skeleton,
+            implementation_depth: Full,
             gate_profile: vec![Exploration, Architecture, MigrationSafety, Risk, ReleaseReadiness],
             artifact_families: vec![
                 "source-target map",

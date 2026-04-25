@@ -77,9 +77,8 @@ specific LLM provider; the assistant in the chat is the model.
 - [`review`](#mode-review)
 - [`verification`](#mode-verification)
 - [`pr-review`](#mode-pr-review)
-
-Modes that are still modeled but not implemented end to end remain outside the
-scope of this guide. Today that still includes `incident` and `migration`.
+- [`incident`](#mode-incident)
+- [`migration`](#mode-migration)
 
 ## Input Binding Rules
 
@@ -93,6 +92,8 @@ convention:
 - `backlog`: `canon-input/backlog.md` or `canon-input/backlog/`
 - `change`: `canon-input/change.md` or `canon-input/change/`
 - `implementation`: `canon-input/implementation.md` or `canon-input/implementation/`
+- `incident`: `canon-input/incident.md` or `canon-input/incident/`
+- `migration`: `canon-input/migration.md` or `canon-input/migration/`
 - `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
 - `review`: `canon-input/review.md` or `canon-input/review/`
 - `verification`: `canon-input/verification.md` or `canon-input/verification/`
@@ -126,7 +127,7 @@ authored content.
 Modes that target a specific system state also require an explicit
 `--system-context` binding. Use `--system-context new|existing` for
 `system-shaping` and `architecture`; use `--system-context existing` for
-`backlog`, `change`, `implementation`, and `refactor`.
+`backlog`, `change`, `implementation`, `incident`, `migration`, and `refactor`.
 
 `review` is stricter in the current runtime slice: it expects exactly one
 authored review packet at `canon-input/review.md` or `canon-input/review/`.
@@ -157,9 +158,10 @@ Publishing copies the emitted artifact files out of `.canon/artifacts/` and
 into a visible workspace directory. It never mutates or deletes the governed
 copy under `.canon/`.
 
-Publishing is allowed only for runs whose state is `Completed`. If a run is
-still `AwaitingApproval`, blocked, or otherwise incomplete, do not publish it;
-approve the required targets and resume the run first.
+Publishing is allowed for runs whose state is `Completed`. `incident` and
+`migration` are the exception: approval-gated or blocked operational packets
+may also publish when the emitted artifact set exists and the goal is packet
+review outside the runtime.
 
 Default publish targets by mode:
 
@@ -170,6 +172,8 @@ Default publish targets by mode:
 - `backlog` -> `docs/planning/<RUN_ID>/`
 - `change` -> `docs/changes/<RUN_ID>/`
 - `implementation` -> `docs/implementation/<RUN_ID>/`
+- `incident` -> `docs/incidents/<RUN_ID>/`
+- `migration` -> `docs/migrations/<RUN_ID>/`
 - `refactor` -> `docs/refactors/<RUN_ID>/`
 - `review` -> `docs/reviews/<RUN_ID>/`
 - `verification` -> `docs/verification/<RUN_ID>/`
@@ -252,19 +256,21 @@ stateDiagram-v2
   Published --> [*]
 ```
 
-### 4) Future Modes (Modeled, Not Fully Runnable Yet)
+### 4) Operational Modes (Supported Today)
 
 ```mermaid
 flowchart TD
   A[Special operational need] --> B{Scenario type}
-  B -->|Incident or outage| INC[incident]
-  B -->|Migration initiative| MIG[migration]
+  B -->|Incident or outage| INC[incident + system_context=existing]
+  B -->|Migration initiative| MIG[migration + system_context=existing]
 
-  INC --> S1[Current state: modeled, not full end-to-end]
-  MIG --> S2[Current state: modeled, not full end-to-end]
+  INC --> I1[Incident packet: frame, hypotheses, blast radius, containment, decisions, follow-up]
+  MIG --> M1[Migration packet: source-target map, compatibility, sequencing, fallback, verification, decisions]
 
-  S1 --> ALT1[Practical fallback: discovery, change, review, verification]
-  S2 --> ALT2[Practical fallback: discovery, system-shaping, change, review]
+  I1 --> I2[Optional risk approval]
+  M1 --> M2[Optional risk approval]
+  I2 --> IPUB[canon publish -> docs/incidents/<RUN_ID>/]
+  M2 --> MPUB[canon publish -> docs/migrations/<RUN_ID>/]
 ```
 
 ### 5) Quick Legend
@@ -274,7 +280,7 @@ flowchart TD
 - `change` defines bounded modification scope and preserved invariants.
 - `implementation` and `refactor` produce governed execution/preservation packets with approval gating.
 - `review`, `verification`, and `pr-review` challenge packet quality, evidence, and diff-level correctness.
-- `incident` and `migration` remain future-facing modeled modes in the current runtime slice.
+- `incident` and `migration` produce recommendation-only operational packets with publishable blocked or approval-gated review surfaces.
 
 ## Mode: discovery
 
@@ -1328,4 +1334,155 @@ canon run \
   --owner reviewer \
   --input refs/heads/main \
   --input HEAD
+```
+
+## Mode: incident
+
+### Use It For
+
+Produce a governed containment packet for an active operational problem in an
+existing system.
+
+### Input Shape
+
+A bounded incident brief or folder-backed incident packet.
+
+### Good Input Should Include
+
+- incident scope
+- trigger and current state
+- operational constraints
+- known facts and working hypotheses
+- evidence gaps
+- impacted surfaces and propagation paths
+- immediate actions and ordered sequence
+- stop conditions and decision points
+- verification checks
+- release-readiness posture and follow-up work
+
+### Questions This Mode Answers
+
+- what should be contained first
+- which surfaces are inside the current blast radius
+- which assumptions still need evidence
+- which actions are approved now versus deferred
+- whether the packet is ready for operational review or explicit risk approval
+
+### Questions This Mode Does Not Answer Well
+
+- how to execute privileged remediation automatically
+- which code patch should land without a separate change packet
+- how to redesign the broader system beyond the bounded incident surface
+
+### What Canon Emits
+
+Incident produces a governed operational packet with these artifacts:
+
+- `incident-frame.md`
+- `hypothesis-log.md`
+- `blast-radius-map.md`
+- `containment-plan.md`
+- `incident-decision-record.md`
+- `follow-up-verification.md`
+
+Run and status summaries surface `incident-frame.md` as the primary artifact
+and keep the packet's `recommendation-only` posture explicit.
+
+### Typical Handoff After This Mode
+
+- inspect the packet or evidence first when the incident surface is still contested
+- approve `gate:risk` when a systemic or red-zone incident packet is credible enough to advance
+- publish readable packets to `docs/incidents/<RUN_ID>/` for external review, even when the run is still approval-gated or blocked
+- move to `change` only when the next real step is bounded code-change planning rather than operational reasoning
+
+### Common Mistakes
+
+- using `incident` before the affected surface is actually bounded
+- expecting Canon to execute containment or rollback steps on your behalf
+- treating the incident packet as a substitute for a bounded change plan
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode incident \
+  --system-context existing \
+  --risk systemic-impact \
+  --zone red \
+  --owner incident-commander \
+  --input canon-input/incident.md
+```
+
+## Mode: migration
+
+### Use It For
+
+Produce a governed migration packet for a risky transition in an existing
+system where compatibility, sequencing, and fallback credibility matter.
+
+### Input Shape
+
+A bounded migration brief or folder-backed migration packet.
+
+### Good Input Should Include
+
+- current state and target state
+- transition boundaries
+- guaranteed compatibility and temporary incompatibilities
+- coexistence rules
+- ordered steps and cutover criteria
+- rollback triggers, fallback paths, and re-entry criteria
+- verification checks and residual risks
+- release-readiness posture and migration decisions
+
+### Questions This Mode Answers
+
+- what must stay compatible during the transition
+- what order the rollout steps need to follow
+- what fallback remains credible if the cutover stalls or regresses
+- whether the packet is ready for migration review or explicit risk approval
+
+### Questions This Mode Does Not Answer Well
+
+- how to redesign the target system from scratch
+- how to execute rollout or rollback steps automatically
+- which bounded code change should land without a separate change packet
+
+### What Canon Emits
+
+Migration produces a governed operational packet with these artifacts:
+
+- `source-target-map.md`
+- `compatibility-matrix.md`
+- `sequencing-plan.md`
+- `fallback-plan.md`
+- `migration-verification-report.md`
+- `decision-record.md`
+
+Run and status summaries surface `source-target-map.md` as the primary artifact
+and keep the packet's `recommendation-only` posture explicit.
+
+### Typical Handoff After This Mode
+
+- inspect the packet or evidence first when compatibility or fallback is still contested
+- approve `gate:risk` when a systemic or red-zone migration packet is credible enough to advance
+- publish readable packets to `docs/migrations/<RUN_ID>/` for external review, even when the run is still approval-gated or blocked
+- move to `change` only when the next real step is bounded code-change planning rather than migration reasoning
+
+### Common Mistakes
+
+- using `migration` before the source/target boundary is actually bounded
+- pretending fallback is credible when rollback triggers or paths are still missing
+- expecting Canon to execute cutover or rollback work on your behalf
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode migration \
+  --system-context existing \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner migration-lead \
+  --input canon-input/migration.md
 ```
