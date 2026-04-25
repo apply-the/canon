@@ -1468,6 +1468,19 @@ pub fn render_pr_review_artifact(
                 "- Boundary-marked files changed and remain explicit in the review packet."
             },
         ),
+        "conventional-comments.md" => format!(
+            "# Conventional Comments\n\n## Summary\n\nReviewer-facing conventional comments derived from {} persisted finding(s) for `{}` against `{}`.\n\n## Evidence Posture\n\n- Comment kinds are deterministically mapped from persisted review findings.\n- Entries remain surface-scoped and do not fabricate line-level anchors.\n- Approval posture remains anchored by `review-summary.md`.\n\n## Conventional Comments\n\n{}\n\n## Traceability\n\n- Review summary status: `{}`\n- Changed surfaces: {}\n- Source packet: `review-summary.md` and `pr-analysis.md`\n",
+            packet.findings.len(),
+            packet.head_ref,
+            packet.base_ref,
+            render_conventional_comments(packet),
+            summary.disposition.as_str(),
+            if packet.changed_surfaces.is_empty() {
+                "none".to_string()
+            } else {
+                packet.changed_surfaces.join(", ")
+            },
+        ),
         "duplication-check.md" => format!(
             "# Duplication Check\n\n## Summary\n\nDuplication review for the bounded diff.\n\n## Duplicate Behavior\n\n{}\n\n## Canonical Owner Conflicts\n\n{}\n",
             render_findings(
@@ -1728,6 +1741,31 @@ fn render_findings(findings: &[&ReviewFinding], empty_message: &str) -> String {
         .join("\n")
 }
 
+fn render_conventional_comments(packet: &ReviewPacket) -> String {
+    if packet.findings.is_empty() {
+        return "- thought: No findings were recorded for this review packet.".to_string();
+    }
+
+    packet
+        .findings
+        .iter()
+        .map(|finding| {
+            format!(
+                "- {}: {}\n  - Why: {}\n  - Surfaces: {}",
+                finding.conventional_comment_kind(),
+                finding.title,
+                finding.details,
+                if finding.changed_surfaces.is_empty() {
+                    "none".to_string()
+                } else {
+                    finding.changed_surfaces.join(", ")
+                }
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn ownership_breaks(packet: &ReviewPacket) -> String {
     let boundary_findings = packet.findings_for(FindingCategory::BoundaryCheck);
     if boundary_findings.is_empty() {
@@ -1870,6 +1908,11 @@ mod tests {
 
         let contract =
             render_pr_review_artifact("contract-drift.md", &must_fix_packet, &must_fix_summary);
+        let conventional_comments = render_pr_review_artifact(
+            "conventional-comments.md",
+            &must_fix_packet,
+            &must_fix_summary,
+        );
         let summary =
             render_pr_review_artifact("review-summary.md", &must_fix_packet, &must_fix_summary);
 
@@ -1877,6 +1920,9 @@ mod tests {
         assert!(contract.contains(
             "Compatibility risk remains explicit until reviewer disposition is recorded."
         ));
+        assert!(conventional_comments.contains("issue:"));
+        assert!(conventional_comments.contains("thought:"));
+        assert!(conventional_comments.contains("contracts/public-api.json"));
         assert!(summary.contains("Overall severity: must-fix"));
         assert!(summary.contains("Status: accepted-with-approval"));
         assert!(summary.contains("- Decision note"));

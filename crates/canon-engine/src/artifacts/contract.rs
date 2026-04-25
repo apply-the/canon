@@ -359,6 +359,11 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Architecture, GateKind::ReviewDisposition],
             ),
             requirement(
+                "conventional-comments.md",
+                &["Summary", "Evidence Posture", "Conventional Comments", "Traceability"],
+                &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+            ),
+            requirement(
                 "duplication-check.md",
                 &["Summary", "Duplicate Behavior", "Canonical Owner Conflicts"],
                 &[GateKind::ReviewDisposition],
