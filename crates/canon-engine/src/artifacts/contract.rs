@@ -355,6 +355,17 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &["Summary", "Readiness Status", "Blockers", "Accepted Risks"],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
+            requirement(
+                "system-context.md",
+                &["System Context"],
+                &[GateKind::Architecture, GateKind::Exploration],
+            ),
+            requirement("container-view.md", &["Containers"], &[GateKind::Architecture]),
+            requirement(
+                "component-view.md",
+                &["Components"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
         ],
         Mode::Review => vec![
             requirement(

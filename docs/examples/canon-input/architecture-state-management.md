@@ -36,3 +36,25 @@ We need to choose a durable state management backend for processing long-running
 - Redis could drop data under memory pressure, causing lost jobs.
 - PostgreSQL row-level locks limit overall concurrency at 10k transactions a second.
 - Using an external engine creates tight vendor lock-in for critical business processes.
+
+## System Context
+- System: `billing-service` orchestrates long-running async billing jobs (invoicing, retries, dunning) for paying customers.
+- External actors:
+  - finance-ops-engineer: monitors job dashboards and inspects stuck workflows.
+  - stripe-webhook-receiver: emits payment-state changes that the billing service consumes.
+  - notification-service: receives bounded events to dispatch billing emails.
+  - billing-frontend: triggers manual retries and reads current job state for support flows.
+
+## Containers
+- `billing-service` (Rust async worker pool): owns the job state machine and executes billing transitions.
+- `postgres-jobs` (managed Postgres 15): durable store for job rows, audit log, and idempotency tokens.
+- `redis-cache` (managed Redis 7): hot path for short-lived locks and worker liveness signals only — never the source of truth.
+- `billing-admin` (internal SPA): observability surface for finance-ops-engineer, served from the existing admin gateway.
+
+## Components
+- `job-queue-repository`: encapsulates `SELECT FOR UPDATE SKIP LOCKED` access against `postgres-jobs`.
+- `state-machine`: pure function module that validates and produces the next valid job state.
+- `worker-runtime`: bounded async runtime that pulls jobs, applies the state machine, and persists transitions.
+- `audit-log-writer`: append-only writer that records every state transition for compliance.
+- `idempotency-guard`: enforces single-active-worker invariant via tokens before any billing side-effect fires.
+- `notification-emitter`: bounded outbound adapter that publishes domain events for `notification-service`.

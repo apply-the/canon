@@ -89,7 +89,7 @@ fn start_architecture_run(workspace: &TempDir, risk: &str, zone: &str) -> serde_
 fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::Architecture);
 
-    assert_eq!(contract.artifact_requirements.len(), 5);
+    assert_eq!(contract.artifact_requirements.len(), 8);
 
     let names = contract
         .artifact_requirements
@@ -104,6 +104,9 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
             "tradeoff-matrix.md",
             "boundary-map.md",
             "readiness-assessment.md",
+            "system-context.md",
+            "container-view.md",
+            "component-view.md",
         ]
     );
 
