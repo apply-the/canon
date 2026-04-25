@@ -586,11 +586,19 @@ important constraints. This mode also requires explicit
 
 Architecture produces a structural decision packet with these artifacts:
 
-- `architecture-decisions.md`
-- `invariants.md`
-- `tradeoff-matrix.md`
-- `boundary-map.md`
-- `readiness-assessment.md`
+- `architecture-decisions.md` (critique-first decision summary)
+- `invariants.md` (mandatory boundary invariants)
+- `tradeoff-matrix.md` (alternatives and tradeoff analysis)
+- `boundary-map.md` (system boundaries and ownership)
+- `readiness-assessment.md` (decision readiness and blockers)
+- `system-context.md` (C4 Level 1: system and external actors; requires authored `## System Context` in brief)
+- `container-view.md` (C4 Level 2: deployable containers; requires authored `## Containers` in brief)
+- `component-view.md` (C4 Level 3: component decomposition; requires authored `## Components` in brief)
+
+The three C4 artifacts preserve authored sections verbatim from the architecture
+brief. If a section is omitted or uses a non-canonical heading variant, the
+artifact emits an explicit `## Missing Authored Body` block referencing the
+canonical heading rather than fabricating content.
 
 This mode includes mandatory critique and is designed to leave behind a
 decision bundle that later work can implement or review without relying on chat
