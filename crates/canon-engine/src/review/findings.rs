@@ -39,6 +39,20 @@ pub struct ReviewFinding {
     pub changed_surfaces: Vec<String>,
 }
 
+impl ReviewFinding {
+    pub fn conventional_comment_kind(&self) -> &'static str {
+        match (self.severity, self.category) {
+            (FindingSeverity::MustFix, FindingCategory::BoundaryCheck) => "issue",
+            (FindingSeverity::MustFix, FindingCategory::ContractDrift) => "issue",
+            (FindingSeverity::MustFix, FindingCategory::MissingTests) => "todo",
+            (FindingSeverity::MustFix, FindingCategory::DecisionImpact) => "question",
+            (FindingSeverity::Note, FindingCategory::DuplicationCheck) => "praise",
+            (FindingSeverity::Note, _) => "thought",
+            (FindingSeverity::MustFix, _) => "issue",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReviewPacket {
     pub base_ref: String,
@@ -270,5 +284,48 @@ mod tests {
         assert!(packet.inferred_intent.contains(
             "Governed critique evidence: Independent critique highlighted missing rollback notes."
         ));
+    }
+
+    #[test]
+    fn pr_review_conventional_comment_mapping_matches_first_slice_table() {
+        let packet = ReviewPacket::from_diff(
+            "origin/main",
+            "HEAD",
+            vec![
+                "src/boundary/router.rs".to_string(),
+                "contracts/schema.json".to_string(),
+                "src/service.rs".to_string(),
+            ],
+            "@@ -1,2 +1,3 @@\n-old\n+new\n",
+        );
+
+        let rendered_expectations = [
+            (FindingCategory::BoundaryCheck, FindingSeverity::MustFix, "issue"),
+            (FindingCategory::ContractDrift, FindingSeverity::MustFix, "issue"),
+            (FindingCategory::MissingTests, FindingSeverity::MustFix, "todo"),
+            (FindingCategory::DecisionImpact, FindingSeverity::MustFix, "question"),
+        ];
+
+        for (category, severity, expected_kind) in rendered_expectations {
+            let finding = packet
+                .findings
+                .iter()
+                .find(|finding| finding.category == category && finding.severity == severity)
+                .expect("expected review finding");
+            assert_eq!(
+                finding.conventional_comment_kind(),
+                expected_kind,
+                "unexpected comment kind for {category:?}"
+            );
+        }
+
+        let note_packet = ReviewPacket::from_diff(
+            "origin/main",
+            "HEAD",
+            vec!["src/lib.rs".to_string(), "tests/lib_test.rs".to_string()],
+            "@@ -1 +1 @@\n-old\n+new\n",
+        );
+        let note = note_packet.note_findings().pop().expect("note finding");
+        assert_eq!(note.conventional_comment_kind(), "praise");
     }
 }

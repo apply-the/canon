@@ -70,6 +70,7 @@ grounded, reviewable artifact set.
 
 - Read the full diff between `BASE_REF` and `HEAD_REF` (or between `BASE_REF` and the working tree when `WORKTREE` is the head ref) before generation.
 - Start the real Canon run before artifact writing so `.canon/artifacts/<RUN_ID>/pr-review/` exists and the packet stays attached to a real run id.
+- Treat `review-summary.md` as the primary status artifact and `conventional-comments.md` as the reviewer-facing companion artifact.
 - Treat the source files in the diff and the working tree as read-only during the review. Do not modify, refactor, format, or rewrite any source file as part of producing the review.
 - Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/pr-review/`.
 - Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.
@@ -147,7 +148,7 @@ review packet was produced. It must include:
 - concise result-first review summary or gated review-disposition summary
 - Canon-backed run state
 - direct statement of what happened or what is blocking the review
-- concrete `.canon/artifacts/...` review packet paths when available
+- concrete `.canon/artifacts/...` review packet paths when available, especially `review-summary.md` and `conventional-comments.md`
 - when Canon emitted a readable review result in the run summary, treat that summary as the happy path and keep artifact inspection as drill-down
 - ordered possible actions
 - one recommended next step that preserves the run context
@@ -171,7 +172,7 @@ review packet was produced. It must include:
 
 ## Next-Step Guidance
 
-- When Canon emitted a readable review result in the run summary, treat that summary as the happy path and keep `$canon-inspect-artifacts` as drill-down into `review-summary.md` and the detailed findings.
+- When Canon emitted a readable review result in the run summary, treat that summary as the happy path and keep `$canon-inspect-artifacts` as drill-down into `review-summary.md`, `conventional-comments.md`, and the detailed findings.
 - Use `$canon-inspect-evidence` when the user needs the lineage, request history, or policy rationale behind the review packet.
 - Use `$canon-approve` only after the user has reviewed the packet or explicitly wants to record disposition.
 - After approval, recommend `$canon-status` first and use `$canon-resume` only if Canon still leaves the run incomplete.

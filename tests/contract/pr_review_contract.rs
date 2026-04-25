@@ -2,6 +2,8 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::artifacts::contract::contract_for_mode;
+use canon_engine::domain::mode::Mode;
 use predicates::str::contains;
 use tempfile::TempDir;
 
@@ -78,6 +80,21 @@ fn parse_run_id(output: &[u8]) -> String {
 }
 
 #[test]
+fn pr_review_contract_includes_conventional_comments_artifact() {
+    let contract = contract_for_mode(Mode::PrReview);
+    let conventional_comments = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "conventional-comments.md")
+        .expect("conventional-comments artifact requirement");
+
+    assert_eq!(
+        conventional_comments.required_sections,
+        vec!["Summary", "Evidence Posture", "Conventional Comments", "Traceability",]
+    );
+}
+
+#[test]
 fn pr_review_requires_disposition_for_high_impact_findings() {
     let workspace = TempDir::new().expect("temp dir");
     init_review_repo(&workspace);
@@ -122,7 +139,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     );
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 8),
         "approval-gated pr-review runs should still expose the readable review packet"
     );
 
@@ -141,6 +158,28 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     assert!(
         review_summary_text.contains("contracts/public-api.md"),
         "review-summary should name the changed high-impact surface"
+    );
+
+    let conventional_comments = workspace
+        .path()
+        .join(".canon")
+        .join("artifacts")
+        .join(&run_id)
+        .join("pr-review")
+        .join("conventional-comments.md");
+    let conventional_comments_text =
+        fs::read_to_string(conventional_comments).expect("conventional comments artifact");
+    assert!(
+        conventional_comments_text.contains("issue:"),
+        "high-impact contract drift should surface as an issue comment"
+    );
+    assert!(
+        conventional_comments_text.contains("question:"),
+        "decision-impact findings should surface as reviewer questions"
+    );
+    assert!(
+        conventional_comments_text.contains("contracts/public-api.md"),
+        "conventional-comments should retain changed surface traceability"
     );
 
     let status_output = cli_command()
