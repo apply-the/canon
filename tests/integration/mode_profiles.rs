@@ -1,3 +1,4 @@
+use canon_engine::domain::gate::GateKind;
 use canon_engine::domain::mode::{ImplementationDepth, Mode, all_mode_profiles};
 
 #[test]
@@ -25,17 +26,12 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    let staged_modes = [Mode::Incident, Mode::Migration];
-
-    for mode in staged_modes {
+    for mode in [Mode::Incident, Mode::Migration] {
         let profile =
             profiles.iter().find(|profile| profile.mode == mode).expect("profile should exist");
         assert!(
-            matches!(
-                profile.implementation_depth,
-                ImplementationDepth::ContractOnly | ImplementationDepth::Skeleton
-            ),
-            "staged mode `{}` should remain limited in v0.1",
+            matches!(profile.implementation_depth, ImplementationDepth::Full),
+            "operational mode `{}` should be fully implemented once High-Risk Operational Programs lands",
             mode.as_str()
         );
         assert!(
@@ -67,6 +63,8 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::Verification,
         Mode::Review,
         Mode::PrReview,
+        Mode::Incident,
+        Mode::Migration,
     ] {
         let profile = profiles
             .iter()
@@ -132,4 +130,53 @@ fn promoted_execution_modes_advertise_distinct_artifact_families() {
         ]
     );
     assert!(matches!(refactor.implementation_depth, ImplementationDepth::Full));
+
+    let incident =
+        profiles.iter().find(|profile| profile.mode == Mode::Incident).expect("incident profile");
+    assert_eq!(
+        incident.artifact_families,
+        vec![
+            "incident frame",
+            "hypothesis log",
+            "blast radius map",
+            "containment plan",
+            "incident decision record",
+            "follow-up verification",
+        ]
+    );
+    assert_eq!(
+        incident.gate_profile,
+        vec![
+            GateKind::Risk,
+            GateKind::IncidentContainment,
+            GateKind::Architecture,
+            GateKind::ReleaseReadiness,
+        ]
+    );
+    assert!(matches!(incident.implementation_depth, ImplementationDepth::Full));
+
+    let migration =
+        profiles.iter().find(|profile| profile.mode == Mode::Migration).expect("migration profile");
+    assert_eq!(
+        migration.artifact_families,
+        vec![
+            "source-target map",
+            "compatibility matrix",
+            "sequencing plan",
+            "fallback plan",
+            "migration verification report",
+            "decision record",
+        ]
+    );
+    assert_eq!(
+        migration.gate_profile,
+        vec![
+            GateKind::Exploration,
+            GateKind::Architecture,
+            GateKind::MigrationSafety,
+            GateKind::Risk,
+            GateKind::ReleaseReadiness,
+        ]
+    );
+    assert!(matches!(migration.implementation_depth, ImplementationDepth::Full));
 }

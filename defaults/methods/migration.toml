@@ -2,7 +2,7 @@ version = 1
 # Requires explicit `--system-context new|existing` when starting a run.
 mode = "migration"
 emphasis = "analysis-heavy"
-implementation_depth = "skeleton"
+implementation_depth = "full"
 gate_profile = ["Exploration", "Architecture", "MigrationSafety", "Risk", "ReleaseReadiness"]
 artifacts = [
     "source-target-map.md",

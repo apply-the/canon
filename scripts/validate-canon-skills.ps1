@@ -33,13 +33,12 @@ $AvailableNow = @(
   "canon-refactor",
   "canon-review",
   "canon-verification",
-  "canon-pr-review"
-)
-
-$ModeledOnly = @(
+  "canon-pr-review",
   "canon-incident",
   "canon-migration"
 )
+
+$ModeledOnly = @()
 
 $IntentionallyLimited = @()
 $Errors = 0

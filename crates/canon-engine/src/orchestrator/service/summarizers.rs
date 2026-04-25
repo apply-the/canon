@@ -29,12 +29,13 @@ pub(crate) fn summarize_mode_result(
         Mode::Architecture => summarize_architecture_mode_result(artifacts),
         Mode::Change => summarize_change_mode_result(artifacts),
         Mode::Backlog => summarize_backlog_mode_result(artifacts),
+        Mode::Incident => summarize_incident_mode_result(artifacts),
         Mode::Implementation => summarize_implementation_mode_result(artifacts),
+        Mode::Migration => summarize_migration_mode_result(artifacts),
         Mode::Refactor => summarize_refactor_mode_result(artifacts),
         Mode::Review => summarize_review_mode_result(artifacts),
         Mode::Verification => summarize_verification_mode_result(artifacts),
         Mode::PrReview => summarize_pr_review_mode_result(artifacts),
-        _ => None,
     }
 }
 
@@ -554,6 +555,69 @@ fn summarize_backlog_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mode
     })
 }
 
+fn summarize_incident_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "incident-frame.md")?;
+    let blast_radius_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "blast-radius-map.md");
+    let containment_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "containment-plan.md");
+
+    let incident_scope = extract_context_section(&primary.contents, "Incident Scope")
+        .unwrap_or_else(|| "NOT CAPTURED - Incident scope section is missing.".to_string());
+    let current_state = extract_context_section(&primary.contents, "Trigger And Current State")
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Trigger and current state section is missing.".to_string()
+        });
+    let impacted_surfaces = blast_radius_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Impacted Surfaces"))
+        .unwrap_or_else(|| "NOT CAPTURED - Impacted surfaces section is missing.".to_string());
+    let immediate_actions = containment_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Immediate Actions"))
+        .unwrap_or_else(|| "NOT CAPTURED - Immediate actions section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &incident_scope,
+        &current_state,
+        &impacted_surfaces,
+        &immediate_actions,
+    ]);
+    let impacted_surface_count = count_markdown_entries(&impacted_surfaces);
+    let immediate_action_count = count_markdown_entries(&immediate_actions);
+
+    let headline = if missing_context_markers == 0 {
+        "Incident packet ready for governed containment review.".to_string()
+    } else {
+        format!(
+            "Incident packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact bounds {impacted_surface_count} impacted surface(s) with {immediate_action_count} immediate action set(s). Current state: {}.",
+            truncate_context_excerpt(&current_state, 120)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Impacted surfaces: {impacted_surface_count}; immediate actions: {immediate_action_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: Some("recommendation-only".to_string()),
+        primary_artifact_title: "Incident Frame".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&incident_scope, 320),
+        action_chips: Vec::new(),
+    })
+}
+
 fn summarize_implementation_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
@@ -751,6 +815,75 @@ fn summarize_refactor_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mod
             primary.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&preserved_behavior, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+fn summarize_migration_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "source-target-map.md")?;
+    let compatibility_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "compatibility-matrix.md");
+    let fallback_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "fallback-plan.md");
+
+    let current_state = extract_context_section(&primary.contents, "Current State")
+        .unwrap_or_else(|| "NOT CAPTURED - Current state section is missing.".to_string());
+    let target_state = extract_context_section(&primary.contents, "Target State")
+        .unwrap_or_else(|| "NOT CAPTURED - Target state section is missing.".to_string());
+    let transition_boundaries = extract_context_section(&primary.contents, "Transition Boundaries")
+        .unwrap_or_else(|| "NOT CAPTURED - Transition boundaries section is missing.".to_string());
+    let guaranteed_compatibility = compatibility_artifact
+        .and_then(|artifact| {
+            extract_context_section(&artifact.contents, "Guaranteed Compatibility")
+        })
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Guaranteed compatibility section is missing.".to_string()
+        });
+    let rollback_triggers = fallback_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Rollback Triggers"))
+        .unwrap_or_else(|| "NOT CAPTURED - Rollback triggers section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &current_state,
+        &target_state,
+        &transition_boundaries,
+        &guaranteed_compatibility,
+        &rollback_triggers,
+    ]);
+    let compatibility_count = count_markdown_entries(&guaranteed_compatibility);
+    let rollback_trigger_count = count_markdown_entries(&rollback_triggers);
+
+    let headline = if missing_context_markers == 0 {
+        "Migration packet ready for governed transition review.".to_string()
+    } else {
+        format!(
+            "Migration packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact bounds the transition from {} to {} with {compatibility_count} compatibility guarantee set(s) and {rollback_trigger_count} rollback trigger set(s).",
+            truncate_context_excerpt(&current_state, 90),
+            truncate_context_excerpt(&target_state, 90)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Compatibility guarantees: {compatibility_count}; rollback triggers: {rollback_trigger_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: Some("recommendation-only".to_string()),
+        primary_artifact_title: "Source-Target Map".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&transition_boundaries, 320),
         action_chips: Vec::new(),
     })
 }
@@ -1146,9 +1279,44 @@ mod tests {
     }
 
     #[test]
-    fn summarize_mode_result_returns_none_for_unknown_mode() {
-        // Mode::Incident and Mode::Migration are not implemented
-        let artifacts = vec![make_artifact("some-file.md", "content")];
-        assert!(summarize_mode_result(Mode::Incident, &artifacts).is_none());
+    fn summarize_mode_result_returns_incident_and_migration_summaries() {
+        let incident_artifacts = vec![
+            make_artifact(
+                "incident-frame.md",
+                "## Summary\nContain payment outage.\n\n## Incident Scope\n- payments-api\n\n## Trigger And Current State\n- active outage\n\n## Operational Constraints\n- no schema changes\n",
+            ),
+            make_artifact(
+                "blast-radius-map.md",
+                "## Summary\nBlast radius bounded to payments.\n\n## Impacted Surfaces\n- payments-api\n\n## Propagation Paths\n- checkout flow\n\n## Confidence And Unknowns\n- medium confidence\n",
+            ),
+            make_artifact(
+                "containment-plan.md",
+                "## Summary\nContain by disabling async retries.\n\n## Immediate Actions\n- disable retries\n\n## Ordered Sequence\n- step 1\n\n## Stop Conditions\n- errors stable\n",
+            ),
+        ];
+        let migration_artifacts = vec![
+            make_artifact(
+                "source-target-map.md",
+                "## Summary\nMove auth traffic to v2.\n\n## Current State\n- v1 auth\n\n## Target State\n- v2 auth\n\n## Transition Boundaries\n- login flow\n",
+            ),
+            make_artifact(
+                "compatibility-matrix.md",
+                "## Summary\nCompatibility tracked.\n\n## Guaranteed Compatibility\n- tokens valid\n\n## Temporary Incompatibilities\n- admin UI\n\n## Coexistence Rules\n- dual-write\n",
+            ),
+            make_artifact(
+                "fallback-plan.md",
+                "## Summary\nRollback to v1.\n\n## Rollback Triggers\n- auth failures\n\n## Fallback Paths\n- route to v1\n\n## Re-Entry Criteria\n- fix deployed\n",
+            ),
+        ];
+
+        let incident_summary = summarize_mode_result(Mode::Incident, &incident_artifacts)
+            .expect("incident summary should exist once the operational mode is implemented");
+        assert!(incident_summary.headline.to_ascii_lowercase().contains("incident"));
+        assert_eq!(incident_summary.execution_posture.as_deref(), Some("recommendation-only"));
+
+        let migration_summary = summarize_mode_result(Mode::Migration, &migration_artifacts)
+            .expect("migration summary should exist once the operational mode is implemented");
+        assert!(migration_summary.headline.to_ascii_lowercase().contains("migration"));
+        assert_eq!(migration_summary.execution_posture.as_deref(), Some("recommendation-only"));
     }
 }

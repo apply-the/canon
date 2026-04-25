@@ -214,6 +214,8 @@ function Get-CanonicalModeInputHint([string]$CommandName) {
     'architecture' { return 'canon-input/architecture.md or canon-input/architecture/' }
     'change' { return 'canon-input/change.md or canon-input/change/' }
     'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }
+    'incident' { return 'canon-input/incident.md or canon-input/incident/' }
+    'migration' { return 'canon-input/migration.md or canon-input/migration/' }
     'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }
     'verification' { return 'canon-input/verification.md or canon-input/verification/' }
     default { return $null }

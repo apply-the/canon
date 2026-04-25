@@ -314,6 +314,143 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
     }
 }
 
+pub fn render_incident_artifact(file_name: &str, brief_summary: &str) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let incident_scope = extract_marker(brief_summary, &normalized, "incident scope")
+        .unwrap_or_else(|| "NOT CAPTURED - Incident scope is missing.".to_string());
+    let trigger_and_current_state =
+        extract_marker(brief_summary, &normalized, "trigger and current state")
+            .unwrap_or_else(|| "NOT CAPTURED - Trigger and current state are missing.".to_string());
+    let operational_constraints =
+        extract_marker(brief_summary, &normalized, "operational constraints")
+            .unwrap_or_else(|| "NOT CAPTURED - Operational constraints are missing.".to_string());
+    let known_facts = extract_marker(brief_summary, &normalized, "known facts")
+        .unwrap_or_else(|| "NOT CAPTURED - Known facts are missing.".to_string());
+    let working_hypotheses = extract_marker(brief_summary, &normalized, "working hypotheses")
+        .unwrap_or_else(|| "NOT CAPTURED - Working hypotheses are missing.".to_string());
+    let evidence_gaps = extract_marker(brief_summary, &normalized, "evidence gaps")
+        .unwrap_or_else(|| "NOT CAPTURED - Evidence gaps are missing.".to_string());
+    let impacted_surfaces = extract_marker(brief_summary, &normalized, "impacted surfaces")
+        .unwrap_or_else(|| "NOT CAPTURED - Impacted surfaces are missing.".to_string());
+    let propagation_paths = extract_marker(brief_summary, &normalized, "propagation paths")
+        .unwrap_or_else(|| "NOT CAPTURED - Propagation paths are missing.".to_string());
+    let confidence_and_unknowns =
+        extract_marker(brief_summary, &normalized, "confidence and unknowns")
+            .unwrap_or_else(|| "NOT CAPTURED - Confidence and unknowns are missing.".to_string());
+    let immediate_actions = extract_marker(brief_summary, &normalized, "immediate actions")
+        .unwrap_or_else(|| "NOT CAPTURED - Immediate actions are missing.".to_string());
+    let ordered_sequence = extract_marker(brief_summary, &normalized, "ordered sequence")
+        .unwrap_or_else(|| "NOT CAPTURED - Ordered sequence is missing.".to_string());
+    let stop_conditions = extract_marker(brief_summary, &normalized, "stop conditions")
+        .unwrap_or_else(|| "NOT CAPTURED - Stop conditions are missing.".to_string());
+    let decision_points = extract_marker(brief_summary, &normalized, "decision points")
+        .unwrap_or_else(|| "NOT CAPTURED - Decision points are missing.".to_string());
+    let approved_actions = extract_marker(brief_summary, &normalized, "approved actions")
+        .unwrap_or_else(|| "NOT CAPTURED - Approved actions are missing.".to_string());
+    let deferred_actions = extract_marker(brief_summary, &normalized, "deferred actions")
+        .unwrap_or_else(|| "NOT CAPTURED - Deferred actions are missing.".to_string());
+    let verification_checks = extract_marker(brief_summary, &normalized, "verification checks")
+        .unwrap_or_else(|| "NOT CAPTURED - Verification checks are missing.".to_string());
+    let release_readiness = extract_marker(brief_summary, &normalized, "release readiness")
+        .unwrap_or_else(|| "NOT CAPTURED - Release readiness posture is missing.".to_string());
+    let follow_up_work = extract_marker(brief_summary, &normalized, "follow-up work")
+        .unwrap_or_else(|| "NOT CAPTURED - Follow-up work is missing.".to_string());
+    let summary =
+        format!("Bounded incident packet for {}.", truncate_context_excerpt(&incident_scope, 120));
+
+    match file_name {
+        "incident-frame.md" => format!(
+            "# Incident Frame\n\n## Summary\n\n{summary}\n\n## Incident Scope\n\n{incident_scope}\n\n## Trigger And Current State\n\n{trigger_and_current_state}\n\n## Operational Constraints\n\n{operational_constraints}\n"
+        ),
+        "hypothesis-log.md" => format!(
+            "# Hypothesis Log\n\n## Summary\n\n{summary}\n\n## Known Facts\n\n{known_facts}\n\n## Working Hypotheses\n\n{working_hypotheses}\n\n## Evidence Gaps\n\n{evidence_gaps}\n"
+        ),
+        "blast-radius-map.md" => format!(
+            "# Blast Radius Map\n\n## Summary\n\n{summary}\n\n## Impacted Surfaces\n\n{impacted_surfaces}\n\n## Propagation Paths\n\n{propagation_paths}\n\n## Confidence And Unknowns\n\n{confidence_and_unknowns}\n"
+        ),
+        "containment-plan.md" => format!(
+            "# Containment Plan\n\n## Summary\n\n{summary}\n\n## Immediate Actions\n\n{immediate_actions}\n\n## Ordered Sequence\n\n{ordered_sequence}\n\n## Stop Conditions\n\n{stop_conditions}\n"
+        ),
+        "incident-decision-record.md" => format!(
+            "# Incident Decision Record\n\n## Summary\n\n{summary}\n\n## Decision Points\n\n{decision_points}\n\n## Approved Actions\n\n{approved_actions}\n\n## Deferred Actions\n\n{deferred_actions}\n"
+        ),
+        "follow-up-verification.md" => format!(
+            "# Follow-Up Verification\n\n## Summary\n\n{summary}\n\n## Verification Checks\n\n{verification_checks}\n\n## Release Readiness\n\n{release_readiness}\n\n## Follow-Up Work\n\n{follow_up_work}\n"
+        ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
+pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let current_state = extract_marker(brief_summary, &normalized, "current state")
+        .unwrap_or_else(|| "NOT CAPTURED - Current state is missing.".to_string());
+    let target_state = extract_marker(brief_summary, &normalized, "target state")
+        .unwrap_or_else(|| "NOT CAPTURED - Target state is missing.".to_string());
+    let transition_boundaries = extract_marker(brief_summary, &normalized, "transition boundaries")
+        .unwrap_or_else(|| "NOT CAPTURED - Transition boundaries are missing.".to_string());
+    let guaranteed_compatibility =
+        extract_marker(brief_summary, &normalized, "guaranteed compatibility")
+            .unwrap_or_else(|| "NOT CAPTURED - Guaranteed compatibility is missing.".to_string());
+    let temporary_incompatibilities =
+        extract_marker(brief_summary, &normalized, "temporary incompatibilities").unwrap_or_else(
+            || "NOT CAPTURED - Temporary incompatibilities are missing.".to_string(),
+        );
+    let coexistence_rules = extract_marker(brief_summary, &normalized, "coexistence rules")
+        .unwrap_or_else(|| "NOT CAPTURED - Coexistence rules are missing.".to_string());
+    let ordered_steps = extract_marker(brief_summary, &normalized, "ordered steps")
+        .unwrap_or_else(|| "NOT CAPTURED - Ordered steps are missing.".to_string());
+    let parallelizable_work = extract_marker(brief_summary, &normalized, "parallelizable work")
+        .unwrap_or_else(|| "NOT CAPTURED - Parallelizable work is missing.".to_string());
+    let cutover_criteria = extract_marker(brief_summary, &normalized, "cutover criteria")
+        .unwrap_or_else(|| "NOT CAPTURED - Cutover criteria are missing.".to_string());
+    let rollback_triggers = extract_marker(brief_summary, &normalized, "rollback triggers")
+        .unwrap_or_else(|| "NOT CAPTURED - Rollback triggers are missing.".to_string());
+    let fallback_paths = extract_marker(brief_summary, &normalized, "fallback paths")
+        .unwrap_or_else(|| "NOT CAPTURED - Fallback paths are missing.".to_string());
+    let re_entry_criteria = extract_marker(brief_summary, &normalized, "re-entry criteria")
+        .unwrap_or_else(|| "NOT CAPTURED - Re-entry criteria are missing.".to_string());
+    let verification_checks = extract_marker(brief_summary, &normalized, "verification checks")
+        .unwrap_or_else(|| "NOT CAPTURED - Verification checks are missing.".to_string());
+    let residual_risks = extract_marker(brief_summary, &normalized, "residual risks")
+        .unwrap_or_else(|| "NOT CAPTURED - Residual risks are missing.".to_string());
+    let release_readiness = extract_marker(brief_summary, &normalized, "release readiness")
+        .unwrap_or_else(|| "NOT CAPTURED - Release readiness posture is missing.".to_string());
+    let migration_decisions = extract_marker(brief_summary, &normalized, "migration decisions")
+        .unwrap_or_else(|| "NOT CAPTURED - Migration decisions are missing.".to_string());
+    let deferred_decisions = extract_marker(brief_summary, &normalized, "deferred decisions")
+        .unwrap_or_else(|| "NOT CAPTURED - Deferred decisions are missing.".to_string());
+    let approval_notes = extract_marker(brief_summary, &normalized, "approval notes")
+        .unwrap_or_else(|| "NOT CAPTURED - Approval notes are missing.".to_string());
+    let summary = format!(
+        "Bounded migration packet from {} to {}.",
+        truncate_context_excerpt(&current_state, 80),
+        truncate_context_excerpt(&target_state, 80)
+    );
+
+    match file_name {
+        "source-target-map.md" => format!(
+            "# Source-Target Map\n\n## Summary\n\n{summary}\n\n## Current State\n\n{current_state}\n\n## Target State\n\n{target_state}\n\n## Transition Boundaries\n\n{transition_boundaries}\n"
+        ),
+        "compatibility-matrix.md" => format!(
+            "# Compatibility Matrix\n\n## Summary\n\n{summary}\n\n## Guaranteed Compatibility\n\n{guaranteed_compatibility}\n\n## Temporary Incompatibilities\n\n{temporary_incompatibilities}\n\n## Coexistence Rules\n\n{coexistence_rules}\n"
+        ),
+        "sequencing-plan.md" => format!(
+            "# Sequencing Plan\n\n## Summary\n\n{summary}\n\n## Ordered Steps\n\n{ordered_steps}\n\n## Parallelizable Work\n\n{parallelizable_work}\n\n## Cutover Criteria\n\n{cutover_criteria}\n"
+        ),
+        "fallback-plan.md" => format!(
+            "# Fallback Plan\n\n## Summary\n\n{summary}\n\n## Rollback Triggers\n\n{rollback_triggers}\n\n## Fallback Paths\n\n{fallback_paths}\n\n## Re-Entry Criteria\n\n{re_entry_criteria}\n"
+        ),
+        "migration-verification-report.md" => format!(
+            "# Migration Verification Report\n\n## Summary\n\n{summary}\n\n## Verification Checks\n\n{verification_checks}\n\n## Residual Risks\n\n{residual_risks}\n\n## Release Readiness\n\n{release_readiness}\n"
+        ),
+        "decision-record.md" => format!(
+            "# Decision Record\n\n## Summary\n\n{summary}\n\n## Migration Decisions\n\n{migration_decisions}\n\n## Deferred Decisions\n\n{deferred_decisions}\n\n## Approval Notes\n\n{approval_notes}\n"
+        ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
 pub fn render_backlog_artifact(
     file_name: &str,
     brief_summary: &str,
