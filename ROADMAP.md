@@ -5,46 +5,10 @@ current implementation slice.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
-`refactor`, `review`, `verification`, and `pr-review`. The next roadmap
-should prioritize the remaining modeled modes and selected quality/deployment
-work instead of reopening already delivered mode surfaces.
-
-
-## Feature: High-Risk Operational Programs
-
-### Outcome
-
-Canon can govern high-stakes operational work where sequencing, blast radius,
-compatibility, and containment matter more than ordinary implementation flow.
-
-### Modes In Scope
-
-- `incident`
-- `migration`
-
-### Why These Modes Belong Together
-
-- They are both high-risk, coordination-heavy, and gate-heavy workflows.
-- They need stronger containment, compatibility, sequencing, and fallback
-  semantics than the ordinary build/change path.
-- They should build on a mature execution and verification core rather than
-  force Canon to invent those primitives too early.
-
-### First Slice
-
-- Promote `incident` from skeleton to full depth.
-- Promote `migration` from skeleton to full depth.
-- Add explicit artifact contracts for blast radius, containment, compatibility,
-  sequencing, and fallback planning.
-- Keep approval and release-readiness expectations stricter than in ordinary
-  implementation flows.
-
-### Why This Feature Comes After Controlled Execution
-
-- These are the remaining unfinished modeled modes after `implementation` and
-  `refactor`.
-- They benefit from nearly every earlier roadmap improvement, but they still
-  belong ahead of output-polish, packaging, and protocol expansion.
+`refactor`, `review`, `verification`, `pr-review`, `incident`, and
+`migration`. The next roadmap should prioritize output quality, packaging,
+distribution, and authoring improvements instead of reopening already
+delivered mode surfaces.
 
 ## Feature: Stronger Architecture Outputs
 
@@ -80,7 +44,7 @@ documents and stronger external communication shapes.
 
 - It deepens the usefulness of modes Canon already ships instead of increasing
   mode coverage.
-- It should follow completion of the remaining modeled modes because it is
+- It should follow the now-complete mode-coverage slice because it is
   output-quality work, not closure of a missing workflow.
 
 ## Feature: Domain Modeling And Boundary Design
@@ -136,11 +100,19 @@ vocabulary for domain work.
 
 - It improves the quality of modes Canon already ships before the roadmap
   expands into packaging or protocol work.
-- It should follow completion of the remaining modeled modes because it
-  strengthens existing workflows instead of closing a missing one.
+- It should follow the now-complete mode-coverage slice because it strengthens
+  existing workflows instead of closing a missing one.
 
 ## Delivered Recently
 
+- `incident` now ships as a governed operational mode that emits a six-artifact
+  containment packet, remains recommendation-only, can stop for explicit risk
+  approval, and publishes readable packets under `docs/incidents/<RUN_ID>/`
+  even when the packet is approval-gated or blocked.
+- `migration` now ships as a governed operational mode that emits a six-artifact
+  compatibility packet, remains recommendation-only, blocks explicitly on
+  missing fallback credibility, and publishes readable packets under
+  `docs/migrations/<RUN_ID>/` even when the packet is blocked or approval-gated.
 - `backlog` is no longer a roadmap candidate. It now ships as a governed mode
   that publishes to `docs/planning/<RUN_ID>/` and preserves downstream handoff
   context through epics, slices, dependencies, sequencing, acceptance anchors,
@@ -190,8 +162,8 @@ brief.
 - `review`
 - `verification`
 - `pr-review`
-- `incident` (after promotion)
-- `migration` (after promotion)
+- `incident`
+- `migration`
 
 ### First Slice
 
@@ -644,7 +616,7 @@ finding, modernization slices. Generic boilerplate fails the run.
 - Composes with `Cybersecurity Risk Assessment Mode`: supply-chain findings
   feed the threat model and risk register; the security mode does not
   duplicate scanner orchestration.
-- Composes with `Refactor` and the future `Migration` mode: legacy posture
+- Composes with `Refactor` and the delivered `Migration` mode: legacy posture
   produces the bounded slices those modes can pick up.
 - Depends on the *Governed Execution Adapters* primitives already shipped, so
   scanner adapters slot into the existing capability and decision pipeline.

@@ -191,6 +191,43 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::Incident => vec![
+            requirement(
+                "incident-frame.md",
+                &[
+                    "Summary",
+                    "Incident Scope",
+                    "Trigger And Current State",
+                    "Operational Constraints",
+                ],
+                &[GateKind::Risk, GateKind::IncidentContainment, GateKind::Architecture],
+            ),
+            requirement(
+                "hypothesis-log.md",
+                &["Summary", "Known Facts", "Working Hypotheses", "Evidence Gaps"],
+                &[GateKind::IncidentContainment, GateKind::Risk],
+            ),
+            requirement(
+                "blast-radius-map.md",
+                &["Summary", "Impacted Surfaces", "Propagation Paths", "Confidence And Unknowns"],
+                &[GateKind::IncidentContainment, GateKind::Architecture],
+            ),
+            requirement(
+                "containment-plan.md",
+                &["Summary", "Immediate Actions", "Ordered Sequence", "Stop Conditions"],
+                &[GateKind::IncidentContainment, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "incident-decision-record.md",
+                &["Summary", "Decision Points", "Approved Actions", "Deferred Actions"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "follow-up-verification.md",
+                &["Summary", "Verification Checks", "Release Readiness", "Follow-Up Work"],
+                &[GateKind::ReleaseReadiness],
+            ),
+        ],
         Mode::Implementation => vec![
             requirement(
                 "task-mapping.md",
@@ -221,6 +258,43 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 "rollback-notes.md",
                 &["Summary", "Rollback Triggers", "Rollback Steps"],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::Migration => vec![
+            requirement(
+                "source-target-map.md",
+                &["Summary", "Current State", "Target State", "Transition Boundaries"],
+                &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
+                "compatibility-matrix.md",
+                &[
+                    "Summary",
+                    "Guaranteed Compatibility",
+                    "Temporary Incompatibilities",
+                    "Coexistence Rules",
+                ],
+                &[GateKind::Architecture, GateKind::MigrationSafety],
+            ),
+            requirement(
+                "sequencing-plan.md",
+                &["Summary", "Ordered Steps", "Parallelizable Work", "Cutover Criteria"],
+                &[GateKind::MigrationSafety, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "fallback-plan.md",
+                &["Summary", "Rollback Triggers", "Fallback Paths", "Re-Entry Criteria"],
+                &[GateKind::MigrationSafety, GateKind::Risk],
+            ),
+            requirement(
+                "migration-verification-report.md",
+                &["Summary", "Verification Checks", "Residual Risks", "Release Readiness"],
+                &[GateKind::MigrationSafety, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "decision-record.md",
+                &["Summary", "Migration Decisions", "Deferred Decisions", "Approval Notes"],
+                &[GateKind::Architecture, GateKind::Risk],
             ),
         ],
         Mode::Refactor => vec![
@@ -405,12 +479,6 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
             ),
         ],
-        other => vec![ArtifactRequirement {
-            file_name: format!("{}.md", other.as_str()),
-            format: ArtifactFormat::Markdown,
-            required_sections: vec!["Summary".to_string()],
-            gates: vec![GateKind::ReleaseReadiness],
-        }],
     };
 
     ArtifactContract {

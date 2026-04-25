@@ -13,7 +13,8 @@ use time::OffsetDateTime;
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
     render_architecture_artifact, render_change_artifact, render_discovery_artifact,
-    render_implementation_artifact, render_pr_review_artifact, render_refactor_artifact,
+    render_implementation_artifact, render_incident_artifact, render_migration_artifact,
+    render_pr_review_artifact, render_refactor_artifact,
     render_requirements_artifact_from_evidence, render_review_artifact,
     render_system_shaping_artifact, render_verification_artifact,
 };
@@ -55,6 +56,8 @@ mod inspect;
 mod mode_backlog;
 mod mode_change;
 mod mode_discovery;
+mod mode_incident;
+mod mode_migration;
 mod mode_pr_review;
 mod mode_requirements;
 mod mode_review;
@@ -570,13 +573,14 @@ impl EngineService {
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
             Mode::Change => self.run_change(&store, request, policy_set),
             Mode::Backlog => self.run_backlog(&store, request, policy_set),
+            Mode::Incident => self.run_incident(&store, request, policy_set),
             Mode::Implementation => self.run_implementation(&store, request, policy_set),
+            Mode::Migration => self.run_migration(&store, request, policy_set),
             Mode::Refactor => self.run_refactor(&store, request, policy_set),
             Mode::Architecture => self.run_architecture(&store, request, policy_set),
             Mode::Review => self.run_review(&store, request, policy_set),
             Mode::Verification => self.run_verification(&store, request, policy_set),
             Mode::PrReview => self.run_pr_review(&store, request, policy_set),
-            other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
         }
     }
 
@@ -1162,6 +1166,18 @@ impl EngineService {
                     evidence_complete,
                 },
             ),
+            Mode::Incident => gatekeeper::evaluate_incident_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::IncidentGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
             Mode::Implementation => gatekeeper::evaluate_implementation_gates(
                 contract,
                 &artifact_inputs,
@@ -1171,6 +1187,18 @@ impl EngineService {
                     zone: manifest.zone,
                     approvals,
                     system_context: manifest.system_context,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::Migration => gatekeeper::evaluate_migration_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::MigrationGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
                     validation_independence_satisfied,
                     evidence_complete,
                 },
@@ -2451,7 +2479,9 @@ fn capability_tag(capability: CapabilityKind) -> &'static str {
 fn canonical_mode_input_binding(mode: Mode) -> Option<(&'static str, &'static str)> {
     match mode {
         Mode::Backlog => Some(("backlog.md", "backlog")),
+        Mode::Incident => Some(("incident.md", "incident")),
         Mode::Implementation => Some(("implementation.md", "implementation")),
+        Mode::Migration => Some(("migration.md", "migration")),
         Mode::Refactor => Some(("refactor.md", "refactor")),
         _ => None,
     }

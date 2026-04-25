@@ -51,6 +51,10 @@ fn init_backlog_repo(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "seed backlog repo"]);
 }
 
+fn complete_incident_brief() -> &'static str {
+    "# Incident Brief\n\nIncident Scope: payments-api and checkout flow only.\nTrigger And Current State: elevated 5xx responses after the last deploy.\nOperational Constraints: no autonomous remediation and no schema changes.\nKnown Facts:\n- errors started after the deploy\nWorking Hypotheses:\n- retry amplification is exhausting the service\nEvidence Gaps:\n- database saturation is not yet confirmed\nImpacted Surfaces:\n- payments-api\n- checkout flow\nPropagation Paths:\n- checkout request path\nConfidence And Unknowns:\n- medium confidence until saturation evidence is collected\nImmediate Actions:\n- disable async retries\nOrdered Sequence:\n- capture blast radius\n- disable retries\n- reassess error rate\nStop Conditions:\n- error rate stabilizes below the alert threshold\nDecision Points:\n- decide whether rollback is still required\nApproved Actions:\n- disable retries within the bounded surface\nDeferred Actions:\n- schema-level changes remain out of scope\nVerification Checks:\n- confirm 5xx rate drops\nRelease Readiness:\n- keep recommendation-only posture until the owner accepts the packet\nFollow-Up Work:\n- add a saturation dashboard and post-incident review item\n"
+}
+
 #[test]
 fn requirements_run_persists_invocation_manifests_and_run_evidence_bundle() {
     let workspace = TempDir::new().expect("temp dir");
@@ -164,4 +168,55 @@ fn closure_limited_backlog_evidence_surfaces_risk_only_packet_and_findings() {
     );
     assert_eq!(entry["closure_findings"][0]["category"].as_str(), Some("missing-exclusion"));
     assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| paths.len() == 2));
+}
+
+#[test]
+fn incident_evidence_surface_keeps_recommendation_only_posture_and_artifact_links() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_backlog_repo(&workspace);
+    fs::write(workspace.path().join("incident.md"), complete_incident_brief()).expect("brief");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "incident",
+            "--system-context",
+            "existing",
+            "--risk",
+            "systemic-impact",
+            "--zone",
+            "red",
+            "--owner",
+            "incident-commander",
+            "--input",
+            "incident.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
+    let run_id = json["run_id"].as_str().expect("run id");
+
+    let evidence = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "evidence", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let evidence_json: serde_json::Value = serde_json::from_slice(&evidence).expect("json");
+    let entry = &evidence_json["entries"][0];
+
+    assert_eq!(entry["execution_posture"].as_str(), Some("recommendation-only"));
+    assert!(entry["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
+    assert!(entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
+    assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| paths.len() == 6));
 }

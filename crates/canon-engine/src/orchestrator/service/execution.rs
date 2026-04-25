@@ -16,7 +16,9 @@ pub(crate) fn apply_execution_posture_summary(
     approvals: &[ApprovalRecord],
 ) -> Option<ModeResultSummary> {
     let mut mode_result = mode_result?;
-    mode_result.execution_posture = resolved_execution_posture_label(context, approvals);
+    if let Some(execution_posture) = resolved_execution_posture_label(context, approvals) {
+        mode_result.execution_posture = Some(execution_posture);
+    }
     Some(mode_result)
 }
 
@@ -31,6 +33,17 @@ pub(crate) fn resolved_execution_posture_label(
         (Some("recommendation-only"), true, true) => Some("approved-recommendation".to_string()),
         (other, _, _) => other.map(str::to_string),
     }
+}
+
+pub(crate) fn resolved_execution_posture_label_for_mode(
+    mode: Mode,
+    context: Option<&RunContext>,
+    approvals: &[ApprovalRecord],
+) -> Option<String> {
+    resolved_execution_posture_label(context, approvals).or_else(|| match mode {
+        Mode::Incident | Mode::Migration => Some("recommendation-only".to_string()),
+        _ => None,
+    })
 }
 
 pub(crate) fn execution_posture_label(context: &RunContext) -> Option<&'static str> {

@@ -39,6 +39,10 @@ fn init_implementation_repo(workspace: &TempDir) {
     git(&["commit", "-m", "seed implementation repo"]);
 }
 
+fn incomplete_migration_brief() -> &'static str {
+    "# Migration Brief\n\nCurrent State: auth-v1 serves login and token refresh traffic.\nTarget State: auth-v2 serves the same bounded traffic surface.\nTransition Boundaries: login and token refresh only.\nGuaranteed Compatibility:\n- existing tokens continue to validate\nTemporary Incompatibilities:\n- admin reporting stays on v1 during the rollout\nCoexistence Rules:\n- dual-write session metadata during cutover\nOrdered Steps:\n- enable shadow reads\n- start dual-write\n- cut traffic to auth-v2\nParallelizable Work:\n- docs and dashboards can update in parallel\nCutover Criteria:\n- error rate and token validation remain stable\nVerification Checks:\n- login and token validation pass against auth-v2\nResidual Risks:\n- admin reporting remains temporarily inconsistent\nRelease Readiness:\n- fallback credibility is not yet established\nMigration Decisions:\n- retain dual-write during the bounded cutover\nDeferred Decisions:\n- move admin reporting after the bounded migration completes\nApproval Notes:\n- explicit migration-lead sign-off is required before broader rollout\n"
+}
+
 #[test]
 fn load_policy_set_merges_known_local_overrides() {
     let workspace = TempDir::new().expect("temp dir");
@@ -329,4 +333,66 @@ fn red_zone_refactor_run_persists_recommendation_only_mutation_traces() {
         trace_contents.contains("\"outcome\":\"RecommendationOnly\""),
         "trace stream should persist recommendation-only mutation outcomes"
     );
+}
+
+#[test]
+fn blocked_migration_run_persists_traces_and_operational_status_surfaces() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_implementation_repo(&workspace);
+    fs::write(workspace.path().join("migration.md"), incomplete_migration_brief())
+        .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    service.init(None).expect("init");
+    let summary = service
+        .run(RunRequest {
+            mode: Mode::Migration,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: Some(canon_engine::domain::run::SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "migration-lead".to_string(),
+            inputs: vec!["migration.md".to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        })
+        .expect("migration run");
+
+    assert_eq!(summary.state, "Blocked");
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+
+    let trace_path =
+        workspace.path().join(".canon").join("traces").join(format!("{}.jsonl", summary.run_id));
+    assert!(trace_path.exists(), "trace stream should exist");
+
+    let trace_contents = fs::read_to_string(&trace_path).expect("trace contents");
+    assert!(
+        trace_contents.contains("\"capability\":\"EmitArtifact\""),
+        "trace stream should record artifact writes for blocked migration runs"
+    );
+
+    let evidence = service
+        .inspect(canon_engine::orchestrator::service::InspectTarget::Evidence {
+            run_id: summary.run_id.clone(),
+        })
+        .expect("inspect evidence");
+    let evidence_entry = match evidence.entries.first().expect("evidence entry") {
+        canon_engine::orchestrator::service::InspectEntry::Evidence(entry) => entry,
+        other => panic!("expected evidence entry, got {other:?}"),
+    };
+    assert_eq!(evidence_entry.execution_posture.as_deref(), Some("recommendation-only"));
+    assert_eq!(evidence_entry.artifact_provenance_links.len(), 6);
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Blocked");
+    assert_eq!(
+        status.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(status.blocked_gates.iter().any(|gate| gate.gate == "migration-safety"));
 }

@@ -97,6 +97,14 @@ fn complete_backlog_brief() -> &'static str {
     "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n- Keep dependency blockers explicit.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n"
 }
 
+fn complete_incident_brief() -> &'static str {
+    "# Incident Brief\n\nIncident Scope: payments-api and checkout flow only.\nTrigger And Current State: elevated 5xx responses after the last deploy.\nOperational Constraints: no autonomous remediation and no schema changes.\nKnown Facts:\n- errors started after the deploy\n- rollback remains available\nWorking Hypotheses:\n- retry amplification is exhausting the service\nEvidence Gaps:\n- database saturation is not yet confirmed\nImpacted Surfaces:\n- payments-api\n- checkout flow\nPropagation Paths:\n- checkout request path\nConfidence And Unknowns:\n- medium confidence until saturation evidence is collected\nImmediate Actions:\n- disable async retries\nOrdered Sequence:\n- capture blast radius\n- disable retries\n- reassess error rate\nStop Conditions:\n- error rate stabilizes below the alert threshold\nDecision Points:\n- decide whether rollback is still required\nApproved Actions:\n- disable retries within the bounded surface\nDeferred Actions:\n- schema-level changes remain out of scope\nVerification Checks:\n- confirm 5xx rate drops\nRelease Readiness:\n- keep recommendation-only posture until the owner accepts the packet\nFollow-Up Work:\n- add a saturation dashboard and post-incident review item\n"
+}
+
+fn complete_migration_brief() -> &'static str {
+    "# Migration Brief\n\nCurrent State: auth-v1 serves login and token refresh traffic.\nTarget State: auth-v2 serves the same bounded traffic surface.\nTransition Boundaries: login and token refresh only.\nGuaranteed Compatibility:\n- existing tokens continue to validate\nTemporary Incompatibilities:\n- admin reporting stays on v1 during the rollout\nCoexistence Rules:\n- dual-write session metadata during cutover\nOrdered Steps:\n- enable shadow reads\n- start dual-write\n- cut traffic to auth-v2\nParallelizable Work:\n- docs and dashboards can update in parallel\nCutover Criteria:\n- error rate and token validation remain stable\nRollback Triggers:\n- token validation failures or elevated login errors\nFallback Paths:\n- route bounded traffic back to auth-v1\nRe-Entry Criteria:\n- compatibility regressions are resolved and revalidated\nVerification Checks:\n- login and token validation pass against auth-v2\nResidual Risks:\n- admin reporting remains temporarily inconsistent\nRelease Readiness:\n- keep recommendation-only posture until the owner accepts the packet\nMigration Decisions:\n- retain dual-write during the bounded cutover\nDeferred Decisions:\n- move admin reporting after the bounded migration completes\nApproval Notes:\n- explicit migration-lead sign-off is required before broader rollout\n"
+}
+
 fn init_review_repo(workspace: &TempDir) {
     git(workspace, &["init", "-b", "main"]);
     git(workspace, &["config", "user.name", "Canon Test"]);
@@ -200,6 +208,8 @@ fn engine_service_initializes_runtime_and_materializes_skills() {
     let listed = service.skills_list();
     assert!(listed.iter().any(|entry| entry.name == "canon-discovery"));
     assert!(listed.iter().any(|entry| entry.name == "canon-inspect-clarity"));
+    assert!(listed.iter().any(|entry| entry.name == "canon-incident"));
+    assert!(listed.iter().any(|entry| entry.name == "canon-migration"));
 
     let updated = service.skills_update(AiTool::Codex).expect("skills update");
     assert!(updated.skills_materialized > 0 || updated.skills_skipped > 0);
@@ -411,6 +421,143 @@ fn architecture_direct_run_requires_gate_approval_and_completes_after_status_ref
         .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
         .expect("inspect evidence");
     assert_eq!(evidence.entries.len(), 1);
+}
+
+#[test]
+fn incident_direct_run_produces_artifacts_and_completes_after_risk_approval() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("incident.md"), complete_incident_brief()).expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Incident,
+            RiskClass::SystemicImpact,
+            UsageZone::Red,
+            "incident-commander",
+            vec!["incident.md"],
+        ))
+        .expect("incident run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert_eq!(summary.artifact_count, 6);
+    assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("incident-frame.md")));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("containment-plan.md")));
+
+    let approval = service
+        .approve(
+            &summary.run_id,
+            "gate:risk",
+            "incident-commander",
+            ApprovalDecision::Approve,
+            "bounded containment packet accepted for operator review",
+        )
+        .expect("gate approval");
+    assert_eq!(approval.state, "Completed");
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Completed");
+    assert_eq!(
+        status.mode_result.as_ref().map(|result| result.primary_artifact_title.as_str()),
+        Some("Incident Frame")
+    );
+}
+
+#[test]
+fn incident_direct_run_blocks_on_missing_containment_evidence() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(
+        workspace.path().join("incident.md"),
+        "# Incident Brief\n\nIncident Scope: payments-api only.\nTrigger And Current State: elevated 5xx responses after the last deploy.\nOperational Constraints: no autonomous remediation and no schema changes.\nKnown Facts:\n- errors started after the deploy\nWorking Hypotheses:\n- retry amplification is exhausting the service\nEvidence Gaps:\n- blast radius is still uncertain\nDecision Points:\n- decide whether rollback is still required\nApproved Actions:\n- none yet\nDeferred Actions:\n- schema-level changes remain out of scope\nRelease Readiness:\n- do not advance until containment details are explicit\nFollow-Up Work:\n- add a saturation dashboard and post-incident review item\n",
+    )
+    .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Incident,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "incident-commander",
+            vec!["incident.md"],
+        ))
+        .expect("incident run");
+
+    assert_eq!(summary.state, "Blocked");
+    assert_eq!(summary.blocking_classification.as_deref(), Some("artifact-blocked"));
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(summary.blocked_gates.iter().any(|gate| gate.gate == "incident-containment"));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("blast-radius-map.md")));
+
+    let evidence = service
+        .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
+        .expect("inspect evidence");
+    let evidence_entry = match evidence.entries.first().expect("evidence entry") {
+        InspectEntry::Evidence(entry) => entry,
+        other => panic!("expected evidence entry, got {other:?}"),
+    };
+    assert_eq!(evidence_entry.execution_posture.as_deref(), Some("recommendation-only"));
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Blocked");
+    assert!(status.blocked_gates.iter().any(|gate| gate.gate == "incident-containment"));
+}
+
+#[test]
+fn migration_direct_run_produces_artifacts_and_completes_after_risk_approval() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(workspace.path().join("migration.md"), complete_migration_brief())
+        .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Migration,
+            RiskClass::SystemicImpact,
+            UsageZone::Yellow,
+            "migration-lead",
+            vec!["migration.md"],
+        ))
+        .expect("migration run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert_eq!(summary.artifact_count, 6);
+    assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("source-target-map.md")));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("fallback-plan.md")));
+
+    let approval = service
+        .approve(
+            &summary.run_id,
+            "gate:risk",
+            "migration-lead",
+            ApprovalDecision::Approve,
+            "bounded compatibility packet accepted for rollout review",
+        )
+        .expect("gate approval");
+    assert_eq!(approval.state, "Completed");
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Completed");
+    assert_eq!(
+        status.mode_result.as_ref().map(|result| result.primary_artifact_title.as_str()),
+        Some("Source-Target Map")
+    );
 }
 
 #[test]
