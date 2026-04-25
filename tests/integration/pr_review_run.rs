@@ -136,6 +136,7 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     for artifact in [
         "pr-analysis.md",
         "boundary-check.md",
+        "conventional-comments.md",
         "duplication-check.md",
         "contract-drift.md",
         "missing-tests.md",
@@ -159,6 +160,16 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     assert!(
         review_summary.contains("Ready with review notes"),
         "review-summary should record a non-blocking disposition"
+    );
+    let conventional_comments = fs::read_to_string(artifact_root.join("conventional-comments.md"))
+        .expect("conventional comments artifact");
+    assert!(
+        conventional_comments.contains("praise:"),
+        "note-only review packets should emit a praise-style conventional comment"
+    );
+    assert!(
+        conventional_comments.contains("src/reviewer.rs"),
+        "conventional-comments should retain changed surface traceability"
     );
 
     let status_output = cli_command()
@@ -229,6 +240,10 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
     assert!(
         artifact_root.join("pr-analysis.md").exists(),
         "pr-analysis should exist for worktree review"
+    );
+    assert!(
+        artifact_root.join("conventional-comments.md").exists(),
+        "conventional-comments should exist for worktree review"
     );
 
     let pr_analysis =

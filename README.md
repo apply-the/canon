@@ -508,7 +508,7 @@ Canon will:
 - inspect the diff through governed shell-based requests
 - retain bounded payload refs when policy allows it
 - run critique as a separate governed path
-- emit a review packet under `.canon/artifacts/<RUN_ID>/pr-review/`
+- emit a review packet under `.canon/artifacts/<RUN_ID>/pr-review/`, with `review-summary.md` as the primary status artifact and `conventional-comments.md` as the reviewer-facing companion
 
 If the review leaves must-fix findings unresolved, that disposition stays explicit:
 
@@ -700,6 +700,12 @@ Use this on a real diff or worktree when you want review output backed by
 governed inspection instead of a loose summary. Canon inspects the change,
 runs critique as a separate governed path, and leaves behind a review packet
 with explicit evidence and disposition.
+
+The packet keeps `review-summary.md` as the primary status surface and now also
+emits `conventional-comments.md` as a readable reviewer-facing companion.
+
+Completed runs publish under `docs/reviews/prs/<RUN_ID>/`, including the
+Conventional Comments artifact.
 
 ### Implementation Mode
 

@@ -614,7 +614,7 @@ fn pr_review_direct_run_handles_committed_and_worktree_diffs() {
         .expect("committed review run");
 
     assert_eq!(committed.state, "Completed");
-    assert_eq!(committed.artifact_count, 7);
+    assert_eq!(committed.artifact_count, 8);
     assert!(committed.artifact_paths.iter().any(|path| path.ends_with("pr-analysis.md")));
 
     let committed_status = service.status(&committed.run_id).expect("committed status");
