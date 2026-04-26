@@ -65,6 +65,17 @@ Optional:
 
 ## Author Architecture Body Before Invoking Canon
 
+- The architecture brief MUST author the decision-facing sections
+  `## Decision`, `## Constraints`, `## Evaluation Criteria`,
+  `## Decision Drivers`, `## Options Considered`, `## Pros`, `## Cons`,
+  `## Recommendation`, and `## Why Not The Others` before invoking Canon.
+  The renderer preserves those authored bodies in
+  `architecture-decisions.md` and `tradeoff-matrix.md` instead of replacing
+  them with generic prose.
+- `architecture-decisions.md` emits an ADR-like `## Consequences` section.
+  New briefs should author `## Consequences` directly. Canon still accepts the
+  legacy `## Risks` heading as a backward-compatible input alias and renders it
+  as `## Consequences` in the emitted decision artifact.
 - The architecture brief MUST author the domain-boundary sections `## Bounded Contexts`,
   `## Context Relationships`, `## Integration Seams`,
   `## Anti-Corruption Candidates`, `## Ownership Boundaries`, and
@@ -78,10 +89,10 @@ Optional:
   inserts a `## Missing Authored Body` block that names the missing canonical
   heading. Treat that block as a structured prompt to revise the authored
   brief and rerun, not as Canon-generated content.
-- Heading variants like `## C4 - System Context`, `## Container View`,
-  `## Component View`, `## Context Map`, or `## Contexts` are NOT recognized.
-  The H2 must match the canonical heading exactly; otherwise the missing-body
-  block is emitted.
+- Heading variants like `## Options`, `## Recommended Option`, `## Rejected Alternatives`,
+  `## C4 - System Context`, `## Container View`, `## Component View`,
+  `## Context Map`, or `## Contexts` are NOT recognized. The H2 must match the
+  canonical heading exactly; otherwise the missing-body block is emitted.
 - The architecture template at `docs/templates/canon-input/architecture.md`
   shows the expected shape; the worked example at
   `docs/examples/canon-input/architecture-state-management.md` shows a

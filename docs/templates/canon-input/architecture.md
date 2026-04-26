@@ -3,10 +3,6 @@
 ## Decision
 What structural decision are we making?
 
-## Options
-- Option 1
-- Option 2
-
 ## Constraints
 - Constraint 1
 - Constraint 2
@@ -23,9 +19,29 @@ What structural decision are we making?
 - Criterion 1
 - Criterion 2
 
-## Risks
-- Risk 1
-- Risk 2
+## Decision Drivers
+- Driver 1
+- Driver 2
+
+## Options Considered
+- Option 1
+- Option 2
+
+## Pros
+- Why the recommended direction fits
+
+## Cons
+- What the recommended direction costs
+
+## Recommendation
+State the recommended option plainly.
+
+## Why Not The Others
+- Why each rejected option stays rejected for now
+
+## Consequences
+- Downstream impact 1
+- Downstream impact 2
 
 ## Bounded Contexts
 - Context 1 and its primary responsibility

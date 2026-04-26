@@ -224,7 +224,7 @@ pub fn evaluate_architecture_gates(
             contract,
             artifacts,
             &["architecture-decisions.md", "invariants.md", "tradeoff-matrix.md", "context-map.md"],
-            "architecture review requires decisions, invariants, and tradeoff scoring",
+            "architecture review requires decisions, invariants, and tradeoff analysis",
         ),
         approval_aware_risk_gate(
             context.owner,
