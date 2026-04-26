@@ -94,6 +94,7 @@ vocabulary for domain work.
   Sequencing Plan, Acceptance Anchors, Planning Risks) before invoking Canon,
   and the renderer preserves those authored sections verbatim instead of
   emitting templated placeholders.
+- requirements, discovery, and change now ship the first slice of Mode Authoring Specialization: their skills, templates, examples, and renderers share canonical authored H2 contracts; Canon preserves authored sections verbatim; and missing required sections surface `## Missing Authored Body` while release-readiness gates stay honest.
 - `pr-review` now emits `conventional-comments.md` as a reviewer-facing
   companion to `review-summary.md`, publishes it under
   `docs/reviews/prs/<RUN_ID>/`, and preserves the existing review-disposition
@@ -137,11 +138,17 @@ brief.
 - `incident`
 - `migration`
 
-### First Slice
+### Delivered First Slice
+
+- `requirements`, `discovery`, and `change` now require explicit authored H2 sections in their skills, templates, and worked examples.
+- Their renderers preserve authored sections verbatim and emit `## Missing Authored Body` when the assistant omits a required section.
+- The remaining roadmap scope is to extend the same authoring-specialization pattern to the other governed modes without implying that the broader rollout is already complete.
+
+### Remaining Scope
 
 - Define a shared `Author <Mode> Body Before Invoking Canon` skill section that
-  enumerates the required H2 sections for each emitted artifact in that mode,
-  mirroring the new `canon-backlog` skill section.
+  enumerates the required H2 sections for each emitted artifact in the remaining modes,
+  mirroring the delivered first slice and the new `canon-backlog` skill section.
 - For decision-heavy modes, require authored `## Options Considered`,
   `## Recommended Option`, and `## Rejected Alternatives` sections so Canon
   preserves real tradeoffs instead of only the final answer.

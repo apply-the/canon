@@ -1,35 +1,71 @@
 # Discovery Brief
 
-## Problem
-What are we trying to understand?
+## Problem Domain
+What problem space are we actually trying to understand?
 
-## Current Context
-What is the current situation?
+## Repo Surface
+- Relevant repo path 1
+- Relevant repo path 2
 
-## Known Facts
-- Fact 1
-- Fact 2
+## Immediate Tensions
+- Tension 1
+- Tension 2
+
+## Downstream Handoff
+What should the next mode inherit if this discovery packet is accepted?
 
 ## Unknowns
 - Unknown 1
 - Unknown 2
 
+## Assumptions
+- Assumption 1
+- Assumption 2
+
+## Validation Targets
+- Validation target 1
+- Validation target 2
+
+## Confidence Levels
+- High confidence: what is already grounded
+- Low confidence: what still needs evidence
+
+## In-Scope Context
+- In-scope item 1
+- In-scope item 2
+
+## Out-of-Scope Context
+- Out-of-scope item 1
+- Out-of-scope item 2
+
+## Translation Trigger
+What would make this packet ready for requirements, architecture, or change?
+
+## Options
+1. Option 1
+2. Option 2
+
 ## Constraints
 - Constraint 1
 - Constraint 2
 
-## In Scope
-- Item 1
-- Item 2
+## Recommended Direction
+State the most credible next direction and why it is the current favorite.
 
-## Out of Scope
-- Item 1
-- Item 2
+## Next-Phase Shape
+Describe what the next bounded packet should look like.
 
-## Exploration Options
-- Option 1
-- Option 2
+## Pressure Points
+- Pressure point 1
+- Pressure point 2
 
-## Questions
+## Blocking Decisions
+- Decision 1
+- Decision 2
+
+## Open Questions
 - Question 1
 - Question 2
+
+## Recommended Owner
+- Owner or role that should carry the next phase

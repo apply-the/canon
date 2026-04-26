@@ -128,6 +128,10 @@ mod tests {
     use crate::domain::run::ClassificationProvenance;
     use crate::orchestrator::service::{EngineService, RunRequest};
 
+    fn complete_requirements_brief() -> &'static str {
+        "# Requirements Brief\n\n## Problem\n\nPublish engine unit test coverage.\n\n## Outcome\n\nPublish functions are exercised under full artifact contracts.\n\n## Constraints\n\n- Keep output local-first.\n\n## Non-Negotiables\n\n- Artifacts must persist under .canon/.\n\n## Options\n\n1. Publish to default path.\n\n## Recommended Path\n\nPublish to the default mode directory.\n\n## Tradeoffs\n\n- Simpler path at cost of flexibility.\n\n## Consequences\n\n- Reviewers can inspect the packet.\n\n## Out of Scope\n\n- No hosted publishing.\n\n## Deferred Work\n\n- Remote destinations deferred.\n\n## Decision Checklist\n\n- [x] Scope is explicit.\n\n## Open Questions\n\n- None at this time.\n"
+    }
+
     fn requirements_request() -> RunRequest {
         RunRequest {
             mode: Mode::Requirements,
@@ -174,7 +178,7 @@ mod tests {
     #[test]
     fn publish_run_rejects_destination_that_is_an_existing_file() {
         let workspace = tempdir().expect("temp workspace");
-        fs::write(workspace.path().join("idea.md"), "# Idea\n\nPublish branch coverage test.\n")
+        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
             .expect("write input");
 
         let service = EngineService::new(workspace.path());
@@ -191,11 +195,8 @@ mod tests {
     #[test]
     fn publish_run_supports_absolute_override_outside_repo_root() {
         let workspace = tempdir().expect("temp workspace");
-        fs::write(
-            workspace.path().join("idea.md"),
-            "# Idea\n\nAbsolute publish destination coverage test.\n",
-        )
-        .expect("write input");
+        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
+            .expect("write input");
 
         let external = tempdir().expect("external destination");
         let absolute_destination = external.path().join("published-packet");

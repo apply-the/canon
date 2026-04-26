@@ -38,7 +38,7 @@ impl EngineService {
         let context_summary =
             self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let repo_surfaces = self.scan_workspace_surface()?;
-        let discovery_brief = DiscoveryBrief::from_context(context_summary, &repo_surfaces);
+        let discovery_brief = DiscoveryBrief::from_context(context_summary.clone(), &repo_surfaces);
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -136,7 +136,7 @@ impl EngineService {
         });
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
-        let (validation_summary, validation_attempt) =
+        let (_validation_summary, validation_attempt) =
             self.change_validation_attempt(&validation_request)?;
 
         let artifact_paths = artifact_contract
@@ -174,12 +174,6 @@ impl EngineService {
                 },
             ),
         };
-        let evidence_backed_summary = discovery_brief.evidence_backed_summary(
-            &repo_surfaces,
-            &generation_output.summary,
-            &critique_output.summary,
-            &validation_summary,
-        );
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
@@ -204,10 +198,7 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_discovery_artifact(
-                    &requirement.file_name,
-                    &evidence_backed_summary,
-                ),
+                contents: render_discovery_artifact(&requirement.file_name, &context_summary),
             })
             .collect::<Vec<_>>();
 

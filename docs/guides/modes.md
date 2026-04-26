@@ -290,19 +290,16 @@ Explore a blurry problem space before you can write trustworthy requirements.
 
 ### Input Shape
 
-A short discovery brief or exploratory note.
+A discovery brief authored with canonical H2 sections. For this first slice, a credible brief includes `## Problem Domain`, `## Repo Surface`, `## Immediate Tensions`, `## Downstream Handoff`, `## Unknowns`, `## Assumptions`, `## Validation Targets`, `## Confidence Levels`, `## In-Scope Context`, `## Out-of-Scope Context`, `## Translation Trigger`, `## Options`, `## Constraints`, `## Recommended Direction`, `## Next-Phase Shape`, `## Pressure Points`, `## Blocking Decisions`, `## Open Questions`, and `## Recommended Owner`.
 
 ### Good Input Should Include
 
-- the problem you are trying to understand
-- the current context
-- what is already known
-- what is still unclear
-- constraints
-- what is in scope
-- what is out of scope
-- alternative directions worth exploring
-- decisions that need to be prepared, but not finalized yet
+- `## Problem Domain` and `## Repo Surface` so the exploration stays tied to a real system surface
+- `## Immediate Tensions` and `## Downstream Handoff` so the next mode can inherit the right boundary
+- `## Unknowns`, `## Assumptions`, `## Validation Targets`, and `## Confidence Levels` so the packet stays honest about uncertainty
+- `## In-Scope Context`, `## Out-of-Scope Context`, and `## Translation Trigger` so the discovery boundary is explicit
+- `## Options`, `## Constraints`, `## Recommended Direction`, and `## Next-Phase Shape` so the exploratory path is reviewable
+- `## Pressure Points`, `## Blocking Decisions`, `## Open Questions`, and `## Recommended Owner` so the unresolved work is easy to hand off
 
 ### Questions This Mode Answers
 
@@ -360,16 +357,16 @@ Bound a problem before code, design, or scope drift starts.
 
 ### Input Shape
 
-A short initiative brief, idea note, or product framing document.
+A requirements brief authored with canonical H2 sections. For this first slice, a credible brief includes `## Problem`, `## Outcome`, `## Constraints`, `## Non-Negotiables`, `## Options`, `## Recommended Path`, `## Tradeoffs`, `## Consequences`, `## Scope Cuts`, `## Deferred Work`, `## Decision Checklist`, and `## Open Questions`.
 
 ### Good Input Should Include
 
-- the problem to solve
-- the desired outcome
-- known constraints
-- important tradeoffs
-- what is out of scope
-- the decisions that must be made before implementation
+- `## Problem` and `## Outcome` so the packet can state the bounded intent clearly
+- `## Constraints` and `## Non-Negotiables` so delivery and policy boundaries are explicit
+- `## Options` and `## Recommended Path` so the packet carries real choice rather than a single unexamined answer
+- `## Tradeoffs` and `## Consequences` so reviewers can see the cost of the recommendation
+- `## Scope Cuts` and `## Deferred Work` so the first slice stays honest about exclusions
+- `## Decision Checklist` and `## Open Questions` so the remaining decisions are explicit before planning or execution
 
 ### Questions This Mode Answers
 
@@ -744,8 +741,7 @@ behavior.
 
 ### Input Shape
 
-A change brief with explicit change surface and invariants. This mode requires
-explicit `--system-context existing` when you start the run.
+A change brief authored with canonical H2 sections. For this first slice, a credible brief includes `## System Slice`, `## Excluded Areas`, `## Intended Change`, `## Legacy Invariants`, `## Forbidden Normalization`, `## Change Surface`, `## Ownership`, `## Implementation Plan`, `## Sequencing`, `## Validation Strategy`, `## Independent Checks`, `## Decision Record`, `## Consequences`, and `## Unresolved Questions`. This mode requires explicit `--system-context existing` when you start the run.
 
 A change without an existing system does not make sense in Canon's model.
 `change` is defined around preserved behavior, bounded modification, and
@@ -760,16 +756,13 @@ actual question.
 
 ### Good Input Should Include
 
-- `System Slice:`
-- `Intended Change:`
-- `Legacy Invariants:`
-- `Change Surface:`
-- `Implementation Plan:`
-- `Validation Strategy:`
-- `Decision Record:`
-- `Owner:`
-- `Risk Level:`
-- `Zone:`
+- `## System Slice` and `## Excluded Areas` so the bounded surface is explicit
+- `## Intended Change`, `## Legacy Invariants`, and `## Forbidden Normalization` so the preserved behavior is reviewable
+- `## Change Surface` and `## Ownership` so the allowed mutation boundary and responsible owners are explicit
+- `## Implementation Plan` and `## Sequencing` so the packet states the intended order of operations
+- `## Validation Strategy` and `## Independent Checks` so the validation contract is credible
+- `## Decision Record`, `## Consequences`, and `## Unresolved Questions` so the decision posture is preserved honestly
+- metadata lines such as `Owner:`, `Risk Level:`, and `Zone:` outside the authored-body extraction when you want to keep operator metadata in the brief
 
 ### Questions This Mode Answers
 
@@ -811,10 +804,7 @@ not the execution step itself.
 
 ### Important Input Behavior
 
-Change is much stronger when the brief uses the marker-style fields shown
-in the template. If key fields like `Legacy Invariants:` or `Change Surface:`
-are missing, Canon can still emit artifacts, but they will make the missing
-context explicit instead of pretending the change is well-bounded.
+Change is strongest when the brief uses the canonical H2 sections shown in the template. Inline labels such as `Change Surface:` are no longer the preferred first-slice format. If required sections like `## Legacy Invariants` or `## Change Surface` are missing, Canon emits `## Missing Authored Body` naming the missing heading and blocks the packet honestly instead of pretending the change is well-bounded.
 
 ### Typical Handoff After This Mode
 

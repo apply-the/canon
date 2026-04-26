@@ -55,12 +55,24 @@ fn complete_incident_brief() -> &'static str {
     "# Incident Brief\n\nIncident Scope: payments-api and checkout flow only.\nTrigger And Current State: elevated 5xx responses after the last deploy.\nOperational Constraints: no autonomous remediation and no schema changes.\nKnown Facts:\n- errors started after the deploy\nWorking Hypotheses:\n- retry amplification is exhausting the service\nEvidence Gaps:\n- database saturation is not yet confirmed\nImpacted Surfaces:\n- payments-api\n- checkout flow\nPropagation Paths:\n- checkout request path\nConfidence And Unknowns:\n- medium confidence until saturation evidence is collected\nImmediate Actions:\n- disable async retries\nOrdered Sequence:\n- capture blast radius\n- disable retries\n- reassess error rate\nStop Conditions:\n- error rate stabilizes below the alert threshold\nDecision Points:\n- decide whether rollback is still required\nApproved Actions:\n- disable retries within the bounded surface\nDeferred Actions:\n- schema-level changes remain out of scope\nVerification Checks:\n- confirm 5xx rate drops\nRelease Readiness:\n- keep recommendation-only posture until the owner accepts the packet\nFollow-Up Work:\n- add a saturation dashboard and post-incident review item\n"
 }
 
+fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
+    format!(
+        "# Requirements Brief\n\n## Problem\n\n{problem}\n\n## Outcome\n\n{outcome}\n\n## Constraints\n\n- Keep execution local-first\n- Preserve explicit audit logs\n\n## Non-Negotiables\n\n- Keep human ownership explicit\n- Persist artifacts under `.canon/`\n\n## Options\n\n1. Start with a bounded CLI slice.\n2. Defer broader orchestration work.\n\n## Recommended Path\n\nStart with the bounded CLI slice before expanding scope.\n\n## Tradeoffs\n\n- Governance adds upfront structure.\n- Durable artifacts add overhead but improve reviewability.\n\n## Consequences\n\n- Reviewers can inspect the packet without chat history.\n\n## Out of Scope\n\n- No GUI in this slice\n\n## Deferred Work\n\n- Hosted rollout remains a later slice.\n\n## Decision Checklist\n\n- [x] Scope is explicit\n- [x] Ownership is explicit\n\n## Open Questions\n\n- How is bootloader mode entered?\n"
+    )
+}
+
 #[test]
 fn requirements_run_persists_invocation_manifests_and_run_evidence_bundle() {
     let workspace = TempDir::new().expect("temp dir");
     let idea_path = workspace.path().join("idea.md");
-    fs::write(&idea_path, "# Idea\n\nGovern external execution before artifacts.\n")
-        .expect("idea file");
+    fs::write(
+        &idea_path,
+        complete_requirements_brief(
+            "Govern external execution before artifacts.",
+            "Operators can inspect a complete requirements packet before downstream work.",
+        ),
+    )
+    .expect("idea file");
 
     let output = cli_command()
         .current_dir(workspace.path())

@@ -888,6 +888,7 @@ impl EngineService {
                     contents: render_requirements_artifact_from_evidence(
                         &requirement.file_name,
                         &context_summary,
+                        &context_summary,
                         &generation_output.summary,
                         &critique_output.summary,
                         &denied_summary,

@@ -3,6 +3,13 @@ use crate::orchestrator::service::context_parse::truncate_context_excerpt;
 use crate::review::findings::{FindingCategory, ReviewFinding, ReviewPacket};
 use crate::review::summary::{ReviewSummary, summary_severity_label};
 
+struct AuthoredSectionSpec<'a> {
+    canonical_heading: &'a str,
+    aliases: &'a [&'a str],
+}
+
+pub const MISSING_AUTHORED_BODY_MARKER: &str = "## Missing Authored Body";
+
 pub fn render_markdown(title: &str, summary: &str) -> String {
     format!("# {title}\n\n## Summary\n\n{summary}\n")
 }
@@ -34,134 +41,145 @@ pub fn render_requirements_artifact(file_name: &str, idea_summary: &str) -> Stri
 pub fn render_requirements_artifact_from_evidence(
     file_name: &str,
     idea_summary: &str,
-    generation_summary: &str,
-    critique_summary: &str,
-    denied_summary: &str,
+    authored_summary: &str,
+    _generation_summary: &str,
+    _critique_summary: &str,
+    _denied_summary: &str,
 ) -> String {
-    let generation_normalized = generation_summary.to_lowercase();
-    let critique_normalized = critique_summary.to_lowercase();
-    let problem = extract_marker(generation_summary, &generation_normalized, "problem")
-        .unwrap_or_else(|| generation_summary.to_string());
-    let outcome = extract_marker(generation_summary, &generation_normalized, "outcome")
-        .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Outcome` section in the requirements input.".to_string()
-        });
-    let constraints = extract_marker(generation_summary, &generation_normalized, "constraints")
-        .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Constraints` section in the requirements input."
-                .to_string()
-        });
-    let tradeoffs = extract_marker(generation_summary, &generation_normalized, "tradeoffs")
-        .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Tradeoffs` section in the requirements input.".to_string()
-        });
-    let scope_cuts = extract_marker(generation_summary, &generation_normalized, "scope cuts")
-        .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Out of Scope` or `## Scope Cuts` section in the requirements input."
-                .to_string()
-        });
-    let options = extract_marker(generation_summary, &generation_normalized, "options")
-        .unwrap_or_else(|| {
-            "1. Review the packet with the named owner before downstream planning.".to_string()
-        });
-    let recommended_path =
-        extract_marker(generation_summary, &generation_normalized, "recommended path")
-            .unwrap_or_else(|| {
-                "Review the packet and choose the smallest downstream mode that preserves the current boundary."
-                    .to_string()
-            });
-    let open_questions =
-        extract_marker(generation_summary, &generation_normalized, "open questions")
-            .unwrap_or_else(|| {
-                "NOT CAPTURED - No open questions were recorded for this requirements packet."
-                    .to_string()
-            });
-    let coverage = extract_marker(critique_summary, &critique_normalized, "coverage")
-        .unwrap_or_else(|| "- Requirements critique coverage was not recorded.".to_string());
-    let missing_context = extract_marker(critique_summary, &critique_normalized, "missing context")
-        .unwrap_or_else(|| "- Missing-context critique was not recorded.".to_string());
-    let risk_notes = extract_marker(critique_summary, &critique_normalized, "risk notes")
-        .unwrap_or_else(|| "- Risk notes were not recorded.".to_string());
-    let recommended_focus =
-        extract_marker(critique_summary, &critique_normalized, "recommended focus").unwrap_or_else(
-            || "Review the packet before choosing the next governed mode.".to_string(),
-        );
-
     match file_name {
-        "problem-statement.md" => format!(
-            "# Problem Statement\n\n## Summary\n\n{idea_summary}\n\n## Problem\n\n{problem}\n\n## Boundary\n\n{}\n\n## Success Signal\n\n{outcome}\n",
-            render_requirements_boundary(&scope_cuts)
+        "problem-statement.md" => render_authored_artifact(
+            "Problem Statement",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Problem", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Outcome", aliases: &[] },
+            ],
         ),
-        "constraints.md" => format!(
-            "# Constraints\n\n## Summary\n\n{idea_summary}\n\n## Constraints\n\n{constraints}\n\n## Non-Negotiables\n\n{coverage}\n{risk_notes}\n"
+        "constraints.md" => render_authored_artifact(
+            "Constraints",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Constraints", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Non-Negotiables", aliases: &[] },
+            ],
         ),
-        "options.md" => format!(
-            "# Options\n\n## Summary\n\n{idea_summary}\n\n## Options\n\n{options}\n\n## Recommended Path\n\n{recommended_path}\n"
+        "options.md" => render_authored_artifact(
+            "Options",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Options", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommended Path", aliases: &[] },
+            ],
         ),
-        "tradeoffs.md" => format!(
-            "# Tradeoffs\n\n## Summary\n\n{idea_summary}\n\n## Tradeoffs\n\n{tradeoffs}\n- Governed execution adds structure before speed.\n- Denied mutation requests keep requirements mode bounded.\n\n## Consequences\n\n- {denied_summary}\n{risk_notes}\n"
+        "tradeoffs.md" => render_authored_artifact(
+            "Tradeoffs",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Tradeoffs", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Consequences", aliases: &[] },
+            ],
         ),
-        "scope-cuts.md" => format!(
-            "# Scope Cuts\n\n## Summary\n\n{idea_summary}\n\n## Scope Cuts\n\n{scope_cuts}\n\n## Deferred Work\n\n{recommended_focus}\n"
+        "scope-cuts.md" => render_authored_artifact(
+            "Scope Cuts",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Scope Cuts", aliases: &["Out of Scope"] },
+                AuthoredSectionSpec { canonical_heading: "Deferred Work", aliases: &[] },
+            ],
         ),
-        "decision-checklist.md" => format!(
-            "# Decision Checklist\n\n## Summary\n\n{idea_summary}\n\n## Decision Checklist\n\n{}\n\n## Open Questions\n\n{}\n",
-            render_requirements_checklist(&problem, &outcome, &constraints, &scope_cuts),
-            render_open_questions(&open_questions, &missing_context)
+        "decision-checklist.md" => render_authored_artifact(
+            "Decision Checklist",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Decision Checklist", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Open Questions", aliases: &[] },
+            ],
         ),
         other => render_requirements_artifact(other, idea_summary),
     }
 }
 
 pub fn render_discovery_artifact(file_name: &str, brief_summary: &str) -> String {
-    let normalized = brief_summary.to_lowercase();
-    let problem = extract_marker(brief_summary, &normalized, "problem")
-        .or_else(|| extract_marker(brief_summary, &normalized, "problem domain"))
+    let problem =
+        extract_authored_h2_section(brief_summary, "Problem Domain", &[]).unwrap_or_else(|| {
+            "NOT CAPTURED - No `## Problem Domain` section was authored in the supplied brief."
+                .to_string()
+        });
+    let constraints = extract_authored_h2_section(brief_summary, "Constraints", &[])
         .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Problem` section in the discovery brief.".to_string()
+            "NOT CAPTURED - No `## Constraints` section was authored in the supplied brief."
+                .to_string()
         });
-    let constraints = extract_marker(brief_summary, &normalized, "constraints")
-        .or_else(|| extract_marker(brief_summary, &normalized, "constraint"))
+    let next_phase = extract_authored_h2_section(brief_summary, "Next-Phase Shape", &[])
+        .or_else(|| extract_authored_h2_section(brief_summary, "Translation Trigger", &[]))
+        .or_else(|| extract_authored_h2_section(brief_summary, "Downstream Handoff", &[]))
         .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Constraints` section in the discovery brief.".to_string()
+            "NOT CAPTURED - No discovery handoff section was authored in the supplied brief."
+                .to_string()
         });
-    let repo_focus = extract_marker(brief_summary, &normalized, "repo focus")
-        .or_else(|| extract_marker(brief_summary, &normalized, "boundary"))
-        .unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Repo Focus` section in the discovery brief.".to_string()
-        });
-    let repo_surface = extract_marker(brief_summary, &normalized, "repo surface")
-        .unwrap_or_else(|| "NOT CAPTURED - No repository surfaces were mapped.".to_string());
-    let unknowns = extract_marker(brief_summary, &normalized, "unknowns").unwrap_or_else(|| {
-        "NOT CAPTURED - Provide an `## Unknowns` section in the discovery brief.".to_string()
-    });
-    let next_phase =
-        extract_marker(brief_summary, &normalized, "next phase").unwrap_or_else(|| {
-            "NOT CAPTURED - Provide a `## Next Phase` section in the discovery brief.".to_string()
-        });
-    let generation_summary = extract_marker(brief_summary, &normalized, "generated framing")
-        .unwrap_or_else(|| "NOT CAPTURED - Generated framing was absent.".to_string());
-    let critique_summary = extract_marker(brief_summary, &normalized, "critique evidence")
-        .unwrap_or_else(|| "NOT CAPTURED - Critique evidence is missing.".to_string());
-    let validation_summary = extract_marker(brief_summary, &normalized, "validation evidence")
-        .unwrap_or_else(|| "NOT CAPTURED - Repository validation evidence is missing.".to_string());
     let summary = render_discovery_bundle_summary(file_name, &problem, &constraints, &next_phase);
 
     match file_name {
-        "problem-map.md" => format!(
-            "# Problem Map\n\n## Summary\n\n{summary}\n\n## Repo Signals\n\n{repo_surface}\n\n## Problem Domain\n\n{generation_summary}\n\n## Immediate Tensions\n\n{critique_summary}\n\n## Downstream Handoff\n\n{next_phase}\n"
+        "problem-map.md" => render_authored_artifact(
+            "Problem Map",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Problem Domain", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Repo Surface", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Immediate Tensions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Downstream Handoff", aliases: &[] },
+            ],
         ),
-        "unknowns-and-assumptions.md" => format!(
-            "# Unknowns And Assumptions\n\n## Summary\n\n{summary}\n\n## Unknowns\n\n{unknowns}\n\n## Assumptions\n\n- {constraints}\n- Discovery should stay tied to the named repository surface instead of generic product framing.\n\n## Validation Targets\n\n{validation_summary}\n\n## Confidence Levels\n\n{critique_summary}\n"
+        "unknowns-and-assumptions.md" => render_authored_artifact(
+            "Unknowns And Assumptions",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Unknowns", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Assumptions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Validation Targets", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Confidence Levels", aliases: &[] },
+            ],
         ),
-        "context-boundary.md" => format!(
-            "# Context Boundary\n\n## Summary\n\n{summary}\n\n## In-Scope Context\n\n{problem}\n\n{repo_focus}\n\n## Repo Surface\n\n{repo_surface}\n\n## Out-of-Scope Context\n\n- Workspace mutation and implementation edits remain out of scope for discovery.\n- Do not expand beyond the named repository signals until the next governed mode is chosen.\n\n## Translation Trigger\n\n{next_phase}\n"
+        "context-boundary.md" => render_authored_artifact(
+            "Context Boundary",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "In-Scope Context", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Repo Surface", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Out-of-Scope Context", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Translation Trigger", aliases: &[] },
+            ],
         ),
-        "exploration-options.md" => format!(
-            "# Exploration Options\n\n## Summary\n\n{summary}\n\n## Options\n\n1. Stay in discovery only to close the highest-risk unknowns tied to the current repository surface.\n2. Translate this packet into requirements mode if the main need is bounded problem framing and scope cuts.\n3. Translate this packet into architecture or change planning if the repository signals already point to concrete boundaries or preserved behavior.\n\n## Constraints\n\n- {constraints}\n- Preserve explicit repository anchoring in the next phase.\n\n## Recommended Direction\n\n{generation_summary}\n\n## Next-Phase Shape\n\n{next_phase}\n"
+        "exploration-options.md" => render_authored_artifact(
+            "Exploration Options",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Options", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Constraints", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommended Direction", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Next-Phase Shape", aliases: &[] },
+            ],
         ),
-        "decision-pressure-points.md" => format!(
-            "# Decision Pressure Points\n\n## Summary\n\n{summary}\n\n## Pressure Points\n\n{critique_summary}\n\n## Blocking Decisions\n\n{validation_summary}\n\n## Open Questions\n\n{unknowns}\n\n## Recommended Owner\n\n- The named discovery owner should route this packet into the next governed mode with explicit boundary ownership.\n"
+        "decision-pressure-points.md" => render_authored_artifact(
+            "Decision Pressure Points",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Pressure Points", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Blocking Decisions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Open Questions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommended Owner", aliases: &[] },
+            ],
         ),
         other => render_markdown(other, brief_summary),
     }
@@ -249,7 +267,7 @@ pub fn render_architecture_artifact(
 
 /// Shared marker emitted by C4 architecture artifacts when the authored brief
 /// did not include the canonical H2 section. Tests rely on this exact text.
-pub const C4_MISSING_AUTHORED_BODY_MARKER: &str = "## Missing Authored Body";
+pub const C4_MISSING_AUTHORED_BODY_MARKER: &str = MISSING_AUTHORED_BODY_MARKER;
 
 fn render_c4_artifact(title: &str, marker: &str, context_summary: &str) -> String {
     let normalized = context_summary.to_lowercase();
@@ -267,6 +285,83 @@ fn render_c4_artifact(title: &str, marker: &str, context_summary: &str) -> Strin
     }
 }
 
+fn render_authored_artifact(
+    title: &str,
+    summary: &str,
+    authored_source: &str,
+    sections: &[AuthoredSectionSpec<'_>],
+) -> String {
+    let rendered_sections = sections
+        .iter()
+        .map(|section| render_authored_section(authored_source, section))
+        .collect::<Vec<_>>()
+        .join("\n\n");
+
+    format!("# {title}\n\n## Summary\n\n{summary}\n\n{rendered_sections}\n")
+}
+
+fn render_authored_section(authored_source: &str, section: &AuthoredSectionSpec<'_>) -> String {
+    match extract_authored_h2_section(authored_source, section.canonical_heading, section.aliases) {
+        Some(body) => format!("## {}\n\n{}", section.canonical_heading, body),
+        None => render_missing_authored_body_block(section.canonical_heading),
+    }
+}
+
+fn render_missing_authored_body_block(canonical_heading: &str) -> String {
+    format!(
+        "{MISSING_AUTHORED_BODY_MARKER}\n\nNOT CAPTURED - No `## {canonical_heading}` section was authored in the supplied brief.\nAuthor this section in the supplied brief and rerun."
+    )
+}
+
+fn extract_authored_h2_section(
+    source: &str,
+    canonical_heading: &str,
+    aliases: &[&str],
+) -> Option<String> {
+    std::iter::once(canonical_heading)
+        .chain(aliases.iter().copied())
+        .find_map(|heading| extract_markdown_h2_section(source, heading))
+}
+
+fn extract_markdown_h2_section(source: &str, marker: &str) -> Option<String> {
+    let mut lines = source.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        if !is_matching_h2_heading(line, marker) {
+            continue;
+        }
+
+        let mut section_lines = Vec::new();
+        while let Some(next_line) = lines.peek() {
+            if is_section_boundary(next_line) {
+                break;
+            }
+
+            section_lines.push(lines.next().unwrap_or_default());
+        }
+
+        let section = trim_multiline_block(&section_lines.join("\n"));
+        if !section.is_empty() {
+            return Some(section);
+        }
+        return None;
+    }
+
+    None
+}
+
+fn is_matching_h2_heading(line: &str, marker: &str) -> bool {
+    let trimmed = line.trim();
+    if !trimmed.starts_with("##") || trimmed.starts_with("###") {
+        return false;
+    }
+
+    trimmed
+        .strip_prefix("##")
+        .map(str::trim)
+        .is_some_and(|heading| heading.eq_ignore_ascii_case(marker))
+}
+
 fn canonical_c4_heading(marker: &str) -> &'static str {
     match marker {
         "system context" => "## System Context",
@@ -280,26 +375,13 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
     let normalized = brief_summary.to_lowercase();
     let system_slice = extract_marker(brief_summary, &normalized, "system slice")
         .unwrap_or("Map the bounded subsystem before change planning.".to_string());
-    let intended_change = extract_marker(brief_summary, &normalized, "intended change").unwrap_or(
-        "Bound the intended change explicitly before implementation expands the surface area."
-            .to_string(),
-    );
-    let legacy_invariants = extract_marker(brief_summary, &normalized, "legacy invariants");
-    let change_surface = extract_marker(brief_summary, &normalized, "change surface");
-    let implementation_plan = extract_marker(brief_summary, &normalized, "implementation plan")
+    let change_focus = extract_marker(brief_summary, &normalized, "intended change")
+        .or_else(|| extract_authored_h2_section(brief_summary, "Implementation Plan", &[]))
+        .or_else(|| extract_authored_h2_section(brief_summary, "Decision Record", &[]))
         .unwrap_or(
-            "Sequence the change so preserved behavior remains observable at every step."
+            "Bound the intended change explicitly before implementation expands the surface area."
                 .to_string(),
         );
-    let validation_strategy = extract_marker(brief_summary, &normalized, "validation strategy")
-        .unwrap_or(
-            "Challenge the change with invariant checks, contract tests, and rollback evidence."
-                .to_string(),
-        );
-    let decision_record = extract_marker(brief_summary, &normalized, "decision record").unwrap_or(
-        "Prefer additive change over normalization when the legacy surface still matters."
-            .to_string(),
-    );
     let owner = extract_marker(brief_summary, &normalized, "owner")
         .unwrap_or_else(|| owner_default(default_owner));
     let risk_level = extract_marker(brief_summary, &normalized, "risk level")
@@ -309,40 +391,67 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
     let summary = render_change_bundle_summary(
         file_name,
         &system_slice,
-        &intended_change,
+        &change_focus,
         &owner,
         &risk_level,
         &zone,
     );
 
     match file_name {
-        "system-slice.md" => format!(
-            "# System Slice\n\n## Summary\n\n{summary}\n\n## System Slice\n\n{system_slice}\n\n## Excluded Areas\n\n- Do not expand beyond the named bounded subsystem in this run.\n"
+        "system-slice.md" => render_authored_artifact(
+            "System Slice",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "System Slice", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Excluded Areas", aliases: &[] },
+            ],
         ),
-        "legacy-invariants.md" => match legacy_invariants {
-            Some(value) => format!(
-                "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Legacy Invariants\n\n{value}\n\n## Forbidden Normalization\n\n- Do not simplify away existing behavior that operators or downstream systems still depend on.\n"
-            ),
-            None => format!(
-                "# Legacy Invariants\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture preserved behavior before this run can pass change preservation.\n"
-            ),
-        },
-        "change-surface.md" => match change_surface {
-            Some(value) => format!(
-                "# Change Surface\n\n## Summary\n\n{summary}\n\n## Change Surface\n\n{value}\n\n## Ownership\n\n- Primary owner: {owner}\n"
-            ),
-            None => format!(
-                "# Change Surface\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nName the affected modules, interfaces, and owners before change planning can proceed.\n"
-            ),
-        },
-        "implementation-plan.md" => format!(
-            "# Implementation Plan\n\n## Summary\n\n{summary}\n\n## Plan\n\n{implementation_plan}\n\n## Sequencing\n\n- Preserve externally meaningful behavior before any internal cleanup.\n"
+        "legacy-invariants.md" => render_authored_artifact(
+            "Legacy Invariants",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Legacy Invariants", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Forbidden Normalization", aliases: &[] },
+            ],
         ),
-        "validation-strategy.md" => format!(
-            "# Validation Strategy\n\n## Summary\n\n{summary}\n\n## Validation Strategy\n\n{validation_strategy}\n\n## Independent Checks\n\n- Re-run invariant checks separately from generated implementation notes.\n"
+        "change-surface.md" => render_authored_artifact(
+            "Change Surface",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Change Surface", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Ownership", aliases: &[] },
+            ],
         ),
-        "decision-record.md" => format!(
-            "# Decision Record\n\n## Summary\n\n{summary}\n\n## Decision\n\n{decision_record}\n\n## Consequences\n\n- The preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- Which adjacent slices should stay out of scope until this change stabilizes?\n"
+        "implementation-plan.md" => render_authored_artifact(
+            "Implementation Plan",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Implementation Plan", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Sequencing", aliases: &[] },
+            ],
+        ),
+        "validation-strategy.md" => render_authored_artifact(
+            "Validation Strategy",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Validation Strategy", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Independent Checks", aliases: &[] },
+            ],
+        ),
+        "decision-record.md" => render_authored_artifact(
+            "Decision Record",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Decision Record", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Consequences", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Unresolved Questions", aliases: &[] },
+            ],
         ),
         other => render_markdown(other, brief_summary),
     }
@@ -1849,45 +1958,6 @@ fn render_string_list(values: &[String], empty_message: &str) -> String {
     }
 }
 
-fn render_requirements_boundary(scope_cuts: &str) -> String {
-    if scope_cuts.contains("NOT CAPTURED") {
-        "The packet remains bounded to explicit requirements framing and does not authorize implementation changes."
-            .to_string()
-    } else {
-        format!("The current packet is bounded by these explicit scope cuts:\n\n{scope_cuts}")
-    }
-}
-
-fn render_requirements_checklist(
-    problem: &str,
-    outcome: &str,
-    constraints: &str,
-    scope_cuts: &str,
-) -> String {
-    let items = [
-        ("The problem statement is explicit.", !problem.contains("NOT CAPTURED")),
-        ("The desired outcome is explicit.", !outcome.contains("NOT CAPTURED")),
-        ("The packet names concrete constraints.", !constraints.contains("NOT CAPTURED")),
-        ("The packet names explicit scope cuts.", !scope_cuts.contains("NOT CAPTURED")),
-    ];
-
-    items
-        .into_iter()
-        .map(|(label, complete)| format!("- [{}] {label}", if complete { "x" } else { " " }))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn render_open_questions(open_questions: &str, missing_context: &str) -> String {
-    if missing_context.contains("No additional missing context")
-        || missing_context.contains("Missing-context critique was not recorded")
-    {
-        open_questions.to_string()
-    } else {
-        format!("{open_questions}\n{missing_context}")
-    }
-}
-
 fn render_findings(findings: &[&ReviewFinding], empty_message: &str) -> String {
     if findings.is_empty() {
         return empty_message.to_string();
@@ -1949,11 +2019,12 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        extract_marker, render_architecture_artifact, render_change_artifact,
-        render_discovery_artifact, render_pr_review_artifact, render_requirements_artifact,
-        render_requirements_artifact_from_evidence, render_review_artifact,
-        render_system_shaping_artifact, render_verification_artifact, trim_markdown_list_prefix,
-        verification_summary_excerpt,
+        MISSING_AUTHORED_BODY_MARKER, extract_authored_h2_section, extract_marker,
+        render_architecture_artifact, render_change_artifact, render_discovery_artifact,
+        render_missing_authored_body_block, render_pr_review_artifact,
+        render_requirements_artifact, render_requirements_artifact_from_evidence,
+        render_review_artifact, render_system_shaping_artifact, render_verification_artifact,
+        trim_markdown_list_prefix, verification_summary_excerpt,
     };
     use crate::review::findings::{FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket};
     use crate::review::summary::{ReviewDisposition, ReviewSummary};
@@ -1995,12 +2066,22 @@ mod tests {
     #[test]
     fn render_requirements_artifacts_cover_named_templates_and_fallback() {
         let summary = "Bound the requirements work before planning";
+        let authored = "# Requirements Brief\n\n## Constraints\n\n- Keep the implementation local-first and auditable.\n\n## Non-Negotiables\n\n- Preserve explicit human ownership.\n\n## Tradeoffs\n\n- Favoring governability reduces raw generation speed.\n\n## Consequences\n\n- The product will feel opinionated by design.\n";
 
         let constraints = render_requirements_artifact("constraints.md", summary);
         let fallback = render_requirements_artifact("custom-note.md", summary);
         let evidence = render_requirements_artifact_from_evidence(
             "tradeoffs.md",
             summary,
+            authored,
+            "generated framing",
+            "critique note",
+            "denied mutation request remained visible",
+        );
+        let missing = render_requirements_artifact_from_evidence(
+            "problem-statement.md",
+            summary,
+            "# Requirements Brief\n\n## Problem\n\nBound the requirements work before planning.\n",
             "generated framing",
             "critique note",
             "denied mutation request remained visible",
@@ -2011,8 +2092,35 @@ mod tests {
         assert!(fallback.starts_with(
             "# custom-note.md\n\n## Summary\n\nBound the requirements work before planning"
         ));
-        assert!(evidence.contains("Denied mutation requests keep requirements mode bounded."));
-        assert!(evidence.contains("- denied mutation request remained visible"));
+        assert!(
+            evidence
+                .contains("## Tradeoffs\n\n- Favoring governability reduces raw generation speed.")
+        );
+        assert!(
+            evidence.contains("## Consequences\n\n- The product will feel opinionated by design.")
+        );
+        assert!(missing.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(missing.contains("`## Outcome`"));
+    }
+
+    #[test]
+    fn authored_h2_extraction_requires_exact_heading_level_and_documented_aliases() {
+        let near_miss = "# Requirements Brief\n\n### Problem\n\nThis should not count.\n";
+        let alias = "# Requirements Brief\n\n## Out of Scope\n\n- No GUI\n";
+
+        assert!(extract_authored_h2_section(near_miss, "Problem", &[]).is_none());
+        assert_eq!(
+            extract_authored_h2_section(alias, "Scope Cuts", &["Out of Scope"]),
+            Some("- No GUI".to_string())
+        );
+    }
+
+    #[test]
+    fn missing_authored_body_block_names_the_canonical_heading() {
+        let rendered = render_missing_authored_body_block("Outcome");
+
+        assert!(rendered.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(rendered.contains("NOT CAPTURED - No `## Outcome` section was authored"));
     }
 
     #[test]
@@ -2022,10 +2130,10 @@ mod tests {
         let invariants = render_change_artifact("legacy-invariants.md", source, "");
         let decision = render_change_artifact("decision-record.md", source, "");
 
-        assert!(invariants.contains("## Missing Context\n\nCapture preserved behavior before this run can pass change preservation."));
-        assert!(decision.contains(
-            "Prefer additive change over normalization when the legacy surface still matters."
-        ));
+        assert!(invariants.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(invariants.contains("`## Legacy Invariants`"));
+        assert!(decision.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(decision.contains("`## Decision Record`"));
         assert!(decision.contains("- Owner / risk / zone: `bounded-system-maintainer` / `unspecified-risk` / `unspecified-zone`"));
     }
 
@@ -2284,7 +2392,7 @@ mod tests {
     fn render_analysis_mode_artifacts_include_required_sections() {
         let discovery = render_discovery_artifact(
             "context-boundary.md",
-            "# Discovery Brief\n\n## Problem\nExplore a bounded notification routing problem.\n\n## Constraints\nPreserve the current routing ownership boundaries.\n\n## Repo Surface\n- src/router.rs\n- tests/router_contract.rs\n\n## Unknowns\n- Which caller owns retry policy?\n\n## Next Phase\nTranslate this discovery packet into architecture mode with named boundaries.\n\nGenerated framing: Map the known constraints and unresolved actors.\n\nCritique evidence: Challenge scope drift around retry ownership.\n\nValidation evidence: Validation tool reviewed tracked repository surfaces: src/router.rs, tests/router_contract.rs",
+            "# Discovery Brief\n\n## Problem Domain\n\nExplore a bounded notification routing problem.\n\n## Repo Surface\n\n- src/router.rs\n- tests/router_contract.rs\n\n## Immediate Tensions\n\n- Retry ownership is still unclear.\n\n## Downstream Handoff\n\nTranslate this discovery packet into architecture mode with named boundaries.\n\n## Unknowns\n\n- Which caller owns retry policy?\n\n## Assumptions\n\n- Routing ownership should remain explicit.\n\n## Validation Targets\n\n- Check src/router.rs and tests/router_contract.rs.\n\n## Confidence Levels\n\n- Medium until retry ownership is explicit.\n\n## In-Scope Context\n\n- Notification routing only.\n\n## Out-of-Scope Context\n\n- No implementation edits.\n\n## Translation Trigger\n\nTranslate this discovery packet into architecture mode with named boundaries.\n\n## Options\n\n1. Stay in discovery.\n\n## Constraints\n\n- Preserve current routing ownership boundaries.\n\n## Recommended Direction\n\nStay bounded to routing ownership.\n\n## Next-Phase Shape\n\nUse architecture mode to capture boundary choices.\n\n## Pressure Points\n\n- Retry ownership remains unresolved.\n\n## Blocking Decisions\n\n- Decide where retry ownership lives.\n\n## Open Questions\n\n- Which caller owns retry policy?\n\n## Recommended Owner\n\n- routing-architect\n",
         );
         let system_shaping = render_system_shaping_artifact(
             "system-shape.md",
