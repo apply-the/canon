@@ -1,0 +1,248 @@
+# Changelog
+
+All notable changes to Canon are documented in this file.
+
+This changelog is reconstructed from feature-spec delivery under `specs/` and
+the workspace version bumps recorded in `Cargo.toml`. The
+repository does not currently use release tags, so each release below maps a
+published version to the spec directories first introduced between that version
+bump and the previous one.
+
+Canon follows Semantic Versioning. Before `1.0.0`, breaking changes may occur in
+minor releases.
+
+The repository history contains no release bumps for `0.10.0`, `0.13.0`,
+`0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
+recorded workspace version.
+
+## [Unreleased]
+
+Delivered specs:
+
+- None recorded after `0.18.0`
+
+Highlights:
+
+- No additional released feature-spec delivery is recorded after `0.18.0`.
+
+## [0.18.0] - 2026-04-26
+
+Delivered specs:
+
+- `016` - Mode Authoring Specialization
+- `017` - Domain Modeling And Boundary Design
+- `018` - Architecture ADR And Options
+
+Highlights:
+
+- Extend `requirements`, `discovery`, `change`, and `architecture` with
+  explicit authored H2 section contracts, verbatim renderer preservation, and
+  honest `## Missing Authored Body` markers when required content is absent.
+- Deepen `system-shaping`, `architecture`, and `change` with bounded contexts,
+  ubiquitous language, domain invariants, ownership boundaries, and explicit
+  integration seams while preserving Canon's critique-first posture.
+- Upgrade `architecture` with an ADR-like decision packet and explicit
+  option-analysis artifacts that preserve `Decision Drivers`,
+  `Options Considered`, `Pros`, `Cons`, `Recommendation`, and
+  `Why Not The Others`.
+- Keep the existing C4 architecture outputs intact while adding the
+  `Risks`-to-`Consequences` compatibility path, synchronized docs, and focused
+  contract, renderer, run, and docs validation for the strengthened packet.
+
+## [0.15.0] - 2026-04-25
+
+Delivered specs:
+
+- `015` - Stronger Architecture Outputs (C4 Model)
+
+Highlights:
+
+- Extend `architecture` with C4-shaped textual artifacts for system context,
+  container view, and component view.
+- Preserve authored C4 sections verbatim and emit explicit
+  `## Missing Authored Body` markers when the brief omits a required section.
+- Add templates, examples, and skill guidance for the C4-authored architecture
+  packet shape without removing the existing decision, invariant, boundary, or
+  tradeoff artifacts.
+
+## [0.14.0] - 2026-04-25
+
+Delivered specs:
+
+- `013` - PR Review Conventional Comments
+- `014` - High-Risk Operational Programs
+
+Highlights:
+
+- Extend `pr-review` with Conventional Comments-shaped review artifacts while
+  preserving the existing review summary and approval-aware disposition flow.
+- Promote `incident` and `migration` from skeletons to first-class governed
+  operational modes.
+- Add durable operational packets for blast radius, containment,
+  compatibility, sequencing, fallback planning, and publishable review outside
+  the runtime.
+
+## [0.12.0] - 2026-04-24
+
+Delivered specs:
+
+- `012` - Backlog Mode (Delivery Decomposition)
+
+Highlights:
+
+- Add `backlog` as a first-class Canon mode for governed delivery
+  decomposition.
+- Emit durable planning artifacts for epics, capability mapping,
+  dependencies, delivery slices, sequencing, acceptance anchors, and planning
+  risks.
+- Block or downgrade decomposition when upstream architecture or shaping inputs
+  are too weak for credible planning.
+
+## [0.11.0] - 2026-04-23
+
+Delivered specs:
+
+- `010` - Controlled Execution Modes (`implementation` and `refactor`)
+- `011` - Execution-Mode Approval and Action Chips
+
+Highlights:
+
+- Promote `implementation` and `refactor` to governed execution modes with task
+  mapping, mutation bounds, validation hooks, rollback notes, and explicit
+  preservation/safety-net expectations.
+- Add an unconditional `gate:execution` approval step plus the
+  approve-and-resume lifecycle for execution modes.
+- Add host-renderable action chips and align execution summaries with the real
+  run owner instead of placeholder template metadata.
+
+## [0.9.0] - 2026-04-22
+
+Delivered specs:
+
+- `009` - Run Identity, Display Id, and Authored-Input Refactor
+
+Highlights:
+
+- Introduce human-friendly run ids, short ids, and slug-aware run directories
+  while preserving UUID as Canon's canonical machine identity.
+- Separate editable `canon-input/` authoring surfaces from immutable per-run
+  snapshots under `.canon/runs/<...>/inputs/`.
+- Improve CLI lookup, status, inspect, approve, and resume flows around the new
+  run identity model.
+
+## [0.8.0] - 2026-04-22
+
+Delivered specs:
+
+- `008` - Mode Context Split
+
+Highlights:
+
+- Replace `brownfield-change` with `change` as Canon's bounded
+  existing-system modification mode.
+- Introduce explicit `system_context = new | existing` as a first-class runtime
+  and CLI concept.
+- Rename canonical input and artifact namespaces around the new two-axis mode
+  model and require explicit context wherever it is semantically necessary.
+
+## [0.7.0] - 2026-04-19
+
+Delivered specs:
+
+- `007` - Review Mode Completion
+
+Highlights:
+
+- Promote `review` and `verification` to truthful end-to-end governed
+  workflows with durable packets, real run state, and inspection compatibility.
+- Add approval-aware behavior, missing-evidence handling, and adversarial
+  verification artifacts for non-PR review surfaces.
+- Align documentation and release guidance with the now-runnable review-heavy
+  modes.
+
+## [0.6.0] - 2026-04-18
+
+Delivered specs:
+
+- `006` - Analysis Mode Expansion
+
+Highlights:
+
+- Add full governed depth for `discovery`, `system-shaping`, and
+  `architecture`.
+- Reuse Canon's existing evidence, gating, persistence, and inspection model
+  across the analysis-heavy front end of the engineering workflow.
+- Close the early-lifecycle product gap between requirements framing and later
+  execution-heavy modes.
+
+## [0.5.0] - 2026-04-12
+
+Delivered specs:
+
+- `005` - Installable CLI Distribution and Release UX
+
+Highlights:
+
+- Shift Canon to an install-first, binary-first CLI posture.
+- Define release artifact, install guidance, and cross-platform distribution
+  expectations for the daily `canon` entrypoint.
+- Keep build-from-source as a contributor workflow while moving product
+  messaging and docs toward installed binary usage.
+
+## [0.4.0] - 2026-03-30
+
+Delivered specs:
+
+- `004` - Runnable Skill Interaction and Ref-Safe Input Binding
+
+Highlights:
+
+- Make runnable skills collect typed inputs incrementally instead of forcing
+  brittle full-command retries.
+- Tighten command binding and ref-safe preflight behavior, especially for
+  `canon-pr-review`.
+- Keep repo-local skills as thin workflow frontends over Canon CLI rather than
+  a second execution runtime.
+
+## [0.3.0] - 2026-03-29
+
+Delivered specs:
+
+- `003` - Codex Skills Frontend for Canon
+
+Highlights:
+
+- Add a Codex-native skills frontend for Canon under `.agents/skills/`.
+- Surface supported versus modeled workflows honestly through repo-local skill
+  guidance.
+- Add operational skills that keep users inside Canon's governed CLI and
+  runtime state model.
+
+## [0.2.0] - 2026-03-28
+
+Delivered specs:
+
+- `002` - Governed Execution Adapters
+
+Highlights:
+
+- Add governed invocation over external execution adapters.
+- Persist policy decisions, invocation traces, and linked evidence for allowed
+  and denied tool usage.
+- Keep generation and validation independently challengeable instead of letting
+  one execution path validate its own consequential output.
+
+## [0.1.0] - 2026-03-28
+
+Delivered specs:
+
+- `001` - Canon v0.1 Product Specification
+
+Highlights:
+
+- Establish Canon's core governance contract for modes, risk, zones, artifact
+  rules, gates, evidence, and decision persistence.
+- Deliver the initial product boundary for requirements framing and bounded
+  change planning.
+- Define Canon as a governance layer over external tools rather than a
+  replacement for them.

@@ -1,5 +1,5 @@
 use canon_engine::artifacts::markdown::{
-    C4_MISSING_AUTHORED_BODY_MARKER, render_architecture_artifact,
+    C4_MISSING_AUTHORED_BODY_MARKER, MISSING_AUTHORED_BODY_MARKER, render_architecture_artifact,
 };
 
 const FULL_BRIEF: &str = r#"# Architecture Brief
@@ -51,6 +51,92 @@ This brief uses a near-miss heading rather than the canonical `## Containers`.
 ## Component View
 
 This brief uses a near-miss heading rather than the canonical `## Components`.
+"#;
+
+const DECISION_BRIEF: &str = r#"# Architecture Brief
+
+## Decision
+
+Adopt a dedicated architecture decision shape so the packet records the winning decision explicitly.
+
+## Constraints
+
+- Preserve the current C4 artifacts.
+- Keep missing authored context explicit.
+
+## Evaluation Criteria
+
+- Reviewability
+- Boundary clarity
+
+## Decision Drivers
+
+- Reviewers need to see the chosen option and its rationale without reading chat history.
+- Architecture packets must remain critique-first.
+
+## Options Considered
+
+- Keep the existing generic architecture summary.
+- Preserve authored decision and option-analysis sections directly in the decision artifacts.
+
+## Pros
+
+- Reviewers can inspect the actual decision record.
+- The packet becomes reusable outside the original conversation.
+
+## Cons
+
+- Authors must provide more explicit decision content.
+
+## Recommendation
+
+Preserve the authored decision and option-analysis sections in the existing architecture decision artifacts.
+
+## Consequences
+
+- Reviewers can see the chosen direction without relying on chat history.
+- Authors must keep the decision packet explicit and current.
+
+## Why Not The Others
+
+- The generic summary shape hides rejected alternatives.
+- A brand new artifact family would widen scope unnecessarily.
+"#;
+
+const MISSING_DECISION_SECTION_BRIEF: &str = r#"# Architecture Brief
+
+## Decision
+
+Adopt a dedicated architecture decision shape.
+
+## Constraints
+
+- Preserve the current C4 artifacts.
+
+## Evaluation Criteria
+
+- Reviewability
+
+## Decision Drivers
+
+- Reviewers need explicit recommendation rationale.
+
+## Options Considered
+
+- Keep the current generic summary.
+- Preserve authored decision sections.
+
+## Pros
+
+- Clear recommendation trace.
+
+## Cons
+
+- Requires more authored content.
+
+## Recommendation
+
+Preserve authored decision sections in the emitted artifacts.
 "#;
 
 #[test]
@@ -105,17 +191,24 @@ fn renderer_emits_missing_body_marker_for_near_miss_headings() {
 }
 
 #[test]
-fn renderer_does_not_alter_legacy_architecture_artifact_shape() {
-    let rendered = render_architecture_artifact(
-        "architecture-decisions.md",
-        "context summary text",
-        "generation summary text",
-        "critique summary text",
-    );
+fn renderer_preserves_authored_architecture_decision_sections_verbatim() {
+    let rendered =
+        render_architecture_artifact("architecture-decisions.md", DECISION_BRIEF, "", "");
     assert!(rendered.starts_with("# Architecture Decisions"));
-    assert!(rendered.contains("## Decisions"));
-    assert!(rendered.contains("## Tradeoffs"));
-    assert!(rendered.contains("context summary text"));
-    assert!(rendered.contains("generation summary text"));
-    assert!(rendered.contains("critique summary text"));
+    assert!(rendered.contains("## Decision"));
+    assert!(rendered.contains("## Constraints"));
+    assert!(rendered.contains("## Decision Drivers"));
+    assert!(rendered.contains("## Recommendation"));
+    assert!(rendered.contains("winning decision explicitly"));
+    assert!(!rendered.contains("# Architecture Brief"));
+    assert!(!rendered.contains("## Options Considered"));
+    assert!(!rendered.contains(MISSING_AUTHORED_BODY_MARKER));
+}
+
+#[test]
+fn renderer_emits_missing_body_marker_for_omitted_decision_sections() {
+    let rendered =
+        render_architecture_artifact("tradeoff-matrix.md", MISSING_DECISION_SECTION_BRIEF, "", "");
+    assert!(rendered.contains(MISSING_AUTHORED_BODY_MARKER));
+    assert!(rendered.contains("`## Why Not The Others`"));
 }

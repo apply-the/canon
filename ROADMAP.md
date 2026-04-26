@@ -104,7 +104,8 @@ vocabulary for domain work.
   Sequencing Plan, Acceptance Anchors, Planning Risks) before invoking Canon,
   and the renderer preserves those authored sections verbatim instead of
   emitting templated placeholders.
-- requirements, discovery, and change now ship the first slice of Mode Authoring Specialization: their skills, templates, examples, and renderers share canonical authored H2 contracts; Canon preserves authored sections verbatim; and missing required sections surface `## Missing Authored Body` while release-readiness gates stay honest.
+- requirements, discovery, change, and architecture now ship the first slice of Mode Authoring Specialization: their skills, templates, examples, and renderers share canonical authored H2 contracts; Canon preserves authored sections verbatim; and missing required sections surface `## Missing Authored Body` while release-readiness gates stay honest.
+- `architecture` now ships an ADR-like decision surface inside the existing packet: `architecture-decisions.md` preserves `Decision`, `Constraints`, `Decision Drivers`, `Recommendation`, and `Consequences`; `tradeoff-matrix.md` preserves `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`; and the existing C4 artifacts remain unchanged.
 - `pr-review` now emits `conventional-comments.md` as a reviewer-facing
   companion to `review-summary.md`, publishes it under
   `docs/reviews/prs/<RUN_ID>/`, and preserves the existing review-disposition
@@ -150,7 +151,7 @@ brief.
 
 ### Delivered First Slice
 
-- `requirements`, `discovery`, and `change` now require explicit authored H2 sections in their skills, templates, and worked examples.
+- `requirements`, `discovery`, `change`, and `architecture` now require explicit authored H2 sections in their skills, templates, and worked examples.
 - Their renderers preserve authored sections verbatim and emit `## Missing Authored Body` when the assistant omits a required section.
 - The remaining roadmap scope is to extend the same authoring-specialization pattern to the other governed modes without implying that the broader rollout is already complete.
 
@@ -159,9 +160,8 @@ brief.
 - Define a shared `Author <Mode> Body Before Invoking Canon` skill section that
   enumerates the required H2 sections for each emitted artifact in the remaining modes,
   mirroring the delivered first slice and the new `canon-backlog` skill section.
-- For decision-heavy modes, require authored `## Options Considered`,
-  `## Recommended Option`, and `## Rejected Alternatives` sections so Canon
-  preserves real tradeoffs instead of only the final answer.
+- For the remaining decision-heavy modes, require authored option-analysis
+  sections so Canon preserves real tradeoffs instead of only the final answer.
 - Update each per-mode renderer in `crates/canon-engine/src/artifacts/markdown.rs`
   to extract the authored H2 sections via `extract_marker` and render them
   verbatim, falling back to a placeholder + explicit `## Missing Authored Body`
@@ -215,10 +215,10 @@ preserving the winning choice.
   `Domain Modeling And Boundary Design` feature, plus candidate structural
   patterns (modular monolith vs services, sync orchestration vs events, etc.)
   with pros/cons when the source leaves room for a real choice.
-- `architecture` → C4 model (System Context, Container, Component) plus an ADR
-  per architecturally significant decision, alongside the existing critique
-  artifacts and explicit `Options Considered`, `Decision Drivers`, `Pros`,
-  `Cons`, and `Operational Tradeoffs` sections.
+- `architecture` now delivers C4 model artifacts (System Context, Container,
+  Component) plus an ADR-like decision packet that preserves `Decision`,
+  `Constraints`, `Decision Drivers`, `Recommendation`, `Consequences`, and
+  explicit option-analysis sections in the existing artifact family.
 - `change` → ADR-shaped decision record (Context, Decision, Status,
   Consequences) attached to the change surface, with a design-pattern-choice
   appendix when the change materially hinges on choosing Strategy vs State,
@@ -334,8 +334,10 @@ observable ecosystem signals.
 
 ### First Slice
 
-- Add an option-analysis shape to `architecture`: `Decision Drivers`, `Options
-  Considered`, `Pros`, `Cons`, `Recommendation`, and `Why Not The Others`.
+- `architecture` now ships the option-analysis shape: `Decision Drivers`,
+  `Options Considered`, `Pros`, `Cons`, `Recommendation`, and
+  `Why Not The Others`, alongside ADR-like `Consequences` in the decision
+  artifact.
 - Add a pattern-selection shape to `system-shaping` and `change` for
   pattern-heavy problems where structure is the real decision.
 - Add a framework/library evaluation shape to `implementation` and

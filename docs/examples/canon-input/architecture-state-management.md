@@ -4,14 +4,6 @@
 What structural decision are we making?
 We need to choose a durable state management backend for processing long-running async background jobs in our new billing service.
 
-## Options
-- **Option 1: PostgreSQL + Dedicated Worker Table**
-  - Implement a basic state machine over standard rows with atomic `SELECT FOR UPDATE SKIP LOCKED` logic.
-- **Option 2: Redis Streams + PubSub**
-  - Use Redis for fast event processing, holding the job state in a cache.
-- **Option 3: External Workflow Engine (Temporal/GCP Step Functions)**
-  - Offload workflow pausing, retries, and timing to a dedicated external SDK/infrastructure.
-
 ## Constraints
 - Must guarantee execution at-least-once for billing actions.
 - Avoid introducing entirely new infrastructure management layers unless absolutely necessary.
@@ -32,10 +24,40 @@ We need to choose a durable state management backend for processing long-running
 - **Integration Effort**: Hours needed to rebuild our core workflow vs standard libraries.
 - **Observability**: Can we easily query the state of a workflow (e.g., why is user `X` stuck in `INVOICING`)?
 
-## Risks
-- Redis could drop data under memory pressure, causing lost jobs.
-- PostgreSQL row-level locks limit overall concurrency at 10k transactions a second.
-- Using an external engine creates tight vendor lock-in for critical business processes.
+## Decision Drivers
+- The billing team needs a durable, queryable system of record for long-running jobs without inventing new operational rituals.
+- The platform team needs predictable retries, worker coordination, and auditability under pod crashes and deploy churn.
+- The solution must remain understandable to the current team and fit within the existing operational model.
+
+## Options Considered
+- **Option 1: PostgreSQL + Dedicated Worker Table**
+  - Implement a basic state machine over standard rows with atomic `SELECT FOR UPDATE SKIP LOCKED` logic.
+- **Option 2: Redis Streams + PubSub**
+  - Use Redis for fast event processing, holding the job state in a cache.
+- **Option 3: External Workflow Engine (Temporal/GCP Step Functions)**
+  - Offload workflow pausing, retries, and timing to a dedicated external SDK/infrastructure.
+
+## Pros
+- PostgreSQL keeps the source of truth, audit trail, and coordination logic in one durable system the team already operates.
+- The worker-table approach supports explicit state queries for finance support without adopting a new workflow runtime first.
+- It preserves a clean migration path toward a dedicated workflow engine later if concurrency or orchestration needs outgrow the initial design.
+
+## Cons
+- PostgreSQL-backed orchestration increases pressure on row-lock behavior, vacuum tuning, and transaction design.
+- The team must author and maintain its own retry and timeout mechanics instead of delegating them to a workflow engine.
+- Redis remains useful only as an optimization layer, not the source of truth, which limits how much complexity it can remove.
+
+## Recommendation
+Choose **PostgreSQL + Dedicated Worker Table** as the first durable workflow state backend for the billing service.
+
+## Why Not The Others
+- **Redis Streams + PubSub** is too fragile as the primary source of truth for auditable, long-running billing workflows under memory pressure and replay scenarios.
+- **External Workflow Engine** adds a new infrastructure and operational model before the team has proven the billing workflow volume or complexity warrants it.
+
+## Consequences
+- The billing service must invest in explicit worker coordination, retry policies, and audit logging on top of PostgreSQL.
+- Schema design, index strategy, and lock observability become part of the runtime ownership boundary for the platform team.
+- A later migration to a dedicated workflow engine stays possible, but the initial API and audit model should be designed to keep that door open.
 
 ## Bounded Contexts
 - Workflow Orchestration: owns long-running job state, retries, timers, and progression rules.

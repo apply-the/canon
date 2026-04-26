@@ -350,7 +350,14 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         Mode::Architecture => vec![
             requirement(
                 "architecture-decisions.md",
-                &["Summary", "Decisions", "Tradeoffs", "Consequences", "Unresolved Questions"],
+                &[
+                    "Summary",
+                    "Decision",
+                    "Constraints",
+                    "Decision Drivers",
+                    "Recommendation",
+                    "Consequences",
+                ],
                 &[GateKind::Architecture, GateKind::Risk],
             ),
             requirement(
@@ -360,7 +367,14 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "tradeoff-matrix.md",
-                &["Summary", "Options", "Evaluation Criteria", "Scores", "Selected Option"],
+                &[
+                    "Summary",
+                    "Options Considered",
+                    "Evaluation Criteria",
+                    "Pros",
+                    "Cons",
+                    "Why Not The Others",
+                ],
                 &[GateKind::Architecture, GateKind::Risk],
             ),
             requirement(

@@ -563,19 +563,25 @@ important constraints. This mode also requires explicit
 `--system-context new|existing` when you start the run.
 
 For the delivered first slice, a credible brief now includes the existing
-decision and C4 sections plus `## Bounded Contexts`, `## Context
-Relationships`, `## Integration Seams`, `## Anti-Corruption Candidates`,
-`## Ownership Boundaries`, and `## Shared Invariants`.
+decision sections `## Decision`, `## Constraints`, `## Evaluation Criteria`,
+`## Decision Drivers`, `## Options Considered`, `## Pros`, `## Cons`,
+`## Recommendation`, and `## Why Not The Others`; the ADR-style
+`## Consequences` section (with legacy `## Risks` accepted as an input alias);
+the existing C4 sections; plus `## Bounded Contexts`,
+`## Context Relationships`, `## Integration Seams`,
+`## Anti-Corruption Candidates`, `## Ownership Boundaries`, and
+`## Shared Invariants`.
 
 ### Good Input Should Include
 
 - the design problem
-- the main structural options
+- the main structural options and the explicit rejected alternatives
 - important constraints
 - candidate boundaries
 - invariants that must hold
-- tradeoffs that matter
-- risks of the decision
+- decision drivers, recommendation, consequences, and tradeoffs that matter
+- risks of the decision when you are still authoring an older brief that has
+  not been migrated to `## Consequences`
 - bounded contexts, their relationships, and shared invariants
 
 ### Questions This Mode Answers
@@ -597,9 +603,9 @@ Relationships`, `## Integration Seams`, `## Anti-Corruption Candidates`,
 
 Architecture produces a structural decision packet with these artifacts:
 
-- `architecture-decisions.md` (critique-first decision summary)
+- `architecture-decisions.md` (ADR-like decision record preserving `Decision`, `Constraints`, `Decision Drivers`, `Recommendation`, and `Consequences`)
 - `invariants.md` (mandatory boundary invariants)
-- `tradeoff-matrix.md` (alternatives and tradeoff analysis)
+- `tradeoff-matrix.md` (alternatives and tradeoff analysis preserving `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`)
 - `boundary-map.md` (system boundaries and ownership)
 - `context-map.md` (bounded contexts, relationships, seams, ownership, and shared invariants)
 - `readiness-assessment.md` (decision readiness and blockers)
@@ -607,10 +613,13 @@ Architecture produces a structural decision packet with these artifacts:
 - `container-view.md` (C4 Level 2: deployable containers; requires authored `## Containers` in brief)
 - `component-view.md` (C4 Level 3: component decomposition; requires authored `## Components` in brief)
 
-The three C4 artifacts preserve authored sections verbatim from the architecture
-brief. If a section is omitted or uses a non-canonical heading variant, the
-artifact emits an explicit `## Missing Authored Body` block referencing the
-canonical heading rather than fabricating content.
+The decision artifacts and the three C4 artifacts preserve authored sections
+verbatim from the architecture brief. If a section is omitted or uses a
+non-canonical heading variant, the artifact emits an explicit
+`## Missing Authored Body` block referencing the canonical heading rather than
+fabricating content. `## Risks` remains accepted as a backward-compatible
+input alias and is rendered as `## Consequences` in
+`architecture-decisions.md`.
 
 This mode includes mandatory critique and is designed to leave behind a
 decision bundle that later work can implement or review without relying on chat
