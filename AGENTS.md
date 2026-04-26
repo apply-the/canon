@@ -34,6 +34,7 @@ Auto-generated from all feature plans. Last updated: 2026-04-26
 - local filesystem under `.canon/`; no schema or layout changes; published architecture artifacts continue to land in their existing publish destination. (015-architecture-c4)
 - Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`. (016-mode-authoring-specialization)
 - repository files plus existing `.canon/` runtime persistence; no schema or layout changes. (016-mode-authoring-specialization)
+- Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`. (018-architecture-adr-options)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -90,9 +91,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 018-architecture-adr-options: Added Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
 - 017-domain-boundary-design: Added Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
 - 016-mode-authoring-specialization: Added Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
-- 015-architecture-c4: Added Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`); `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
   model, `.canon/` persistence model, and CLI plus runtime filesystem contracts
 
 <!-- MANUAL ADDITIONS START -->

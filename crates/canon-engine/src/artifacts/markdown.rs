@@ -283,24 +283,43 @@ pub fn render_architecture_artifact(
             "NOT CAPTURED - No architecture constraint was authored in the supplied brief."
                 .to_string()
         });
-    let context_map_summary = format!("Decision focus: {decision_focus}\nConstraint: {constraint}");
+    let architecture_summary =
+        format!("Decision focus: {decision_focus}\nConstraint: {constraint}");
 
     match file_name {
-        "architecture-decisions.md" => format!(
-            "# Architecture Decisions\n\n## Summary\n\n{context_summary}\n\n## Decisions\n\n{generation_summary}\n\n## Tradeoffs\n\n{critique_summary}\n\n## Consequences\n\nThe recorded decisions constrain later implementation and review work.\n\n## Unresolved Questions\n\n- Which structural assumptions still need explicit acceptance?\n"
+        "architecture-decisions.md" => render_authored_artifact(
+            "Architecture Decisions",
+            &architecture_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Decision", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Constraints", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Decision Drivers", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommendation", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Consequences", aliases: &["Risks"] },
+            ],
         ),
         "invariants.md" => format!(
             "# Invariants\n\n## Summary\n\n{context_summary}\n\n## Invariants\n\n{generation_summary}\n\n## Rationale\n\n{critique_summary}\n\n## Verification Hooks\n\n- Downstream modes must be able to validate these invariants against emitted evidence.\n"
         ),
-        "tradeoff-matrix.md" => format!(
-            "# Tradeoff Matrix\n\n## Summary\n\n{context_summary}\n\n## Options\n\n{generation_summary}\n\n## Evaluation Criteria\n\n- Boundary preservation\n- Invariant clarity\n- Reversibility\n\n## Scores\n\n{critique_summary}\n\n## Selected Option\n\nThe preferred option is the one that best preserves explicit boundaries and reviewable tradeoffs.\n"
+        "tradeoff-matrix.md" => render_authored_artifact(
+            "Tradeoff Matrix",
+            &architecture_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Options Considered", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Evaluation Criteria", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Pros", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Cons", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Why Not The Others", aliases: &[] },
+            ],
         ),
         "boundary-map.md" => format!(
             "# Boundary Map\n\n## Summary\n\n{context_summary}\n\n## Boundaries\n\n{generation_summary}\n\n## Ownership\n\n- Ownership must remain explicit for each named boundary before implementation begins.\n\n## Crossing Rules\n\n{critique_summary}\n"
         ),
         "context-map.md" => render_authored_artifact(
             "Context Map",
-            &context_map_summary,
+            &architecture_summary,
             context_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Bounded Contexts", aliases: &[] },
@@ -2478,6 +2497,7 @@ mod tests {
         assert!(system_shaping.contains("## System Shape"));
         assert!(system_shaping.contains("## Boundary Decisions"));
         assert!(architecture.contains("## Evaluation Criteria"));
-        assert!(architecture.contains("## Selected Option"));
+        assert!(architecture.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(architecture.contains("`## Why Not The Others`"));
     }
 }

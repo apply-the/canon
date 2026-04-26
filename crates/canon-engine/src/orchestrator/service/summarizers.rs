@@ -362,10 +362,16 @@ fn summarize_architecture_mode_result(
     let context_map_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "context-map.md");
 
-    let decisions = extract_context_section(&primary.contents, "Decisions")
+    let decisions = extract_context_section(&primary.contents, "Decision")
+        .or_else(|| extract_context_section(&primary.contents, "Decisions"))
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
         .unwrap_or_else(|| "NOT CAPTURED - Architecture decisions are missing.".to_string());
-    let tradeoffs = extract_context_section(&primary.contents, "Tradeoffs")
+    let tradeoffs = tradeoff_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Options Considered"))
+        .or_else(|| {
+            tradeoff_artifact
+                .and_then(|artifact| extract_context_section(&artifact.contents, "Tradeoffs"))
+        })
         .or_else(|| {
             tradeoff_artifact
                 .and_then(|artifact| extract_context_section(&artifact.contents, "Scores"))
