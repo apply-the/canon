@@ -20,7 +20,7 @@ fn cli_command() -> Command {
 }
 
 fn complete_system_shaping_brief() -> &'static str {
-    "# System Shaping Brief\n\nIntent: shape a new governed Canon workflow surface for incomplete analysis modes.\nConstraint: keep the runtime adapters, policy gates, and evidence model intact.\n"
+    "# System Shaping Brief\n\nIntent: shape a new governed Canon workflow surface for incomplete analysis modes.\nConstraint: keep the runtime adapters, policy gates, and evidence model intact.\n\n## Goal\nAdd domain modeling to the system-shaping packet without widening Canon's execution model.\n\n## Users or Stakeholders\n- Canon maintainers who need reviewable boundary decisions.\n- Architects who need context boundaries before architecture mode.\n\n## Domain Responsibilities\n- Identify candidate bounded contexts.\n- Surface ubiquitous language and weak terminology.\n- Preserve domain invariants for downstream modes.\n\n## Constraints\n- Keep run identity, approvals, and publish destinations unchanged.\n- Keep non-target modes behaviorally unchanged.\n\n## Risks\n- Weak briefs may tempt the renderer to invent boundaries.\n- Boundary tradeoffs may be implied rather than stated.\n\n## Open Questions\n- Which bounded contexts are core versus supporting?\n- Which invariants must architecture preserve first?\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run lifecycle, approvals, and evidence lineage.\n- Artifact Authoring: owns packet structure and authored-body rendering.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it protects Canon's operating model.\n- Artifact Authoring is supporting because it exists to make reviews durable.\n\n## Ubiquitous Language\n- Run: one governed Canon execution with durable evidence.\n- Packet: the artifact bundle produced by a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- The split between authoring and governance may still leak through shared helpers.\n"
 }
 
 #[test]
@@ -71,6 +71,7 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
 
     for artifact in [
         "system-shape.md",
+        "domain-model.md",
         "architecture-outline.md",
         "capability-map.md",
         "delivery-options.md",
@@ -118,6 +119,17 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
     assert_eq!(status_json["state"], "Completed");
     assert_eq!(status_json["validation_independence_satisfied"], false);
     assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("System Shape"));
+
+    let domain_model =
+        fs::read_to_string(artifact_root.join("domain-model.md")).expect("domain model");
+    assert!(domain_model.starts_with("# Domain Model\n\n## Summary\n\nIntent:"));
+    assert!(domain_model.contains("## Candidate Bounded Contexts"));
+    assert!(domain_model.contains("## Core And Supporting Domain Hypotheses"));
+    assert!(domain_model.contains("## Domain Invariants"));
+    assert!(
+        !domain_model.contains("# System Shaping Brief"),
+        "domain-model.md should render canonical sections instead of dumping the full authored brief"
+    );
 }
 
 #[test]

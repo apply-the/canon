@@ -71,17 +71,21 @@ Do this every time, even when the user starts from change intent rather than a f
 1. Read the source inputs the user pointed at. Identify the existing system slice, the intended modification, the preserved invariants, the allowed change surface, and the validation evidence that must exist. Do not guess.
 2. Compose a single change brief at `canon-input/change.md` or a folder-backed packet under `canon-input/change/`. The authored body MUST include all of the following H2 sections with concrete content tied to the source you just read:
   - `## System Slice`
+  - `## Domain Slice`
   - `## Excluded Areas`
   - `## Intended Change`
   - `## Legacy Invariants`
+  - `## Domain Invariants`
   - `## Forbidden Normalization`
   - `## Change Surface`
   - `## Ownership`
+  - `## Cross-Context Risks`
   - `## Implementation Plan`
   - `## Sequencing`
   - `## Validation Strategy`
   - `## Independent Checks`
   - `## Decision Record`
+  - `## Boundary Tradeoffs`
   - `## Consequences`
   - `## Unresolved Questions`
 3. Metadata such as `Owner:`, `Risk Level:`, and `Zone:` may remain in the brief, but they are outside authored-body extraction in this first slice.

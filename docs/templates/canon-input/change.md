@@ -3,6 +3,9 @@
 ## System Slice
 Describe the bounded subsystem or module to change.
 
+## Domain Slice
+Describe the business or ownership boundary inside the system slice.
+
 ## Excluded Areas
 - Explicit exclusion 1
 - Explicit exclusion 2
@@ -14,6 +17,10 @@ Describe the intended modification.
 - Behavior that must remain true 1
 - Behavior that must remain true 2
 
+## Domain Invariants
+- Domain rule 1 that the change must preserve
+- Domain rule 2 that the change must preserve
+
 ## Forbidden Normalization
 - Shortcut or simplification that this change must not perform
 
@@ -22,6 +29,10 @@ Describe the intended modification.
 
 ## Ownership
 - Primary owner and any explicit reviewers
+
+## Cross-Context Risks
+- Boundary crossing or seam risk 1
+- Boundary crossing or seam risk 2
 
 ## Implementation Plan
 Describe the high-level change approach.
@@ -39,6 +50,10 @@ Describe the high-level change approach.
 
 ## Decision Record
 Explain why this change is preferable.
+
+## Boundary Tradeoffs
+- Tradeoff 1 created by keeping the change bounded
+- Tradeoff 2 created by keeping the change bounded
 
 ## Consequences
 - Consequence 1

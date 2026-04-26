@@ -27,6 +27,27 @@ What structural decision are we making?
 - Risk 1
 - Risk 2
 
+## Bounded Contexts
+- Context 1 and its primary responsibility
+- Context 2 and its primary responsibility
+
+## Context Relationships
+- How two contexts interact or depend on one another
+
+## Integration Seams
+- Named seam or translation boundary 1
+
+## Anti-Corruption Candidates
+- Where translation or protective boundaries may be needed
+
+## Ownership Boundaries
+- Context 1 owner
+- Context 2 owner
+
+## Shared Invariants
+- Invariant 1 that every context crossing must preserve
+- Invariant 2 that every context crossing must preserve
+
 ## System Context
 <!--
   C4 Level 1. Author this section yourself before invoking Canon.

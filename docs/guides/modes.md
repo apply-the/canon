@@ -459,8 +459,13 @@ system or for a new capability that will live inside an existing system.
 ### Input Shape
 
 A system-shaping brief for the `system-shaping` mode with explicit intent and
-constraints. This mode also requires explicit `--system-context new|existing`
-when you start the run.
+constraints. A credible first-slice brief now includes `## Goal`, `## Users or
+Stakeholders`, `## Domain Responsibilities`, `## Constraints`, `## Risks`,
+`## Open Questions`, `## Candidate Bounded Contexts`, `## Core And Supporting
+Domain Hypotheses`, `## Ubiquitous Language`, `## Domain Invariants`, and
+`## Boundary Risks And Open Questions`, plus the required inline `Intent:` and
+`Constraint:` markers. This mode also requires explicit `--system-context
+new|existing` when you start the run.
 
 ### System Context Guidance
 
@@ -482,6 +487,8 @@ This mode works best when the brief includes explicit markers like:
 - explicit intent
 - explicit constraints
 - key domain responsibilities
+- candidate bounded contexts and ubiquitous language
+- domain invariants and boundary risks
 - major delivery concerns
 - main risks or unknowns
 
@@ -506,6 +513,7 @@ The `system-shaping` mode produces an early system-shaping packet with these
 artifacts:
 
 - `system-shape.md`
+- `domain-model.md`
 - `architecture-outline.md`
 - `capability-map.md`
 - `delivery-options.md`
@@ -554,6 +562,11 @@ An architecture brief describing the decision surface, competing options, and
 important constraints. This mode also requires explicit
 `--system-context new|existing` when you start the run.
 
+For the delivered first slice, a credible brief now includes the existing
+decision and C4 sections plus `## Bounded Contexts`, `## Context
+Relationships`, `## Integration Seams`, `## Anti-Corruption Candidates`,
+`## Ownership Boundaries`, and `## Shared Invariants`.
+
 ### Good Input Should Include
 
 - the design problem
@@ -563,6 +576,7 @@ important constraints. This mode also requires explicit
 - invariants that must hold
 - tradeoffs that matter
 - risks of the decision
+- bounded contexts, their relationships, and shared invariants
 
 ### Questions This Mode Answers
 
@@ -587,6 +601,7 @@ Architecture produces a structural decision packet with these artifacts:
 - `invariants.md` (mandatory boundary invariants)
 - `tradeoff-matrix.md` (alternatives and tradeoff analysis)
 - `boundary-map.md` (system boundaries and ownership)
+- `context-map.md` (bounded contexts, relationships, seams, ownership, and shared invariants)
 - `readiness-assessment.md` (decision readiness and blockers)
 - `system-context.md` (C4 Level 1: system and external actors; requires authored `## System Context` in brief)
 - `container-view.md` (C4 Level 2: deployable containers; requires authored `## Containers` in brief)
@@ -741,7 +756,7 @@ behavior.
 
 ### Input Shape
 
-A change brief authored with canonical H2 sections. For this first slice, a credible brief includes `## System Slice`, `## Excluded Areas`, `## Intended Change`, `## Legacy Invariants`, `## Forbidden Normalization`, `## Change Surface`, `## Ownership`, `## Implementation Plan`, `## Sequencing`, `## Validation Strategy`, `## Independent Checks`, `## Decision Record`, `## Consequences`, and `## Unresolved Questions`. This mode requires explicit `--system-context existing` when you start the run.
+A change brief authored with canonical H2 sections. For this first slice, a credible brief includes `## System Slice`, `## Domain Slice`, `## Excluded Areas`, `## Intended Change`, `## Legacy Invariants`, `## Domain Invariants`, `## Forbidden Normalization`, `## Change Surface`, `## Ownership`, `## Cross-Context Risks`, `## Implementation Plan`, `## Sequencing`, `## Validation Strategy`, `## Independent Checks`, `## Decision Record`, `## Boundary Tradeoffs`, `## Consequences`, and `## Unresolved Questions`. This mode requires explicit `--system-context existing` when you start the run.
 
 A change without an existing system does not make sense in Canon's model.
 `change` is defined around preserved behavior, bounded modification, and
@@ -756,12 +771,12 @@ actual question.
 
 ### Good Input Should Include
 
-- `## System Slice` and `## Excluded Areas` so the bounded surface is explicit
-- `## Intended Change`, `## Legacy Invariants`, and `## Forbidden Normalization` so the preserved behavior is reviewable
-- `## Change Surface` and `## Ownership` so the allowed mutation boundary and responsible owners are explicit
+- `## System Slice`, `## Domain Slice`, and `## Excluded Areas` so the bounded surface is explicit in both technical and domain terms
+- `## Intended Change`, `## Legacy Invariants`, `## Domain Invariants`, and `## Forbidden Normalization` so the preserved behavior is reviewable
+- `## Change Surface`, `## Ownership`, and `## Cross-Context Risks` so the allowed mutation boundary and responsible owners are explicit
 - `## Implementation Plan` and `## Sequencing` so the packet states the intended order of operations
 - `## Validation Strategy` and `## Independent Checks` so the validation contract is credible
-- `## Decision Record`, `## Consequences`, and `## Unresolved Questions` so the decision posture is preserved honestly
+- `## Decision Record`, `## Boundary Tradeoffs`, `## Consequences`, and `## Unresolved Questions` so the decision posture is preserved honestly
 - metadata lines such as `Owner:`, `Risk Level:`, and `Zone:` outside the authored-body extraction when you want to keep operator metadata in the brief
 
 ### Questions This Mode Answers
@@ -791,8 +806,9 @@ Change produces a bounded change packet with these artifacts:
 - `decision-record.md`
 
 Use that bundle when you need explicit evidence about what is changing, what
-must stay stable, where the allowed change surface ends, and how the result
-will be validated.
+must stay stable, which domain slice is affected, where cross-context risk
+starts, where the allowed change surface ends, and how the result will be
+validated.
 
 ### Boundary With Execution Modes
 
