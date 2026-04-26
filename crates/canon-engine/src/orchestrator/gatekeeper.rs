@@ -185,7 +185,7 @@ pub fn evaluate_system_shaping_gates(
             GateKind::Architecture,
             contract,
             artifacts,
-            &["system-shape.md", "architecture-outline.md", "capability-map.md"],
+            &["system-shape.md", "domain-model.md", "architecture-outline.md", "capability-map.md"],
             "system-shaping architecture review requires bounded structure, capabilities, and rationale",
         ),
         approval_aware_risk_gate(
@@ -223,7 +223,7 @@ pub fn evaluate_architecture_gates(
             GateKind::Architecture,
             contract,
             artifacts,
-            &["architecture-decisions.md", "invariants.md", "tradeoff-matrix.md"],
+            &["architecture-decisions.md", "invariants.md", "tradeoff-matrix.md", "context-map.md"],
             "architecture review requires decisions, invariants, and tradeoff scoring",
         ),
         approval_aware_risk_gate(

@@ -213,10 +213,40 @@ pub fn render_system_shaping_artifact(
             constraint.as_deref().unwrap_or_default()
         )
     };
+    let domain_model_summary = if let Some(gap) = system_shaping_gap.as_deref() {
+        gap.to_string()
+    } else {
+        format!(
+            "Intent: {}\nConstraint: {}",
+            intent.as_deref().unwrap_or_default(),
+            constraint.as_deref().unwrap_or_default()
+        )
+    };
 
     match file_name {
         "system-shape.md" => format!(
             "# System Shape\n\n## Summary\n\n{context_summary}\n\n## System Shape\n\n{system_shape}\n\n## Boundary Decisions\n\n{structural_rationale}\n\n## Domain Responsibilities\n\n- Responsibilities remain bounded to the capability described in the supplied context.\n"
+        ),
+        "domain-model.md" => render_authored_artifact(
+            "Domain Model",
+            &domain_model_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec {
+                    canonical_heading: "Candidate Bounded Contexts",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec {
+                    canonical_heading: "Core And Supporting Domain Hypotheses",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Ubiquitous Language", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Domain Invariants", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Boundary Risks And Open Questions",
+                    aliases: &[],
+                },
+            ],
         ),
         "architecture-outline.md" => format!(
             "# Architecture Outline\n\n## Summary\n\n{context_summary}\n\n## Structural Options\n\n{system_shape}\n\n## Selected Boundaries\n\n{structural_rationale}\n\n## Rationale\n\nThe selected boundaries favor explicit ownership and staged delivery over unbounded system growth.\n"
@@ -240,6 +270,21 @@ pub fn render_architecture_artifact(
     generation_summary: &str,
     critique_summary: &str,
 ) -> String {
+    let normalized = context_summary.to_lowercase();
+    let decision_focus = extract_marker(context_summary, &normalized, "decision focus")
+        .or_else(|| extract_authored_h2_section(context_summary, "Decision", &[]))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - No architecture decision focus was authored in the supplied brief."
+                .to_string()
+        });
+    let constraint = extract_marker(context_summary, &normalized, "constraint")
+        .or_else(|| extract_authored_h2_section(context_summary, "Constraints", &[]))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - No architecture constraint was authored in the supplied brief."
+                .to_string()
+        });
+    let context_map_summary = format!("Decision focus: {decision_focus}\nConstraint: {constraint}");
+
     match file_name {
         "architecture-decisions.md" => format!(
             "# Architecture Decisions\n\n## Summary\n\n{context_summary}\n\n## Decisions\n\n{generation_summary}\n\n## Tradeoffs\n\n{critique_summary}\n\n## Consequences\n\nThe recorded decisions constrain later implementation and review work.\n\n## Unresolved Questions\n\n- Which structural assumptions still need explicit acceptance?\n"
@@ -252,6 +297,22 @@ pub fn render_architecture_artifact(
         ),
         "boundary-map.md" => format!(
             "# Boundary Map\n\n## Summary\n\n{context_summary}\n\n## Boundaries\n\n{generation_summary}\n\n## Ownership\n\n- Ownership must remain explicit for each named boundary before implementation begins.\n\n## Crossing Rules\n\n{critique_summary}\n"
+        ),
+        "context-map.md" => render_authored_artifact(
+            "Context Map",
+            &context_map_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Bounded Contexts", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Context Relationships", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Integration Seams", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Anti-Corruption Candidates",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Ownership Boundaries", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Shared Invariants", aliases: &[] },
+            ],
         ),
         "readiness-assessment.md" => format!(
             "# Readiness Assessment\n\n## Summary\n\n{context_summary}\n\n## Readiness Status\n\nArchitecture analysis is ready for downstream consumption once approvals and unresolved questions are addressed.\n\n## Blockers\n\n{critique_summary}\n\n## Accepted Risks\n\n{generation_summary}\n"
@@ -404,6 +465,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "System Slice", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Domain Slice", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Excluded Areas", aliases: &[] },
             ],
         ),
@@ -413,6 +475,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Legacy Invariants", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Domain Invariants", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Forbidden Normalization", aliases: &[] },
             ],
         ),
@@ -423,6 +486,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
             &[
                 AuthoredSectionSpec { canonical_heading: "Change Surface", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Ownership", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Cross-Context Risks", aliases: &[] },
             ],
         ),
         "implementation-plan.md" => render_authored_artifact(
@@ -449,6 +513,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Decision Record", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Boundary Tradeoffs", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Consequences", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Unresolved Questions", aliases: &[] },
             ],

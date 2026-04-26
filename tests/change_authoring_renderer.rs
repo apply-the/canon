@@ -6,6 +6,10 @@ const FULL_BRIEF: &str = r#"# Change Brief
 
 auth session boundary and persistence layer.
 
+## Domain Slice
+
+Session lifecycle and cleanup semantics within the auth domain.
+
 ## Excluded Areas
 
 - payment settlement
@@ -20,6 +24,11 @@ Add bounded repository methods while preserving the public auth contract.
 - session revocation remains eventually consistent
 - audit log ordering stays stable
 
+## Domain Invariants
+
+- a revoked session must never become active again through cleanup retries
+- audit trails must preserve causal order across repository updates
+
 ## Forbidden Normalization
 
 - Do not collapse audit-ordering quirks that operators still rely on.
@@ -33,6 +42,10 @@ Add bounded repository methods while preserving the public auth contract.
 ## Ownership
 
 - primary owner: maintainer
+
+## Cross-Context Risks
+
+- cleanup scheduling can leak into notification flows if repository boundaries widen
 
 ## Implementation Plan
 
@@ -55,6 +68,10 @@ Add bounded repository methods and preserve the public auth contract.
 ## Decision Record
 
 Prefer additive change over normalization to preserve operator expectations.
+
+## Boundary Tradeoffs
+
+- keep cleanup logic inside the auth boundary even if that duplicates some scheduling code
 
 ## Consequences
 
@@ -108,6 +125,9 @@ fn change_renderer_preserves_authored_sections_verbatim() {
     assert!(
         system_slice.contains("## System Slice\n\nauth session boundary and persistence layer.")
     );
+    assert!(system_slice.contains(
+        "## Domain Slice\n\nSession lifecycle and cleanup semantics within the auth domain."
+    ));
     assert!(system_slice.contains("## Excluded Areas\n\n- payment settlement"));
     assert!(!system_slice.contains(MISSING_AUTHORED_BODY_MARKER));
     assert!(implementation_plan.contains("## Implementation Plan\n\nAdd bounded repository methods and preserve the public auth contract."));

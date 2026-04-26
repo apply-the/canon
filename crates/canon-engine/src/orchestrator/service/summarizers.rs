@@ -274,6 +274,8 @@ fn summarize_system_shaping_mode_result(
 ) -> Option<ModeResultSummary> {
     let primary =
         artifacts.iter().find(|artifact| artifact.record.file_name == "system-shape.md")?;
+    let domain_model =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "domain-model.md");
     let capability_map =
         artifacts.iter().find(|artifact| artifact.record.file_name == "capability-map.md");
     let delivery_options =
@@ -289,6 +291,14 @@ fn summarize_system_shaping_mode_result(
     let capabilities = capability_map
         .and_then(|artifact| extract_context_section(&artifact.contents, "Capabilities"))
         .unwrap_or_else(|| "NOT CAPTURED - Capability map is missing.".to_string());
+    let bounded_contexts = domain_model
+        .and_then(|artifact| {
+            extract_context_section(&artifact.contents, "Candidate Bounded Contexts")
+        })
+        .unwrap_or_else(|| "NOT CAPTURED - Candidate bounded contexts are missing.".to_string());
+    let domain_invariants = domain_model
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Domain Invariants"))
+        .unwrap_or_else(|| "NOT CAPTURED - Domain invariants are missing.".to_string());
     let delivery_phases = delivery_options
         .and_then(|artifact| extract_context_section(&artifact.contents, "Delivery Phases"))
         .unwrap_or_else(|| "NOT CAPTURED - Delivery phases are missing.".to_string());
@@ -300,10 +310,14 @@ fn summarize_system_shaping_mode_result(
         &system_shape,
         &boundary_decisions,
         &capabilities,
+        &bounded_contexts,
+        &domain_invariants,
         &delivery_phases,
         &hotspots,
     ]);
     let capability_count = count_markdown_entries(&capabilities);
+    let bounded_context_count = count_markdown_entries(&bounded_contexts);
+    let domain_invariant_count = count_markdown_entries(&domain_invariants);
     let delivery_count = count_markdown_entries(&delivery_phases);
     let hotspot_count = count_markdown_entries(&hotspots);
 
@@ -315,7 +329,7 @@ fn summarize_system_shaping_mode_result(
         )
     };
     let artifact_packet_summary = format!(
-        "Primary artifact names {capability_count} capability slice(s), {delivery_count} delivery phase set(s), and {hotspot_count} risk hotspot set(s)."
+        "Primary artifact names {capability_count} capability slice(s), {bounded_context_count} bounded context candidate(s), {domain_invariant_count} domain invariant set(s), {delivery_count} delivery phase set(s), and {hotspot_count} risk hotspot set(s)."
     );
 
     Some(ModeResultSummary {
@@ -345,6 +359,8 @@ fn summarize_architecture_mode_result(
         artifacts.iter().find(|artifact| artifact.record.file_name == "tradeoff-matrix.md");
     let boundary_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "boundary-map.md");
+    let context_map_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "context-map.md");
 
     let decisions = extract_context_section(&primary.contents, "Decisions")
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
@@ -361,13 +377,27 @@ fn summarize_architecture_mode_result(
     let boundaries = boundary_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Boundaries"))
         .unwrap_or_else(|| "NOT CAPTURED - Boundary map is missing.".to_string());
+    let bounded_contexts = context_map_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Bounded Contexts"))
+        .unwrap_or_else(|| "NOT CAPTURED - Context map bounded contexts are missing.".to_string());
+    let shared_invariants = context_map_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Shared Invariants"))
+        .unwrap_or_else(|| "NOT CAPTURED - Context map shared invariants are missing.".to_string());
 
-    let missing_context_markers =
-        count_missing_context_markers([&decisions, &tradeoffs, &invariants, &boundaries]);
+    let missing_context_markers = count_missing_context_markers([
+        &decisions,
+        &tradeoffs,
+        &invariants,
+        &boundaries,
+        &bounded_contexts,
+        &shared_invariants,
+    ]);
     let decision_count = count_markdown_entries(&decisions);
     let tradeoff_count = count_markdown_entries(&tradeoffs);
     let invariant_count = count_markdown_entries(&invariants);
     let boundary_count = count_markdown_entries(&boundaries);
+    let bounded_context_count = count_markdown_entries(&bounded_contexts);
+    let shared_invariant_count = count_markdown_entries(&shared_invariants);
 
     let headline = if missing_context_markers == 0 {
         "Architecture packet ready for downstream implementation or review.".to_string()
@@ -377,7 +407,7 @@ fn summarize_architecture_mode_result(
         )
     };
     let artifact_packet_summary = format!(
-        "Primary artifact records {decision_count} decision set(s), {tradeoff_count} tradeoff set(s), {invariant_count} invariant set(s), and {boundary_count} boundary set(s)."
+        "Primary artifact records {decision_count} decision set(s), {tradeoff_count} tradeoff set(s), {invariant_count} invariant set(s), {boundary_count} boundary set(s), {bounded_context_count} bounded context set(s), and {shared_invariant_count} shared invariant set(s)."
     );
 
     Some(ModeResultSummary {
@@ -445,14 +475,57 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
             )
         })
         .unwrap_or_else(|| ("NOT CAPTURED - System slice artifact is missing.".to_string(), true));
+    let (domain_slice, domain_slice_missing) = system_slice_artifact
+        .map(|artifact| {
+            extract_result_section(
+                &artifact.contents,
+                "Domain Slice",
+                "Missing Authored Body",
+                "NOT CAPTURED - Domain slice section is missing.",
+            )
+        })
+        .unwrap_or_else(|| ("NOT CAPTURED - Domain slice section is missing.".to_string(), true));
+    let (domain_invariants, domain_invariants_missing) = legacy_invariants_artifact
+        .map(|artifact| {
+            extract_result_section(
+                &artifact.contents,
+                "Domain Invariants",
+                "Missing Authored Body",
+                "NOT CAPTURED - Domain invariants section is missing.",
+            )
+        })
+        .unwrap_or_else(|| {
+            ("NOT CAPTURED - Domain invariants section is missing.".to_string(), true)
+        });
+    let (cross_context_risks, cross_context_risks_missing) = Some(primary)
+        .map(|artifact| {
+            extract_result_section(
+                &artifact.contents,
+                "Cross-Context Risks",
+                "Missing Authored Body",
+                "NOT CAPTURED - Cross-context risks section is missing.",
+            )
+        })
+        .unwrap_or_else(|| {
+            ("NOT CAPTURED - Cross-context risks section is missing.".to_string(), true)
+        });
 
-    let missing_context_markers =
-        [change_surface_missing, legacy_missing, validation_missing, system_slice_missing]
-            .into_iter()
-            .filter(|missing| *missing)
-            .count();
+    let missing_context_markers = [
+        change_surface_missing,
+        legacy_missing,
+        validation_missing,
+        system_slice_missing,
+        domain_slice_missing,
+        domain_invariants_missing,
+        cross_context_risks_missing,
+    ]
+    .into_iter()
+    .filter(|missing| *missing)
+    .count();
     let change_surface_count = count_markdown_entries(&change_surface);
     let legacy_invariant_count = count_markdown_entries(&legacy_invariants);
+    let domain_invariant_count = count_markdown_entries(&domain_invariants);
+    let cross_context_risk_count = count_markdown_entries(&cross_context_risks);
     let validation_count = count_markdown_entries(&validation_strategy);
 
     let headline = if missing_context_markers == 0 {
@@ -464,12 +537,13 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact names {change_surface_count} change-surface point(s). Packet also captures {legacy_invariant_count} legacy invariant(s) and {validation_count} validation check set(s) for the bounded slice {}.",
-            truncate_context_excerpt(&system_slice, 90)
+            "Primary artifact names {change_surface_count} change-surface point(s). Packet also captures {legacy_invariant_count} legacy invariant(s), {domain_invariant_count} domain invariant set(s), {cross_context_risk_count} cross-context risk set(s), and {validation_count} validation check set(s) for the bounded slice {} / {}.",
+            truncate_context_excerpt(&system_slice, 90),
+            truncate_context_excerpt(&domain_slice, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Change surface: {change_surface_count}; legacy invariants: {legacy_invariant_count}; validation checks: {validation_count}."
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Change surface: {change_surface_count}; legacy invariants: {legacy_invariant_count}; domain invariants: {domain_invariant_count}; cross-context risks: {cross_context_risk_count}; validation checks: {validation_count}."
         )
     };
 

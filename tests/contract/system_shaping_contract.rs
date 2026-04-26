@@ -31,7 +31,7 @@ fn cli_command() -> Command {
 fn run_system_shaping_flow(workspace: &TempDir) -> String {
     fs::write(
         workspace.path().join("system-shaping.md"),
-        "# System Shaping Brief\n\nIntent: define a clean analysis-mode surface without changing Canon's governance primitives.\nConstraint: preserve the existing policy, gate, and evidence contracts.\n",
+        "# System Shaping Brief\n\nIntent: define a clean analysis-mode surface without changing Canon's governance primitives.\nConstraint: preserve the existing policy, gate, and evidence contracts.\n\n## Goal\nAdd domain modeling to the system-shaping packet without changing approvals or publish behavior.\n\n## Users or Stakeholders\n- Canon maintainers who review packet integrity.\n- Architects who consume shaping packets downstream.\n\n## Domain Responsibilities\n- Bound the system shape.\n- Name candidate bounded contexts.\n- Surface invariants that later modes must preserve.\n\n## Constraints\n- Preserve the existing policy, gate, and evidence contracts.\n- Keep non-target modes unchanged.\n\n## Risks\n- Weak briefs may produce invented boundaries.\n- Shared helpers may blur ownership between contexts.\n\n## Open Questions\n- Which context owns authored-body rendering?\n- Which context owns downstream architecture tradeoffs?\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run state, approvals, and evidence linkage.\n- Artifact Authoring: owns packet structure and authored section fidelity.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it preserves Canon's operating model.\n- Artifact Authoring is supporting because it makes analysis reviewable.\n\n## Ubiquitous Language\n- Run: one governed execution with durable evidence.\n- Packet: the emitted artifact set for a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- Shared helpers may leak responsibilities across contexts.\n",
     )
     .expect("brief file");
 
@@ -84,7 +84,7 @@ fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
 fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::SystemShaping);
 
-    assert_eq!(contract.artifact_requirements.len(), 5);
+    assert_eq!(contract.artifact_requirements.len(), 6);
 
     let names = contract
         .artifact_requirements
@@ -95,12 +95,31 @@ fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
         names,
         vec![
             "system-shape.md",
+            "domain-model.md",
             "architecture-outline.md",
             "capability-map.md",
             "delivery-options.md",
             "risk-hotspots.md",
         ]
     );
+
+    let domain_model = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "domain-model.md")
+        .expect("domain model requirement");
+    assert_eq!(
+        domain_model.required_sections,
+        vec![
+            "Summary",
+            "Candidate Bounded Contexts",
+            "Core And Supporting Domain Hypotheses",
+            "Ubiquitous Language",
+            "Domain Invariants",
+            "Boundary Risks And Open Questions",
+        ]
+    );
+    assert_eq!(domain_model.gates, vec![GateKind::Exploration, GateKind::Architecture]);
 
     let system_shape = contract
         .artifact_requirements
@@ -119,7 +138,7 @@ fn system_shaping_architecture_gate_blocks_when_required_artifacts_are_missing()
     let contract = contract_for_mode(Mode::SystemShaping);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "architecture-outline.md")
+        .filter(|(file_name, _)| file_name != "domain-model.md")
         .collect::<Vec<_>>();
 
     let gates = evaluate_system_shaping_gates(
@@ -138,8 +157,8 @@ fn system_shaping_architecture_gate_blocks_when_required_artifacts_are_missing()
 
     assert_eq!(architecture.status, GateStatus::Blocked);
     assert!(
-        architecture.blockers.iter().any(|blocker| blocker.contains("architecture-outline.md")),
-        "architecture gate should cite the missing outline artifact"
+        architecture.blockers.iter().any(|blocker| blocker.contains("domain-model.md")),
+        "architecture gate should cite the missing domain-model artifact"
     );
 }
 
@@ -154,6 +173,7 @@ fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
         .assert()
         .success()
         .stdout(contains("system-shape.md"))
+        .stdout(contains("domain-model.md"))
         .stdout(contains("risk-hotspots.md"));
 
     let invocations_output = cli_command()
@@ -204,6 +224,7 @@ fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
         .join("artifact-contract.toml");
     let contract_toml = fs::read_to_string(contract_path).expect("artifact contract");
     assert!(contract_toml.contains("system-shape.md"));
+    assert!(contract_toml.contains("domain-model.md"));
     assert!(contract_toml.contains("architecture-outline.md"));
     assert!(contract_toml.contains("risk-hotspots.md"));
 }

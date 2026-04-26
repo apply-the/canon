@@ -10,11 +10,11 @@ Current end-to-end depth exists for `requirements`, `discovery`,
 distribution, and authoring improvements instead of reopening already
 delivered mode surfaces.
 
-## Feature: Domain Modeling And Boundary Design
+## Delivered Feature: Domain Modeling And Boundary Design
 
 ### Outcome
 
-Canon strengthens the already-delivered shaping and architecture modes by
+Canon now strengthens the already-delivered shaping and architecture modes by
 making Domain-Driven Design outputs first-class: explicit ubiquitous language,
 bounded contexts, context relationships, and domain invariants that can flow
 into later architecture, change planning, and review.
@@ -46,27 +46,37 @@ into later architecture, change planning, and review.
 This extends the current mode model instead of introducing a separate planning
 vocabulary for domain work.
 
-### First Slice
+### Delivered First Slice
 
-- Extend `system-shaping` to emit a candidate domain map, core-domain
-  hypotheses, and a ubiquitous-language seed.
-- Extend `architecture` to emit bounded-context and context-relationship
-  artifacts, including integration seams and anti-corruption candidates where
-  the decision surface warrants them.
-- Extend `change` to tie the change surface to an explicit domain
-  slice, preserved invariants, and ownership boundaries instead of treating the
-  system as one undifferentiated code surface.
-- Keep the existing critique-first posture so Canon challenges weak or blurry
-  domain boundaries instead of rubber-stamping them.
+- `system-shaping` now emits `domain-model.md` with candidate bounded contexts,
+  core/supporting domain hypotheses, ubiquitous language, domain invariants,
+  and explicit boundary risks.
+- `architecture` now emits `context-map.md` with bounded contexts, context
+  relationships, integration seams, anti-corruption candidates, ownership
+  boundaries, and shared invariants alongside the existing C4 artifacts.
+- `change` now strengthens its existing packet with domain slice, domain
+  invariants, cross-context risk, and boundary tradeoff sections instead of
+  treating the system as one undifferentiated code surface.
+- The existing critique-first posture remains intact: missing authored sections
+  surface `## Missing Authored Body` instead of fabricated certainty.
 
-### Why This Feature Comes After Mode Completion
+### Remaining Follow-On Scope
 
-- It improves the quality of modes Canon already ships before the roadmap
-  expands into packaging or protocol work.
-- It should follow the now-complete mode-coverage slice because it strengthens
-  existing workflows instead of closing a missing one.
+- Broader industry-standard artifact shaping remains deferred to the separate
+  `Industry-Standard Artifact Shapes` roadmap item.
+- Wider authored-body specialization for the remaining governed modes remains
+  deferred to the broader `Mode Authoring Specialization` roadmap item.
 
 ## Delivered Recently
+
+- `system-shaping`, `architecture`, and `change` now ship the first slice of
+  Domain Modeling And Boundary Design: `system-shaping` adds
+  `domain-model.md`, `architecture` adds `context-map.md`, and `change`
+  strengthens its existing packet with explicit domain slice, domain
+  invariants, cross-context risk, and boundary tradeoff sections. Skills,
+  templates, examples, renderers, contracts, and gates all align on the new
+  authored sections and preserve the critique-first `## Missing Authored Body`
+  fallback.
 
 - `architecture` now extends its packet with three C4 artifacts —
   `system-context.md` (Architecture + Exploration gates), `container-view.md`

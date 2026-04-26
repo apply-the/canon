@@ -37,6 +37,32 @@ We need to choose a durable state management backend for processing long-running
 - PostgreSQL row-level locks limit overall concurrency at 10k transactions a second.
 - Using an external engine creates tight vendor lock-in for critical business processes.
 
+## Bounded Contexts
+- Workflow Orchestration: owns long-running job state, retries, timers, and progression rules.
+- Billing Policy: owns invoice lifecycle rules, billing-state semantics, and the invariants that protect customer entitlement.
+- External Payments Integration: owns translation between internal billing events and Stripe/webhook payloads.
+
+## Context Relationships
+- Workflow Orchestration coordinates Billing Policy decisions but must not redefine billing-state semantics.
+- External Payments Integration is upstream for payment events but downstream of Billing Policy for entitlement consequences.
+
+## Integration Seams
+- The seam between External Payments Integration and Billing Policy must translate Stripe-specific event names into internal billing states.
+- The seam between Workflow Orchestration and Billing Policy must remain command-oriented so retries do not duplicate policy decisions.
+
+## Anti-Corruption Candidates
+- A Stripe adapter boundary should shield Billing Policy from provider-specific object models and retry semantics.
+- A workflow runtime adapter should shield Billing Policy from Temporal-style workflow concepts if the team later adopts an external engine.
+
+## Ownership Boundaries
+- Billing Policy is owned by the billing product team because it defines revenue and entitlement semantics.
+- Workflow Orchestration is owned by the platform/runtime team because it governs execution mechanics and operational safety.
+- External Payments Integration is jointly reviewed, but provider model translation remains owned by the billing team.
+
+## Shared Invariants
+- A pending billing job can be retried, but it cannot be lost without an auditable state transition.
+- Only one worker can advance the same billing task at a time, regardless of which orchestration option is selected.
+
 ## System Context
 - System: `billing-service` orchestrates long-running async billing jobs (invoicing, retries, dunning) for paying customers.
 - External actors:
