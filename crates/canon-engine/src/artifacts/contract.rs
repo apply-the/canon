@@ -90,6 +90,18 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::Exploration, GateKind::Architecture],
             ),
             requirement(
+                "domain-model.md",
+                &[
+                    "Summary",
+                    "Candidate Bounded Contexts",
+                    "Core And Supporting Domain Hypotheses",
+                    "Ubiquitous Language",
+                    "Domain Invariants",
+                    "Boundary Risks And Open Questions",
+                ],
+                &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
                 "architecture-outline.md",
                 &["Summary", "Structural Options", "Selected Boundaries", "Rationale"],
                 &[GateKind::Architecture, GateKind::Risk],
@@ -113,17 +125,17 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         Mode::Change => vec![
             requirement(
                 "system-slice.md",
-                &["Summary", "System Slice", "Excluded Areas"],
+                &["Summary", "System Slice", "Domain Slice", "Excluded Areas"],
                 &[GateKind::Exploration, GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
             requirement(
                 "legacy-invariants.md",
-                &["Summary", "Legacy Invariants", "Forbidden Normalization"],
+                &["Summary", "Legacy Invariants", "Domain Invariants", "Forbidden Normalization"],
                 &[GateKind::ChangePreservation, GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             requirement(
                 "change-surface.md",
-                &["Summary", "Change Surface", "Ownership"],
+                &["Summary", "Change Surface", "Ownership", "Cross-Context Risks"],
                 &[GateKind::ChangePreservation, GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
             requirement(
@@ -138,7 +150,13 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "decision-record.md",
-                &["Summary", "Decision Record", "Consequences", "Unresolved Questions"],
+                &[
+                    "Summary",
+                    "Decision Record",
+                    "Boundary Tradeoffs",
+                    "Consequences",
+                    "Unresolved Questions",
+                ],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
         ],
@@ -349,6 +367,19 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 "boundary-map.md",
                 &["Summary", "Boundaries", "Ownership", "Crossing Rules"],
                 &[GateKind::Exploration, GateKind::Architecture],
+            ),
+            requirement(
+                "context-map.md",
+                &[
+                    "Summary",
+                    "Bounded Contexts",
+                    "Context Relationships",
+                    "Integration Seams",
+                    "Anti-Corruption Candidates",
+                    "Ownership Boundaries",
+                    "Shared Invariants",
+                ],
+                &[GateKind::Architecture, GateKind::Risk],
             ),
             requirement(
                 "readiness-assessment.md",

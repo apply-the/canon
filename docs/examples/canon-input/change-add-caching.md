@@ -3,6 +3,9 @@
 ## System Slice
 The unbounded read load on `user_profiles_db` driven by repeated profile lookups through `ProfileService`.
 
+## Domain Slice
+Profile retrieval and cache invalidation inside the profile-read boundary; write semantics and authorization stay outside this slice.
+
 ## Excluded Areas
 - Profile schema changes in PostgreSQL.
 - Authentication and authorization behavior outside profile reads and writes.
@@ -14,6 +17,10 @@ Add a Redis-backed read-through cache in `crates/profile-engine/src/repository.r
 - Writing to a user profile must synchronously persist to PostgreSQL.
 - Cache invalidation must never mask a database failure.
 - Read latency expectations must remain stable under degraded cache conditions.
+
+## Domain Invariants
+- A successful profile write remains the source of truth even when Redis is unavailable.
+- Cache fallback must preserve the same profile identity and visibility rules as the direct PostgreSQL path.
 
 ## Forbidden Normalization
 - Do not turn write-through failures into best-effort success.
@@ -27,6 +34,10 @@ Add a Redis-backed read-through cache in `crates/profile-engine/src/repository.r
 ## Ownership
 - Primary owner: backend-platform
 - Reviewer: data-infra
+
+## Cross-Context Risks
+- Cache invalidation can leak into deployment and configuration boundaries if Redis bootstrap is treated as application logic.
+- The profile-read boundary may accidentally widen into authorization behavior if cache misses trigger unrelated side effects.
 
 ## Implementation Plan
 Introduce a Redis connection pool at process startup, wrap profile reads with cache lookup plus PostgreSQL fallback, and invalidate cached entries after a successful profile update.
@@ -48,6 +59,10 @@ Introduce a Redis connection pool at process startup, wrap profile reads with ca
 
 ## Decision Record
 Choose explicit cache-aside invalidation over TTL-only expiration so user-driven profile edits remain immediately consistent and failure handling stays visible.
+
+## Boundary Tradeoffs
+- Keeping cache invalidation inside the profile-read boundary preserves ownership clarity but requires extra bootstrap wiring in the same service.
+- Avoiding write-through semantics protects legacy correctness but leaves read latency partially dependent on PostgreSQL during degraded-cache periods.
 
 ## Consequences
 - Startup now depends on Redis health wiring and deployment configuration.

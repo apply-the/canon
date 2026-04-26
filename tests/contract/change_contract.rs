@@ -1,6 +1,9 @@
 use std::fs;
 
 use assert_cmd::Command;
+use canon_engine::artifacts::contract::contract_for_mode;
+use canon_engine::domain::gate::GateKind;
+use canon_engine::domain::mode::Mode;
 use predicates::str::contains;
 use tempfile::TempDir;
 
@@ -25,7 +28,62 @@ fn blocked_brief() -> &'static str {
 }
 
 fn complete_brief() -> &'static str {
-    "# Change Brief\n\n## System Slice\n\nauth session boundary and persistence layer.\n\n## Excluded Areas\n\n- payment settlement\n- billing reports\n\n## Intended Change\n\nAdd bounded repository methods while preserving the public auth contract.\n\n## Legacy Invariants\n\n- session revocation remains eventually consistent\n- audit log ordering stays stable\n\n## Forbidden Normalization\n\n- Do not collapse audit-ordering quirks that operators still rely on.\n\n## Change Surface\n\n- session repository\n- auth service\n- token cleanup job\n\n## Ownership\n\n- primary owner: maintainer\n\n## Implementation Plan\n\nAdd bounded repository methods and preserve the public auth contract.\n\n## Sequencing\n\n1. Add bounded repository methods.\n2. Switch callers behind the preserved contract.\n\n## Validation Strategy\n\n- contract tests\n- invariant checks\n\n## Independent Checks\n\n- rollback rehearsal by a separate operator\n\n## Decision Record\n\nPrefer additive change over normalization to preserve operator expectations.\n\n## Consequences\n\n- preserved surface remains explicit and reviewable\n\n## Unresolved Questions\n\n- should the cleanup job roll out in the same slice?\n\nOwner: maintainer\nRisk Level: bounded-impact\nZone: yellow\n"
+    "# Change Brief\n\n## System Slice\n\nauth session boundary and persistence layer.\n\n## Domain Slice\n\nSession lifecycle and cleanup semantics within the auth domain.\n\n## Excluded Areas\n\n- payment settlement\n- billing reports\n\n## Intended Change\n\nAdd bounded repository methods while preserving the public auth contract.\n\n## Legacy Invariants\n\n- session revocation remains eventually consistent\n- audit log ordering stays stable\n\n## Domain Invariants\n\n- a revoked session must never become active again through cleanup retries\n- audit trails must preserve causal order across repository updates\n\n## Forbidden Normalization\n\n- Do not collapse audit-ordering quirks that operators still rely on.\n\n## Change Surface\n\n- session repository\n- auth service\n- token cleanup job\n\n## Ownership\n\n- primary owner: maintainer\n\n## Cross-Context Risks\n\n- cleanup scheduling can leak into notification flows if repository boundaries widen\n\n## Implementation Plan\n\nAdd bounded repository methods and preserve the public auth contract.\n\n## Sequencing\n\n1. Add bounded repository methods.\n2. Switch callers behind the preserved contract.\n\n## Validation Strategy\n\n- contract tests\n- invariant checks\n\n## Independent Checks\n\n- rollback rehearsal by a separate operator\n\n## Decision Record\n\nPrefer additive change over normalization to preserve operator expectations.\n\n## Boundary Tradeoffs\n\n- keep cleanup logic inside the auth boundary even if that duplicates some scheduling code\n\n## Consequences\n\n- preserved surface remains explicit and reviewable\n\n## Unresolved Questions\n\n- should the cleanup job roll out in the same slice?\n\nOwner: maintainer\nRisk Level: bounded-impact\nZone: yellow\n"
+}
+
+#[test]
+fn change_contract_matches_domain_slice_sections_and_gates() {
+    let contract = contract_for_mode(Mode::Change);
+
+    let system_slice = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "system-slice.md")
+        .expect("system slice requirement");
+    assert_eq!(
+        system_slice.required_sections,
+        vec!["Summary", "System Slice", "Domain Slice", "Excluded Areas"]
+    );
+
+    let legacy_invariants = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "legacy-invariants.md")
+        .expect("legacy invariants requirement");
+    assert_eq!(
+        legacy_invariants.required_sections,
+        vec!["Summary", "Legacy Invariants", "Domain Invariants", "Forbidden Normalization"]
+    );
+    assert_eq!(
+        legacy_invariants.gates,
+        vec![GateKind::ChangePreservation, GateKind::Risk, GateKind::ReleaseReadiness]
+    );
+
+    let change_surface = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "change-surface.md")
+        .expect("change surface requirement");
+    assert_eq!(
+        change_surface.required_sections,
+        vec!["Summary", "Change Surface", "Ownership", "Cross-Context Risks"]
+    );
+
+    let decision_record = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "decision-record.md")
+        .expect("decision record requirement");
+    assert_eq!(
+        decision_record.required_sections,
+        vec![
+            "Summary",
+            "Decision Record",
+            "Boundary Tradeoffs",
+            "Consequences",
+            "Unresolved Questions",
+        ]
+    );
 }
 
 fn parse_run_id(output: &[u8]) -> String {
@@ -277,15 +335,25 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
         workspace.path().join(".canon").join("artifacts").join(&run_id).join("change");
 
     fs::write(
+        artifact_root.join("system-slice.md"),
+        "# System Slice\n\n## Summary\n\nBound the affected subsystem.\n\n## System Slice\n\nauth session boundary and persistence layer.\n\n## Domain Slice\n\nSession lifecycle and cleanup semantics within the auth domain.\n\n## Excluded Areas\n\n- payment settlement\n",
+    )
+    .expect("system slice artifact");
+    fs::write(
         artifact_root.join("legacy-invariants.md"),
-        "# Legacy Invariants\n\n## Summary\n\nPreserve revocation semantics.\n\n## Legacy Invariants\n\n- Session revocation remains eventually consistent.\n- Audit log ordering stays stable.\n\n## Forbidden Normalization\n\n- Do not normalize away weird but required legacy timing.\n",
+        "# Legacy Invariants\n\n## Summary\n\nPreserve revocation semantics.\n\n## Legacy Invariants\n\n- Session revocation remains eventually consistent.\n- Audit log ordering stays stable.\n\n## Domain Invariants\n\n- Revoked sessions must never become active again through cleanup retries.\n\n## Forbidden Normalization\n\n- Do not normalize away weird but required legacy timing.\n",
     )
     .expect("legacy invariants artifact");
     fs::write(
         artifact_root.join("change-surface.md"),
-        "# Change Surface\n\n## Summary\n\nBound the affected modules.\n\n## Change Surface\n\n- session repository\n- auth service\n- token cleanup job\n\n## Ownership\n\n- maintainer\n",
+        "# Change Surface\n\n## Summary\n\nBound the affected modules.\n\n## Change Surface\n\n- session repository\n- auth service\n- token cleanup job\n\n## Ownership\n\n- maintainer\n\n## Cross-Context Risks\n\n- cleanup scheduling must not leak into adjacent notification flows.\n",
     )
     .expect("change surface artifact");
+    fs::write(
+        artifact_root.join("decision-record.md"),
+        "# Decision Record\n\n## Summary\n\nKeep the change bounded.\n\n## Decision Record\n\nPrefer additive repository methods over interface churn.\n\n## Boundary Tradeoffs\n\n- keep cleanup logic inside the auth boundary even if it duplicates some scheduling code.\n\n## Consequences\n\n- preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- should the cleanup job roll out in the same slice?\n",
+    )
+    .expect("decision record artifact");
 
     cli_command()
         .current_dir(workspace.path())

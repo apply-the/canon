@@ -15,6 +15,36 @@ Decision focus: shape `analytics-cli` as a bounded analytics surface with explic
 ownership and rollback-safe boundaries.
 Constraint: preserve Canon runtime contracts, approvals, and evidence persistence.
 
+## Bounded Contexts
+
+- Event Intake: owns ingestion of raw event files and input validation.
+- Report Assembly: owns aggregation logic and report generation semantics.
+- Metrics Telemetry: owns operational counters and sink-facing telemetry translation.
+
+## Context Relationships
+
+- Event Intake feeds validated events into Report Assembly.
+- Report Assembly emits operational signals to Metrics Telemetry without owning sink-specific models.
+
+## Integration Seams
+
+- The handoff from Event Intake to Report Assembly is a validated in-memory event envelope.
+- The handoff from Report Assembly to Metrics Telemetry is a domain-neutral metrics event.
+
+## Anti-Corruption Candidates
+
+- Metrics Telemetry should shield Report Assembly from the managed sink's labeling model.
+
+## Ownership Boundaries
+
+- Event Intake and Report Assembly are owned by the analytics domain team.
+- Metrics Telemetry is jointly reviewed, but sink translation stays owned by the platform observability team.
+
+## Shared Invariants
+
+- Aggregated report totals must remain reproducible from the validated input set.
+- Metrics emission must never mutate reporting outcomes.
+
 ## System Context
 
 The bounded `analytics-cli` consumes raw event files and produces aggregated
@@ -54,7 +84,7 @@ fn architecture_request(owner: &str, inputs: Vec<&str>) -> RunRequest {
 }
 
 #[test]
-fn architecture_run_persists_all_eight_artifacts_including_c4_views() {
+fn architecture_run_persists_all_nine_artifacts_including_context_map_and_c4_views() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("architecture.md"), C4_BRIEF).expect("brief file");
 
@@ -77,7 +107,7 @@ fn architecture_run_persists_all_eight_artifacts_including_c4_views() {
     assert_eq!(approved.state, "Completed");
 
     let contract = contract_for_mode(Mode::Architecture);
-    assert_eq!(contract.artifact_requirements.len(), 8);
+    assert_eq!(contract.artifact_requirements.len(), 9);
 
     let artifact_dir = workspace
         .path()
@@ -139,6 +169,13 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
     assert!(component_view.contains("# Component View"));
     assert!(component_view.contains("`metrics-emitter` pushes counters to `metrics-sink`."));
     assert!(!component_view.contains("## Missing Authored Body"));
+
+    let context_map =
+        fs::read_to_string(artifact_dir.join("context-map.md")).expect("context-map.md");
+    assert!(context_map.contains("# Context Map"));
+    assert!(context_map.contains("## Bounded Contexts"));
+    assert!(context_map.contains("Metrics Telemetry"));
+    assert!(!context_map.contains("## Missing Authored Body"));
 }
 
 #[test]

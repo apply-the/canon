@@ -29,7 +29,13 @@ fn change_contract_uses_decision_record_heading() {
 
     assert_eq!(
         decision_record.required_sections,
-        vec!["Summary", "Decision Record", "Consequences", "Unresolved Questions"]
+        vec![
+            "Summary",
+            "Decision Record",
+            "Boundary Tradeoffs",
+            "Consequences",
+            "Unresolved Questions",
+        ]
     );
     assert_eq!(decision_record.gates, vec![GateKind::Architecture, GateKind::ReleaseReadiness]);
 }

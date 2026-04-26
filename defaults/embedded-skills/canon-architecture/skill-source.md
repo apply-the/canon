@@ -65,17 +65,23 @@ Optional:
 
 ## Author Architecture Body Before Invoking Canon
 
-- The architecture brief MUST author three C4 sections as `## System Context`,
-  `## Containers`, and `## Components` before invoking Canon. The renderer
-  preserves these section bodies verbatim in
+- The architecture brief MUST author the domain-boundary sections `## Bounded Contexts`,
+  `## Context Relationships`, `## Integration Seams`,
+  `## Anti-Corruption Candidates`, `## Ownership Boundaries`, and
+  `## Shared Invariants` before invoking Canon. The renderer preserves these
+  section bodies verbatim in `context-map.md`.
+- The architecture brief MUST also author the three C4 sections as
+  `## System Context`, `## Containers`, and `## Components` before invoking
+  Canon. The renderer preserves these section bodies verbatim in
   `system-context.md`, `container-view.md`, and `component-view.md`.
 - If the brief omits any of these sections, Canon still emits the artifact but
   inserts a `## Missing Authored Body` block that names the missing canonical
   heading. Treat that block as a structured prompt to revise the authored
   brief and rerun, not as Canon-generated content.
-- Heading variants like `## C4 - System Context`, `## Container View`, or
-  `## Component View` are NOT recognized. The H2 must match the canonical
-  heading exactly; otherwise the missing-body block is emitted.
+- Heading variants like `## C4 - System Context`, `## Container View`,
+  `## Component View`, `## Context Map`, or `## Contexts` are NOT recognized.
+  The H2 must match the canonical heading exactly; otherwise the missing-body
+  block is emitted.
 - The architecture template at `docs/templates/canon-input/architecture.md`
   shows the expected shape; the worked example at
   `docs/examples/canon-input/architecture-state-management.md` shows a

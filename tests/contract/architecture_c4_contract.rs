@@ -25,7 +25,7 @@ fn architecture_contract_includes_three_c4_artifacts_with_expected_gates() {
 }
 
 #[test]
-fn architecture_artifact_set_size_grows_to_eight_with_c4_extension() {
+fn architecture_artifact_set_size_grows_to_nine_with_context_map_and_c4_extension() {
     let contract = contract_for_mode(Mode::Architecture);
-    assert_eq!(contract.artifact_requirements.len(), 8);
+    assert_eq!(contract.artifact_requirements.len(), 9);
 }

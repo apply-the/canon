@@ -34,7 +34,7 @@ fn parse_run_id(output: &[u8]) -> String {
 }
 
 fn architecture_brief() -> &'static str {
-    "# Architecture Brief\n\nDecision focus: identify boundary ownership and tradeoffs for analysis-mode expansion.\nConstraint: preserve Canon runtime contracts, approvals, and evidence persistence.\n"
+    "# Architecture Brief\n\nDecision focus: identify boundary ownership and tradeoffs for analysis-mode expansion.\nConstraint: preserve Canon runtime contracts, approvals, and evidence persistence.\n\n## Decision\nMake bounded contexts and context relationships first-class in architecture packets.\n\n## Options\n- Add a dedicated context map while keeping the existing C4 artifacts.\n- Force all domain boundary detail into `boundary-map.md`.\n\n## Constraints\n- Preserve approval semantics and publish destinations.\n- Keep non-target modes unchanged.\n\n## Candidate Boundaries\n- Runtime Governance\n- Artifact Authoring\n\n## Invariants\n- Run identity remains unchanged.\n- Evidence lineage remains reviewable.\n\n## Evaluation Criteria\n- Boundary clarity\n- Coupling visibility\n\n## Risks\n- Shared helpers may hide ownership boundaries.\n- Context crossings may look cleaner than they are.\n\n## Bounded Contexts\n- Runtime Governance: owns approvals, gate state, and evidence linkage.\n- Artifact Authoring: owns packet composition and authored-body fidelity.\n\n## Context Relationships\n- Artifact Authoring depends on Runtime Governance for gate outcomes and persisted artifact identity.\n\n## Integration Seams\n- Orchestrator service boundaries separate artifact generation from gate evaluation.\n\n## Anti-Corruption Candidates\n- A narrow renderer-facing contract should shield authored packet structure from orchestration internals.\n\n## Ownership Boundaries\n- Runtime Governance is owned by the execution and policy layer.\n- Artifact Authoring is owned by the markdown rendering and authored-body extraction layer.\n\n## Shared Invariants\n- Published artifacts remain traceable to one run id.\n- Approval-gated work cannot silently skip risk review.\n\n## System Context\n- System: `canon-engine` governs AI-assisted analysis packets for bounded engineering work.\n- External actors:\n  - architect-reviewer: inspects architecture packets and risk posture.\n  - copilot-cli-adapter: generates and critiques bounded packet content.\n\n## Containers\n- `canon-cli` (Rust CLI): starts runs and exposes inspect/approve/status flows.\n- `canon-engine` (Rust library): owns orchestration, gating, and artifact rendering.\n- `.canon/` (local filesystem runtime store): persists manifests, artifacts, and evidence.\n\n## Components\n- `mode_shaping`: drives `system-shaping` and `architecture` execution paths.\n- `gatekeeper`: evaluates gate readiness from artifact contracts and evidence.\n- `markdown renderer`: materializes reviewable markdown artifacts from authored inputs and AI outputs.\n"
 }
 
 fn render_artifact(requirement: &ArtifactRequirement) -> String {
@@ -89,7 +89,7 @@ fn start_architecture_run(workspace: &TempDir, risk: &str, zone: &str) -> serde_
 fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::Architecture);
 
-    assert_eq!(contract.artifact_requirements.len(), 8);
+    assert_eq!(contract.artifact_requirements.len(), 9);
 
     let names = contract
         .artifact_requirements
@@ -103,12 +103,32 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
             "invariants.md",
             "tradeoff-matrix.md",
             "boundary-map.md",
+            "context-map.md",
             "readiness-assessment.md",
             "system-context.md",
             "container-view.md",
             "component-view.md",
         ]
     );
+
+    let context_map = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "context-map.md")
+        .expect("context map requirement");
+    assert_eq!(
+        context_map.required_sections,
+        vec![
+            "Summary",
+            "Bounded Contexts",
+            "Context Relationships",
+            "Integration Seams",
+            "Anti-Corruption Candidates",
+            "Ownership Boundaries",
+            "Shared Invariants",
+        ]
+    );
+    assert_eq!(context_map.gates, vec![GateKind::Architecture, GateKind::Risk]);
 
     let decisions = contract
         .artifact_requirements
@@ -127,7 +147,7 @@ fn architecture_gate_blocks_when_required_decision_artifacts_are_missing() {
     let contract = contract_for_mode(Mode::Architecture);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "tradeoff-matrix.md")
+        .filter(|(file_name, _)| file_name != "context-map.md")
         .collect::<Vec<_>>();
 
     let gates = evaluate_architecture_gates(
@@ -146,8 +166,8 @@ fn architecture_gate_blocks_when_required_decision_artifacts_are_missing() {
 
     assert_eq!(architecture.status, GateStatus::Blocked);
     assert!(
-        architecture.blockers.iter().any(|blocker| blocker.contains("tradeoff-matrix.md")),
-        "architecture gate should cite the missing tradeoff matrix artifact"
+        architecture.blockers.iter().any(|blocker| blocker.contains("context-map.md")),
+        "architecture gate should cite the missing context-map artifact"
     );
 }
 

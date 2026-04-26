@@ -9,5 +9,6 @@ artifacts = [
     "invariants.md",
     "tradeoff-matrix.md",
     "boundary-map.md",
+    "context-map.md",
     "readiness-assessment.md",
 ]

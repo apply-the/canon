@@ -57,6 +57,48 @@ Optional:
 - If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 - Do not show preflight checks to the user. Report only the specific missing input.
 
+## Author System-Shaping Body Before Invoking Canon
+
+Canon does not invent the system-shaping body for you. Canon governs,
+validates, and persists the packet. You (the assistant) MUST author the real
+system-shaping body from the bounded source material BEFORE calling
+`canon run --mode system-shaping`.
+
+Do this every time, even when the user starts from a short brief rather than a
+finished packet:
+
+1. Read the source inputs the user pointed at. Identify the target capability,
+the named stakeholders, the candidate bounded contexts, the domain
+responsibilities, the vocabulary that needs alignment, and the invariants later
+modes must preserve. Do not guess.
+2. Compose a single system-shaping brief at `canon-input/system-shaping.md` or a
+folder-backed packet under `canon-input/system-shaping/`. The authored body MUST
+include all of the following H2 sections with concrete content tied to the
+source you just read:
+  - `## Goal`
+  - `## Users or Stakeholders`
+  - `## Domain Responsibilities`
+  - `## Constraints`
+  - `## Risks`
+  - `## Open Questions`
+  - `## Candidate Bounded Contexts`
+  - `## Core And Supporting Domain Hypotheses`
+  - `## Ubiquitous Language`
+  - `## Domain Invariants`
+  - `## Boundary Risks And Open Questions`
+3. `Intent:` and `Constraint:` remain required inline markers because the runtime
+uses them to decide whether system-shaping has enough bounded evidence to
+proceed.
+4. Inline labels such as `Contexts:` or `Vocabulary:` do not satisfy this slice.
+Use the canonical H2 headings above.
+5. Canon preserves those authored sections verbatim in the emitted packet. If a
+required section is missing or empty, Canon emits `## Missing Authored Body`
+naming the missing canonical heading instead of fabricating filler.
+6. If you cannot author a credible system-shaping body from the available
+source, stop and redirect to `$canon-requirements` or ask targeted
+clarification questions before invoking Canon rather than submitting an empty
+brief.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode system-shaping --system-context <SYSTEM_CONTEXT> --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
