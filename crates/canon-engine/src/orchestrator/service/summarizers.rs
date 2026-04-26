@@ -224,7 +224,7 @@ fn summarize_discovery_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
     let problem_domain = extract_context_section(&primary.contents, "Problem Domain")
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
         .unwrap_or_else(|| "NOT CAPTURED - Problem domain summary is missing.".to_string());
-    let repo_signals = extract_context_section(&primary.contents, "Repo Signals")
+    let repo_signals = extract_context_section(&primary.contents, "Repo Surface")
         .unwrap_or_else(|| "NOT CAPTURED - Repository signals are missing.".to_string());
     let next_phase = extract_context_section(&primary.contents, "Downstream Handoff")
         .or_else(|| {
@@ -408,7 +408,7 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
     let (change_surface, change_surface_missing) = extract_result_section(
         &primary.contents,
         "Change Surface",
-        "Missing Context",
+        "Missing Authored Body",
         "NOT CAPTURED - Change surface section is missing.",
     );
     let (legacy_invariants, legacy_missing) = legacy_invariants_artifact
@@ -416,7 +416,7 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
             extract_result_section(
                 &artifact.contents,
                 "Legacy Invariants",
-                "Missing Context",
+                "Missing Authored Body",
                 "NOT CAPTURED - Legacy invariants section is missing.",
             )
         })
@@ -428,7 +428,7 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
             extract_result_section(
                 &artifact.contents,
                 "Validation Strategy",
-                "Missing Context",
+                "Missing Authored Body",
                 "NOT CAPTURED - Validation strategy section is missing.",
             )
         })
@@ -440,7 +440,7 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
             extract_result_section(
                 &artifact.contents,
                 "System Slice",
-                "Missing Context",
+                "Missing Authored Body",
                 "NOT CAPTURED - System slice section is missing.",
             )
         })

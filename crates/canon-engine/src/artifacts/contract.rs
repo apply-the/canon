@@ -9,7 +9,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         Mode::Requirements => vec![
             requirement(
                 "problem-statement.md",
-                &["Summary", "Problem", "Boundary", "Success Signal"],
+                &["Summary", "Problem", "Outcome"],
                 &[GateKind::Exploration, GateKind::Risk],
             ),
             requirement(
@@ -43,8 +43,8 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 "problem-map.md",
                 &[
                     "Summary",
-                    "Repo Signals",
                     "Problem Domain",
+                    "Repo Surface",
                     "Immediate Tensions",
                     "Downstream Handoff",
                 ],
@@ -128,7 +128,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "implementation-plan.md",
-                &["Summary", "Plan", "Sequencing"],
+                &["Summary", "Implementation Plan", "Sequencing"],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
             requirement(
@@ -138,7 +138,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "decision-record.md",
-                &["Summary", "Decision", "Consequences", "Unresolved Questions"],
+                &["Summary", "Decision Record", "Consequences", "Unresolved Questions"],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
         ],
@@ -518,14 +518,18 @@ pub fn validate_artifact(requirement: &ArtifactRequirement, contents: &str) -> V
     let mut blockers = Vec::new();
 
     for section in &requirement.required_sections {
-        let heading = format!("## {section}");
-        if !contents.contains(&heading) {
+        if !contains_required_heading(contents, section) {
             blockers
                 .push(format!("{} is missing required section `{section}`", requirement.file_name));
         }
     }
 
     blockers
+}
+
+fn contains_required_heading(contents: &str, section: &str) -> bool {
+    let expected = format!("## {section}");
+    contents.lines().any(|line| line.trim() == expected)
 }
 
 pub fn validate_release_bundle(

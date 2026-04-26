@@ -1,5 +1,6 @@
 use std::fs;
 use std::process::Command as ProcessCommand;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use assert_cmd::Command;
 use tempfile::TempDir;
@@ -18,6 +19,11 @@ fn cli_command() -> Command {
         "--",
     ]);
     command
+}
+
+fn run_lookup_test_guard() -> MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(())).lock().expect("run lookup test lock")
 }
 
 fn init_workspace() -> TempDir {
@@ -65,7 +71,13 @@ fn create_requirements_run(workspace: &TempDir) -> String {
     let input_dir = workspace.path().join("canon-input");
     fs::create_dir_all(&input_dir).unwrap();
     let unique = format!("Idea {}", uuid::Uuid::now_v7().as_simple());
-    fs::write(input_dir.join("idea.md"), format!("# {unique}\n\nA brief.\n")).unwrap();
+    fs::write(
+        input_dir.join("idea.md"),
+        format!(
+            "# Requirements Brief\n\n## Problem\n\n{unique}: bound the work before downstream planning.\n\n## Outcome\n\nOperators can review a complete requirements packet before implementation.\n\n## Constraints\n\n- Keep execution local-first\n- Preserve explicit audit logs\n\n## Non-Negotiables\n\n- Keep human ownership explicit\n- Persist artifacts under `.canon/`\n\n## Options\n\n1. Start with a bounded CLI slice.\n2. Defer broader orchestration work.\n\n## Recommended Path\n\nStart with the bounded CLI slice before expanding scope.\n\n## Tradeoffs\n\n- Governance adds upfront structure.\n- Durable artifacts add overhead but improve reviewability.\n\n## Consequences\n\n- Reviewers can inspect the packet without chat history.\n\n## Scope Cuts\n\n- No GUI in this slice\n\n## Deferred Work\n\n- Hosted rollout remains a later slice.\n\n## Decision Checklist\n\n- [x] Scope is explicit\n- [x] Ownership is explicit\n\n## Open Questions\n\n- Which downstream mode should consume the packet first?\n"
+        ),
+    )
+    .unwrap();
 
     let assert = cli_command()
         .current_dir(workspace.path())
@@ -93,6 +105,7 @@ fn create_requirements_run(workspace: &TempDir) -> String {
 
 #[test]
 fn run_creation_emits_canonical_display_id() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
     assert!(
@@ -103,6 +116,7 @@ fn run_creation_emits_canonical_display_id() {
 
 #[test]
 fn status_resolves_short_id_prefix() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
     let short = &run_id[run_id.len() - 8..];
@@ -116,6 +130,7 @@ fn status_resolves_short_id_prefix() {
 
 #[test]
 fn list_runs_reports_empty_workspace_in_text_format() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
 
     let assert =
@@ -127,6 +142,7 @@ fn list_runs_reports_empty_workspace_in_text_format() {
 
 #[test]
 fn list_runs_returns_structured_json_output() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
 
@@ -147,6 +163,7 @@ fn list_runs_returns_structured_json_output() {
 
 #[test]
 fn list_runs_renders_text_table_for_existing_runs() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
 
@@ -161,6 +178,7 @@ fn list_runs_renders_text_table_for_existing_runs() {
 
 #[test]
 fn list_runs_supports_yaml_output() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
 
@@ -180,6 +198,7 @@ fn list_runs_supports_yaml_output() {
 
 #[test]
 fn publish_accepts_last_alias_and_writes_default_destination() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
 
@@ -190,6 +209,7 @@ fn publish_accepts_last_alias_and_writes_default_destination() {
 
 #[test]
 fn publish_accepts_short_id_prefix_and_explicit_destination() {
+    let _guard = run_lookup_test_guard();
     let workspace = init_workspace();
     let run_id = create_requirements_run(&workspace);
     let short = &run_id[run_id.len() - 8..];
@@ -205,6 +225,7 @@ fn publish_accepts_short_id_prefix_and_explicit_destination() {
 
 #[test]
 fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
+    let _guard = run_lookup_test_guard();
     let workspace = tempfile::tempdir().expect("tempdir");
     init_existing_repo(&workspace);
     fs::write(
@@ -286,6 +307,7 @@ fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
 
 #[test]
 fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
+    let _guard = run_lookup_test_guard();
     let workspace = tempfile::tempdir().expect("tempdir");
     init_existing_repo(&workspace);
     fs::create_dir_all(workspace.path().join("canon-input").join("backlog"))

@@ -228,27 +228,6 @@ impl DiscoveryBrief {
             generation_summary,
         )
     }
-
-    pub(crate) fn evidence_backed_summary(
-        &self,
-        repo_surfaces: &[String],
-        generation_summary: &str,
-        critique_summary: &str,
-        validation_summary: &str,
-    ) -> String {
-        format!(
-            "# Discovery Brief\n\n## Problem\n{}\n\n## Constraints\n{}\n\n## Repo Focus\n{}\n\n## Repo Surface\n{}\n\n## Unknowns\n{}\n\n## Next Phase\n{}\n\nGenerated framing: {}\n\nCritique evidence: {}\n\nValidation evidence: {}",
-            self.problem,
-            self.constraints,
-            self.repo_focus,
-            render_repo_surface_block(repo_surfaces),
-            self.unknowns,
-            self.next_phase,
-            generation_summary,
-            critique_summary,
-            validation_summary,
-        )
-    }
 }
 
 // ── Clarification question helpers ────────────────────────────────────────────

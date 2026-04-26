@@ -56,6 +56,30 @@ Optional:
 - If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 - Do not show preflight checks to the user. Report only the specific missing input.
 
+## Author Requirements Body Before Invoking Canon
+
+Canon does not invent the requirements body for you. Canon governs, validates, and persists the packet. You (the assistant) MUST author the real requirements body from the bounded source material BEFORE calling `canon run --mode requirements`.
+
+Do this every time:
+
+1. Read the source inputs the user pointed at. Identify the bounded problem, the intended outcome, the relevant constraints, and the still-open decisions. Do not guess.
+2. Compose a single requirements brief at `canon-input/requirements.md` or a folder-backed packet under `canon-input/requirements/`. The authored body MUST include all of the following H2 sections with concrete content tied to the source you just read:
+	- `## Problem` — the user-visible or operator-visible problem and why it matters now.
+	- `## Outcome` — what should be true if this bounded slice succeeds.
+	- `## Constraints` — hard delivery, compatibility, compliance, performance, or operational constraints.
+	- `## Non-Negotiables` — explicit rules that cannot be relaxed in this slice.
+	- `## Options` — the credible bounded options still on the table.
+	- `## Recommended Path` — the currently recommended option and why it wins for this slice.
+	- `## Tradeoffs` — the important costs or downsides attached to the recommendation.
+	- `## Consequences` — what follows if the recommendation is accepted.
+	- `## Scope Cuts` — explicit exclusions for this slice. Prefer this canonical heading.
+	- `## Deferred Work` — follow-on work that remains intentionally outside this slice.
+	- `## Decision Checklist` — the concrete decisions or confirmations required before downstream planning.
+	- `## Open Questions` — unresolved items that still need explicit handling.
+3. Prefer the canonical heading `## Scope Cuts`. `## Out of Scope` is accepted only as a compatibility alias for already-authored material and is not the preferred heading for new briefs.
+4. Canon preserves those authored sections verbatim in the emitted packet. If a required section is missing or empty, Canon emits `## Missing Authored Body` naming the missing canonical heading instead of fabricating filler.
+5. If you cannot author a credible requirements body from the available source, run `$canon-inspect-clarity` or ask targeted questions before invoking Canon rather than submitting an empty brief.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode requirements --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

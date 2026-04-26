@@ -62,6 +62,33 @@ Optional:
 - If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 - Do not show preflight checks to the user. Report only the specific missing input.
 
+## Author Change Body Before Invoking Canon
+
+Canon does not invent the change body for you. Canon governs, validates, and persists the packet. You (the assistant) MUST author the real change body from the bounded source material BEFORE calling `canon run --mode change`.
+
+Do this every time, even when the user starts from change intent rather than a finished brief:
+
+1. Read the source inputs the user pointed at. Identify the existing system slice, the intended modification, the preserved invariants, the allowed change surface, and the validation evidence that must exist. Do not guess.
+2. Compose a single change brief at `canon-input/change.md` or a folder-backed packet under `canon-input/change/`. The authored body MUST include all of the following H2 sections with concrete content tied to the source you just read:
+  - `## System Slice`
+  - `## Excluded Areas`
+  - `## Intended Change`
+  - `## Legacy Invariants`
+  - `## Forbidden Normalization`
+  - `## Change Surface`
+  - `## Ownership`
+  - `## Implementation Plan`
+  - `## Sequencing`
+  - `## Validation Strategy`
+  - `## Independent Checks`
+  - `## Decision Record`
+  - `## Consequences`
+  - `## Unresolved Questions`
+3. Metadata such as `Owner:`, `Risk Level:`, and `Zone:` may remain in the brief, but they are outside authored-body extraction in this first slice.
+4. Inline labels such as `Change Surface:` do not satisfy this first-slice contract. Use the canonical H2 headings above.
+5. Canon preserves those authored sections verbatim in the emitted packet. If a required section is missing or empty, Canon emits `## Missing Authored Body` naming the missing canonical heading instead of fabricating filler.
+6. If you cannot author a credible change body from the available source, stop and redirect to `$canon-requirements` or ask targeted intake questions before invoking Canon rather than submitting an empty brief.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode change --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

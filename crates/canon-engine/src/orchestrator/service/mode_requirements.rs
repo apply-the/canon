@@ -202,7 +202,8 @@ impl EngineService {
             });
         }
 
-        let requirements_brief = RequirementsBrief::from_context(context_summary, &input_scope);
+        let requirements_brief =
+            RequirementsBrief::from_context(context_summary.clone(), &input_scope);
         let brief_summary = requirements_brief.summary();
         let copilot = CopilotCliAdapter;
         let generation_output = copilot.generate_requirements(RequirementsGenerationInput {
@@ -336,6 +337,7 @@ impl EngineService {
                 contents: render_requirements_artifact_from_evidence(
                     &requirement.file_name,
                     &brief_summary,
+                    &context_summary,
                     &generation_output.summary,
                     &critique_output.summary,
                     &denied_summary,

@@ -426,7 +426,11 @@ pub(crate) fn extract_result_section(
     }
 
     if let Some(value) = extract_context_section(contents, missing_section) {
-        return (format!("NOT CAPTURED - {}", trim_context_block(&value)), true);
+        let trimmed = trim_context_block(&value);
+        if trimmed.starts_with("NOT CAPTURED") {
+            return (trimmed, true);
+        }
+        return (format!("NOT CAPTURED - {trimmed}"), true);
     }
 
     (fallback.to_string(), true)
@@ -485,6 +489,25 @@ mod tests {
     fn extract_context_section_returns_none_for_missing_heading() {
         let source = "## Summary\nSome text";
         assert!(extract_context_section(source, "Problem").is_none());
+    }
+
+    #[test]
+    fn extract_result_section_does_not_duplicate_not_captured_prefix() {
+        let source = "## Missing Authored Body\n\nNOT CAPTURED - No `## Change Surface` section was authored in the supplied brief.";
+        let result = extract_result_section(
+            source,
+            "Change Surface",
+            "Missing Authored Body",
+            "NOT CAPTURED - Change surface section is missing.",
+        );
+        assert_eq!(
+            result,
+            (
+                "NOT CAPTURED - No `## Change Surface` section was authored in the supplied brief."
+                    .to_string(),
+                true,
+            )
+        );
     }
 
     #[test]
