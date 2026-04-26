@@ -49,14 +49,15 @@ mod tests {
         }
     }
 
+    fn complete_requirements_brief() -> &'static str {
+        "# Requirements Brief\n\n## Problem\n\nPublish completed requirements artifacts.\n\n## Outcome\n\nArtifacts are persisted and publishable.\n\n## Constraints\n\n- Keep output local-first.\n\n## Non-Negotiables\n\n- Artifacts must persist under .canon/.\n\n## Options\n\n1. Publish to default path.\n\n## Recommended Path\n\nPublish to the default mode directory.\n\n## Tradeoffs\n\n- Simpler path at cost of flexibility.\n\n## Consequences\n\n- Reviewers can inspect the packet.\n\n## Out of Scope\n\n- No hosted publishing.\n\n## Deferred Work\n\n- Remote destinations deferred.\n\n## Decision Checklist\n\n- [x] Scope is explicit.\n\n## Open Questions\n\n- None at this time.\n"
+    }
+
     #[test]
     fn execute_publishes_completed_run_to_default_mode_directory() {
         let workspace = tempdir().expect("create temp workspace");
-        fs::write(
-            workspace.path().join("idea.md"),
-            "# Idea\n\nPublish completed requirements artifacts.\n",
-        )
-        .expect("write idea file");
+        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
+            .expect("write idea file");
 
         let service = EngineService::new(workspace.path());
         let run = service
@@ -95,11 +96,8 @@ mod tests {
     #[test]
     fn execute_publishes_to_explicit_override_path() {
         let workspace = tempdir().expect("create temp workspace");
-        fs::write(
-            workspace.path().join("idea.md"),
-            "# Idea\n\nPublish requirements artifacts to an explicit docs path.\n",
-        )
-        .expect("write idea file");
+        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
+            .expect("write idea file");
 
         let service = EngineService::new(workspace.path());
         let run = service
