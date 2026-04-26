@@ -31,7 +31,7 @@ fn cli_command() -> Command {
 fn run_system_shaping_flow(workspace: &TempDir) -> String {
     fs::write(
         workspace.path().join("system-shaping.md"),
-        "# System Shaping Brief\n\nIntent: define a clean analysis-mode surface without changing Canon's governance primitives.\nConstraint: preserve the existing policy, gate, and evidence contracts.\n\n## Goal\nAdd domain modeling to the system-shaping packet without changing approvals or publish behavior.\n\n## Users or Stakeholders\n- Canon maintainers who review packet integrity.\n- Architects who consume shaping packets downstream.\n\n## Domain Responsibilities\n- Bound the system shape.\n- Name candidate bounded contexts.\n- Surface invariants that later modes must preserve.\n\n## Constraints\n- Preserve the existing policy, gate, and evidence contracts.\n- Keep non-target modes unchanged.\n\n## Risks\n- Weak briefs may produce invented boundaries.\n- Shared helpers may blur ownership between contexts.\n\n## Open Questions\n- Which context owns authored-body rendering?\n- Which context owns downstream architecture tradeoffs?\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run state, approvals, and evidence linkage.\n- Artifact Authoring: owns packet structure and authored section fidelity.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it preserves Canon's operating model.\n- Artifact Authoring is supporting because it makes analysis reviewable.\n\n## Ubiquitous Language\n- Run: one governed execution with durable evidence.\n- Packet: the emitted artifact set for a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- Shared helpers may leak responsibilities across contexts.\n",
+        "# System Shaping Brief\n\nIntent: define a clean analysis-mode surface without changing Canon's governance primitives.\nConstraint: preserve the existing policy, gate, and evidence contracts.\n\n## System Shape\nKeep the review surface grounded in authored packet sections rather than synthesized prose.\n\n## Boundary Decisions\n- Keep authored packet sections explicit per emitted artifact.\n- Keep gates, approvals, and publish destinations unchanged.\n\n## Domain Responsibilities\n- Bound the system shape.\n- Name candidate bounded contexts.\n- Surface invariants that later modes must preserve.\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run state, approvals, and evidence linkage.\n- Artifact Authoring: owns packet structure and authored section fidelity.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it preserves Canon's operating model.\n- Artifact Authoring is supporting because it makes analysis reviewable.\n\n## Ubiquitous Language\n- Run: one governed execution with durable evidence.\n- Packet: the emitted artifact set for a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- Shared helpers may leak responsibilities across contexts.\n\n## Structural Options\n- Option 1 keeps authored-body preservation local to the current renderer helpers.\n- Option 2 introduces a new mapping layer before rendering.\n\n## Selected Boundaries\n- Runtime Governance remains separate from Artifact Authoring so packet fidelity does not blur approval semantics.\n\n## Rationale\n- Explicit authored sections make the packet reviewable without changing approvals or publish behavior.\n\n## Capabilities\n- Bounded system-shape definition.\n- Context and invariant capture.\n- Reviewable sequencing and risk surfacing.\n\n## Dependencies\n- Existing policy gates.\n- Existing evidence persistence.\n- Existing renderer helpers that already support authored-body preservation.\n\n## Gaps\n- Near-match heading handling still needs explicit tests.\n- Some user-facing docs still lag the runtime contract.\n\n## Delivery Phases\n1. Extend authored-body preservation to the remaining system-shaping artifacts.\n2. Synchronize skills, templates, and worked examples with the runtime contract.\n3. Close remaining validation and non-regression gaps.\n\n## Sequencing Rationale\n- Runtime fidelity must land before documentation and release guidance.\n\n## Risk per Phase\n- Phase 1: renderer changes could silently regress packet fidelity.\n- Phase 2: docs could drift from the runtime contract.\n- Phase 3: release notes could overstate rollout completeness.\n\n## Hotspots\n- Shared helpers that mix authored text with generated summaries.\n- Mode-specific artifact families that still rely on legacy headings.\n\n## Mitigation Status\n- Shared authored-section rendering is already available and can be reused.\n- Existing contract coverage can contain section-level regressions once expanded.\n\n## Unresolved Risks\n- Legacy worked examples could keep teaching inline labels unless updated.\n- Non-target modes still need explicit non-regression validation.\n",
     )
     .expect("brief file");
 
@@ -103,34 +103,59 @@ fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
         ]
     );
 
-    let domain_model = contract
+    let sections_and_gates = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "domain-model.md")
-        .expect("domain model requirement");
+        .map(|requirement| {
+            (
+                requirement.file_name.as_str(),
+                requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
+                requirement.gates.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
     assert_eq!(
-        domain_model.required_sections,
+        sections_and_gates,
         vec![
-            "Summary",
-            "Candidate Bounded Contexts",
-            "Core And Supporting Domain Hypotheses",
-            "Ubiquitous Language",
-            "Domain Invariants",
-            "Boundary Risks And Open Questions",
+            (
+                "system-shape.md",
+                vec!["Summary", "System Shape", "Boundary Decisions", "Domain Responsibilities"],
+                vec![GateKind::Exploration, GateKind::Architecture],
+            ),
+            (
+                "domain-model.md",
+                vec![
+                    "Summary",
+                    "Candidate Bounded Contexts",
+                    "Core And Supporting Domain Hypotheses",
+                    "Ubiquitous Language",
+                    "Domain Invariants",
+                    "Boundary Risks And Open Questions",
+                ],
+                vec![GateKind::Exploration, GateKind::Architecture],
+            ),
+            (
+                "architecture-outline.md",
+                vec!["Summary", "Structural Options", "Selected Boundaries", "Rationale"],
+                vec![GateKind::Architecture, GateKind::Risk],
+            ),
+            (
+                "capability-map.md",
+                vec!["Summary", "Capabilities", "Dependencies", "Gaps"],
+                vec![GateKind::Exploration, GateKind::Architecture],
+            ),
+            (
+                "delivery-options.md",
+                vec!["Summary", "Delivery Phases", "Sequencing Rationale", "Risk per Phase"],
+                vec![GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            (
+                "risk-hotspots.md",
+                vec!["Summary", "Hotspots", "Mitigation Status", "Unresolved Risks"],
+                vec![GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
         ]
     );
-    assert_eq!(domain_model.gates, vec![GateKind::Exploration, GateKind::Architecture]);
-
-    let system_shape = contract
-        .artifact_requirements
-        .iter()
-        .find(|requirement| requirement.file_name == "system-shape.md")
-        .expect("system shape requirement");
-    assert_eq!(
-        system_shape.required_sections,
-        vec!["Summary", "System Shape", "Boundary Decisions", "Domain Responsibilities"]
-    );
-    assert_eq!(system_shape.gates, vec![GateKind::Exploration, GateKind::Architecture]);
 }
 
 #[test]

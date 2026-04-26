@@ -188,32 +188,15 @@ pub fn render_discovery_artifact(file_name: &str, brief_summary: &str) -> String
 pub fn render_system_shaping_artifact(
     file_name: &str,
     context_summary: &str,
-    generation_summary: &str,
-    critique_summary: &str,
+    _generation_summary: &str,
+    _critique_summary: &str,
 ) -> String {
     let normalized = context_summary.to_lowercase();
     let intent = extract_marker(context_summary, &normalized, "intent");
     let constraint = extract_marker(context_summary, &normalized, "constraint")
         .or_else(|| extract_marker(context_summary, &normalized, "constraints"));
     let system_shaping_gap = system_shaping_context_gap(intent.as_deref(), constraint.as_deref());
-    let system_shape = if let Some(gap) = system_shaping_gap.as_deref() {
-        gap.to_string()
-    } else {
-        format!(
-            "{generation_summary}\n\nEvidence anchors:\n- Intent: {}\n- Constraint: {}",
-            intent.as_deref().unwrap_or_default(),
-            constraint.as_deref().unwrap_or_default()
-        )
-    };
-    let structural_rationale = if let Some(gap) = system_shaping_gap.as_deref() {
-        gap.to_string()
-    } else {
-        format!(
-            "{critique_summary}\n\nConstraint anchor: {}",
-            constraint.as_deref().unwrap_or_default()
-        )
-    };
-    let domain_model_summary = if let Some(gap) = system_shaping_gap.as_deref() {
+    let authored_summary = if let Some(gap) = system_shaping_gap.as_deref() {
         gap.to_string()
     } else {
         format!(
@@ -224,12 +207,19 @@ pub fn render_system_shaping_artifact(
     };
 
     match file_name {
-        "system-shape.md" => format!(
-            "# System Shape\n\n## Summary\n\n{context_summary}\n\n## System Shape\n\n{system_shape}\n\n## Boundary Decisions\n\n{structural_rationale}\n\n## Domain Responsibilities\n\n- Responsibilities remain bounded to the capability described in the supplied context.\n"
+        "system-shape.md" => render_authored_artifact(
+            "System Shape",
+            &authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "System Shape", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Boundary Decisions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Domain Responsibilities", aliases: &[] },
+            ],
         ),
         "domain-model.md" => render_authored_artifact(
             "Domain Model",
-            &domain_model_summary,
+            &authored_summary,
             context_summary,
             &[
                 AuthoredSectionSpec {
@@ -248,17 +238,45 @@ pub fn render_system_shaping_artifact(
                 },
             ],
         ),
-        "architecture-outline.md" => format!(
-            "# Architecture Outline\n\n## Summary\n\n{context_summary}\n\n## Structural Options\n\n{system_shape}\n\n## Selected Boundaries\n\n{structural_rationale}\n\n## Rationale\n\nThe selected boundaries favor explicit ownership and staged delivery over unbounded system growth.\n"
+        "architecture-outline.md" => render_authored_artifact(
+            "Architecture Outline",
+            &authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Structural Options", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Selected Boundaries", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Rationale", aliases: &[] },
+            ],
         ),
-        "capability-map.md" => format!(
-            "# Capability Map\n\n## Summary\n\n{context_summary}\n\n## Capabilities\n\n{system_shape}\n\n## Dependencies\n\n- Dependencies remain limited to the bounded capability described in the run context.\n\n## Gaps\n\n{structural_rationale}\n"
+        "capability-map.md" => render_authored_artifact(
+            "Capability Map",
+            &authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Capabilities", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Dependencies", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Gaps", aliases: &[] },
+            ],
         ),
-        "delivery-options.md" => format!(
-            "# Delivery Options\n\n## Summary\n\n{context_summary}\n\n## Delivery Phases\n\n{generation_summary}\n\n## Sequencing Rationale\n\n{critique_summary}\n\n## Risk per Phase\n\n- Each phase should preserve bounded delivery slices and visible rollback points.\n"
+        "delivery-options.md" => render_authored_artifact(
+            "Delivery Options",
+            &authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Delivery Phases", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Sequencing Rationale", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Risk per Phase", aliases: &[] },
+            ],
         ),
-        "risk-hotspots.md" => format!(
-            "# Risk Hotspots\n\n## Summary\n\n{context_summary}\n\n## Hotspots\n\n{critique_summary}\n\n## Mitigation Status\n\n- Mitigations remain proposed until downstream modes or reviewers accept them.\n\n## Unresolved Risks\n\n{generation_summary}\n"
+        "risk-hotspots.md" => render_authored_artifact(
+            "Risk Hotspots",
+            &authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Hotspots", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Mitigation Status", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Unresolved Risks", aliases: &[] },
+            ],
         ),
         other => render_markdown(other, context_summary),
     }
@@ -883,20 +901,63 @@ pub fn render_implementation_artifact(
     default_owner: &str,
 ) -> String {
     let normalized = brief_summary.to_lowercase();
-    let task_mapping = extract_marker(brief_summary, &normalized, "task mapping")
-        .or_else(|| extract_marker(brief_summary, &normalized, "implementation plan"));
-    let bounded_changes = extract_marker(brief_summary, &normalized, "bounded changes")
-        .or_else(|| extract_marker(brief_summary, &normalized, "allowed paths"))
-        .or_else(|| extract_marker(brief_summary, &normalized, "mutation bounds"));
-    let mutation_bounds = extract_marker(brief_summary, &normalized, "mutation bounds");
-    let allowed_paths = extract_marker(brief_summary, &normalized, "allowed paths");
-    let safety_net_evidence = extract_marker(brief_summary, &normalized, "safety-net evidence")
-        .or_else(|| extract_marker(brief_summary, &normalized, "safety net evidence"));
-    let independent_checks = extract_marker(brief_summary, &normalized, "independent checks")
-        .or_else(|| extract_marker(brief_summary, &normalized, "validation strategy"));
-    let rollback_triggers = extract_marker(brief_summary, &normalized, "rollback triggers");
-    let rollback_steps = extract_marker(brief_summary, &normalized, "rollback steps");
-    let validation_evidence = extract_marker(brief_summary, &normalized, "validation evidence")
+    let task_mapping = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Task Mapping",
+        &[],
+        &["task mapping", "implementation plan"],
+    );
+    let _bounded_changes = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Bounded Changes",
+        &[],
+        &["bounded changes", "allowed paths", "mutation bounds"],
+    );
+    let mutation_bounds = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Mutation Bounds",
+        &[],
+        &["mutation bounds"],
+    );
+    let _allowed_paths = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Allowed Paths",
+        &[],
+        &["allowed paths"],
+    );
+    let _safety_net_evidence = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Safety-Net Evidence",
+        &[],
+        &["safety-net evidence", "safety net evidence"],
+    );
+    let _independent_checks = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Independent Checks",
+        &[],
+        &["independent checks", "validation strategy"],
+    );
+    let _rollback_triggers = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Rollback Triggers",
+        &[],
+        &["rollback triggers"],
+    );
+    let _rollback_steps = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Rollback Steps",
+        &[],
+        &["rollback steps"],
+    );
+    let _validation_evidence = extract_marker(brief_summary, &normalized, "validation evidence")
         .unwrap_or(
             "Validation evidence was recorded through the governed validation command.".to_string(),
         );
@@ -925,49 +986,60 @@ pub fn render_implementation_artifact(
     );
 
     match file_name {
-        "task-mapping.md" => match (task_mapping, bounded_changes) {
-            (Some(mapping), Some(changes)) => format!(
-                "# Task Mapping\n\n## Summary\n\n{summary}\n\n## Task Mapping\n\n{mapping}\n\n## Bounded Changes\n\n{changes}\n"
-            ),
-            _ => format!(
-                "# Task Mapping\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture task mapping and bounded changes before implementation can proceed.\n"
-            ),
-        },
-        "mutation-bounds.md" => match (mutation_bounds, allowed_paths) {
-            (Some(bounds), Some(paths)) => format!(
-                "# Mutation Bounds\n\n## Summary\n\n{summary}\n\n## Mutation Bounds\n\n{bounds}\n\n## Allowed Paths\n\n{paths}\n"
-            ),
-            _ => format!(
-                "# Mutation Bounds\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nDeclare mutation bounds and allowed paths before implementation guidance can proceed.\n"
-            ),
-        },
-        "implementation-notes.md" => format!(
-            "# Implementation Notes\n\n## Summary\n\n{summary}\n\n## Executed Changes\n\n- Execution posture: {}\n- No workspace mutation was executed; this run emitted bounded implementation guidance only.\n\n## Task Linkage\n\n{}\n",
-            compact_summary_line(&mutation_posture),
-            task_mapping.as_deref().unwrap_or(
-                "Link implementation notes back to an explicit task map before mutation is attempted.",
-            )
+        "task-mapping.md" => render_authored_artifact(
+            "Task Mapping",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Task Mapping", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Bounded Changes", aliases: &[] },
+            ],
         ),
-        "completion-evidence.md" => format!(
-            "# Completion Evidence\n\n## Summary\n\n{summary}\n\n## Completion Evidence\n\n{validation_evidence}\n\n## Remaining Risks\n\n{}\n",
-            compact_summary_line(&mutation_posture)
+        "mutation-bounds.md" => render_authored_artifact(
+            "Mutation Bounds",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Mutation Bounds", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Allowed Paths", aliases: &[] },
+            ],
         ),
-        "validation-hooks.md" => match (safety_net_evidence, independent_checks) {
-            (Some(evidence), Some(checks)) => format!(
-                "# Validation Hooks\n\n## Summary\n\n{summary}\n\n## Safety-Net Evidence\n\n{evidence}\n\n## Independent Checks\n\n{checks}\n"
-            ),
-            _ => format!(
-                "# Validation Hooks\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture safety-net evidence and independent checks before implementation can proceed.\n"
-            ),
-        },
-        "rollback-notes.md" => match (rollback_triggers, rollback_steps) {
-            (Some(triggers), Some(steps)) => format!(
-                "# Rollback Notes\n\n## Summary\n\n{summary}\n\n## Rollback Triggers\n\n{triggers}\n\n## Rollback Steps\n\n{steps}\n"
-            ),
-            _ => format!(
-                "# Rollback Notes\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture rollback triggers and rollback steps before implementation can proceed.\n"
-            ),
-        },
+        "implementation-notes.md" => render_authored_artifact(
+            "Implementation Notes",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Executed Changes", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Task Linkage", aliases: &[] },
+            ],
+        ),
+        "completion-evidence.md" => render_authored_artifact(
+            "Completion Evidence",
+            &format!("{summary}\n- Mutation posture: {}", compact_summary_line(&mutation_posture)),
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Completion Evidence", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Remaining Risks", aliases: &[] },
+            ],
+        ),
+        "validation-hooks.md" => render_authored_artifact(
+            "Validation Hooks",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Safety-Net Evidence", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Independent Checks", aliases: &[] },
+            ],
+        ),
+        "rollback-notes.md" => render_authored_artifact(
+            "Rollback Notes",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Rollback Triggers", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Rollback Steps", aliases: &[] },
+            ],
+        ),
         other => render_markdown(other, brief_summary),
     }
 }
@@ -978,24 +1050,93 @@ pub fn render_refactor_artifact(
     default_owner: &str,
 ) -> String {
     let normalized = brief_summary.to_lowercase();
-    let preserved_behavior = extract_marker(brief_summary, &normalized, "preserved behavior");
-    let approved_exceptions = extract_marker(brief_summary, &normalized, "approved exceptions")
-        .unwrap_or("None.".to_string());
-    let refactor_scope = extract_marker(brief_summary, &normalized, "refactor scope");
-    let allowed_paths = extract_marker(brief_summary, &normalized, "allowed paths");
-    let structural_rationale = extract_marker(brief_summary, &normalized, "structural rationale");
-    let untouched_surface = extract_marker(brief_summary, &normalized, "untouched surface");
-    let safety_net_evidence = extract_marker(brief_summary, &normalized, "safety-net evidence")
-        .or_else(|| extract_marker(brief_summary, &normalized, "safety net evidence"));
-    let regression_findings = extract_marker(brief_summary, &normalized, "regression findings")
-        .unwrap_or(
-            "No regression findings are accepted in the bounded refactor packet.".to_string(),
-        );
-    let contract_drift = extract_marker(brief_summary, &normalized, "contract drift");
-    let reviewer_notes = extract_marker(brief_summary, &normalized, "reviewer notes")
-        .unwrap_or("Reviewer confirmation is required before any drift is accepted.".to_string());
-    let feature_audit = extract_marker(brief_summary, &normalized, "feature audit");
-    let decision = extract_marker(brief_summary, &normalized, "decision");
+    let preserved_behavior = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Preserved Behavior",
+        &[],
+        &["preserved behavior"],
+    );
+    let _approved_exceptions = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Approved Exceptions",
+        &[],
+        &["approved exceptions"],
+    )
+    .unwrap_or("None.".to_string());
+    let refactor_scope = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Refactor Scope",
+        &[],
+        &["refactor scope"],
+    );
+    let _allowed_paths = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Allowed Paths",
+        &[],
+        &["allowed paths"],
+    );
+    let _structural_rationale = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Structural Rationale",
+        &[],
+        &["structural rationale"],
+    );
+    let _untouched_surface = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Untouched Surface",
+        &[],
+        &["untouched surface"],
+    );
+    let _safety_net_evidence = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Safety-Net Evidence",
+        &[],
+        &["safety-net evidence", "safety net evidence"],
+    );
+    let _regression_findings = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Regression Findings",
+        &[],
+        &["regression findings"],
+    )
+    .unwrap_or("No regression findings are accepted in the bounded refactor packet.".to_string());
+    let _contract_drift = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Contract Drift",
+        &[],
+        &["contract drift"],
+    );
+    let _reviewer_notes = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Reviewer Notes",
+        &[],
+        &["reviewer notes"],
+    )
+    .unwrap_or("Reviewer confirmation is required before any drift is accepted.".to_string());
+    let _feature_audit = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Feature Audit",
+        &[],
+        &["feature audit"],
+    );
+    let _decision = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Decision",
+        &[],
+        &["decision"],
+    );
     let owner = extract_marker(brief_summary, &normalized, "owner")
         .unwrap_or_else(|| owner_default(default_owner));
     let risk_level = extract_marker(brief_summary, &normalized, "risk level")
@@ -1016,56 +1157,74 @@ pub fn render_refactor_artifact(
     );
 
     match file_name {
-        "preserved-behavior.md" => match preserved_behavior {
-            Some(value) => format!(
-                "# Preserved Behavior\n\n## Summary\n\n{summary}\n\n## Preserved Behavior\n\n{value}\n\n## Approved Exceptions\n\n{approved_exceptions}\n"
-            ),
-            None => format!(
-                "# Preserved Behavior\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture preserved behavior before this refactor can proceed.\n"
-            ),
-        },
-        "refactor-scope.md" => match (refactor_scope, allowed_paths) {
-            (Some(scope), Some(paths)) => format!(
-                "# Refactor Scope\n\n## Summary\n\n{summary}\n\n## Refactor Scope\n\n{scope}\n\n## Allowed Paths\n\n{paths}\n"
-            ),
-            _ => format!(
-                "# Refactor Scope\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nDeclare the bounded refactor scope and allowed paths before this run can proceed.\n"
-            ),
-        },
-        "structural-rationale.md" => match (structural_rationale, untouched_surface) {
-            (Some(rationale), Some(untouched)) => format!(
-                "# Structural Rationale\n\n## Summary\n\n{summary}\n\n## Structural Rationale\n\n{rationale}\n\n## Untouched Surface\n\n{untouched}\n"
-            ),
-            _ => format!(
-                "# Structural Rationale\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture the structural rationale and untouched surface before this refactor can proceed.\n"
-            ),
-        },
-        "regression-evidence.md" => match safety_net_evidence {
-            Some(evidence) => format!(
-                "# Regression Evidence\n\n## Summary\n\n{summary}\n\n## Safety-Net Evidence\n\n{evidence}\n\n## Regression Findings\n\n{regression_findings}\n"
-            ),
-            None => format!(
-                "# Regression Evidence\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture safety-net evidence before this refactor can proceed.\n"
-            ),
-        },
-        "contract-drift-check.md" => match contract_drift {
-            Some(drift) => format!(
-                "# Contract Drift Check\n\n## Summary\n\n{summary}\n\n## Contract Drift\n\n{drift}\n\n## Reviewer Notes\n\n{reviewer_notes}\n"
-            ),
-            None => format!(
-                "# Contract Drift Check\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nRecord the contract drift conclusion before this refactor can proceed.\n"
-            ),
-        },
-        "no-feature-addition.md" => match (feature_audit, decision) {
-            (Some(audit), Some(decision)) => format!(
-                "# No Feature Addition\n\n## Summary\n\n{summary}\n\n## Feature Audit\n\n{audit}\n\n## Decision\n\n{decision}\n"
-            ),
-            _ => format!(
-                "# No Feature Addition\n\n## Summary\n\n{summary}\n\n## Missing Context\n\nCapture the feature audit and decision before this refactor can proceed.\n"
-            ),
-        },
+        "preserved-behavior.md" => render_authored_artifact(
+            "Preserved Behavior",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Preserved Behavior", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Approved Exceptions", aliases: &[] },
+            ],
+        ),
+        "refactor-scope.md" => render_authored_artifact(
+            "Refactor Scope",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Refactor Scope", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Allowed Paths", aliases: &[] },
+            ],
+        ),
+        "structural-rationale.md" => render_authored_artifact(
+            "Structural Rationale",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Structural Rationale", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Untouched Surface", aliases: &[] },
+            ],
+        ),
+        "regression-evidence.md" => render_authored_artifact(
+            "Regression Evidence",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Safety-Net Evidence", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Regression Findings", aliases: &[] },
+            ],
+        ),
+        "contract-drift-check.md" => render_authored_artifact(
+            "Contract Drift Check",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Contract Drift", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Reviewer Notes", aliases: &[] },
+            ],
+        ),
+        "no-feature-addition.md" => render_authored_artifact(
+            "No Feature Addition",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Feature Audit", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Decision", aliases: &[] },
+            ],
+        ),
         other => render_markdown(other, brief_summary),
     }
+}
+
+fn extract_authored_section_or_marker(
+    source: &str,
+    normalized_source: &str,
+    canonical_heading: &str,
+    heading_aliases: &[&str],
+    marker_aliases: &[&str],
+) -> Option<String> {
+    extract_authored_h2_section(source, canonical_heading, heading_aliases).or_else(|| {
+        marker_aliases.iter().find_map(|marker| extract_marker(source, normalized_source, marker))
+    })
 }
 
 fn render_change_bundle_summary(
