@@ -20,7 +20,156 @@ fn cli_command() -> Command {
 }
 
 fn complete_system_shaping_brief() -> &'static str {
-    "# System Shaping Brief\n\nIntent: shape a new governed Canon workflow surface for incomplete analysis modes.\nConstraint: keep the runtime adapters, policy gates, and evidence model intact.\n\n## Goal\nAdd domain modeling to the system-shaping packet without widening Canon's execution model.\n\n## Users or Stakeholders\n- Canon maintainers who need reviewable boundary decisions.\n- Architects who need context boundaries before architecture mode.\n\n## Domain Responsibilities\n- Identify candidate bounded contexts.\n- Surface ubiquitous language and weak terminology.\n- Preserve domain invariants for downstream modes.\n\n## Constraints\n- Keep run identity, approvals, and publish destinations unchanged.\n- Keep non-target modes behaviorally unchanged.\n\n## Risks\n- Weak briefs may tempt the renderer to invent boundaries.\n- Boundary tradeoffs may be implied rather than stated.\n\n## Open Questions\n- Which bounded contexts are core versus supporting?\n- Which invariants must architecture preserve first?\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run lifecycle, approvals, and evidence lineage.\n- Artifact Authoring: owns packet structure and authored-body rendering.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it protects Canon's operating model.\n- Artifact Authoring is supporting because it exists to make reviews durable.\n\n## Ubiquitous Language\n- Run: one governed Canon execution with durable evidence.\n- Packet: the artifact bundle produced by a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- The split between authoring and governance may still leak through shared helpers.\n"
+    r#"# System Shaping Brief
+
+Intent: shape a new governed Canon workflow surface for incomplete analysis modes.
+Constraint: keep the runtime adapters, policy gates, and evidence model intact.
+
+## System Shape
+Keep the review surface grounded in authored packet sections rather than synthesized prose.
+
+## Boundary Decisions
+- Keep authored packet sections explicit per emitted artifact.
+- Keep gates, approvals, and publish destinations unchanged.
+
+## Domain Responsibilities
+- Identify candidate bounded contexts.
+- Surface ubiquitous language and weak terminology.
+- Preserve domain invariants for downstream modes.
+
+## Candidate Bounded Contexts
+- Runtime Governance: owns run lifecycle, approvals, and evidence lineage.
+- Artifact Authoring: owns packet structure and authored-body rendering.
+
+## Core And Supporting Domain Hypotheses
+- Runtime Governance is core because it protects Canon's operating model.
+- Artifact Authoring is supporting because it exists to make reviews durable.
+
+## Ubiquitous Language
+- Run: one governed Canon execution with durable evidence.
+- Packet: the artifact bundle produced by a mode.
+
+## Domain Invariants
+- Approval semantics remain unchanged.
+- Publish destinations remain unchanged.
+
+## Boundary Risks And Open Questions
+- The split between authoring and governance may still leak through shared helpers.
+
+## Structural Options
+- Option 1 keeps authored-body preservation local to the current renderer helpers.
+- Option 2 introduces a new system-shaping-specific mapping layer before rendering.
+
+## Selected Boundaries
+- Runtime Governance remains separate from Artifact Authoring so packet fidelity does not blur approval semantics.
+
+## Rationale
+- Explicit authored sections make the packet reviewable without widening Canon's execution model.
+
+## Capabilities
+- Bounded system-shape definition.
+- Context and invariant capture.
+- Reviewable sequencing and risk surfacing.
+
+## Dependencies
+- Existing policy gates.
+- Existing evidence persistence.
+- Existing renderer helpers that already support authored-body preservation.
+
+## Gaps
+- Near-match heading handling still needs explicit tests.
+- Some user-facing docs still lag the runtime contract.
+
+## Delivery Phases
+1. Extend authored-body preservation to the remaining system-shaping artifacts.
+2. Synchronize skills, templates, and worked examples with the runtime contract.
+3. Close remaining validation and non-regression gaps.
+
+## Sequencing Rationale
+- Runtime fidelity must land before documentation and release guidance so later surfaces describe real behavior.
+
+## Risk per Phase
+- Phase 1: renderer changes could silently regress packet fidelity.
+- Phase 2: docs could drift from the runtime contract.
+- Phase 3: release notes could overstate rollout completeness.
+
+## Hotspots
+- Shared helpers that mix authored text with generated summaries.
+- Mode-specific artifact families that still rely on legacy headings.
+
+## Mitigation Status
+- Shared authored-section rendering is already available and can be reused.
+- Existing contract coverage can contain section-level regressions once expanded.
+
+## Unresolved Risks
+- Legacy worked examples could keep teaching inline labels unless updated.
+- Non-target modes still need explicit non-regression validation.
+"#
+}
+
+fn incomplete_system_shaping_brief() -> &'static str {
+    r#"# System Shaping Brief
+
+Intent: shape a new governed Canon workflow surface for incomplete analysis modes.
+Constraint: keep the runtime adapters, policy gates, and evidence model intact.
+
+## System Shape
+Keep the review surface grounded in authored packet sections rather than synthesized prose.
+
+## Boundary Decisions
+- Keep authored packet sections explicit per emitted artifact.
+
+## Domain Responsibilities
+- Identify candidate bounded contexts.
+
+## Candidate Bounded Contexts
+- Runtime Governance: owns run lifecycle, approvals, and evidence lineage.
+
+## Core And Supporting Domain Hypotheses
+- Runtime Governance is core because it protects Canon's operating model.
+
+## Ubiquitous Language
+- Run: one governed Canon execution with durable evidence.
+
+## Domain Invariants
+- Approval semantics remain unchanged.
+
+## Boundary Risks And Open Questions
+- The split between authoring and governance may still leak through shared helpers.
+
+## Structural Options
+- Option 1 keeps authored-body preservation local to the current renderer helpers.
+
+## Rationale
+- Explicit authored sections make the packet reviewable without widening Canon's execution model.
+
+## Capabilities
+- Bounded system-shape definition.
+
+## Dependencies
+- Existing policy gates.
+
+## Gaps
+- Near-match heading handling still needs explicit tests.
+
+## Delivery Phases
+1. Extend authored-body preservation to the remaining system-shaping artifacts.
+
+## Sequencing Rationale
+- Runtime fidelity must land before documentation and release guidance.
+
+## Risk per Phase
+- Phase 1: renderer changes could silently regress packet fidelity.
+
+## Hotspots
+- Shared helpers that mix authored text with generated summaries.
+
+## Mitigation Status
+- Shared authored-section rendering is already available and can be reused.
+
+## Unresolved Risks
+- Legacy worked examples could keep teaching inline labels unless updated.
+"#
 }
 
 #[test]
@@ -125,11 +274,91 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
     assert!(domain_model.starts_with("# Domain Model\n\n## Summary\n\nIntent:"));
     assert!(domain_model.contains("## Candidate Bounded Contexts"));
     assert!(domain_model.contains("## Core And Supporting Domain Hypotheses"));
+    assert!(
+        domain_model
+            .contains("Runtime Governance: owns run lifecycle, approvals, and evidence lineage.")
+    );
     assert!(domain_model.contains("## Domain Invariants"));
     assert!(
         !domain_model.contains("# System Shaping Brief"),
         "domain-model.md should render canonical sections instead of dumping the full authored brief"
     );
+
+    let architecture_outline = fs::read_to_string(artifact_root.join("architecture-outline.md"))
+        .expect("architecture outline");
+    assert!(architecture_outline.contains("## Selected Boundaries"));
+    assert!(
+        architecture_outline.contains(
+            "Runtime Governance remains separate from Artifact Authoring so packet fidelity does not blur approval semantics."
+        )
+    );
+
+    let risk_hotspots =
+        fs::read_to_string(artifact_root.join("risk-hotspots.md")).expect("risk hotspots");
+    assert!(risk_hotspots.contains("## Mitigation Status"));
+    assert!(
+        risk_hotspots
+            .contains("Shared authored-section rendering is already available and can be reused.")
+    );
+}
+
+#[test]
+fn run_system_shaping_emits_missing_body_marker_for_absent_canonical_heading() {
+    let workspace = TempDir::new().expect("temp dir");
+    let brief_path = workspace.path().join("system-shaping.md");
+    fs::write(&brief_path, incomplete_system_shaping_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "system-shaping",
+            "--system-context",
+            "new",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "architect",
+            "--input",
+            brief_path.file_name().expect("file name").to_str().expect("utf8"),
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(2)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let architecture_outline = fs::read_to_string(
+        workspace
+            .path()
+            .join(".canon")
+            .join("artifacts")
+            .join(run_id)
+            .join("system-shaping")
+            .join("architecture-outline.md"),
+    )
+    .expect("architecture outline");
+
+    let blocked_gates = json["blocked_gates"].as_array().expect("blocked gates");
+
+    assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["blocking_classification"], "artifact-blocked");
+    assert!(architecture_outline.contains("## Missing Authored Body"));
+    assert!(architecture_outline.contains("Selected Boundaries"));
+    assert!(blocked_gates.iter().any(|gate| {
+        gate["blockers"].as_array().is_some_and(|blockers| {
+            blockers.iter().any(|blocker| {
+                blocker.as_str().is_some_and(|text| text.contains("Selected Boundaries"))
+            })
+        })
+    }));
 }
 
 #[test]

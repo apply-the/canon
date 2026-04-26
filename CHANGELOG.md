@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.18.0`
+- None recorded after `0.19.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.18.0`.
+- No additional released feature-spec delivery is recorded after `0.19.0`.
+
+## [0.19.0] - 2026-04-26
+
+Delivered specs:
+
+- `019` - Mode Authoring Specialization Follow-On
+
+Highlights:
+
+- Extend the canonical authored H2 contract to `system-shaping`,
+  `implementation`, and `refactor` across skills, templates, worked examples,
+  runtime fixtures, and release guidance.
+- Preserve authored sections verbatim across the remaining targeted packet
+  artifacts and emit explicit `## Missing Authored Body` markers when a
+  required canonical heading is absent or near-missed.
+- Keep incomplete `system-shaping`, `implementation`, and `refactor` packets
+  honestly gate-blocked while recommendation-only posture, direct-run fixtures,
+  and focused contract/renderer/run/docs validation stay synchronized.
 
 ## [0.18.0] - 2026-04-26
 

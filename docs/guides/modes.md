@@ -459,13 +459,17 @@ system or for a new capability that will live inside an existing system.
 ### Input Shape
 
 A system-shaping brief for the `system-shaping` mode with explicit intent and
-constraints. A credible first-slice brief now includes `## Goal`, `## Users or
-Stakeholders`, `## Domain Responsibilities`, `## Constraints`, `## Risks`,
-`## Open Questions`, `## Candidate Bounded Contexts`, `## Core And Supporting
-Domain Hypotheses`, `## Ubiquitous Language`, `## Domain Invariants`, and
-`## Boundary Risks And Open Questions`, plus the required inline `Intent:` and
-`Constraint:` markers. This mode also requires explicit `--system-context
-new|existing` when you start the run.
+constraints. A credible brief now includes the required inline `Intent:` and
+`Constraint:` markers plus the canonical authored H2 sections that feed the
+emitted packet directly: `## System Shape`, `## Boundary Decisions`, `## Domain
+Responsibilities`, `## Candidate Bounded Contexts`, `## Core And Supporting
+Domain Hypotheses`, `## Ubiquitous Language`, `## Domain Invariants`,
+`## Boundary Risks And Open Questions`, `## Structural Options`,
+`## Selected Boundaries`, `## Rationale`, `## Capabilities`,
+`## Dependencies`, `## Gaps`, `## Delivery Phases`,
+`## Sequencing Rationale`, `## Risk per Phase`, `## Hotspots`,
+`## Mitigation Status`, and `## Unresolved Risks`. This mode also requires
+explicit `--system-context new|existing` when you start the run.
 
 ### System Context Guidance
 
@@ -482,15 +486,12 @@ This mode works best when the brief includes explicit markers like:
 
 ### Good Input Should Include
 
-- the capability to create
-- the goal of the system
-- explicit intent
-- explicit constraints
-- key domain responsibilities
-- candidate bounded contexts and ubiquitous language
-- domain invariants and boundary risks
-- major delivery concerns
-- main risks or unknowns
+- `Intent:` and `Constraint:` markers so the shaping evidence is actually bounded
+- `## System Shape`, `## Boundary Decisions`, and `## Domain Responsibilities` so the primary artifact is author-authored instead of synthesized
+- `## Candidate Bounded Contexts`, `## Core And Supporting Domain Hypotheses`, `## Ubiquitous Language`, and `## Domain Invariants` so the domain-model packet is reviewable
+- `## Structural Options`, `## Selected Boundaries`, and `## Rationale` so the architecture outline carries explicit tradeoffs
+- `## Capabilities`, `## Dependencies`, and `## Gaps` so the capability map stays honest about seams and missing work
+- `## Delivery Phases`, `## Sequencing Rationale`, `## Risk per Phase`, `## Hotspots`, `## Mitigation Status`, and `## Unresolved Risks` so the downstream delivery and risk artifacts do not collapse into filler
 
 ### Questions This Mode Answers
 
@@ -528,6 +529,13 @@ This system-shaping mode works best when the input brief includes explicit
 `Intent:` and `Constraint:` markers. If those anchors are missing, the emitted
 artifacts can carry insufficient-evidence warnings instead of a strong
 system-shaping result.
+
+Across the targeted modes, missing required authored sections emit `## Missing Authored Body` naming the missing canonical heading and block the packet honestly.
+
+If the brief omits a required canonical section such as `## System Shape` or
+`## Selected Boundaries`, Canon emits `## Missing Authored Body` naming the
+missing canonical heading and block the packet honestly instead of silently
+filling in the gap.
 
 ### Typical Handoff After This Mode
 
@@ -877,13 +885,19 @@ with:
 - `source-map.md` for explicit upstream packet references and carried-forward decisions
 - optional `selected-context.md` for narrowed excerpts from a broader upstream packet
 
+The current-mode brief should use canonical authored H2 sections: `## Task Mapping`,
+`## Bounded Changes`, `## Mutation Bounds`, `## Allowed Paths`,
+`## Executed Changes`, `## Task Linkage`, `## Completion Evidence`,
+`## Remaining Risks`, `## Safety-Net Evidence`, `## Independent Checks`,
+`## Rollback Triggers`, and `## Rollback Steps`.
+
 ### Good Input Should Include
 
-- the bounded task mapping Canon should carry forward
-- explicit mutation bounds and allowed paths
-- safety-net evidence that should exist before mutation
-- independent checks that challenge the packet separately from generation
-- rollback triggers and rollback steps
+- `## Task Mapping` and `## Bounded Changes` so the execution slice is explicit
+- `## Mutation Bounds` and `## Allowed Paths` so the allowed mutation surface is reviewable
+- `## Executed Changes`, `## Task Linkage`, `## Completion Evidence`, and `## Remaining Risks` so the packet explains what was done or recommended and what still remains risky
+- `## Safety-Net Evidence` and `## Independent Checks` so recommendation-only execution is challengeable
+- `## Rollback Triggers` and `## Rollback Steps` so the bounded rollback posture is explicit before approval
 
 ### Questions This Mode Answers
 
@@ -930,8 +944,9 @@ Publishing requires `Completed` state, so approve and resume before you publish.
 
 If the brief omits task mapping, mutation bounds, safety-net evidence, or
 rollback notes, Canon still emits the packet but marks the missing context
-explicitly and blocks `implementation-readiness` instead of pretending the run
-is complete.
+explicitly. Missing canonical H2 sections emit `## Missing Authored Body`
+naming the missing canonical heading and block the packet honestly instead of
+pretending the run is complete.
 
 When the input packet references earlier `change` or `architecture` work,
 `brief.md` must still restate the bounded execution fields Canon needs for the
@@ -1000,14 +1015,19 @@ with:
 - `source-map.md` for explicit upstream packet references and carried-forward invariants
 - optional `selected-context.md` for narrowed excerpts from a broader upstream packet
 
+The current-mode brief should use canonical authored H2 sections: `## Preserved Behavior`,
+`## Approved Exceptions`, `## Refactor Scope`, `## Allowed Paths`,
+`## Structural Rationale`, `## Untouched Surface`, `## Safety-Net Evidence`,
+`## Regression Findings`, `## Contract Drift`, `## Reviewer Notes`,
+`## Feature Audit`, and `## Decision`.
+
 ### Good Input Should Include
 
-- the behavior that must remain externally unchanged
-- any approved exceptions that are consciously allowed
-- explicit refactor scope and allowed paths
-- the structural rationale and untouched surface
-- safety-net evidence and any accepted regression findings
-- a contract-drift conclusion and a no-feature-addition decision
+- `## Preserved Behavior` and `## Approved Exceptions` so the preserved external contract is explicit
+- `## Refactor Scope` and `## Allowed Paths` so the structural cleanup boundary is bounded
+- `## Structural Rationale` and `## Untouched Surface` so reviewers can see both the intended cleanup and the protected surface
+- `## Safety-Net Evidence`, `## Regression Findings`, `## Contract Drift`, and `## Reviewer Notes` so the packet remains challengeable before approval
+- `## Feature Audit` and `## Decision` so the no-feature-addition claim is explicit instead of implied
 
 ### Questions This Mode Answers
 
@@ -1053,8 +1073,10 @@ Publishing requires `Completed` state, so approve and resume before you publish.
 ### Important Input Behavior
 
 If the brief omits preserved behavior, bounded refactor scope, or no-feature-addition
-proof, Canon still emits the packet but marks the missing context explicitly and
-blocks completion instead of pretending the refactor is safe.
+proof, Canon still emits the packet but marks the missing context explicitly.
+Missing canonical H2 sections emit `## Missing Authored Body` naming the missing
+canonical heading and block the packet honestly instead of pretending the
+refactor is safe.
 
 When the input packet references earlier `change` or `implementation` work,
 `brief.md` must still restate the bounded preservation fields Canon needs for

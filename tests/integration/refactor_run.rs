@@ -52,7 +52,90 @@ fn init_repo(workspace: &TempDir) {
 }
 
 fn complete_brief() -> &'static str {
-    "# Refactor Brief\n\nPreserved Behavior: session revocation formatting and audit ordering remain externally unchanged.\nApproved Exceptions: none.\nRefactor Scope: auth session boundary and repository composition only.\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nStructural Rationale: isolate persistence concerns without changing externally meaningful behavior.\nUntouched Surface: public auth API, tests/session.md, and deployment wiring stay unchanged.\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before structural cleanup.\nRegression Findings: no regression findings are accepted in the bounded packet.\nContract Drift: no public contract drift is allowed.\nReviewer Notes: review packet confirms behavior preservation remains explicit.\nFeature Audit: no new feature behavior is introduced in this refactor packet.\nDecision: preserve behavior and stop if the surface expands.\n"
+    r#"# Refactor Brief
+
+Feature Slice: Auth session boundary and repository composition inside the existing login subsystem.
+Primary Upstream Mode: implementation
+
+## Preserved Behavior
+Session revocation formatting and audit ordering remain externally unchanged.
+
+## Approved Exceptions
+None.
+
+## Refactor Scope
+Auth session boundary and repository composition only.
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Structural Rationale
+Isolate persistence concerns and internal composition without changing externally meaningful behavior.
+
+## Untouched Surface
+Public auth API, tests/session.md, deployment wiring, and analytics consumers stay unchanged.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before structural cleanup.
+
+## Regression Findings
+No regression findings are accepted in this bounded packet.
+
+## Contract Drift
+No public contract drift is allowed.
+
+## Reviewer Notes
+Reviewer confirmation is required before any drift or feature semantics are accepted.
+
+## Feature Audit
+No new feature behavior is introduced in this refactor packet.
+
+## Decision
+Preserve behavior and stop immediately if the surface expands or the packet starts to add feature semantics.
+"#
+}
+
+fn incomplete_brief() -> &'static str {
+    r#"# Refactor Brief
+
+Feature Slice: Auth session boundary and repository composition inside the existing login subsystem.
+Primary Upstream Mode: implementation
+
+## Preserved Behavior
+Session revocation formatting and audit ordering remain externally unchanged.
+
+## Approved Exceptions
+None.
+
+## Refactor Scope
+Auth session boundary and repository composition only.
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Structural Rationale
+Isolate persistence concerns and internal composition without changing externally meaningful behavior.
+
+## Untouched Surface
+Public auth API, tests/session.md, deployment wiring, and analytics consumers stay unchanged.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before structural cleanup.
+
+## Regression Findings
+No regression findings are accepted in this bounded packet.
+
+## Contract Drift
+No public contract drift is allowed.
+
+## Reviewer Notes
+Reviewer confirmation is required before any drift or feature semantics are accepted.
+
+## Feature Audit
+No new feature behavior is introduced in this refactor packet.
+"#
 }
 
 fn refactor_patch() -> &'static str {
@@ -107,6 +190,27 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
     assert!(artifact_root.join("preserved-behavior.md").exists());
     assert!(artifact_root.join("refactor-scope.md").exists());
     assert!(artifact_root.join("no-feature-addition.md").exists());
+
+    let preserved_behavior =
+        fs::read_to_string(artifact_root.join("preserved-behavior.md")).expect("artifact");
+    assert!(preserved_behavior.contains("## Preserved Behavior"));
+    assert!(preserved_behavior.contains("audit ordering remain externally unchanged"));
+
+    let structural_rationale =
+        fs::read_to_string(artifact_root.join("structural-rationale.md")).expect("artifact");
+    assert!(structural_rationale.contains("## Structural Rationale"));
+    assert!(
+        structural_rationale.contains(
+            "Isolate persistence concerns and internal composition without changing externally meaningful behavior."
+        )
+    );
+
+    let no_feature_addition =
+        fs::read_to_string(artifact_root.join("no-feature-addition.md")).expect("artifact");
+    assert!(no_feature_addition.contains("## Decision"));
+    assert!(no_feature_addition.contains(
+        "stop immediately if the surface expands or the packet starts to add feature semantics"
+    ));
 
     cli_command()
         .current_dir(workspace.path())
@@ -174,6 +278,67 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
             .join("preserved-behavior.md")
             .exists()
     );
+}
+
+#[test]
+fn refactor_run_emits_missing_body_marker_for_absent_canonical_heading() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_repo(&workspace);
+    let brief_path = workspace.path().join("refactor.md");
+    fs::write(&brief_path, incomplete_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "refactor",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "maintainer",
+            "--input",
+            "refactor.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(2)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let no_feature_addition = fs::read_to_string(
+        workspace
+            .path()
+            .join(".canon")
+            .join("artifacts")
+            .join(run_id)
+            .join("refactor")
+            .join("no-feature-addition.md"),
+    )
+    .expect("artifact");
+
+    let blocked_gates = json["blocked_gates"].as_array().expect("blocked gates");
+
+    assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["blocking_classification"], "artifact-blocked");
+    assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
+    assert!(no_feature_addition.contains("## Missing Authored Body"));
+    assert!(no_feature_addition.contains("Decision"));
+    assert!(blocked_gates.iter().any(|gate| {
+        gate["blockers"].as_array().is_some_and(|blockers| {
+            blockers
+                .iter()
+                .any(|blocker| blocker.as_str().is_some_and(|text| text.contains("Decision")))
+        })
+    }));
 }
 
 #[test]

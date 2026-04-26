@@ -11,16 +11,50 @@ Carried-Forward Decisions:
 - The allowed mutation surface remains inside the auth session modules.
 - Contract coverage must pass before and after mutation.
 Excluded Upstream Scope: Login UI flow, token issuance, deployment manifests, and analytics consumers remain out of scope for this packet.
-Task Mapping: 1. Add bounded auth session repository helpers. 2. Thread the helper through the revocation service without expanding the public API. 3. Record implementation notes for operator review and rollback.
-Mutation Bounds: src/auth/session.rs and src/auth/repository.rs only.
-Allowed Paths:
+## Task Mapping
+1. Add bounded auth session repository helpers.
+2. Thread the helper through the revocation service without expanding the public API.
+3. Record implementation notes for operator review and rollback.
+
+## Bounded Changes
+- Auth session repository helper wiring.
+- Revocation service internal composition.
+
+## Mutation Bounds
+src/auth/session.rs and src/auth/repository.rs only.
+
+## Allowed Paths
 - src/auth/session.rs
 - src/auth/repository.rs
-Safety-Net Evidence: Contract coverage protects revocation formatting and audit ordering before mutation.
-Independent Checks:
+
+## Executed Changes
+- Add the bounded repository helper and thread it through the revocation service without widening the public API.
+
+## Task Linkage
+- Step 1 adds the helper.
+- Step 2 rewires the service behind the existing external contract.
+- Step 3 records the resulting packet and rollback posture.
+
+## Completion Evidence
+- The emitted implementation packet and focused tests confirm the bounded slice is ready for operator review.
+
+## Remaining Risks
+- Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before mutation.
+
+## Independent Checks
 - cargo test --test session_contract
 - cargo test --test auth_audit_ordering
-Rollback Triggers: Revocation output drifts, audit ordering becomes unstable, or repository wiring expands beyond the declared auth-session slice.
-Rollback Steps: Revert the bounded auth-session patch, redeploy the previous build, and restore the last known-good audit ordering snapshot.
+
+## Rollback Triggers
+Revocation output drifts, audit ordering becomes unstable, or repository wiring expands beyond the declared auth-session slice.
+
+## Rollback Steps
+1. Revert the bounded auth-session patch.
+2. Redeploy the previous build.
+3. Restore the last known-good audit ordering snapshot.
+
 Risk Level: bounded-impact
 Zone: yellow
