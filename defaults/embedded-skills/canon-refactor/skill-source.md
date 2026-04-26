@@ -51,6 +51,42 @@ Optional:
 - If risk is invalid, ask with guided fixed choices: `low-impact`, `bounded-impact`, or `systemic-impact`.
 - If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 
+## Author Refactor Body Before Invoking Canon
+
+Canon does not invent the refactor body for you. Canon governs, validates, and
+persists the packet. You (the assistant) MUST author the real refactor body
+from the bounded source material BEFORE calling `canon run --mode refactor`.
+
+Do this every time, even when the user starts from a short brief rather than a
+finished packet:
+
+1. Read the source inputs the user pointed at. Identify the preserved behavior,
+bounded refactor scope, allowed paths, safety-net evidence, and no-feature-
+addition proof. Do not guess.
+2. Compose a single refactor brief at `canon-input/refactor.md` or a
+folder-backed packet under `canon-input/refactor/`. The authored body MUST
+include all of the following canonical H2 sections with concrete content:
+	- `## Preserved Behavior`
+	- `## Approved Exceptions`
+	- `## Refactor Scope`
+	- `## Allowed Paths`
+	- `## Structural Rationale`
+	- `## Untouched Surface`
+	- `## Safety-Net Evidence`
+	- `## Regression Findings`
+	- `## Contract Drift`
+	- `## Reviewer Notes`
+	- `## Feature Audit`
+	- `## Decision`
+3. Inline labels or near-miss headings such as `Decisions` do not satisfy this
+slice. Use the canonical H2 headings above.
+4. Canon preserves those authored sections verbatim in the emitted packet. If a
+required section is missing or empty, Canon emits `## Missing Authored Body`
+naming the missing canonical heading instead of fabricating filler.
+5. If you cannot author a credible refactor body from the available source,
+stop and redirect to `$canon-change` or ask targeted clarification questions
+before invoking Canon rather than submitting an empty brief.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode refactor --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

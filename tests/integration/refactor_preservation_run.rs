@@ -52,7 +52,7 @@ fn init_repo(workspace: &TempDir) {
 }
 
 fn blocked_brief() -> &'static str {
-    "# Refactor Brief\n\nRefactor Scope: auth session boundary and repository composition only.\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nStructural Rationale: isolate persistence concerns without changing externally meaningful behavior.\n"
+    "# Refactor Brief\n\n## Refactor Scope\nAuth session boundary and repository composition only.\n\n## Allowed Paths\n- src/auth/session.rs\n- src/auth/repository.rs\n\n## Structural Rationale\nIsolate persistence concerns without changing externally meaningful behavior.\n"
 }
 
 #[test]
@@ -91,8 +91,13 @@ fn run_refactor_blocks_when_preservation_and_feature_audit_inputs_are_missing() 
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("refactor");
+    let preserved_behavior =
+        fs::read_to_string(artifact_root.join("preserved-behavior.md")).expect("artifact");
+    let no_feature_addition =
+        fs::read_to_string(artifact_root.join("no-feature-addition.md")).expect("artifact");
 
     assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Preserved Behavior"));
     assert!(
         json["mode_result"]["headline"]
@@ -101,4 +106,8 @@ fn run_refactor_blocks_when_preservation_and_feature_audit_inputs_are_missing() 
     );
     assert!(artifact_root.join("preserved-behavior.md").exists());
     assert!(artifact_root.join("no-feature-addition.md").exists());
+    assert!(preserved_behavior.contains("## Missing Authored Body"));
+    assert!(preserved_behavior.contains("Preserved Behavior"));
+    assert!(no_feature_addition.contains("## Missing Authored Body"));
+    assert!(no_feature_addition.contains("Feature Audit"));
 }

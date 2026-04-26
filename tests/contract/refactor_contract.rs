@@ -1,4 +1,5 @@
 use canon_engine::artifacts::contract::contract_for_mode;
+use canon_engine::domain::gate::GateKind;
 use canon_engine::domain::mode::Mode;
 
 #[test]
@@ -35,6 +36,7 @@ fn refactor_artifacts_require_preservation_specific_sections() {
             (
                 requirement.file_name.as_str(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
+                requirement.gates.clone(),
             )
         })
         .collect::<Vec<_>>();
@@ -42,18 +44,36 @@ fn refactor_artifacts_require_preservation_specific_sections() {
     assert_eq!(
         sections,
         vec![
-            ("preserved-behavior.md", vec!["Summary", "Preserved Behavior", "Approved Exceptions"],),
-            ("refactor-scope.md", vec!["Summary", "Refactor Scope", "Allowed Paths"],),
+            (
+                "preserved-behavior.md",
+                vec!["Summary", "Preserved Behavior", "Approved Exceptions"],
+                vec![GateKind::ChangePreservation, GateKind::ReleaseReadiness],
+            ),
+            (
+                "refactor-scope.md",
+                vec!["Summary", "Refactor Scope", "Allowed Paths"],
+                vec![GateKind::ChangePreservation, GateKind::Risk],
+            ),
             (
                 "structural-rationale.md",
                 vec!["Summary", "Structural Rationale", "Untouched Surface"],
+                vec![GateKind::Exploration, GateKind::ChangePreservation],
             ),
             (
                 "regression-evidence.md",
                 vec!["Summary", "Safety-Net Evidence", "Regression Findings"],
+                vec![GateKind::Risk, GateKind::ReleaseReadiness],
             ),
-            ("contract-drift-check.md", vec!["Summary", "Contract Drift", "Reviewer Notes"],),
-            ("no-feature-addition.md", vec!["Summary", "Feature Audit", "Decision"],),
+            (
+                "contract-drift-check.md",
+                vec!["Summary", "Contract Drift", "Reviewer Notes"],
+                vec![GateKind::Architecture, GateKind::ChangePreservation],
+            ),
+            (
+                "no-feature-addition.md",
+                vec!["Summary", "Feature Audit", "Decision"],
+                vec![GateKind::ChangePreservation, GateKind::ReleaseReadiness],
+            ),
         ]
     );
 }

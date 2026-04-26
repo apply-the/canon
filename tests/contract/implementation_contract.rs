@@ -1,4 +1,5 @@
 use canon_engine::artifacts::contract::contract_for_mode;
+use canon_engine::domain::gate::GateKind;
 use canon_engine::domain::mode::Mode;
 
 #[test]
@@ -35,6 +36,7 @@ fn implementation_artifacts_require_execution_specific_sections() {
             (
                 requirement.file_name.as_str(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
+                requirement.gates.clone(),
             )
         })
         .collect::<Vec<_>>();
@@ -42,12 +44,36 @@ fn implementation_artifacts_require_execution_specific_sections() {
     assert_eq!(
         sections,
         vec![
-            ("task-mapping.md", vec!["Summary", "Task Mapping", "Bounded Changes"],),
-            ("mutation-bounds.md", vec!["Summary", "Mutation Bounds", "Allowed Paths"],),
-            ("implementation-notes.md", vec!["Summary", "Executed Changes", "Task Linkage"],),
-            ("completion-evidence.md", vec!["Summary", "Completion Evidence", "Remaining Risks"],),
-            ("validation-hooks.md", vec!["Summary", "Safety-Net Evidence", "Independent Checks"],),
-            ("rollback-notes.md", vec!["Summary", "Rollback Triggers", "Rollback Steps"],),
+            (
+                "task-mapping.md",
+                vec!["Summary", "Task Mapping", "Bounded Changes"],
+                vec![GateKind::ImplementationReadiness, GateKind::ReleaseReadiness],
+            ),
+            (
+                "mutation-bounds.md",
+                vec!["Summary", "Mutation Bounds", "Allowed Paths"],
+                vec![GateKind::Risk, GateKind::ImplementationReadiness],
+            ),
+            (
+                "implementation-notes.md",
+                vec!["Summary", "Executed Changes", "Task Linkage"],
+                vec![GateKind::ImplementationReadiness, GateKind::ReleaseReadiness],
+            ),
+            (
+                "completion-evidence.md",
+                vec!["Summary", "Completion Evidence", "Remaining Risks"],
+                vec![GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            (
+                "validation-hooks.md",
+                vec!["Summary", "Safety-Net Evidence", "Independent Checks"],
+                vec![GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            (
+                "rollback-notes.md",
+                vec!["Summary", "Rollback Triggers", "Rollback Steps"],
+                vec![GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
         ]
     );
 }

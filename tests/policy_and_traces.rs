@@ -248,7 +248,7 @@ fn implementation_run_persists_recommendation_only_mutation_traces() {
     init_implementation_repo(&workspace);
     fs::write(
         workspace.path().join("implementation.md"),
-        "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n",
+        "# Implementation Brief\n\nFeature Slice: Auth session revocation repository wiring inside the existing login subsystem.\nPrimary Upstream Mode: change\n\n## Task Mapping\n1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\n3. Record implementation notes for operator review and rollback.\n\n## Bounded Changes\n- Auth session repository helper wiring.\n- Revocation service internal composition.\n\n## Mutation Bounds\nsrc/auth/session.rs and src/auth/repository.rs only.\n\n## Allowed Paths\n- src/auth/session.rs\n- src/auth/repository.rs\n\n## Executed Changes\n- Add the bounded repository helper and thread it through the revocation service without widening the public API.\n\n## Task Linkage\n- Step 1 adds the helper.\n- Step 2 rewires the service behind the existing external contract.\n- Step 3 records the resulting packet and rollback posture.\n\n## Completion Evidence\n- The emitted implementation packet and focused tests confirm the bounded slice is ready for operator review.\n\n## Remaining Risks\n- Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.\n\n## Safety-Net Evidence\nContract coverage protects revocation formatting and audit ordering before mutation.\n\n## Independent Checks\n- cargo test --test session_contract\n- cargo test --test auth_audit_ordering\n\n## Rollback Triggers\nRevocation output drifts, audit ordering becomes unstable, or repository wiring expands beyond the declared auth-session slice.\n\n## Rollback Steps\n1. Revert the bounded auth-session patch.\n2. Redeploy the previous build.\n3. Restore the last known-good audit ordering snapshot.\n",
     )
     .expect("brief file");
 
@@ -269,6 +269,13 @@ fn implementation_run_persists_recommendation_only_mutation_traces() {
             method_root: None,
         })
         .expect("implementation run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
+    assert!(summary.approval_targets.iter().any(|target| target == "gate:execution"));
 
     let trace_path =
         workspace.path().join(".canon").join("traces").join(format!("{}.jsonl", summary.run_id));
@@ -291,7 +298,7 @@ fn red_zone_refactor_run_persists_recommendation_only_mutation_traces() {
     init_implementation_repo(&workspace);
     fs::write(
         workspace.path().join("refactor.md"),
-        "# Refactor Brief\n\nPreserved Behavior: session revocation formatting and audit ordering remain externally unchanged.\nApproved Exceptions: none.\nRefactor Scope: auth session boundary and repository composition only.\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nStructural Rationale: isolate persistence concerns without changing externally meaningful behavior.\nUntouched Surface: public auth API, tests/session.md, and deployment wiring stay unchanged.\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before structural cleanup.\nRegression Findings: no regression findings are accepted in the bounded packet.\nContract Drift: no public contract drift is allowed.\nReviewer Notes: review packet confirms behavior preservation remains explicit.\nFeature Audit: no new feature behavior is introduced in this refactor packet.\nDecision: preserve behavior and stop if the surface expands.\n",
+        "# Refactor Brief\n\nFeature Slice: Auth session boundary and repository composition inside the existing login subsystem.\nPrimary Upstream Mode: implementation\n\n## Preserved Behavior\nSession revocation formatting and audit ordering remain externally unchanged.\n\n## Approved Exceptions\nNone.\n\n## Refactor Scope\nAuth session boundary and repository composition only.\n\n## Allowed Paths\n- src/auth/session.rs\n- src/auth/repository.rs\n\n## Structural Rationale\nIsolate persistence concerns and internal composition without changing externally meaningful behavior.\n\n## Untouched Surface\nPublic auth API, tests/session.md, deployment wiring, and analytics consumers stay unchanged.\n\n## Safety-Net Evidence\nContract coverage protects revocation formatting and audit ordering before structural cleanup.\n\n## Regression Findings\nNo regression findings are accepted in this bounded packet.\n\n## Contract Drift\nNo public contract drift is allowed.\n\n## Reviewer Notes\nReviewer confirmation is required before any drift or feature semantics are accepted.\n\n## Feature Audit\nNo new feature behavior is introduced in this refactor packet.\n\n## Decision\nPreserve behavior and stop immediately if the surface expands or the packet starts to add feature semantics.\n",
     )
     .expect("brief file");
 
@@ -314,6 +321,10 @@ fn red_zone_refactor_run_persists_recommendation_only_mutation_traces() {
         .expect("refactor run");
 
     assert_eq!(summary.state, "AwaitingApproval");
+    assert_eq!(
+        summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
+        Some("recommendation-only")
+    );
     assert!(
         summary.approval_targets.iter().any(|target| target == "gate:execution"),
         "approval_targets should contain gate:execution, got: {:?}",

@@ -105,6 +105,7 @@ vocabulary for domain work.
   and the renderer preserves those authored sections verbatim instead of
   emitting templated placeholders.
 - requirements, discovery, change, and architecture now ship the first slice of Mode Authoring Specialization: their skills, templates, examples, and renderers share canonical authored H2 contracts; Canon preserves authored sections verbatim; and missing required sections surface `## Missing Authored Body` while release-readiness gates stay honest.
+- `system-shaping`, `implementation`, and `refactor` now share canonical authored H2 contracts across skills, templates, examples, renderers, direct-run fixtures, and run-path validation. Complete packets preserve authored sections verbatim; incomplete packets emit `## Missing Authored Body` and stay gate-blocked instead of pretending the packet is ready for approval.
 - `architecture` now ships an ADR-like decision surface inside the existing packet: `architecture-decisions.md` preserves `Decision`, `Constraints`, `Decision Drivers`, `Recommendation`, and `Consequences`; `tradeoff-matrix.md` preserves `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`; and the existing C4 artifacts remain unchanged.
 - `pr-review` now emits `conventional-comments.md` as a reviewer-facing
   companion to `review-summary.md`, publishes it under
@@ -151,24 +152,15 @@ brief.
 
 ### Delivered First Slice
 
-- `requirements`, `discovery`, `change`, and `architecture` now require explicit authored H2 sections in their skills, templates, and worked examples.
+- `requirements`, `discovery`, `change`, `architecture`, `system-shaping`, `implementation`, and `refactor` now require explicit authored H2 sections in their skills, templates, and worked examples.
 - Their renderers preserve authored sections verbatim and emit `## Missing Authored Body` when the assistant omits a required section.
-- The remaining roadmap scope is to extend the same authoring-specialization pattern to the other governed modes without implying that the broader rollout is already complete.
+- For the newly delivered follow-on slice, incomplete `system-shaping`, `implementation`, and `refactor` packets now stay explicitly gate-blocked while naming the missing canonical heading instead of drifting into approval-gated or templated filler behavior.
 
 ### Remaining Scope
 
-- Define a shared `Author <Mode> Body Before Invoking Canon` skill section that
-  enumerates the required H2 sections for each emitted artifact in the remaining modes,
-  mirroring the delivered first slice and the new `canon-backlog` skill section.
-- For the remaining decision-heavy modes, require authored option-analysis
-  sections so Canon preserves real tradeoffs instead of only the final answer.
-- Update each per-mode renderer in `crates/canon-engine/src/artifacts/markdown.rs`
-  to extract the authored H2 sections via `extract_marker` and render them
-  verbatim, falling back to a placeholder + explicit `## Missing Authored Body`
-  marker only when the section is absent.
-- Pass the raw authored `context_summary` through to the evidence-backed
-  summary in each `mode_*` orchestrator file so the renderer actually sees the
-  authored body.
+- The remaining authoring-specialization rollout is now limited to `review`, `verification`, `incident`, and `migration`.
+- Define the same `Author <Mode> Body Before Invoking Canon` skill section for those remaining modes so the required H2 sections are explicit before the CLI runs.
+- Extend the same authored-body preservation and honest missing-body behavior to those remaining renderers without changing their existing governance posture.
 - Keep the existing critique-first posture and Provenance Sidecar.
 
 ### Why This Feature
