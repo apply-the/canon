@@ -2497,6 +2497,7 @@ mod tests {
         assert!(system_shaping.contains("## System Shape"));
         assert!(system_shaping.contains("## Boundary Decisions"));
         assert!(architecture.contains("## Evaluation Criteria"));
-        assert!(architecture.contains("## Selected Option"));
+        assert!(architecture.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(architecture.contains("`## Why Not The Others`"));
     }
 }
