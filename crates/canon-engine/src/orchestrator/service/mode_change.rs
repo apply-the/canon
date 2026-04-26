@@ -432,12 +432,12 @@ impl EngineService {
                     ),
                     Mode::Implementation => render_implementation_artifact(
                         &requirement.file_name,
-                        &evidence_backed_summary,
+                        &brief_summary,
                         &default_owner,
                     ),
                     Mode::Refactor => render_refactor_artifact(
                         &requirement.file_name,
-                        &evidence_backed_summary,
+                        &brief_summary,
                         &default_owner,
                     ),
                     other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),

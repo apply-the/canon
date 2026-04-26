@@ -51,6 +51,43 @@ Optional:
 - If risk is invalid, ask with guided fixed choices: `low-impact`, `bounded-impact`, or `systemic-impact`.
 - If zone is invalid, ask with guided fixed choices: `green`, `yellow`, or `red`.
 
+## Author Implementation Body Before Invoking Canon
+
+Canon does not invent the implementation body for you. Canon governs,
+validates, and persists the packet. You (the assistant) MUST author the real
+implementation body from the bounded source material BEFORE calling
+`canon run --mode implementation`.
+
+Do this every time, even when the user starts from a short brief rather than a
+finished packet:
+
+1. Read the source inputs the user pointed at. Identify the bounded task map,
+allowed mutation surface, safety-net evidence, and rollback expectations. Do
+not guess.
+2. Compose a single implementation brief at `canon-input/implementation.md` or
+a folder-backed packet under `canon-input/implementation/`. The authored body
+MUST include all of the following canonical H2 sections with concrete content:
+	- `## Task Mapping`
+	- `## Bounded Changes`
+	- `## Mutation Bounds`
+	- `## Allowed Paths`
+	- `## Executed Changes`
+	- `## Task Linkage`
+	- `## Completion Evidence`
+	- `## Remaining Risks`
+	- `## Safety-Net Evidence`
+	- `## Independent Checks`
+	- `## Rollback Triggers`
+	- `## Rollback Steps`
+3. Inline labels or near-miss headings such as `Rollback Plan` do not satisfy
+this slice. Use the canonical H2 headings above.
+4. Canon preserves those authored sections verbatim in the emitted packet. If a
+required section is missing or empty, Canon emits `## Missing Authored Body`
+naming the missing canonical heading instead of fabricating filler.
+5. If you cannot author a credible implementation body from the available
+source, stop and redirect to `$canon-change` or ask targeted clarification
+questions before invoking Canon rather than submitting an empty brief.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode implementation --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

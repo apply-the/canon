@@ -86,11 +86,101 @@ fn init_change_repo(workspace: &TempDir) {
 }
 
 fn complete_implementation_brief() -> &'static str {
-    "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the new helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n"
+    r#"# Implementation Brief
+
+Feature Slice: Auth session revocation repository wiring inside the existing login subsystem.
+Primary Upstream Mode: change
+
+## Task Mapping
+1. Add bounded auth session repository helpers.
+2. Thread the new helper through the revocation service without expanding the public API.
+3. Record implementation notes for operator review and rollback.
+
+## Bounded Changes
+- Auth session repository helper wiring.
+- Revocation service internal composition.
+
+## Mutation Bounds
+src/auth/session.rs and src/auth/repository.rs only.
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Executed Changes
+- Add the bounded repository helper and thread it through the revocation service without widening the public API.
+
+## Task Linkage
+- Step 1 adds the helper.
+- Step 2 rewires the service behind the existing external contract.
+- Step 3 records the resulting packet and rollback posture.
+
+## Completion Evidence
+- The emitted implementation packet and focused tests confirm the bounded slice is ready for operator review.
+
+## Remaining Risks
+- Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before mutation.
+
+## Independent Checks
+- cargo test --test session_contract
+- cargo test --test auth_audit_ordering
+
+## Rollback Triggers
+Revocation output drifts, audit ordering becomes unstable, or repository wiring expands beyond the declared auth-session slice.
+
+## Rollback Steps
+1. Revert the bounded auth-session patch.
+2. Redeploy the previous build.
+3. Restore the last known-good audit ordering snapshot.
+"#
 }
 
 fn complete_refactor_brief() -> &'static str {
-    "# Refactor Brief\n\nPreserved Behavior: session revocation formatting and audit ordering remain externally unchanged.\nApproved Exceptions: none.\nRefactor Scope: auth session boundary and repository composition only.\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nStructural Rationale: isolate persistence concerns without changing externally meaningful behavior.\nUntouched Surface: public auth API, tests/session.md, and deployment wiring stay unchanged.\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before structural cleanup.\nRegression Findings: no regression findings are accepted in the bounded packet.\nContract Drift: no public contract drift is allowed.\nReviewer Notes: review packet confirms behavior preservation remains explicit.\nFeature Audit: no new feature behavior is introduced in this refactor packet.\nDecision: preserve behavior and stop if the surface expands.\n"
+    r#"# Refactor Brief
+
+Feature Slice: Auth session boundary and repository composition inside the existing login subsystem.
+Primary Upstream Mode: implementation
+
+## Preserved Behavior
+Session revocation formatting and audit ordering remain externally unchanged.
+
+## Approved Exceptions
+None.
+
+## Refactor Scope
+Auth session boundary and repository composition only.
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Structural Rationale
+Isolate persistence concerns and internal composition without changing externally meaningful behavior.
+
+## Untouched Surface
+Public auth API, tests/session.md, deployment wiring, and analytics consumers stay unchanged.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before structural cleanup.
+
+## Regression Findings
+No regression findings are accepted in this bounded packet.
+
+## Contract Drift
+No public contract drift is allowed.
+
+## Reviewer Notes
+Reviewer confirmation is required before any drift or feature semantics are accepted.
+
+## Feature Audit
+No new feature behavior is introduced in this refactor packet.
+
+## Decision
+Preserve behavior and stop immediately if the surface expands or the packet starts to add feature semantics.
+"#
 }
 
 fn complete_backlog_brief() -> &'static str {
@@ -331,7 +421,7 @@ fn system_shaping_direct_run_covers_completed_and_blocked_paths() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("system-shaping.md"),
-        "# System Shaping Brief\n\nIntent: shape a new governed Canon workflow surface for incomplete analysis modes.\nConstraint: keep the runtime adapters, policy gates, and evidence model intact.\n\n## Goal\nAdd domain modeling to the system-shaping packet without widening Canon's execution model.\n\n## Users or Stakeholders\n- Canon maintainers who need reviewable boundary decisions.\n- Architects who need context boundaries before architecture mode.\n\n## Domain Responsibilities\n- Identify candidate bounded contexts.\n- Surface ubiquitous language and weak terminology.\n- Preserve domain invariants for downstream modes.\n\n## Constraints\n- Keep run identity, approvals, and publish destinations unchanged.\n- Keep non-target modes behaviorally unchanged.\n\n## Risks\n- Weak briefs may tempt the renderer to invent boundaries.\n- Boundary tradeoffs may be implied rather than stated.\n\n## Open Questions\n- Which bounded contexts are core versus supporting?\n- Which invariants must architecture preserve first?\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run lifecycle, approvals, and evidence lineage.\n- Artifact Authoring: owns packet structure and authored-body rendering.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it protects Canon's operating model.\n- Artifact Authoring is supporting because it exists to make reviews durable.\n\n## Ubiquitous Language\n- Run: one governed Canon execution with durable evidence.\n- Packet: the artifact bundle produced by a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- The split between authoring and governance may still leak through shared helpers.\n",
+        "# System Shaping Brief\n\nIntent: shape a new governed Canon workflow surface for incomplete analysis modes.\nConstraint: keep the runtime adapters, policy gates, and evidence model intact.\n\n## System Shape\nKeep the review surface grounded in authored packet sections rather than synthesized prose.\n\n## Boundary Decisions\n- Keep authored packet sections explicit per emitted artifact.\n- Keep gates, approvals, and publish destinations unchanged.\n\n## Domain Responsibilities\n- Identify candidate bounded contexts.\n- Surface ubiquitous language and weak terminology.\n- Preserve domain invariants for downstream modes.\n\n## Candidate Bounded Contexts\n- Runtime Governance: owns run lifecycle, approvals, and evidence lineage.\n- Artifact Authoring: owns packet structure and authored-body rendering.\n\n## Core And Supporting Domain Hypotheses\n- Runtime Governance is core because it protects Canon's operating model.\n- Artifact Authoring is supporting because it exists to make reviews durable.\n\n## Ubiquitous Language\n- Run: one governed Canon execution with durable evidence.\n- Packet: the artifact bundle produced by a mode.\n\n## Domain Invariants\n- Approval semantics remain unchanged.\n- Publish destinations remain unchanged.\n\n## Boundary Risks And Open Questions\n- The split between authoring and governance may still leak through shared helpers.\n\n## Structural Options\n- Option 1 keeps authored-body preservation local to the current renderer helpers.\n- Option 2 introduces a new system-shaping-specific mapping layer before rendering.\n\n## Selected Boundaries\n- Runtime Governance remains separate from Artifact Authoring so packet fidelity does not blur approval semantics.\n\n## Rationale\n- Explicit authored sections make the packet reviewable without widening Canon's execution model.\n\n## Capabilities\n- Bounded system-shape definition.\n- Context and invariant capture.\n- Reviewable sequencing and risk surfacing.\n\n## Dependencies\n- Existing policy gates.\n- Existing evidence persistence.\n- Existing renderer helpers that already support authored-body preservation.\n\n## Gaps\n- Near-match heading handling still needs explicit tests.\n- Some user-facing docs still lag the runtime contract.\n\n## Delivery Phases\n1. Extend authored-body preservation to the remaining system-shaping artifacts.\n2. Synchronize skills, templates, and worked examples with the runtime contract.\n3. Close remaining validation and non-regression gaps.\n\n## Sequencing Rationale\n- Runtime fidelity must land before documentation and release guidance so later surfaces describe real behavior.\n\n## Risk per Phase\n- Phase 1: renderer changes could silently regress packet fidelity.\n- Phase 2: docs could drift from the runtime contract.\n- Phase 3: release notes could overstate rollout completeness.\n\n## Hotspots\n- Shared helpers that mix authored text with generated summaries.\n- Mode-specific artifact families that still rely on legacy headings.\n\n## Mitigation Status\n- Shared authored-section rendering is already available and can be reused.\n- Existing contract coverage can contain section-level regressions once expanded.\n\n## Unresolved Risks\n- Legacy worked examples could keep teaching inline labels unless updated.\n- Non-target modes still need explicit non-regression validation.\n",
     )
     .expect("brief file");
 

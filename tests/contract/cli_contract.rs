@@ -138,7 +138,7 @@ fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() 
     std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
     std::fs::write(
         workspace.path().join("canon-input").join("implementation.md"),
-        "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n",
+        "# Implementation Brief\n\n## Task Mapping\n1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\n\n## Bounded Changes\n- Auth session repository helper wiring.\n- Revocation service internal composition.\n\n## Mutation Bounds\nsrc/auth/session.rs; src/auth/repository.rs\n\n## Allowed Paths\n- src/auth/session.rs\n- src/auth/repository.rs\n\n## Safety-Net Evidence\nContract coverage protects revocation formatting and audit ordering before mutation.\n\n## Independent Checks\ncargo test --test session_contract\n\n## Rollback Triggers\nRevocation output drifts or audit ordering becomes unstable.\n\n## Rollback Steps\nRevert the bounded auth-session patch and redeploy the previous build.\n",
     )
     .expect("implementation brief");
 
@@ -160,21 +160,17 @@ fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() 
             "json",
         ])
         .assert()
-        .code(3)
+        .code(2)
         .get_output()
         .stdout
         .clone();
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
 
-    assert_eq!(json["state"].as_str(), Some("AwaitingApproval"));
+    assert_eq!(json["state"].as_str(), Some("Blocked"));
     assert_eq!(json["mode"].as_str(), Some("implementation"));
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
-    assert!(
-        json["approval_targets"]
-            .as_array()
-            .is_some_and(|targets| targets.iter().any(|t| t.as_str() == Some("gate:execution")))
-    );
+    assert_eq!(json["blocking_classification"].as_str(), Some("artifact-blocked"));
 }
 
 #[test]

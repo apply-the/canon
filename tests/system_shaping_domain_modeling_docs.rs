@@ -1,13 +1,19 @@
 use std::fs;
 
 const CONTRACT_PATH: &str =
-    "specs/017-domain-boundary-design/contracts/system-shaping-domain-modeling.md";
+    "specs/019-authoring-specialization-remaining/contracts/mode-authored-body-contracts.md";
 const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-system-shaping/skill-source.md";
 const SKILL_MIRROR: &str = ".agents/skills/canon-system-shaping/SKILL.md";
 const TEMPLATE_PATH: &str = "docs/templates/canon-input/system-shaping.md";
 const EXAMPLE_PATH: &str = "docs/examples/canon-input/system-shaping-billing.md";
 
 const CONTRACT_SECTIONS: &[&str] = &[
+    "System-Shaping Required Sections",
+    "system-shape.md",
+    "architecture-outline.md",
+    "capability-map.md",
+    "delivery-options.md",
+    "risk-hotspots.md",
     "Candidate Bounded Contexts",
     "Core And Supporting Domain Hypotheses",
     "Ubiquitous Language",
@@ -16,6 +22,21 @@ const CONTRACT_SECTIONS: &[&str] = &[
 ];
 
 const CANONICAL_HEADINGS: &[&str] = &[
+    "## System Shape",
+    "## Boundary Decisions",
+    "## Domain Responsibilities",
+    "## Structural Options",
+    "## Selected Boundaries",
+    "## Rationale",
+    "## Capabilities",
+    "## Dependencies",
+    "## Gaps",
+    "## Delivery Phases",
+    "## Sequencing Rationale",
+    "## Risk per Phase",
+    "## Hotspots",
+    "## Mitigation Status",
+    "## Unresolved Risks",
     "## Candidate Bounded Contexts",
     "## Core And Supporting Domain Hypotheses",
     "## Ubiquitous Language",

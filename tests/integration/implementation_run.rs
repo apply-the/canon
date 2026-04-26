@@ -52,7 +52,99 @@ fn init_repo(workspace: &TempDir) {
 }
 
 fn complete_brief() -> &'static str {
-    "# Implementation Brief\n\nTask Mapping: 1. Add bounded auth session repository helpers.\n2. Thread the helper through the revocation service without expanding the public API.\nMutation Bounds: src/auth/session.rs; src/auth/repository.rs\nAllowed Paths:\n- src/auth/session.rs\n- src/auth/repository.rs\nSafety-Net Evidence: contract coverage protects revocation formatting and audit ordering before mutation.\nIndependent Checks: cargo test --test session_contract\nRollback Triggers: revocation output drifts or audit ordering becomes unstable.\nRollback Steps: revert the bounded auth-session patch and redeploy the previous build.\n"
+    r#"# Implementation Brief
+
+Feature Slice: Auth session revocation repository wiring inside the existing login subsystem.
+Primary Upstream Mode: change
+
+## Task Mapping
+1. Add bounded auth session repository helpers.
+2. Thread the helper through the revocation service without expanding the public API.
+3. Record implementation notes for operator review and rollback.
+
+## Bounded Changes
+- Auth session repository helper wiring.
+- Revocation service internal composition.
+
+## Mutation Bounds
+src/auth/session.rs and src/auth/repository.rs only.
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Executed Changes
+- Add the bounded repository helper and thread it through the revocation service without widening the public API.
+
+## Task Linkage
+- Step 1 adds the helper.
+- Step 2 rewires the service behind the existing external contract.
+- Step 3 records the resulting packet and rollback posture.
+
+## Completion Evidence
+- The emitted implementation packet and focused tests confirm the bounded slice is ready for operator review.
+
+## Remaining Risks
+- Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before mutation.
+
+## Independent Checks
+- cargo test --test session_contract
+- cargo test --test auth_audit_ordering
+
+## Rollback Triggers
+Revocation output drifts, audit ordering becomes unstable, or repository wiring expands beyond the declared auth-session slice.
+
+## Rollback Steps
+1. Revert the bounded auth-session patch.
+2. Redeploy the previous build.
+3. Restore the last known-good audit ordering snapshot.
+"#
+}
+
+fn incomplete_brief() -> &'static str {
+    r#"# Implementation Brief
+
+Feature Slice: Auth session revocation repository wiring inside the existing login subsystem.
+Primary Upstream Mode: change
+
+## Task Mapping
+1. Add bounded auth session repository helpers.
+2. Thread the helper through the revocation service without expanding the public API.
+
+## Bounded Changes
+- Auth session repository helper wiring.
+
+## Mutation Bounds
+src/auth/session.rs and src/auth/repository.rs only.
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Executed Changes
+- Add the bounded repository helper and thread it through the revocation service without widening the public API.
+
+## Task Linkage
+- The bounded change still maps back to the task plan.
+
+## Completion Evidence
+- Focused tests confirm the bounded slice is ready for review.
+
+## Remaining Risks
+- Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before mutation.
+
+## Independent Checks
+- cargo test --test session_contract
+
+## Rollback Triggers
+Revocation output drifts, audit ordering becomes unstable, or repository wiring expands beyond the declared auth-session slice.
+"#
 }
 
 fn implementation_patch() -> &'static str {
@@ -135,6 +227,25 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     assert!(artifact_root.join("task-mapping.md").exists());
     assert!(artifact_root.join("mutation-bounds.md").exists());
     assert!(artifact_root.join("validation-hooks.md").exists());
+
+    let task_mapping =
+        fs::read_to_string(artifact_root.join("task-mapping.md")).expect("task mapping artifact");
+    assert!(task_mapping.contains("## Task Mapping"));
+    assert!(task_mapping.contains("Add bounded auth session repository helpers."));
+    assert!(task_mapping.contains("## Bounded Changes"));
+
+    let implementation_notes = fs::read_to_string(artifact_root.join("implementation-notes.md"))
+        .expect("implementation notes artifact");
+    assert!(implementation_notes.contains("## Executed Changes"));
+    assert!(
+        implementation_notes
+            .contains("thread it through the revocation service without widening the public API")
+    );
+
+    let rollback_notes = fs::read_to_string(artifact_root.join("rollback-notes.md"))
+        .expect("rollback notes artifact");
+    assert!(rollback_notes.contains("## Rollback Steps"));
+    assert!(rollback_notes.contains("Restore the last known-good audit ordering snapshot."));
 
     cli_command()
         .current_dir(workspace.path())
@@ -241,6 +352,67 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
             .join("task-mapping.md")
             .exists()
     );
+}
+
+#[test]
+fn implementation_run_emits_missing_body_marker_for_absent_canonical_heading() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_repo(&workspace);
+    let brief_path = workspace.path().join("implementation.md");
+    fs::write(&brief_path, incomplete_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "implementation",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "maintainer",
+            "--input",
+            "implementation.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(2)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let rollback_notes = fs::read_to_string(
+        workspace
+            .path()
+            .join(".canon")
+            .join("artifacts")
+            .join(run_id)
+            .join("implementation")
+            .join("rollback-notes.md"),
+    )
+    .expect("rollback notes artifact");
+
+    let blocked_gates = json["blocked_gates"].as_array().expect("blocked gates");
+
+    assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["blocking_classification"], "artifact-blocked");
+    assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
+    assert!(rollback_notes.contains("## Missing Authored Body"));
+    assert!(rollback_notes.contains("Rollback Steps"));
+    assert!(blocked_gates.iter().any(|gate| {
+        gate["blockers"].as_array().is_some_and(|blockers| {
+            blockers
+                .iter()
+                .any(|blocker| blocker.as_str().is_some_and(|text| text.contains("Rollback Steps")))
+        })
+    }));
 }
 
 #[test]
