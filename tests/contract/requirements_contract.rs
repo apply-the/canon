@@ -21,11 +21,20 @@ fn cli_command() -> Command {
     command
 }
 
+fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
+    format!(
+        "# Requirements Brief\n\n## Problem\n\n{problem}\n\n## Outcome\n\n{outcome}\n\n## Constraints\n\n- USB-only execution path\n- Preserve explicit audit logs\n\n## Non-Negotiables\n\n- Keep human ownership explicit\n- Persist artifacts under `.canon/`\n\n## Options\n\n1. Start with a bounded CLI slice.\n2. Defer broader orchestration work.\n\n## Recommended Path\n\nStart with the bounded CLI slice before expanding scope.\n\n## Tradeoffs\n\n- Governance adds upfront structure.\n- Durable artifacts add overhead but improve reviewability.\n\n## Consequences\n\n- Reviewers can inspect the packet without chat history.\n\n## Out of Scope\n\n- No GUI in this slice\n\n## Deferred Work\n\n- Hosted rollout remains a later slice.\n\n## Decision Checklist\n\n- [x] Scope is explicit\n- [x] Ownership is explicit\n\n## Open Questions\n\n- How is bootloader mode entered?\n"
+    )
+}
+
 fn run_requirements_flow(workspace: &TempDir) -> String {
     let idea_path = workspace.path().join("idea.md");
     fs::write(
         &idea_path,
-        "# Idea\n\nBound AI-assisted engineering work with explicit governance.\n",
+        complete_requirements_brief(
+            "Bound AI-assisted engineering work with explicit governance.",
+            "Operators can review a complete packet before downstream planning.",
+        ),
     )
     .expect("idea file");
 
@@ -111,7 +120,10 @@ fn run_requirements_markdown_surfaces_primary_result_without_raw_json() {
     let idea_path = workspace.path().join("idea.md");
     fs::write(
         &idea_path,
-        "# Requirements Brief\n\n## Problem\nBuild a bounded USB flashing CLI for the Bird device.\n\n## Outcome\nOperators can flash firmware safely over USB with explicit logs.\n\n## Constraints\n- USB only\n- No Bluetooth in v1\n\n## Out of Scope\n- GUI\n\n## Open Questions\n- How is bootloader mode entered?\n",
+        complete_requirements_brief(
+            "Build a bounded USB flashing CLI for the Bird device.",
+            "Operators can flash firmware safely over USB with explicit logs.",
+        ),
     )
     .expect("idea file");
 

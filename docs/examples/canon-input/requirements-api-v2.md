@@ -11,13 +11,38 @@ By the time this work is fully delivered, API v2 will provide a GraphQL-based bu
 - Latency budget is strict: 100ms per composite request for a standard order profile.
 - API v2 must live on a dedicated `api.domain.com/v2` or `api.domain.com/graphql` route to avoid affecting v1 traffic.
 
+## Non-Negotiables
+- API v1 traffic and contracts remain stable throughout the rollout.
+- Authentication, rate limiting, and audit logging must remain compatible with the existing partner control plane.
+
+## Options
+1. Ship a GraphQL-only API v2 endpoint for composite reads.
+2. Ship a REST bulk-read endpoint family under `/v2` and defer GraphQL.
+3. Keep v1 and add a middleware aggregation proxy without a formal v2 surface.
+
+## Recommended Path
+Ship a GraphQL-based API v2 on a dedicated route. It gives the cleanest contract for bulk composite reads, makes over-fetching explicit, and avoids expanding the legacy REST surface with more special-case endpoints.
+
 ## Tradeoffs
 - Flexibility vs Speed: We accept slightly denormalized graph queries for speed over perfect normalization at the edge.
 - Client Complexity: Clients must learn GraphQL, accepting a steeper learning curve for efficiency.
 
-## Out of Scope
+## Consequences
+- Partner SDKs and onboarding docs will need a versioned API v2 update.
+- Query complexity controls must ship with the first public beta to protect latency and cost budgets.
+
+## Scope Cuts
 - Taking down API v1. It will run in parallel indefinitely.
 - Real-time streaming or WebSockets; REST or simple GraphQL queries only.
+
+## Deferred Work
+- API v1 deprecation planning and partner migration timelines.
+- Mutation support for API v2 beyond composite read use cases.
+
+## Decision Checklist
+- [x] Keep the rollout additive to API v1.
+- [ ] Confirm the owning team for schema governance.
+- [ ] Confirm whether query-cost limits reuse partner rate-limit policy or require a new policy.
 
 ## Open Questions
 - Will we use Apollo Federation, or a monolith schema?

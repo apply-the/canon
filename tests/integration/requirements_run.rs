@@ -19,13 +19,22 @@ fn cli_command() -> Command {
     command
 }
 
+fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
+    format!(
+        "# Requirements Brief\n\n## Problem\n\n{problem}\n\n## Outcome\n\n{outcome}\n\n## Constraints\n\n- Keep execution local-first\n- Preserve explicit approval checkpoints\n\n## Non-Negotiables\n\n- Persist evidence under `.canon/`\n- Keep named ownership explicit\n\n## Options\n\n1. Deliver the bounded packet first.\n2. Defer broader rollout.\n\n## Recommended Path\n\nDeliver the bounded packet first.\n\n## Tradeoffs\n\n- Structure before speed\n\n## Consequences\n\n- Reviewers can inspect durable artifacts.\n\n## Out of Scope\n\n- No hosted control plane in this slice\n\n## Deferred Work\n\n- Hosted coordination remains later work.\n\n## Decision Checklist\n\n- [x] Scope is explicit\n- [x] Ownership is explicit\n\n## Open Questions\n\n- Which downstream mode should consume the packet first?\n"
+    )
+}
+
 #[test]
 fn run_requirements_persists_a_run_contract_and_artifact_bundle() {
     let workspace = TempDir::new().expect("temp dir");
     let idea_path = workspace.path().join("idea.md");
     fs::write(
         &idea_path,
-        "# Idea\n\nBound AI-assisted engineering work with explicit governance.\n",
+        complete_requirements_brief(
+            "Bound AI-assisted engineering work with explicit governance.",
+            "Operators can review a complete requirements packet before downstream planning.",
+        ),
     )
     .expect("idea file");
 
@@ -183,13 +192,21 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
     let workspace = TempDir::new().expect("temp dir");
     let input_dir = workspace.path().join("canon-input").join("requirements");
     fs::create_dir_all(&input_dir).expect("input dir");
-    fs::write(input_dir.join("00-problem.md"), "# Problem\n\nClarify the bounded problem space.\n")
-        .expect("problem file");
+    fs::write(
+        input_dir.join("00-brief.md"),
+        "# Requirements Brief\n\n## Problem\n\nClarify the bounded problem space.\n\n## Outcome\n\nOperators can review a complete packet before execution planning.\n",
+    )
+    .expect("brief file");
     fs::write(
         input_dir.join("01-constraints.md"),
-        "# Constraints\n\nKeep governance durable and local-first.\n",
+        "## Constraints\n\n- Keep governance durable and local-first.\n\n## Non-Negotiables\n\n- Preserve explicit approvals.\n",
     )
     .expect("constraints file");
+    fs::write(
+        input_dir.join("02-details.md"),
+        "## Options\n\n1. Deliver a bounded packet first.\n\n## Recommended Path\n\nDeliver the bounded packet first.\n\n## Tradeoffs\n\n- Governance adds structure.\n\n## Consequences\n\n- Review stays auditable.\n\n## Out of Scope\n\n- No hosted control plane.\n\n## Deferred Work\n\n- Hosted coordination can wait.\n\n## Decision Checklist\n\n- [x] Scope is explicit.\n\n## Open Questions\n\n- Which downstream mode should consume the packet first?\n",
+    )
+    .expect("details file");
 
     let output = cli_command()
         .current_dir(workspace.path())
@@ -236,7 +253,7 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
         .map(|entry| entry.expect("snapshot entry").file_name().to_string_lossy().into_owned())
         .collect::<Vec<_>>();
     snapshots.sort();
-    assert_eq!(snapshots.len(), 2, "directory input should snapshot each authored file");
+    assert_eq!(snapshots.len(), 3, "directory input should snapshot each authored file");
 
     let context_toml = fs::read_to_string(
         canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
@@ -246,7 +263,7 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
     .expect("context file");
     let context: toml::Value = toml::from_str(&context_toml).expect("context toml");
     let fingerprints = context["input_fingerprints"].as_array().expect("input fingerprints");
-    assert_eq!(fingerprints.len(), 2, "directory input should fingerprint each authored file");
+    assert_eq!(fingerprints.len(), 3, "directory input should fingerprint each authored file");
     assert!(
         fingerprints.iter().all(|entry| {
             entry["snapshot_ref"]
@@ -278,7 +295,7 @@ fn run_requirements_persists_inline_input_only_under_run_snapshots() {
             "--owner",
             "product-lead",
             "--input-text",
-            "# Requirements Brief\n\n## Problem\nBound inline authored input handling.\n\n## Constraints\n- Keep evidence local\n- Preserve explicit approvals",
+            "# Requirements Brief\n\n## Problem\n\nBound inline authored input handling.\n\n## Outcome\n\nOperators can review inline-authored packets safely.\n\n## Constraints\n\n- Keep evidence local\n- Preserve explicit approvals\n\n## Non-Negotiables\n\n- Persist artifacts under `.canon/`\n\n## Options\n\n1. Use inline input for quick packets.\n\n## Recommended Path\n\nUse inline input for quick packets.\n\n## Tradeoffs\n\n- Inline inputs are concise but less discoverable.\n\n## Consequences\n\n- The packet stays snapshotted under the run.\n\n## Out of Scope\n\n- No repo materialization.\n\n## Deferred Work\n\n- Shared templates remain file-based.\n\n## Decision Checklist\n\n- [x] Scope is explicit\n\n## Open Questions\n\n- Which downstream mode consumes this packet?",
             "--output",
             "json",
         ])

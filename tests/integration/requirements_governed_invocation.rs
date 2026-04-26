@@ -19,12 +19,21 @@ fn cli_command() -> Command {
     command
 }
 
+fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
+    format!(
+        "# Requirements Brief\n\n## Problem\n\n{problem}\n\n## Outcome\n\n{outcome}\n\n## Constraints\n\n- Keep evidence local\n- Preserve approvals\n\n## Non-Negotiables\n\n- Human ownership remains explicit\n- Artifacts remain inspectable\n\n## Options\n\n1. Keep execution governed.\n2. Defer renderer-only shortcuts.\n\n## Recommended Path\n\nKeep execution governed.\n\n## Tradeoffs\n\n- Governance adds steps\n\n## Consequences\n\n- Reviewers can inspect the packet honestly.\n\n## Out of Scope\n\n- No ungoverned mutation path\n\n## Deferred Work\n\n- Automation breadth can expand later.\n\n## Decision Checklist\n\n- [x] Governing owner is explicit\n\n## Open Questions\n\n- Which downstream mode consumes this packet first?\n"
+    )
+}
+
 #[test]
 fn bounded_requirements_run_reports_governed_invocation_counts_and_evidence() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("idea.md"),
-        "# Idea\n\nUse governed execution instead of renderer-only output.\n",
+        complete_requirements_brief(
+            "Use governed execution instead of renderer-only output.",
+            "Operators can review governed artifacts before follow-on planning.",
+        ),
     )
     .expect("idea file");
 
@@ -84,7 +93,10 @@ fn systemic_requirements_run_requires_invocation_approval_and_completes_on_resum
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("idea.md"),
-        "# Idea\n\nSystemic requirements framing still needs governed approval.\n",
+        complete_requirements_brief(
+            "Systemic requirements framing still needs governed approval.",
+            "The governed packet remains reviewable after approval and resume.",
+        ),
     )
     .expect("idea file");
 

@@ -80,6 +80,10 @@ fn status_json(workspace: &TempDir, global_config: &Path, run_id: &str) -> serde
     serde_json::from_slice(&output).expect("status json")
 }
 
+fn complete_requirements_brief() -> &'static str {
+    "# Requirements Brief\n\n## Problem\n\nNeed bounded framing before implementation work starts.\n\n## Outcome\n\nOperators can review a complete requirements packet before downstream planning.\n\n## Constraints\n\n- Keep execution local-first\n- Preserve explicit audit logs\n\n## Non-Negotiables\n\n- Keep human ownership explicit\n- Persist artifacts under `.canon/`\n\n## Options\n\n1. Start with a bounded CLI slice.\n2. Defer broader orchestration work.\n\n## Recommended Path\n\nStart with the bounded CLI slice before expanding scope.\n\n## Tradeoffs\n\n- Governance adds upfront structure.\n- Durable artifacts add overhead but improve reviewability.\n\n## Consequences\n\n- Reviewers can inspect the packet without chat history.\n\n## Scope Cuts\n\n- No GUI in this slice\n\n## Deferred Work\n\n- Hosted rollout remains a later slice.\n\n## Decision Checklist\n\n- [x] Scope is explicit\n- [x] Ownership is explicit\n\n## Open Questions\n\n- Which downstream mode should consume the packet first?\n"
+}
+
 fn run_requirements(
     workspace: &TempDir,
     global_config: &Path,
@@ -114,7 +118,7 @@ fn explicit_owner_overrides_git_identity() {
     let workspace = TempDir::new().expect("temp dir");
     let global_config = workspace.path().join("gitconfig-global");
     fs::write(&global_config, "").expect("global config file");
-    fs::write(workspace.path().join("idea.md"), "Need bounded framing.\n").expect("idea file");
+    fs::write(workspace.path().join("idea.md"), complete_requirements_brief()).expect("idea file");
 
     git(&workspace, &global_config, &["init", "-b", "main"]);
     git(&workspace, &global_config, &["config", "user.name", "Local Owner"]);
@@ -144,7 +148,7 @@ fn run_uses_local_git_identity_when_owner_is_omitted() {
     let workspace = TempDir::new().expect("temp dir");
     let global_config = workspace.path().join("gitconfig-global");
     fs::write(&global_config, "").expect("global config file");
-    fs::write(workspace.path().join("idea.md"), "Need bounded framing.\n").expect("idea file");
+    fs::write(workspace.path().join("idea.md"), complete_requirements_brief()).expect("idea file");
 
     git(&workspace, &global_config, &["init", "-b", "main"]);
     git(&workspace, &global_config, &["config", "user.name", "Local Owner"]);
@@ -167,7 +171,7 @@ fn run_uses_global_git_identity_when_local_identity_is_missing() {
     let workspace = TempDir::new().expect("temp dir");
     let global_config = workspace.path().join("gitconfig-global");
     fs::write(&global_config, "").expect("global config file");
-    fs::write(workspace.path().join("idea.md"), "Need bounded framing.\n").expect("idea file");
+    fs::write(workspace.path().join("idea.md"), complete_requirements_brief()).expect("idea file");
 
     git(&workspace, &global_config, &["init", "-b", "main"]);
 
@@ -204,7 +208,7 @@ fn bounded_impact_run_without_owner_or_git_identity_fails_with_guidance() {
     let workspace = TempDir::new().expect("temp dir");
     let global_config = workspace.path().join("gitconfig-global");
     fs::write(&global_config, "").expect("global config file");
-    fs::write(workspace.path().join("idea.md"), "Need bounded framing.\n").expect("idea file");
+    fs::write(workspace.path().join("idea.md"), complete_requirements_brief()).expect("idea file");
 
     git(&workspace, &global_config, &["init", "-b", "main"]);
 

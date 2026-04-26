@@ -29,10 +29,19 @@ fn cli_command() -> Command {
     command
 }
 
+fn complete_discovery_brief(problem_domain: &str, downstream_handoff: &str) -> String {
+    format!(
+        "# Discovery Brief\n\n## Problem Domain\n\n{problem_domain}\n\n## Repo Surface\n\n- crates/canon-engine/src/orchestrator/service/\n- tests/integration/discovery_run.rs\n\n## Immediate Tensions\n\n- Discovery authoring should stay explicit and reviewable.\n\n## Downstream Handoff\n\n{downstream_handoff}\n\n## Unknowns\n\n- Which downstream mode should consume repo-grounded discovery first?\n\n## Assumptions\n\n- The existing Canon persistence model remains stable.\n\n## Validation Targets\n\n- Confirm authored headings survive into emitted artifacts.\n\n## Confidence Levels\n\n- Medium until end-to-end runs confirm the new contract.\n\n## In-Scope Context\n\n- Governed analysis modes only.\n\n## Out-of-Scope Context\n\n- No architecture or review-mode changes in this packet.\n\n## Translation Trigger\n\n{downstream_handoff}\n\n## Options\n\n1. Tighten discovery authoring contracts first.\n2. Defer to a later roadmap slice.\n\n## Constraints\n\n- Stay within the existing Canon persistence model.\n\n## Recommended Direction\n\nTighten discovery authoring contracts first.\n\n## Next-Phase Shape\n\nTranslate this packet into requirements mode with concrete scope cuts.\n\n## Pressure Points\n\n- Repo-local skills and runtime outputs can drift without a shared authored contract.\n\n## Blocking Decisions\n\n- Decide whether the first slice stays bounded to discovery or spans multiple modes.\n\n## Open Questions\n\n- Which downstream mode should consume repo-grounded discovery first?\n\n## Recommended Owner\n\n- researcher\n"
+    )
+}
+
 fn run_discovery_flow(workspace: &TempDir) -> String {
     fs::write(
         workspace.path().join("discovery.md"),
-        "# Discovery Brief\n\nProblem: clarify governed runtime depth for analysis modes.\nConstraints: stay within the existing Canon persistence model.\nNext Phase: translate this packet into requirements mode with concrete scope cuts.\n",
+        complete_discovery_brief(
+            "Clarify governed runtime depth for analysis modes.",
+            "Translate this packet into requirements mode with concrete scope cuts.",
+        ),
     )
     .expect("brief file");
 
@@ -110,8 +119,8 @@ fn discovery_contract_matches_spec_artifact_names_sections_and_gates() {
         problem_map.required_sections,
         vec![
             "Summary",
-            "Repo Signals",
             "Problem Domain",
+            "Repo Surface",
             "Immediate Tensions",
             "Downstream Handoff",
         ]

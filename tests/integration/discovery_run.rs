@@ -19,13 +19,22 @@ fn cli_command() -> Command {
     command
 }
 
+fn complete_discovery_brief(problem_domain: &str, downstream_handoff: &str) -> String {
+    format!(
+        "# Discovery Brief\n\n## Problem Domain\n\n{problem_domain}\n\n## Repo Surface\n\n- crates/canon-engine/src/orchestrator/service/\n- tests/integration/discovery_run.rs\n\n## Immediate Tensions\n\n- Discovery authoring should stay explicit and reviewable.\n\n## Downstream Handoff\n\n{downstream_handoff}\n\n## Unknowns\n\n- Which downstream mode should consume repo-grounded discovery first?\n\n## Assumptions\n\n- The existing Canon persistence model remains stable.\n\n## Validation Targets\n\n- Confirm authored headings survive into emitted artifacts.\n\n## Confidence Levels\n\n- Medium until end-to-end runs confirm the new contract.\n\n## In-Scope Context\n\n- Governed analysis modes only.\n\n## Out-of-Scope Context\n\n- No architecture or review-mode changes in this packet.\n\n## Translation Trigger\n\n{downstream_handoff}\n\n## Options\n\n1. Tighten discovery authoring contracts first.\n2. Defer to a later roadmap slice.\n\n## Constraints\n\n- Preserve the existing runtime shape and evidence model.\n\n## Recommended Direction\n\nTighten discovery authoring contracts first.\n\n## Next-Phase Shape\n\nTranslate this packet into requirements mode with explicit scope cuts and handoff artifacts.\n\n## Pressure Points\n\n- Repo-local skills and runtime outputs can drift without a shared authored contract.\n\n## Blocking Decisions\n\n- Decide whether the first slice stays bounded to discovery or spans multiple modes.\n\n## Open Questions\n\n- Which downstream mode should consume repo-grounded discovery first?\n\n## Recommended Owner\n\n- researcher\n"
+    )
+}
+
 #[test]
 fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("discovery.md");
     fs::write(
         &brief_path,
-        "# Discovery Brief\n\nProblem: reconcile Canon mode coverage with real governed runtime depth.\nConstraints: preserve the existing runtime shape and evidence model.\nUnknowns: which downstream mode should consume repo-grounded discovery first?\nNext Phase: translate this packet into requirements mode with explicit scope cuts and handoff artifacts.\n",
+        complete_discovery_brief(
+            "Reconcile Canon mode coverage with real governed runtime depth.",
+            "Translate this packet into requirements mode with explicit scope cuts and handoff artifacts.",
+        ),
     )
     .expect("brief file");
 
@@ -105,8 +114,8 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
         fs::read_to_string(artifact_root.join("problem-map.md")).expect("problem map contents");
     let boundary = fs::read_to_string(artifact_root.join("context-boundary.md"))
         .expect("context boundary contents");
-    assert!(problem_map.contains("## Repo Signals"));
-    assert!(problem_map.contains("discovery.md"));
+    assert!(problem_map.contains("## Repo Surface"));
+    assert!(problem_map.contains("tests/integration/discovery_run.rs"));
     assert!(problem_map.contains("## Downstream Handoff"));
     assert!(boundary.contains("## Repo Surface"));
     assert!(boundary.contains("## Translation Trigger"));
@@ -217,7 +226,10 @@ fn run_discovery_reads_directory_backed_inputs_from_canon_input() {
     fs::create_dir_all(&discovery_dir).expect("discovery input dir");
     fs::write(
         discovery_dir.join("brief.md"),
-        "# Discovery Brief\n\nProblem: make discovery packets translate cleanly into governed planning.\nConstraints: preserve repository-specific signals and evidence links.\nNext Phase: translate this packet into requirements mode with explicit scope cuts.\n",
+        complete_discovery_brief(
+            "Make discovery packets translate cleanly into governed planning.",
+            "Translate this packet into requirements mode with explicit scope cuts.",
+        ),
     )
     .expect("brief file");
 
@@ -259,5 +271,5 @@ fn run_discovery_reads_directory_backed_inputs_from_canon_input() {
 
     assert!(problem_map.contains("## Downstream Handoff"));
     assert!(problem_map.contains("requirements mode"));
-    assert!(problem_map.contains("brief.md"));
+    assert!(problem_map.contains("tests/integration/discovery_run.rs"));
 }

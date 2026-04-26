@@ -58,6 +58,37 @@ Optional:
 - If only the input path is missing, ask only for the input path and explain that Canon will use that note or brief as `--input` for the discovery run.
 - Do not show preflight checks to the user. Report only the specific missing input.
 
+## Author Discovery Body Before Invoking Canon
+
+Canon does not invent the discovery body for you. Canon governs, validates, and persists the packet. You (the assistant) MUST author the real discovery body from the exploratory source material BEFORE calling `canon run --mode discovery`.
+
+Do this every time:
+
+1. Read the source inputs the user pointed at. Identify the problem space, the relevant repo or system surface, the current tensions, and the decisions that still need to be prepared. Do not guess.
+2. Compose a single discovery brief at `canon-input/discovery.md` or a folder-backed packet under `canon-input/discovery/`. The authored body MUST include all of the following H2 sections with concrete content tied to the source you just read:
+  - `## Problem Domain`
+  - `## Repo Surface`
+  - `## Immediate Tensions`
+  - `## Downstream Handoff`
+  - `## Unknowns`
+  - `## Assumptions`
+  - `## Validation Targets`
+  - `## Confidence Levels`
+  - `## In-Scope Context`
+  - `## Out-of-Scope Context`
+  - `## Translation Trigger`
+  - `## Options`
+  - `## Constraints`
+  - `## Recommended Direction`
+  - `## Next-Phase Shape`
+  - `## Pressure Points`
+  - `## Blocking Decisions`
+  - `## Open Questions`
+  - `## Recommended Owner`
+3. Near-match headings do not satisfy this first-slice contract. Use the exact canonical H2 headings above.
+4. Canon preserves those authored sections verbatim in the emitted packet. If a required section is missing or empty, Canon emits `## Missing Authored Body` naming the missing canonical heading instead of fabricating generic filler.
+5. If you cannot author a credible discovery body from the available source, run `$canon-inspect-clarity` or ask targeted questions before invoking Canon rather than submitting an empty brief.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode discovery --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
