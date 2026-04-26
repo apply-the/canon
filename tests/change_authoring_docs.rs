@@ -69,7 +69,8 @@ fn change_mode_guide_and_roadmap_document_the_first_slice() {
 
     let roadmap = read(ROADMAP_PATH);
     assert!(
-        roadmap.contains("requirements, discovery, and change now ship the first slice"),
+        roadmap.contains("requirements, discovery, change")
+            && roadmap.contains("now ship the first slice"),
         "roadmap must record the delivered first slice"
     );
     assert!(roadmap.contains("change"), "roadmap must keep change in the delivered scope");

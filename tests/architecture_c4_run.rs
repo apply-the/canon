@@ -15,6 +15,54 @@ Decision focus: shape `analytics-cli` as a bounded analytics surface with explic
 ownership and rollback-safe boundaries.
 Constraint: preserve Canon runtime contracts, approvals, and evidence persistence.
 
+## Decision
+
+Use a dedicated context map and ADR-like decision packet to make architecture boundaries reviewable.
+
+## Constraints
+
+- Preserve Canon runtime contracts, approvals, and evidence persistence.
+- Keep the C4 artifact family additive rather than replacing it.
+
+## Evaluation Criteria
+
+- Boundary clarity.
+- Rollback-safe seams.
+- Reviewability without chat history.
+
+## Decision Drivers
+
+- Reviewers need both the structural boundary story and the selected option in one packet.
+- The architecture run must preserve existing C4 artifacts unchanged.
+
+## Options Considered
+
+- Keep boundary and C4 details implicit in summary prose.
+- Add a dedicated context map and ADR-like decision shape inside the existing packet.
+
+## Pros
+
+- Reviewers can inspect decisions, options, and C4 views without reconstructing the conversation.
+- The packet remains publishable without inventing a new artifact family.
+
+## Cons
+
+- The authored brief must carry more explicit structure up front.
+
+## Recommendation
+
+Add a dedicated context map and ADR-like decision shape inside the existing architecture packet.
+
+## Why Not The Others
+
+- Summary-only output hides the rejected alternative.
+- A brand new packet family would widen scope and churn.
+
+## Consequences
+
+- Architecture authors must keep decision rationale and option analysis synchronized with the C4 views.
+- Reviewers gain a stronger packet, but the authored input surface becomes more explicit.
+
 ## Bounded Contexts
 
 - Event Intake: owns ingestion of raw event files and input validation.
@@ -157,18 +205,21 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
     assert!(system_context.contains("# System Context"));
     assert!(system_context.contains("finance-analyst (reads reports)"));
     assert!(!system_context.contains("## Missing Authored Body"));
+    assert!(!system_context.contains("## Decision Drivers"));
 
     let container_view =
         fs::read_to_string(artifact_dir.join("container-view.md")).expect("container-view.md");
     assert!(container_view.contains("# Container View"));
     assert!(container_view.contains("`analytics-cli` (single-binary Rust CLI)"));
     assert!(!container_view.contains("## Missing Authored Body"));
+    assert!(!container_view.contains("## Options Considered"));
 
     let component_view =
         fs::read_to_string(artifact_dir.join("component-view.md")).expect("component-view.md");
     assert!(component_view.contains("# Component View"));
     assert!(component_view.contains("`metrics-emitter` pushes counters to `metrics-sink`."));
     assert!(!component_view.contains("## Missing Authored Body"));
+    assert!(!component_view.contains("## Recommendation"));
 
     let context_map =
         fs::read_to_string(artifact_dir.join("context-map.md")).expect("context-map.md");

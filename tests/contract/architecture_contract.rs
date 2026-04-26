@@ -34,7 +34,7 @@ fn parse_run_id(output: &[u8]) -> String {
 }
 
 fn architecture_brief() -> &'static str {
-    "# Architecture Brief\n\nDecision focus: identify boundary ownership and tradeoffs for analysis-mode expansion.\nConstraint: preserve Canon runtime contracts, approvals, and evidence persistence.\n\n## Decision\nMake bounded contexts and context relationships first-class in architecture packets.\n\n## Options\n- Add a dedicated context map while keeping the existing C4 artifacts.\n- Force all domain boundary detail into `boundary-map.md`.\n\n## Constraints\n- Preserve approval semantics and publish destinations.\n- Keep non-target modes unchanged.\n\n## Candidate Boundaries\n- Runtime Governance\n- Artifact Authoring\n\n## Invariants\n- Run identity remains unchanged.\n- Evidence lineage remains reviewable.\n\n## Evaluation Criteria\n- Boundary clarity\n- Coupling visibility\n\n## Risks\n- Shared helpers may hide ownership boundaries.\n- Context crossings may look cleaner than they are.\n\n## Bounded Contexts\n- Runtime Governance: owns approvals, gate state, and evidence linkage.\n- Artifact Authoring: owns packet composition and authored-body fidelity.\n\n## Context Relationships\n- Artifact Authoring depends on Runtime Governance for gate outcomes and persisted artifact identity.\n\n## Integration Seams\n- Orchestrator service boundaries separate artifact generation from gate evaluation.\n\n## Anti-Corruption Candidates\n- A narrow renderer-facing contract should shield authored packet structure from orchestration internals.\n\n## Ownership Boundaries\n- Runtime Governance is owned by the execution and policy layer.\n- Artifact Authoring is owned by the markdown rendering and authored-body extraction layer.\n\n## Shared Invariants\n- Published artifacts remain traceable to one run id.\n- Approval-gated work cannot silently skip risk review.\n\n## System Context\n- System: `canon-engine` governs AI-assisted analysis packets for bounded engineering work.\n- External actors:\n  - architect-reviewer: inspects architecture packets and risk posture.\n  - copilot-cli-adapter: generates and critiques bounded packet content.\n\n## Containers\n- `canon-cli` (Rust CLI): starts runs and exposes inspect/approve/status flows.\n- `canon-engine` (Rust library): owns orchestration, gating, and artifact rendering.\n- `.canon/` (local filesystem runtime store): persists manifests, artifacts, and evidence.\n\n## Components\n- `mode_shaping`: drives `system-shaping` and `architecture` execution paths.\n- `gatekeeper`: evaluates gate readiness from artifact contracts and evidence.\n- `markdown renderer`: materializes reviewable markdown artifacts from authored inputs and AI outputs.\n"
+    "# Architecture Brief\n\nDecision focus: identify boundary ownership and tradeoffs for analysis-mode expansion.\nConstraint: preserve Canon runtime contracts, approvals, and evidence persistence.\n\n## Decision\nMake bounded contexts and context relationships first-class in architecture packets.\n\n## Options\n- Add a dedicated context map while keeping the existing C4 artifacts.\n- Force all domain boundary detail into `boundary-map.md`.\n\n## Constraints\n- Preserve approval semantics and publish destinations.\n- Keep non-target modes unchanged.\n\n## Candidate Boundaries\n- Runtime Governance\n- Artifact Authoring\n\n## Invariants\n- Run identity remains unchanged.\n- Evidence lineage remains reviewable.\n\n## Evaluation Criteria\n- Boundary clarity\n- Coupling visibility\n\n## Decision Drivers\n- Reviewers need the selected option and rationale without consulting chat history.\n- The packet must remain critique-first when authored context is weak.\n\n## Options Considered\n- Keep generic architecture summaries and accept the loss of rejected alternatives.\n- Preserve authored decision and option-analysis sections directly in the existing artifacts.\n\n## Pros\n- Reviewers can inspect the chosen and rejected options directly.\n- The packet remains reusable outside the originating conversation.\n\n## Cons\n- Authors must provide richer decision content up front.\n\n## Recommendation\nPreserve authored decision and option-analysis sections in the existing architecture decision artifacts.\n\n## Why Not The Others\n- The generic summary path hides rejected alternatives.\n- A brand new artifact family would widen scope and churn.\n\n## Risks\n- Shared helpers may hide ownership boundaries.\n- Context crossings may look cleaner than they are.\n\n## Bounded Contexts\n- Runtime Governance: owns approvals, gate state, and evidence linkage.\n- Artifact Authoring: owns packet composition and authored-body fidelity.\n\n## Context Relationships\n- Artifact Authoring depends on Runtime Governance for gate outcomes and persisted artifact identity.\n\n## Integration Seams\n- Orchestrator service boundaries separate artifact generation from gate evaluation.\n\n## Anti-Corruption Candidates\n- A narrow renderer-facing contract should shield authored packet structure from orchestration internals.\n\n## Ownership Boundaries\n- Runtime Governance is owned by the execution and policy layer.\n- Artifact Authoring is owned by the markdown rendering and authored-body extraction layer.\n\n## Shared Invariants\n- Published artifacts remain traceable to one run id.\n- Approval-gated work cannot silently skip risk review.\n\n## System Context\n- System: `canon-engine` governs AI-assisted analysis packets for bounded engineering work.\n- External actors:\n  - architect-reviewer: inspects architecture packets and risk posture.\n  - copilot-cli-adapter: generates and critiques bounded packet content.\n\n## Containers\n- `canon-cli` (Rust CLI): starts runs and exposes inspect/approve/status flows.\n- `canon-engine` (Rust library): owns orchestration, gating, and artifact rendering.\n- `.canon/` (local filesystem runtime store): persists manifests, artifacts, and evidence.\n\n## Components\n- `mode_shaping`: drives `system-shaping` and `architecture` execution paths.\n- `gatekeeper`: evaluates gate readiness from artifact contracts and evidence.\n- `markdown renderer`: materializes reviewable markdown artifacts from authored inputs and AI outputs.\n"
 }
 
 fn render_artifact(requirement: &ArtifactRequirement) -> String {
@@ -137,9 +137,34 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
         .expect("architecture decisions requirement");
     assert_eq!(
         decisions.required_sections,
-        vec!["Summary", "Decisions", "Tradeoffs", "Consequences", "Unresolved Questions"]
+        vec![
+            "Summary",
+            "Decision",
+            "Constraints",
+            "Decision Drivers",
+            "Recommendation",
+            "Consequences",
+        ]
     );
     assert_eq!(decisions.gates, vec![GateKind::Architecture, GateKind::Risk]);
+
+    let tradeoff_matrix = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "tradeoff-matrix.md")
+        .expect("tradeoff matrix requirement");
+    assert_eq!(
+        tradeoff_matrix.required_sections,
+        vec![
+            "Summary",
+            "Options Considered",
+            "Evaluation Criteria",
+            "Pros",
+            "Cons",
+            "Why Not The Others",
+        ]
+    );
+    assert_eq!(tradeoff_matrix.gates, vec![GateKind::Architecture, GateKind::Risk]);
 }
 
 #[test]

@@ -15,12 +15,15 @@ fn architecture_contract_includes_three_c4_artifacts_with_expected_gates() {
     };
 
     let system_context = by_name("system-context.md");
+    assert_eq!(system_context.required_sections, vec!["System Context"]);
     assert_eq!(system_context.gates, vec![GateKind::Architecture, GateKind::Exploration]);
 
     let container_view = by_name("container-view.md");
+    assert_eq!(container_view.required_sections, vec!["Containers"]);
     assert_eq!(container_view.gates, vec![GateKind::Architecture]);
 
     let component_view = by_name("component-view.md");
+    assert_eq!(component_view.required_sections, vec!["Components"]);
     assert_eq!(component_view.gates, vec![GateKind::Architecture, GateKind::ReleaseReadiness]);
 }
 
