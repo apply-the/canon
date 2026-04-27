@@ -52,7 +52,11 @@ fn init_repo(workspace: &TempDir) {
 }
 
 fn complete_brief() -> &'static str {
-    "# Migration Brief\n\nCurrent State: auth-v1 serves login and token refresh traffic.\nTarget State: auth-v2 serves the same bounded traffic surface.\nTransition Boundaries: login and token refresh only.\nGuaranteed Compatibility:\n- existing tokens continue to validate\nTemporary Incompatibilities:\n- admin reporting stays on v1 during the rollout\nCoexistence Rules:\n- dual-write session metadata during cutover\nOrdered Steps:\n- enable shadow reads\n- start dual-write\n- cut traffic to auth-v2\nParallelizable Work:\n- docs and dashboards can update in parallel\nCutover Criteria:\n- error rate and token validation remain stable\nRollback Triggers:\n- token validation failures or elevated login errors\nFallback Paths:\n- route bounded traffic back to auth-v1\nRe-Entry Criteria:\n- compatibility regressions are resolved and revalidated\nVerification Checks:\n- login and token validation pass against auth-v2\nResidual Risks:\n- admin reporting remains temporarily inconsistent\nRelease Readiness:\n- keep recommendation-only posture until the owner accepts the packet\nMigration Decisions:\n- retain dual-write during the bounded cutover\nDeferred Decisions:\n- move admin reporting after the bounded migration completes\nApproval Notes:\n- explicit migration-lead sign-off is required before broader rollout\n"
+    "# Migration Brief\n\n## Current State\n\n- auth-v1 serves login and token refresh traffic.\n\n## Target State\n\n- auth-v2 serves the same bounded traffic surface.\n\n## Transition Boundaries\n\n- login and token refresh only.\n\n## Guaranteed Compatibility\n\n- existing tokens continue to validate\n\n## Temporary Incompatibilities\n\n- admin reporting stays on v1 during the rollout\n\n## Coexistence Rules\n\n- dual-write session metadata during cutover\n\n## Ordered Steps\n\n1. enable shadow reads\n2. start dual-write\n3. cut traffic to auth-v2\n\n## Parallelizable Work\n\n- docs and dashboards can update in parallel\n\n## Cutover Criteria\n\n- error rate and token validation remain stable\n\n## Rollback Triggers\n\n- token validation failures or elevated login errors\n\n## Fallback Paths\n\n- route bounded traffic back to auth-v1\n\n## Re-Entry Criteria\n\n- compatibility regressions are resolved and revalidated\n\n## Verification Checks\n\n- login and token validation pass against auth-v2\n\n## Residual Risks\n\n- admin reporting remains temporarily inconsistent\n\n## Release Readiness\n\n- keep recommendation-only posture until the owner accepts the packet\n\n## Migration Decisions\n\n- retain dual-write during the bounded cutover\n\n## Deferred Decisions\n\n- move admin reporting after the bounded migration completes\n\n## Approval Notes\n\n- explicit migration-lead sign-off is required before broader rollout\n"
+}
+
+fn incomplete_brief() -> &'static str {
+    "# Migration Brief\n\n## Current State\n\n- auth-v1 serves login and token refresh traffic.\n\n## Target State\n\n- auth-v2 serves the same bounded traffic surface.\n\n## Fallback Paths\n\n- route bounded traffic back to auth-v1\n\n## Re-Entry Criteria\n\n- compatibility regressions are resolved and revalidated\n"
 }
 
 #[test]
@@ -104,6 +108,16 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
     assert!(artifact_root.join("compatibility-matrix.md").exists());
     assert!(artifact_root.join("fallback-plan.md").exists());
 
+    let fallback_plan =
+        fs::read_to_string(artifact_root.join("fallback-plan.md")).expect("fallback plan");
+    assert!(
+        fallback_plan.contains(
+            "## Rollback Triggers\n\n- token validation failures or elevated login errors"
+        )
+    );
+    assert!(fallback_plan.contains("## Fallback Paths\n\n- route bounded traffic back to auth-v1"));
+    assert!(!fallback_plan.contains("## Missing Authored Body"));
+
     cli_command()
         .current_dir(workspace.path())
         .args([
@@ -149,4 +163,49 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
             .join("source-target-map.md")
             .exists()
     );
+}
+
+#[test]
+fn run_migration_blocks_when_a_required_authored_section_is_missing() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_repo(&workspace);
+    fs::write(workspace.path().join("migration.md"), incomplete_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "migration",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "migration-lead",
+            "--input",
+            "migration.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(2)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let artifact_root =
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("migration");
+
+    assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["blocking_classification"], "artifact-blocked");
+
+    let fallback_plan =
+        fs::read_to_string(artifact_root.join("fallback-plan.md")).expect("fallback plan");
+    assert!(fallback_plan.contains("## Missing Authored Body"));
+    assert!(fallback_plan.contains("`## Rollback Triggers`"));
 }

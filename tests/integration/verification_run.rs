@@ -20,11 +20,11 @@ fn cli_command() -> Command {
 }
 
 fn ready_verification_brief() -> &'static str {
-    "# Verification Brief\n\n## Claims Under Test\n- rollback remains bounded and auditable\n- operator evidence remains tied to the rollback boundary\n\n## Evidence Basis\n- current contract notes\n- repository checks\n- operator logs\n\n## Contract Surface\n- rollback metadata must remain explicit\n\n## Risk Boundary\n- contradictions or missing evidence on rollback scope should block readiness\n"
+    "# Verification Brief\n\n## Claims Under Test\n\n- rollback remains bounded and auditable\n- operator evidence remains tied to the rollback boundary\n\n## Invariant Checks\n\n- rollback metadata remains explicit during the bounded flow\n\n## Contract Assumptions\n\n- rollback metadata must remain explicit\n\n## Verification Outcome\n\nStatus: supported\n\n## Challenge Findings\n\n- no additional challenge findings remain beyond the authored packet\n\n## Contradictions\n\n- none recorded\n\n## Verified Claims\n\n- rollback remains bounded and auditable\n- operator evidence remains tied to the rollback boundary\n\n## Rejected Claims\n\n- none recorded\n\n## Overall Verdict\n\nStatus: supported\n\nRationale: the current evidence covers the authored claim set.\n\n## Open Findings\n\nStatus: no-open-findings\n\n- No unresolved findings remain from the current verification packet.\n\n## Required Follow-Up\n\n- Keep the verification packet attached to downstream release review.\n"
 }
 
 fn blocked_verification_brief() -> &'static str {
-    "# Verification Brief\n\n## Claims Under Test\n- the rollback guarantee is fully proven without any additional evidence\n- an unresolved contradiction remains between the authored claim and the runtime contract\n\n## Evidence Basis\n- an unsupported rollback guarantee still lacks concrete proof\n\n## Contract Surface\n- rollback metadata must remain explicit\n\n## Challenge Focus\n- look for contradictions between the rollback claim and the runtime contract\n- look for missing proof in operator evidence\n"
+    "# Verification Brief\n\n## Claims Under Test\n\n- the rollback guarantee is fully proven without any additional evidence\n- an unresolved contradiction remains between the authored claim and the runtime contract\n\n## Invariant Checks\n\n- the broadest rollback guarantee still needs contradiction review\n\n## Contract Assumptions\n\n- rollback metadata must remain explicit\n\n## Verification Outcome\n\nStatus: unsupported\n\n## Challenge Findings\n\n- look for contradictions between the rollback claim and the runtime contract\n- look for missing proof in operator evidence\n\n## Contradictions\n\n- an unsupported rollback guarantee still lacks concrete proof\n\n## Verified Claims\n\n- rollback metadata remains explicit\n\n## Rejected Claims\n\n- the rollback guarantee is not yet supported by concrete proof\n\n## Overall Verdict\n\nStatus: unsupported\n\nRationale: unresolved contradictions remain against the authored claim set.\n\n## Open Findings\n\nStatus: unresolved-findings-open\n\n- resolve the contradiction before treating the packet as supported.\n\n## Required Follow-Up\n\n- look for contradictions between the rollback claim and the runtime contract\n- look for missing proof in operator evidence\n"
 }
 
 #[test]
@@ -85,10 +85,11 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
     assert!(report.contains("Status: supported"));
     assert!(report.contains("- rollback remains bounded and auditable"));
     assert!(contract.contains("rollback metadata must remain explicit"));
-    assert!(adversarial.contains("Validation fell back to local workspace scan"));
-    assert!(adversarial.contains("Fallback surfaces: verification.md"));
+    assert!(
+        adversarial.contains("no additional challenge findings remain beyond the authored packet")
+    );
     assert!(unresolved.contains("Status: no-open-findings"));
-    assert!(!report.contains("Challenge the verification packet for claim support strength"));
+    assert!(!report.contains("## Missing Authored Body"));
 
     let inspect_output = cli_command()
         .current_dir(workspace.path())
@@ -188,7 +189,6 @@ fn run_verification_surfaces_blocked_readiness_for_unresolved_findings() {
     let unresolved = fs::read_to_string(artifact_root.join("unresolved-findings.md"))
         .expect("unresolved findings artifact");
     assert!(report.contains("Status: unsupported"));
-    assert!(report.contains("Still unsupported from the current packet"));
     assert!(report.contains("Rationale:"));
     assert!(contract.contains("rollback metadata must remain explicit"));
     assert!(unresolved.contains("Status: unresolved-findings-open"));
@@ -197,7 +197,6 @@ fn run_verification_surfaces_blocked_readiness_for_unresolved_findings() {
             "look for contradictions between the rollback claim and the runtime contract"
         )
     );
-    assert!(!report.contains("Challenge the verification packet for claim support strength"));
 
     let inspect_output = cli_command()
         .current_dir(workspace.path())

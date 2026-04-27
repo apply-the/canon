@@ -1091,7 +1091,10 @@ fn summarize_verification_mode_result(
     );
     let open_finding_count = count_context_items_without_placeholders(
         &open_findings,
-        &["No unresolved findings remain from the current verification target."],
+        &[
+            "No unresolved findings remain from the current verification target.",
+            "No unresolved findings remain from the current verification packet.",
+        ],
     );
 
     let headline = if missing_context_markers == 0 {
@@ -1398,5 +1401,55 @@ mod tests {
             .expect("migration summary should exist once the operational mode is implemented");
         assert!(migration_summary.headline.to_ascii_lowercase().contains("migration"));
         assert_eq!(migration_summary.execution_posture.as_deref(), Some("recommendation-only"));
+    }
+
+    #[test]
+    fn summarize_review_mode_result_covers_explicit_approval_branch() {
+        let artifacts = vec![
+            make_artifact(
+                "review-disposition.md",
+                "## Summary\nDisposition recorded.\n\n## Final Disposition\n\nStatus: accepted-with-approval\n\nRationale: the remaining concern is accepted under explicit reviewer approval.\n\n## Accepted Risks\n\n- residual review note",
+            ),
+            make_artifact(
+                "boundary-assessment.md",
+                "## Summary\nBoundary review recorded.\n\n## Boundary Findings\n\n- shared DTO drift\n\n## Ownership Notes\n\n- reviewer owns follow-up",
+            ),
+            make_artifact(
+                "missing-evidence.md",
+                "## Summary\nEvidence gaps recorded.\n\n## Missing Evidence\n\n- production trace sample\n\n## Collection Priorities\n\n- capture one bounded trace",
+            ),
+        ];
+
+        let summary =
+            summarize_mode_result(Mode::Review, &artifacts).expect("review summary should exist");
+
+        assert!(summary.headline.contains("explicit approval"));
+        assert!(summary.artifact_packet_summary.contains("accepted-risk or review-note"));
+        assert_eq!(summary.primary_artifact_title, "Review Disposition");
+    }
+
+    #[test]
+    fn summarize_verification_mode_result_covers_unresolved_findings_branch() {
+        let artifacts = vec![
+            make_artifact(
+                "verification-report.md",
+                "## Summary\nVerification completed.\n\n## Verified Claims\n\n- auth rollback remains bounded\n\n## Rejected Claims\n\n- none\n\n## Overall Verdict\n\nStatus: supported\n\nRationale: the current packet covers the bounded claim set.",
+            ),
+            make_artifact(
+                "unresolved-findings.md",
+                "## Summary\nFollow-up required.\n\n## Open Findings\n\nStatus: unresolved-findings-open\n\n- missing failure-mode probe\n\n## Required Follow-Up\n\n- add the missing probe before release readiness passes",
+            ),
+            make_artifact(
+                "invariants-checklist.md",
+                "## Summary\nClaims recorded.\n\n## Claims Under Test\n\n- auth rollback remains bounded\n\n## Invariant Checks\n\n- replay path remains auditable",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::Verification, &artifacts)
+            .expect("verification summary should exist");
+
+        assert!(summary.headline.contains("unresolved finding"));
+        assert!(summary.artifact_packet_summary.contains("unresolved finding set"));
+        assert_eq!(summary.primary_artifact_title, "Verification Report");
     }
 }
