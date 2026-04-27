@@ -1,5 +1,8 @@
 # Requirements Brief: API v2
 
+_Authored as a product lead for stakeholders deciding whether API v2 should
+proceed as a bounded slice._
+
 ## Problem
 API v1 relies on a legacy XML payload structure and tight REST coupling that prevents efficient mass data operations. Partners are building their own middleware scrapers because our endpoints require 10+ round trips to assemble a single customer order profile. We need to define the V2 boundary before we begin the implementation.
 

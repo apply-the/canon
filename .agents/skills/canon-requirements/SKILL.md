@@ -143,6 +143,19 @@ Mapping rules:
 - Keep the PRD focused on this run's bounded scope; do not expand it into a
   product roadmap or a long-term vision document.
 
+### Authoring Persona
+
+Author the packet as a product lead writing a bounded PRD for the people who
+must decide whether to proceed with this slice.
+
+- Favor product-facing language about problem, outcomes, users or
+	stakeholders, scope, success criteria, dependencies, and open decisions.
+- Keep the packet tightly bounded to the current run; do not drift into a
+	roadmap, implementation plan, or long-term vision memo.
+- Persona guidance is presentation only. If the source is missing a required
+	section, keep the gap explicit or let Canon emit `## Missing Authored Body`;
+	never invent missing PRD content just to make the packet sound complete.
+
 ### Generation Loop
 
 1. Read the authored input surface and extract the bounded problem, scope cuts,
