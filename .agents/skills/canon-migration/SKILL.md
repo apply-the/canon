@@ -86,7 +86,7 @@ Do this every time, even when the user only handed you a short rollout note:
 	 - `## Approval Notes`
 3. Each section MUST be specific to the bounded migration surface you actually read. Boilerplate rollout text or vague coexistence claims are a failure.
 4. Keep the packet recommendation-only. Do NOT imply Canon will execute cutover, rollback, or deployment steps on the user's behalf.
-5. Then invoke Canon. Canon will preserve the authored sections into the migration packet, surface missing-context markers honestly, and gate the result through exploration, architecture, migration-safety, risk, and readiness checks.
+5. Then invoke Canon. Canon will preserve the authored sections into the migration packet, surface missing-context markers honestly, emit the exact `## Missing Authored Body` marker when required sections are absent, and gate the result through exploration, architecture, migration-safety, risk, and readiness checks.
 
 If you cannot author a credible migration body because compatibility or fallback is still too vague, say so directly and redirect to `$canon-architecture`, `$canon-system-shaping`, or `$canon-change` instead of submitting an empty brief.
 

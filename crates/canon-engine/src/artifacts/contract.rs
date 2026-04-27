@@ -462,7 +462,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "unresolved-findings.md",
-                &["Summary", "Open Findings", "Required Follow-up"],
+                &["Summary", "Open Findings", "Required Follow-Up"],
                 &[GateKind::ReleaseReadiness],
             ),
         ],
@@ -603,5 +603,59 @@ fn requirement(
         format: ArtifactFormat::Markdown,
         required_sections: required_sections.iter().map(ToString::to_string).collect(),
         gates: gates.to_vec(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_artifact_requires_exact_h2_headings() {
+        let requirement = requirement("task-mapping.md", &["Task Mapping"], &[]);
+
+        let blockers = validate_artifact(
+            &requirement,
+            "# Implementation Brief\n\n### Task Mapping\n\n- this should not satisfy the contract\n",
+        );
+
+        assert_eq!(
+            blockers,
+            vec!["task-mapping.md is missing required section `Task Mapping`".to_string()]
+        );
+    }
+
+    #[test]
+    fn validate_release_bundle_reports_missing_artifacts_and_sections() {
+        let contract = ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![
+                requirement("task-mapping.md", &["Task Mapping"], &[]),
+                requirement("mutation-bounds.md", &["Mutation Bounds"], &[]),
+            ],
+            required_verification_layers: vec![VerificationLayer::SelfCritique],
+        };
+
+        let blockers = validate_release_bundle(
+            &contract,
+            &[("task-mapping.md".to_string(), "## Task Mapping\n\n- bounded slice\n".to_string())],
+        );
+
+        assert!(blockers.contains(&"missing required artifact `mutation-bounds.md`".to_string()));
+
+        let blockers = validate_release_bundle(
+            &contract,
+            &[
+                ("task-mapping.md".to_string(), "## Task Mapping\n\n- bounded slice\n".to_string()),
+                (
+                    "mutation-bounds.md".to_string(),
+                    "## Summary\n\nmissing the canonical heading\n".to_string(),
+                ),
+            ],
+        );
+
+        assert!(blockers.contains(
+            &"mutation-bounds.md is missing required section `Mutation Bounds`".to_string()
+        ));
     }
 }

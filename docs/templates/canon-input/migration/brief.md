@@ -29,6 +29,15 @@
 ## Cutover Criteria
 [What metrics, states, or logs must be met before fully switching traffic or logic to the target state?]
 
+## Rollback Triggers
+[What concrete signals should trigger fallback or rollback?]
+
+## Fallback Paths
+[What bounded fallback paths remain credible if the cutover regresses?]
+
+## Re-Entry Criteria
+[What must be true before re-attempting the migration after fallback?]
+
 ## Verification Checks
 [What will confirm that the new state operates correctly and within bounds?]
 

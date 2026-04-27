@@ -6,6 +6,9 @@ publish = false
 rust-version.workspace = true
 version.workspace = true
 
+[lib]
+test = false
+
 [workspace]
 members = [
     "crates/canon-cli",
@@ -18,7 +21,7 @@ resolver = "2"
 edition = "2024"
 license = "MIT"
 rust-version = "1.95.0"
-version = "0.19.0"
+version = "0.20.0"
 
 [workspace.dependencies]
 assert_cmd = "2"

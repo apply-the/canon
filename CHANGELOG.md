@@ -19,11 +19,30 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.19.0`
+- None recorded after `0.20.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.19.0`.
+- No additional released feature-spec delivery is recorded after `0.20.0`.
+
+## [0.20.0] - 2026-04-26
+
+Delivered specs:
+
+- `020` - Authoring Specialization Completion
+
+Highlights:
+
+- Extend the canonical authored H2 contract to `review`, `verification`,
+  `incident`, and `migration` across skills, templates, worked examples,
+  renderers, contract tests, run fixtures, and release guidance.
+- Preserve authored sections verbatim across the remaining targeted packet
+  artifacts and emit explicit `## Missing Authored Body` markers when a
+  required canonical heading is absent or near-missed.
+- Keep `review` disposition gating explicit, keep `verification` blocked on
+  unsupported or unresolved findings, and keep `incident` plus `migration`
+  recommendation-only while still publishing readable blocked or approval-gated
+  packets.
 
 ## [0.19.0] - 2026-04-26
 

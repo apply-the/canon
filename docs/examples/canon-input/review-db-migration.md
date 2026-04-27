@@ -1,20 +1,53 @@
 # Review Brief: DB Migration (V4.1)
 
-Review Target: The proposed zero-downtime database migration strategy for splitting `user_accounts` into `users` and `credentials`.
-Evidence Basis: The migration scripts in `db/migrations/2026_v4_1_split.sql`, the integration test `tests/auth_migration_test.rs`, and the attached architectural decision record on schema dual-writes.
-Owner: platform-dba
-Boundary Concern: The identity service cannot afford a data integrity failure or downtime during the backfill phase. A missed record means a locked-out enterprise customer. 
-Pending Decision: The decision this review is expected to accept or defer: Are the dual-write transactions race-condition proof, and does the rollback script successfully revert exactly to the V4.0 state without data loss?
-Open Concern: The backfill query speed against 10M rows might lock the `user_accounts` table despite the `CONCURRENTLY` index builds and chunking logic. Performance monitoring and chunk sizing remain unproven in production.
+## Review Target
 
-## In Scope Artifacts
+- The proposed zero-downtime database migration strategy for splitting `user_accounts` into `users` and `credentials`.
+
+## Evidence Basis
+
 - `db/migrations/2026_v4_1_split.sql`
 - `db/migrations/2026_v4_1_split_down.sql`
 - `tests/auth_migration_test.rs`
+- the architectural decision record on schema dual-writes
 
-## Acceptance Question
-- Is this zero-downtime migration plan safe to execute in the production cluster tonight?
+## Boundary Findings
 
-## Out of Scope
-- Actually executing the migration or monitoring it; this is pure plan review.
-- Application-level changes to the new `credentials` table schemas beyond the migration definitions.
+- The identity service cannot tolerate data loss or downtime during the backfill phase.
+- A missed record would lock out enterprise customers immediately.
+
+## Ownership Notes
+
+- `platform-dba` owns production acceptance together with the identity service owner.
+
+## Missing Evidence
+
+Status: missing-evidence-open
+
+- The backfill query speed against 10M rows is still unproven in production-like conditions.
+- The rollback rehearsal has not yet demonstrated a clean return to the V4.0 schema without data loss.
+
+## Collection Priorities
+
+- Run a production-like backfill load test with the current chunking strategy.
+- Capture a rollback rehearsal proving the down migration restores V4.0 exactly.
+
+## Decision Impact
+
+- If the packet is accepted, tonight's production migration can proceed under the documented dual-write plan.
+- If the packet remains open, the release should hold until rollback credibility and chunk sizing evidence exist.
+
+## Reversibility Concerns
+
+- The migration is only reversible if the rollback script is proven against a populated dataset.
+- Metric drift during dual-write is acceptable only while the rollback window remains credible.
+
+## Final Disposition
+
+Status: awaiting-disposition
+
+Rationale: the packet is close to acceptable, but explicit disposition should wait for rollback rehearsal evidence and production-like backfill proof.
+
+## Accepted Risks
+
+- Temporary metrics skew during the dual-write window may be accepted if the rollback rehearsal passes.
