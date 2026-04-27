@@ -62,87 +62,32 @@ Optional:
 - Canon command: `canon run --mode review --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any `gate:review-disposition` target Canon emits.
 
-## AI Companion Operating Model
+## Author Review Body Before Invoking Canon
 
-After preflight succeeds and the real Canon run exists, the assistant is
-responsible for turning the review packet from templated stubs into a
-grounded, reviewable artifact set.
+Canon does not invent the review body for you. Canon governs, validates, and
+persists the packet. You (the assistant) MUST author the real review content
+from the bounded source material BEFORE calling `canon run --mode review`.
 
-### Run Boundary
+Do this every time, even when the user only handed you a short approval note:
 
-- Read the full authored review packet before generation. If the input is the directory `canon-input/review/`, treat the directory as one authored packet and read it recursively before generation.
-- Start the real Canon run before artifact writing so `.canon/artifacts/<RUN_ID>/review/` exists and the packet stays attached to a real run id.
-- Treat authored inputs under `canon-input/` as read-only source material. Do not rewrite, normalize, append to, or otherwise modify the user's input files during preflight, clarification, generation, critique, or summary.
-- Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/review/`.
-- Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.
+1. Read the source inputs the user pointed at. Identify the actual packet under review, the evidence already in scope, the boundary or ownership concerns, the decision impact, and the missing evidence that still matters. Do not guess.
+2. If the packet is materially ambiguous, ask targeted clarification questions before writing the review brief rather than inventing content.
+3. Compose the authored review packet at `canon-input/review.md` or inside `canon-input/review/`. The authored packet MUST include all of the following H2 sections, populated with concrete content tied to the source you just read:
+   - `## Review Target`
+   - `## Evidence Basis`
+   - `## Boundary Findings`
+   - `## Ownership Notes`
+   - `## Missing Evidence`
+   - `## Collection Priorities`
+   - `## Decision Impact`
+   - `## Reversibility Concerns`
+   - `## Final Disposition`
+   - `## Accepted Risks`
+4. Keep gate-critical status lines inside the authored sections when they apply. For example, `Status: missing-evidence-open` belongs in `## Missing Evidence`, and `Status: awaiting-disposition` belongs in `## Final Disposition`.
+5. Keep the packet review-focused and packet-backed. Do NOT turn it into a diff review, implementation plan, or speculative design memo.
+6. Then invoke Canon. Canon will preserve the authored sections into the review packet, emit `## Missing Authored Body` when a required heading is absent, and keep `gate:review-disposition` honest instead of fabricating acceptance.
 
-### Generation Loop
-
-1. Read the authored review packet and extract the proposal under review, the explicit acceptance criteria or rubric, dependencies, and the explicit open questions already present in the packet.
-2. Start the Canon run and inspect the generated review stubs under `.canon/artifacts/<RUN_ID>/review/`.
-3. If the packet is sufficient, generate the review directly. If it is structurally sufficient but materially ambiguous, run the clarification loop before final generation.
-4. Draft each finding, verdict, and recommendation so it is grounded in the authored packet, in an explicit user clarification, or in a clearly marked open question.
-5. Run a critique pass against the draft review that challenges uncritical acceptance, missing acceptance-criteria coverage, unstated assumptions, and unsupported review verdicts.
-6. Overwrite the templated stubs with the revised review packet and write the provenance sidecar.
-
-### Clarification Loop
-
-When the authored packet is structurally present but materially ambiguous on
-points that would force the assistant to invent content, ask targeted
-clarification questions before generation rather than papering over the gap.
-
-#### Question Granularity Rules
-
-- One question per question. Never bundle multiple decisions into a single prompt with `and`, `or`, or comma-separated sub-questions.
-- Each question must isolate exactly one decision the user can answer with one short response.
-- If a topic naturally needs several decisions, split it into separate atomic questions and label them as a short series.
-- Prefer fixed-choice options when the answer space is small and known.
-
-#### Question Format (mandatory)
-
-Each question must follow this shape:
-
-```
-- Question: <one-sentence question>
-  - Affects: <artifact or section it changes>
-  - Why it matters: <one short line on what changes if unanswered>
-  - Context: <≤2 lines from authored input, or `no input coverage`>
-  - Options:
-    a) <concrete option>
-    b) <concrete option>
-    c) <concrete option>
-    d) Other (free-form)
-  - Default if skipped: <explicit default>
-  - Status: Required | Optional
-```
-
-#### Use Host UI Affordances When Available
-
-- When the host surface supports rich question UI (selectable options, secondary text, tooltips, hover hints), put the `Question` line as the main prompt and surface `Why it matters` and `Context` as secondary or tooltip text rather than dumping the full block inline.
-- Keep the visible question short, ideally under ~100 characters; move background, citations, and rationale into the secondary or tooltip slot.
-- Fall back to the plain bulleted block above only when the host has no rich question UI or when the user explicitly asks for it inline.
-
-#### Batch Size
-
-- Ask 3 to 5 questions per round, never more than 7. If more questions exist, defer the lower-impact ones to a later round.
-
-#### Interaction Loop
-
-- Ask the batch.
-- Wait for user answers.
-- Apply answers, regenerate the affected sections, and surface any remaining open questions still required to finish the packet.
-- Stop the loop when no Required question is unanswered.
-
-#### Provenance Sidecar
-
-Write `.canon/artifacts/<RUN_ID>/review/ai-provenance.md` describing how the
-review packet was produced. It must include:
-
-- The authored input files that were read.
-- The clarification questions that were asked, the user answers received, and any defaults that were applied because the user skipped or deferred a question.
-- A `Clarification Loop` section with: number of questions presented, number of Required questions answered, number of Required questions left unresolved, number of Optional questions answered or deferred, and the number of substantive clarifications that drove material changes per artifact section.
-- The critique findings that were addressed and any that were intentionally deferred.
-- The generation model or assistant identity that produced the artifact set.
+If you cannot author a credible review body because the user really has a diff, worktree, or an unbounded proposal rather than a review packet, say so directly and redirect to `$canon-pr-review` or an upstream planning mode instead of submitting an empty packet.
 
 ## Expected Output Shape
 

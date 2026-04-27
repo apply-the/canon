@@ -52,7 +52,11 @@ fn init_repo(workspace: &TempDir) {
 }
 
 fn complete_brief() -> &'static str {
-    "# Incident Brief\n\nIncident Scope: payments-api and checkout flow only.\nTrigger And Current State: elevated 5xx responses after the last deploy.\nOperational Constraints: no autonomous remediation and no schema changes.\nKnown Facts:\n- errors started after the deploy\n- rollback remains available\nWorking Hypotheses:\n- retry amplification is exhausting the service\nEvidence Gaps:\n- database saturation is not yet confirmed\nImpacted Surfaces:\n- payments-api\n- checkout flow\nPropagation Paths:\n- checkout request path\nConfidence And Unknowns:\n- medium confidence until saturation evidence is collected\nImmediate Actions:\n- disable async retries\nOrdered Sequence:\n- capture blast radius\n- disable retries\n- reassess error rate\nStop Conditions:\n- error rate stabilizes below the alert threshold\nDecision Points:\n- decide whether rollback is still required\nApproved Actions:\n- disable retries within the bounded surface\nDeferred Actions:\n- schema-level changes remain out of scope\nVerification Checks:\n- confirm 5xx rate drops\nRelease Readiness:\n- keep recommendation-only posture until the owner accepts the packet\nFollow-Up Work:\n- add a saturation dashboard and post-incident review item\n"
+    "# Incident Brief\n\n## Incident Scope\n\n- payments-api and checkout flow only.\n\n## Trigger And Current State\n\n- elevated 5xx responses after the last deploy.\n\n## Operational Constraints\n\n- no autonomous remediation\n- no schema changes\n\n## Known Facts\n\n- errors started after the deploy\n- rollback remains available\n\n## Working Hypotheses\n\n- retry amplification is exhausting the service\n\n## Evidence Gaps\n\n- database saturation is not yet confirmed\n\n## Impacted Surfaces\n\n- payments-api\n- checkout flow\n\n## Propagation Paths\n\n- checkout request path\n\n## Confidence And Unknowns\n\n- medium confidence until saturation evidence is collected\n\n## Immediate Actions\n\n- disable async retries\n\n## Ordered Sequence\n\n1. capture blast radius\n2. disable retries\n3. reassess error rate\n\n## Stop Conditions\n\n- error rate stabilizes below the alert threshold\n\n## Decision Points\n\n- decide whether rollback is still required\n\n## Approved Actions\n\n- disable retries within the bounded surface\n\n## Deferred Actions\n\n- schema-level changes remain out of scope\n\n## Verification Checks\n\n- confirm 5xx rate drops\n\n## Release Readiness\n\n- keep recommendation-only posture until the owner accepts the packet\n\n## Follow-Up Work\n\n- add a saturation dashboard and post-incident review item\n"
+}
+
+fn incomplete_brief() -> &'static str {
+    "# Incident Brief\n\n## Incident Scope\n\n- payments-api and checkout flow only.\n\n## Trigger And Current State\n\n- elevated 5xx responses after the last deploy.\n\n## Operational Constraints\n\n- no autonomous remediation\n\n## Immediate Actions\n\n- disable async retries\n\n## Ordered Sequence\n\n1. capture blast radius\n2. disable retries\n"
 }
 
 #[test]
@@ -104,6 +108,15 @@ fn run_incident_emits_a_governed_containment_packet_and_publishes_after_risk_app
     assert!(artifact_root.join("containment-plan.md").exists());
     assert!(artifact_root.join("follow-up-verification.md").exists());
 
+    let containment_plan =
+        fs::read_to_string(artifact_root.join("containment-plan.md")).expect("containment plan");
+    assert!(containment_plan.contains("## Immediate Actions\n\n- disable async retries"));
+    assert!(
+        containment_plan
+            .contains("## Stop Conditions\n\n- error rate stabilizes below the alert threshold")
+    );
+    assert!(!containment_plan.contains("## Missing Authored Body"));
+
     cli_command()
         .current_dir(workspace.path())
         .args([
@@ -150,4 +163,49 @@ fn run_incident_emits_a_governed_containment_packet_and_publishes_after_risk_app
             .join("incident-frame.md")
             .exists()
     );
+}
+
+#[test]
+fn run_incident_blocks_when_a_required_authored_section_is_missing() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_repo(&workspace);
+    fs::write(workspace.path().join("incident.md"), incomplete_brief()).expect("brief file");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "incident",
+            "--system-context",
+            "existing",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "incident-commander",
+            "--input",
+            "incident.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .code(2)
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let artifact_root =
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("incident");
+
+    assert_eq!(json["state"], "Blocked");
+    assert_eq!(json["blocking_classification"], "artifact-blocked");
+
+    let containment_plan =
+        fs::read_to_string(artifact_root.join("containment-plan.md")).expect("containment plan");
+    assert!(containment_plan.contains("## Missing Authored Body"));
+    assert!(containment_plan.contains("`## Stop Conditions`"));
 }

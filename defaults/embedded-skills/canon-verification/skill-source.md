@@ -61,87 +61,34 @@ Optional:
 - Canon command: `canon run --mode verification --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any blocked readiness finding Canon emits.
 
-## AI Companion Operating Model
+## Author Verification Body Before Invoking Canon
 
-After preflight succeeds and the real Canon run exists, the assistant is
-responsible for turning the verification packet from templated stubs into a
-grounded, reviewable artifact set.
+Canon does not invent the verification body for you. Canon governs, validates,
+and persists the packet. You (the assistant) MUST author the real verification
+content from the bounded source material BEFORE calling
+`canon run --mode verification`.
 
-### Run Boundary
+Do this every time, even when the user only handed you a short challenge note:
 
-- Read the full authored challenge packet before generation. If the input is the directory `canon-input/verification/`, treat the directory as one authored packet and read it recursively before generation.
-- Start the real Canon run before artifact writing so `.canon/artifacts/<RUN_ID>/verification/` exists and the packet stays attached to a real run id.
-- Treat authored inputs under `canon-input/` as read-only source material. Do not rewrite, normalize, append to, or otherwise modify the user's input files during preflight, clarification, generation, critique, or summary.
-- Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/verification/`.
-- Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.
+1. Read the source inputs the user pointed at. Identify the actual claims under test, the invariants and contract assumptions that matter, the strongest contradictions, the currently supported or rejected claims, and any unresolved follow-up. Do not guess.
+2. If the packet is materially ambiguous, ask targeted clarification questions before writing the verification brief rather than inventing content.
+3. Compose the authored verification packet at `canon-input/verification.md` or inside `canon-input/verification/`. The authored packet MUST include all of the following H2 sections, populated with concrete content tied to the source you just read:
+   - `## Claims Under Test`
+   - `## Invariant Checks`
+   - `## Contract Assumptions`
+   - `## Verification Outcome`
+   - `## Challenge Findings`
+   - `## Contradictions`
+   - `## Verified Claims`
+   - `## Rejected Claims`
+   - `## Overall Verdict`
+   - `## Open Findings`
+   - `## Required Follow-Up`
+4. Keep gate-critical status lines inside the authored sections when they apply. For example, `Status: unsupported` belongs in `## Overall Verdict`, and `Status: unresolved-findings-open` belongs in `## Open Findings`.
+5. Keep the packet challenge-focused. Do NOT turn it into a generic review memo, a diff review, or a speculative remediation plan.
+6. Then invoke Canon. Canon will preserve the authored sections into the verification packet, emit `## Missing Authored Body` when a required heading is absent, and keep unsupported or unresolved packets honestly blocked instead of fabricating confidence.
 
-### Generation Loop
-
-1. Read the authored challenge packet and extract the claims, invariants, contracts, or evidence to be challenged, the supporting evidence already cited, the threat model or failure modes, and the explicit open questions already present in the source.
-2. Start the Canon run and inspect the generated verification stubs under `.canon/artifacts/<RUN_ID>/verification/`.
-3. If the packet is sufficient, generate the verification directly. If it is structurally sufficient but materially ambiguous, run the clarification loop before final generation.
-4. Draft each verdict, counterexample, and unresolved finding so it is grounded in the authored packet, in an explicit user clarification, or in a clearly marked open question.
-5. Run a critique pass that challenges unjustified verification verdicts, missed counterexamples, unstated dependence on prior assumptions, and silent acceptance of evidence gaps.
-6. Overwrite the templated stubs with the revised verification packet and write the provenance sidecar.
-
-### Clarification Loop
-
-When the authored packet is structurally present but materially ambiguous on
-points that would force the assistant to invent content, ask targeted
-clarification questions before generation rather than papering over the gap.
-
-#### Question Granularity Rules
-
-- One question per question. Never bundle multiple decisions into a single prompt with `and`, `or`, or comma-separated sub-questions.
-- Each question must isolate exactly one decision the user can answer with one short response.
-- If a topic naturally needs several decisions, split it into separate atomic questions and label them as a short series.
-- Prefer fixed-choice options when the answer space is small and known.
-
-#### Question Format (mandatory)
-
-Each question must follow this shape:
-
-```
-- Question: <one-sentence question>
-  - Affects: <artifact or section it changes>
-  - Why it matters: <one short line on what changes if unanswered>
-  - Context: <≤2 lines from authored input, or `no input coverage`>
-  - Options:
-    a) <concrete option>
-    b) <concrete option>
-    c) <concrete option>
-    d) Other (free-form)
-  - Default if skipped: <explicit default>
-  - Status: Required | Optional
-```
-
-#### Use Host UI Affordances When Available
-
-- When the host surface supports rich question UI (selectable options, secondary text, tooltips, hover hints), put the `Question` line as the main prompt and surface `Why it matters` and `Context` as secondary or tooltip text rather than dumping the full block inline.
-- Keep the visible question short, ideally under ~100 characters; move background, citations, and rationale into the secondary or tooltip slot.
-- Fall back to the plain bulleted block above only when the host has no rich question UI or when the user explicitly asks for it inline.
-
-#### Batch Size
-
-- Ask 3 to 5 questions per round, never more than 7. If more questions exist, defer the lower-impact ones to a later round.
-
-#### Interaction Loop
-
-- Ask the batch.
-- Wait for user answers.
-- Apply answers, regenerate the affected sections, and surface any remaining open questions still required to finish the packet.
-- Stop the loop when no Required question is unanswered.
-
-#### Provenance Sidecar
-
-Write `.canon/artifacts/<RUN_ID>/verification/ai-provenance.md` describing how
-the verification packet was produced. It must include:
-
-- The authored input files that were read.
-- The clarification questions that were asked, the user answers received, and any defaults that were applied because the user skipped or deferred a question.
-- A `Clarification Loop` section with: number of questions presented, number of Required questions answered, number of Required questions left unresolved, number of Optional questions answered or deferred, and the number of substantive clarifications that drove material changes per artifact section.
-- The critique findings that were addressed and any that were intentionally deferred.
-- The generation model or assistant identity that produced the artifact set.
+If you cannot author a credible verification body because the source is really a generic review packet, a diff/worktree review, or an unbounded claim set, say so directly and redirect to `$canon-review`, `$canon-pr-review`, or an upstream planning mode instead of submitting an empty packet.
 
 ## Expected Output Shape
 

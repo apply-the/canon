@@ -34,6 +34,18 @@ login endpoint and token signing only. Background syncing stays in the monolith.
 - auth-v2 signatures are validated 100% correctly by endpoints during the shadow phase
 - p99 latency does not increase beyond 100ms
 
+## Rollback Triggers
+- signature verification failures exceed the agreed error budget during shadow traffic
+- login success rate regresses for older mobile clients after load balancer cutover
+
+## Fallback Paths
+- return login traffic to auth-v1 while keeping auth-v2 shadow writes enabled for diagnosis
+- stop new token generation on auth-v2 and resume auth-v1 signing immediately
+
+## Re-Entry Criteria
+- auth-v2 signature validation passes on sampled traffic with no mobile-client regressions
+- the on-call owner confirms the fallback cause is understood and bounded
+
 ## Verification Checks
 - manual QA login testing across web and mobile
 - compare error metrics on `POST /login`

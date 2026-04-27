@@ -21,11 +21,11 @@ fn cli_command() -> Command {
 }
 
 fn ready_review_brief() -> &'static str {
-    "# Review Brief\n\nReview Target: bounded service boundary package.\nEvidence Basis: owned interfaces, current tests, and rollback notes.\nOwner: reviewer\n"
+    "# Review Brief\n\n## Review Target\n\n- bounded service boundary package.\n\n## Evidence Basis\n\n- owned interfaces, current tests, and rollback notes.\n\n## Boundary Findings\n\n- no boundary expansion beyond the authored review target was detected.\n\n## Ownership Notes\n\n- reviewer remains accountable for downstream acceptance.\n\n## Missing Evidence\n\nStatus: evidence-bounded\n\n- No critical evidence gaps remain from the authored review packet.\n\n## Collection Priorities\n\n- preserve the current evidence bundle for later inspection.\n\n## Decision Impact\n\n- downstream implementation remains reversible within the bounded package.\n\n## Reversibility Concerns\n\n- stop before broader rollout if the packet changes materially.\n\n## Final Disposition\n\nStatus: ready-with-review-notes\n\nRationale: the review packet is bounded enough for downstream inspection.\n\n## Accepted Risks\n\n- residual review notes remain bounded to this package.\n"
 }
 
 fn gated_review_brief() -> &'static str {
-    "# Review Brief\n\nReview Target: release boundary package with must-fix follow-up.\nEvidence Basis: missing evidence remains for rollback rehearsal and sign-off.\nOpen Concern: must-fix disposition is still required before acceptance.\n"
+    "# Review Brief\n\n## Review Target\n\n- release boundary package with must-fix follow-up.\n\n## Evidence Basis\n\n- rollback rehearsal and sign-off evidence remain incomplete.\n\n## Boundary Findings\n\n- release boundary package needs explicit review disposition before acceptance.\n\n## Ownership Notes\n\n- reviewer remains accountable for the final acceptance decision.\n\n## Missing Evidence\n\nStatus: missing-evidence-open\n\n- rollback rehearsal and owner sign-off are still missing.\n\n## Collection Priorities\n\n- capture rollback rehearsal evidence before release readiness.\n\n## Decision Impact\n\n- unresolved concerns keep the release boundary in a reversible holding state.\n\n## Reversibility Concerns\n\n- downstream work should stop until explicit disposition is recorded.\n\n## Final Disposition\n\nStatus: awaiting-disposition\n\nRationale: explicit human disposition is still required before readiness can pass.\n\n## Accepted Risks\n\n- No accepted risks recorded while disposition remains pending.\n"
 }
 
 fn write_review_brief(workspace: &TempDir, contents: &str) {

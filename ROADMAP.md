@@ -106,6 +106,7 @@ vocabulary for domain work.
   emitting templated placeholders.
 - requirements, discovery, change, and architecture now ship the first slice of Mode Authoring Specialization: their skills, templates, examples, and renderers share canonical authored H2 contracts; Canon preserves authored sections verbatim; and missing required sections surface `## Missing Authored Body` while release-readiness gates stay honest.
 - `system-shaping`, `implementation`, and `refactor` now share canonical authored H2 contracts across skills, templates, examples, renderers, direct-run fixtures, and run-path validation. Complete packets preserve authored sections verbatim; incomplete packets emit `## Missing Authored Body` and stay gate-blocked instead of pretending the packet is ready for approval.
+- `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts across skills, templates, examples, renderers, contract tests, run-path fixtures, and release guidance. Review keeps `gate:review-disposition` explicit, verification stays blocked on unsupported or unresolved findings, and incident plus migration remain recommendation-only while still surfacing readable blocked or approval-gated packets.
 - `architecture` now ships an ADR-like decision surface inside the existing packet: `architecture-decisions.md` preserves `Decision`, `Constraints`, `Decision Drivers`, `Recommendation`, and `Consequences`; `tradeoff-matrix.md` preserves `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`; and the existing C4 artifacts remain unchanged.
 - `pr-review` now emits `conventional-comments.md` as a reviewer-facing
   companion to `review-summary.md`, publishes it under
@@ -152,16 +153,14 @@ brief.
 
 ### Delivered First Slice
 
-- `requirements`, `discovery`, `change`, `architecture`, `system-shaping`, `implementation`, and `refactor` now require explicit authored H2 sections in their skills, templates, and worked examples.
+- `requirements`, `discovery`, `change`, `architecture`, `system-shaping`, `implementation`, `refactor`, `review`, `verification`, `incident`, and `migration` now require explicit authored H2 sections in their skills, templates, and worked examples.
 - Their renderers preserve authored sections verbatim and emit `## Missing Authored Body` when the assistant omits a required section.
-- For the newly delivered follow-on slice, incomplete `system-shaping`, `implementation`, and `refactor` packets now stay explicitly gate-blocked while naming the missing canonical heading instead of drifting into approval-gated or templated filler behavior.
+- `review` preserves `gate:review-disposition`, `verification` stays blocked on unsupported or unresolved findings, and `incident` plus `migration` remain recommendation-only while still publishing readable blocked or approval-gated packets.
 
 ### Remaining Scope
 
-- The remaining authoring-specialization rollout is now limited to `review`, `verification`, `incident`, and `migration`.
-- Define the same `Author <Mode> Body Before Invoking Canon` skill section for those remaining modes so the required H2 sections are explicit before the CLI runs.
-- Extend the same authored-body preservation and honest missing-body behavior to those remaining renderers without changing their existing governance posture.
-- Keep the existing critique-first posture and Provenance Sidecar.
+- Mode Authoring Specialization is now complete for the currently modeled governed modes.
+- Future work should focus on authoring quality, stronger validation, and industry-standard artifact shapes rather than more missing-mode coverage.
 
 ### Why This Feature
 
