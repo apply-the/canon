@@ -52,6 +52,25 @@ fn change_contract_skill_template_and_example_share_canonical_headings() {
         skill_source.contains("Missing Authored Body"),
         "skill source must mention the missing-body marker"
     );
+    assert!(
+        skill_source.contains("### Packet Shape And Persona")
+            && skill_source.contains("change owner")
+            && skill_source.contains("Persona guidance is presentation only"),
+        "skill source must document the bounded change persona"
+    );
+
+    let template = read(TEMPLATE_PATH);
+    assert!(
+        template.contains("Suggested persona: change owner")
+            && template.contains("persona guidance shapes tone only"),
+        "change template must document the bounded change persona"
+    );
+
+    let example = read(EXAMPLE_PATH);
+    assert!(
+        example.contains("Authored as the change owner"),
+        "change example must surface the intended persona"
+    );
 }
 
 #[test]
@@ -66,6 +85,11 @@ fn change_mode_guide_and_roadmap_document_the_first_slice() {
         guide.contains("`## System Slice`") && guide.contains("`## Ownership`"),
         "mode guide must describe the change authored-body contract"
     );
+    assert!(
+        guide.contains("The AI companion should author Change as if it were the change owner")
+            && guide.contains("the persona shapes tone only"),
+        "mode guide must document the bounded change persona"
+    );
 
     let roadmap = read(ROADMAP_PATH);
     assert!(
@@ -74,4 +98,9 @@ fn change_mode_guide_and_roadmap_document_the_first_slice() {
         "roadmap must record the delivered first slice"
     );
     assert!(roadmap.contains("change"), "roadmap must keep change in the delivered scope");
+    assert!(
+        roadmap.contains("change owner for bounded change decisions")
+            && roadmap.contains("Keep personas guidance-only"),
+        "roadmap must document the first-slice change persona layer and its boundary"
+    );
 }

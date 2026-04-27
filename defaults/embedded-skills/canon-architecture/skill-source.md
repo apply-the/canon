@@ -98,6 +98,18 @@ Optional:
   `docs/examples/canon-input/architecture-state-management.md` shows a
   bounded-but-realistic packet.
 
+### Packet Shape And Persona
+
+Author the packet as an architect writing a combined C4 plus ADR decision
+packet for reviewers and downstream implementers.
+
+- Favor decision drivers, alternatives, consequences, ownership boundaries,
+  and reusable system views over generic summary prose.
+- Keep recommendations bounded to the authored decision surface; do not imply
+  approval, certainty, or organizational authority the source does not support.
+- Persona guidance is presentation only. Missing authored sections remain
+  explicit gaps and must not be backfilled with architect-sounding prose.
+
 ## AI Companion Operating Model
 
 After preflight succeeds and the real Canon run exists, the assistant is

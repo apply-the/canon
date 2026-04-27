@@ -189,43 +189,58 @@ preserving the winning choice.
 - The AI authoring skills today are domain-neutral and underspecify artifact
   shape, so output drifts toward Canon-internal headings instead of the shapes
   reviewers and engineers already read elsewhere.
+- The same skills also underspecify the authored persona and intended audience,
+  so packets often read like generic AI summaries instead of work produced by
+  a credible product, architecture, review, or operations counterpart.
 - The delivered `pr-review` Conventional Comments slice proved the pattern, and
   the remaining architecture C4 work plus other mode-specific shapes should now
   bind that direction into the broader authoring contract.
 
-### Mode To Shape Mapping (First Slice)
+### Mode To Shape Mapping (Roadmap Vision)
+
+The mapping below describes the broader roadmap direction. The delivered first
+slice remains explicitly limited to `requirements`, `architecture`, and
+`change` as scoped in the subsection that follows.
 
 - `requirements` → PRD shape (Problem, Outcomes, Users, Use Cases, Constraints,
   Success Metrics, Open Questions, Out of Scope) and a Lean Canvas seed
-  artifact when the input is product-shaped rather than engineering-shaped.
+  artifact when the input is product-shaped rather than engineering-shaped,
+  authored with an explicit product-facing persona.
 - `discovery` → Opportunity Solution Tree seed (Outcome, Opportunities,
   Solutions, Assumption Tests) and a Jobs-To-Be-Done framing when the input
-  surface supports it.
+  surface supports it, authored with an explicit exploratory research persona.
 - `system-shaping` → Domain map seed (bounded contexts, ubiquitous language,
   core vs supporting subdomains) aligned with the upcoming
   `Domain Modeling And Boundary Design` feature, plus candidate structural
   patterns (modular monolith vs services, sync orchestration vs events, etc.)
-  with pros/cons when the source leaves room for a real choice.
+  with pros/cons when the source leaves room for a real choice, authored with
+  an explicit system-design persona.
 - `architecture` now delivers C4 model artifacts (System Context, Container,
   Component) plus an ADR-like decision packet that preserves `Decision`,
   `Constraints`, `Decision Drivers`, `Recommendation`, `Consequences`, and
-  explicit option-analysis sections in the existing artifact family.
+  explicit option-analysis sections in the existing artifact family, authored
+  with an explicit architecture-decision persona.
 - `change` → ADR-shaped decision record (Context, Decision, Status,
   Consequences) attached to the change surface, with a design-pattern-choice
   appendix when the change materially hinges on choosing Strategy vs State,
   pipeline vs direct composition, adapter vs direct integration, and similar
-  bounded alternatives.
+  bounded alternatives, authored with an explicit change-planning persona.
 - `implementation` → Task mapping plus a contract test plan shape and an
   Implementation Notes shape that links each task to the bounded slice it
   implements, plus a framework/library evaluation dossier when execution
-  depends on choosing a concrete stack.
+  depends on choosing a concrete stack, authored with an explicit delivery
+  lead persona.
 - `refactor` → Preserved Behavior matrix in invariant-vs-mechanism form, plus
-  a structural-rationale ADR.
+  a structural-rationale ADR, authored with an explicit preservation-focused
+  maintainer persona.
 - `review` → Findings shape compatible with reviewer workflows (Severity,
-  Location, Rationale, Recommended Change).
+  Location, Rationale, Recommended Change), authored with an explicit reviewer
+  persona.
 - `pr-review` → Conventional Comments shape is now the delivered reference
-  implementation for reviewer-facing standardization.
-- `verification` → Claims/Evidence/Independence matrix.
+  implementation for reviewer-facing standardization, authored with an explicit
+  PR reviewer persona.
+- `verification` → Claims/Evidence/Independence matrix authored with an
+  explicit adversarial verifier persona.
 
 ### First Slice
 
@@ -234,6 +249,12 @@ preserving the winning choice.
 - For each, extend the skill with the required H2 sections in the chosen
   industry shape, extend the renderer to recognize and preserve those
   sections, and add per-shape unit tests.
+- Add an explicit persona layer to the same skills so the assistant authors as
+  the right bounded counterpart for the packet: product lead for PRD work,
+  architect for C4/ADR work, and change owner for bounded change decisions.
+- Keep personas guidance-only: it may shape voice, emphasis, critique posture,
+  and audience fit, but it must never override artifact contracts, invent
+  authority, or weaken evidence requirements.
 - Defer the remaining modes to a second slice once the first three prove the
   authoring + renderer contract.
 

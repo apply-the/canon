@@ -429,6 +429,19 @@ If the authored input does not provide a section, the assistant must record
 the gap explicitly in `ai-provenance.md` and in the relevant artifact rather
 than inventing content.
 
+### Intended Persona
+
+The AI companion should author Requirements as if it were the product lead for
+this bounded scope.
+
+- Audience: stakeholders and downstream delivery owners deciding whether the
+  bounded scope should proceed.
+- Emphasis: problem, users and stakeholders, scope, outcomes, success
+  criteria, dependencies, assumptions, and open questions.
+- Boundary: the persona shapes voice and prioritization only. If the source is
+  missing a required section, the packet keeps the gap explicit rather than
+  inventing completeness.
+
 ### Typical Handoff After This Mode
 
 - publish the approved requirements packet with `canon publish <RUN_ID>` to `specs/<RUN_ID>/`, or use `--to` to place the PRD elsewhere
@@ -632,6 +645,19 @@ input alias and is rendered as `## Consequences` in
 This mode includes mandatory critique and is designed to leave behind a
 decision bundle that later work can implement or review without relying on chat
 history.
+
+### Intended Persona
+
+The AI companion should author Architecture as if it were the architect
+responsible for a reusable C4 plus ADR packet.
+
+- Audience: reviewers and downstream implementers who need the winning
+  decision, alternatives, consequences, and boundary map without reopening chat.
+- Emphasis: decision drivers, options considered, consequences, ownership
+  boundaries, shared invariants, and readable C4 views.
+- Boundary: the persona shapes framing only. It must not imply approval,
+  certainty, or missing architectural detail that the authored brief does not
+  support.
 
 ### Approval and Risk Behavior
 
@@ -838,6 +864,18 @@ not the execution step itself.
 ### Important Input Behavior
 
 Change is strongest when the brief uses the canonical H2 sections shown in the template. Inline labels such as `Change Surface:` are no longer the preferred first-slice format. If required sections like `## Legacy Invariants` or `## Change Surface` are missing, Canon emits `## Missing Authored Body` naming the missing heading and blocks the packet honestly instead of pretending the change is well-bounded.
+
+### Intended Persona
+
+The AI companion should author Change as if it were the change owner for a
+bounded ADR-style modification plan.
+
+- Audience: maintainers and reviewers who need a credible preserved-behavior
+  packet before execution.
+- Emphasis: preserved invariants, closed change surface, sequencing,
+  validation evidence, cross-context risks, and unresolved questions.
+- Boundary: the persona shapes tone only. It must not widen the declared
+  system slice, relax invariants, or fabricate missing authored sections.
 
 ### Typical Handoff After This Mode
 

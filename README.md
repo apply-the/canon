@@ -92,11 +92,21 @@ Canon expects authored input in canonical locations under `canon-input/`. For ex
 ```bash
 mkdir -p canon-input
 cat > canon-input/requirements.md <<'EOF'
-# Idea
+# Requirements Brief
 
+## Problem
 Define requirements for a bounded internal CLI without letting scope drift.
+
+## Outcome
+Leave behind a governable requirements packet with explicit scope cuts,
+tradeoffs, and open questions.
 EOF
 ```
+
+For the current first slice, `requirements`, `architecture`, and `change`
+combine canonical packet shapes with bounded authoring personas: product lead,
+architect, and change owner. Persona guidance shapes voice and audience fit
+only; it never replaces missing required sections.
 
 ### 3. Start A Run
 
@@ -142,6 +152,7 @@ Start here if you want more than the short README flow:
 
 - **[Getting Started](docs/guides/getting-started.md)** — Install Canon, initialize a repository, run your first packet, then inspect, approve, resume, and publish it.
 - **[Governance Modes](docs/guides/modes.md)** — Choose the right mode and canonical input shape for the work you are doing.
+- **[Templates and Examples](docs/templates/canon-input/requirements.md)** — Start from the canonical first-slice packet shapes and follow through to the worked examples in `docs/examples/canon-input/`.
 - **[Governance Guardrails: Risk and Zone](docs/guides/risk-and-zone.md)** — Understand how risk and zone constrain autonomy and gate sensitive work.
 
 ## Roadmap
