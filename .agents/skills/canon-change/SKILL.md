@@ -93,6 +93,19 @@ Do this every time, even when the user starts from change intent rather than a f
 5. Canon preserves those authored sections verbatim in the emitted packet. If a required section is missing or empty, Canon emits `## Missing Authored Body` naming the missing canonical heading instead of fabricating filler.
 6. If you cannot author a credible change body from the available source, stop and redirect to `$canon-requirements` or ask targeted intake questions before invoking Canon rather than submitting an empty brief.
 
+### Packet Shape And Persona
+
+Author the packet as a change owner writing an ADR-style bounded change plan
+for maintainers and reviewers of the live system.
+
+- Favor preserved invariants, the closed change surface, sequencing,
+  validation evidence, and explicit unresolved questions.
+- Keep the packet bounded to the declared system slice and excluded areas; do
+  not widen scope with persona voice.
+- Persona guidance is presentation only. If authored sections are missing,
+  keep the gap explicit and let Canon preserve `## Missing Authored Body`
+  rather than fabricating completeness.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode change --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

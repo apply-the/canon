@@ -1,5 +1,8 @@
 # Change Brief: Add Read-Through Caching to Profiles
 
+_Authored as the change owner for maintainers reviewing a bounded caching
+modification._
+
 ## System Slice
 The unbounded read load on `user_profiles_db` driven by repeated profile lookups through `ProfileService`.
 

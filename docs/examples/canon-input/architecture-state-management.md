@@ -1,4 +1,7 @@
-# Architecture Brief: State Management for Distributed Workflow 
+# Architecture Brief: State Management for Distributed Workflow
+
+_Authored as an architect for reviewers and downstream implementers evaluating
+the durable workflow-state decision._
 
 ## Decision
 What structural decision are we making?

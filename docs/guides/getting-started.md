@@ -78,11 +78,21 @@ Canon expects authored input in canonical `canon-input/` locations. For a requir
 ```bash
 mkdir -p canon-input
 cat > canon-input/requirements.md <<'EOF'
-# Idea
+# Requirements Brief
 
+## Problem
 Define requirements for a bounded internal CLI without letting scope drift.
+
+## Outcome
+Leave behind a governable requirements packet with explicit scope cuts,
+tradeoffs, and open questions.
 EOF
 ```
+
+For the current first slice, `requirements`, `architecture`, and `change`
+author against explicit packet shapes and bounded personas: product lead,
+architect, and change owner. Those personas shape tone and audience fit only;
+they do not weaken canonical sections or missing-body honesty.
 
 ### 3. Start the Run
 
@@ -148,6 +158,9 @@ canon publish <RUN_ID> --to docs/custom/path
 Canon is strict about authored input shape.
 
 - Most modes bind from `canon-input/<mode>.md` or `canon-input/<mode>/`
+- `requirements`, `architecture`, and `change` each have a worked template and
+  example under `docs/templates/canon-input/` and `docs/examples/canon-input/`
+  if you want the current first-slice shape-plus-persona contract.
 - `review` expects a review packet under `canon-input/review.md` or `canon-input/review/`
 - `pr-review` does not bind from `canon-input/`; it works from explicit refs or `WORKTREE`
 
