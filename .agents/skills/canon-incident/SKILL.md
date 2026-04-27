@@ -65,27 +65,27 @@ Do this every time, even when the user only handed you a short outage note:
 
 1. Read the source inputs the user pointed at. Identify the real impacted surface, constraints, and evidence gaps from code, configs, docs, and the stated operational context. Do not guess.
 2. Compose a single incident brief file at `canon-input/incident/brief.md` (or use `--input-text` for a one-shot inline brief). The file MUST include all of the following H2 sections, populated with concrete content tied to the source you just read:
-	 - `## Incident Scope`
-	 - `## Trigger And Current State`
-	 - `## Operational Constraints`
-	 - `## Known Facts`
-	 - `## Working Hypotheses`
-	 - `## Evidence Gaps`
-	 - `## Impacted Surfaces`
-	 - `## Propagation Paths`
-	 - `## Confidence And Unknowns`
-	 - `## Immediate Actions`
-	 - `## Ordered Sequence`
-	 - `## Stop Conditions`
-	 - `## Decision Points`
-	 - `## Approved Actions`
-	 - `## Deferred Actions`
-	 - `## Verification Checks`
-	 - `## Release Readiness`
-	 - `## Follow-Up Work`
+   - `## Incident Scope`
+   - `## Trigger And Current State`
+   - `## Operational Constraints`
+   - `## Known Facts`
+   - `## Working Hypotheses`
+   - `## Evidence Gaps`
+   - `## Impacted Surfaces`
+   - `## Propagation Paths`
+   - `## Confidence And Unknowns`
+   - `## Immediate Actions`
+   - `## Ordered Sequence`
+   - `## Stop Conditions`
+   - `## Decision Points`
+   - `## Approved Actions`
+   - `## Deferred Actions`
+   - `## Verification Checks`
+   - `## Release Readiness`
+   - `## Follow-Up Work`
 3. Each section MUST be specific to the bounded incident surface you actually read. Boilerplate or generic remediation slogans are a failure.
 4. Keep the packet recommendation-only. Do NOT imply Canon will execute containment, rollback, or escalation on the user's behalf.
-5. Then invoke Canon. Canon will preserve the authored sections into the incident packet, surface missing-context markers honestly, and gate the result through risk, containment, architecture, and readiness checks.
+5. Then invoke Canon. Canon will preserve the authored sections into the incident packet, surface missing-context markers honestly, emit the exact `## Missing Authored Body` marker when required sections are absent, and gate the result through risk, containment, architecture, and readiness checks.
 
 If you cannot author a credible incident body because the impacted surface is still too vague, say so directly and redirect to `$canon-requirements` or `$canon-change` instead of submitting an empty brief.
 

@@ -1,19 +1,37 @@
 # Review Brief
 
-Review Target: The packet or proposal being reviewed.
-Evidence Basis: The artifacts, tests, decision notes, or checks in scope.
-Owner: reviewer
-Boundary Concern: The boundary or ownership edge that must remain explicit.
-Pending Decision: The decision this review is expected to accept, reject, or defer.
-Open Concern: The gap or concern that may still require explicit disposition.
+## Review Target
+[What bounded packet, proposal, or artifact bundle is under review?]
 
-## In Scope Artifacts
+## Evidence Basis
+[What artifacts, tests, decision notes, or checks are in scope?]
 - artifact 1
 - artifact 2
 
-## Acceptance Question
-- Should this packet be accepted for downstream work?
+## Boundary Findings
+[What boundary or ownership edge must remain explicit?]
 
-## Out of Scope
-- item 1
-- item 2
+## Ownership Notes
+[Who owns the decision, remaining risk, or downstream acceptance?]
+
+## Missing Evidence
+[What evidence gap still matters enough to affect disposition?]
+Status: evidence-bounded | missing-evidence-open
+
+## Collection Priorities
+[What evidence should be gathered first if the packet is not yet disposition-ready?]
+
+## Decision Impact
+[What downstream work becomes acceptable or blocked depending on this review?]
+
+## Reversibility Concerns
+[What would make this packet hard to reverse or safely defer?]
+
+## Final Disposition
+[State the current disposition posture for this packet.]
+Status: ready-with-review-notes | awaiting-disposition
+
+Rationale: [Why this disposition is justified from the current packet.]
+
+## Accepted Risks
+[What risks are consciously accepted, if any?]

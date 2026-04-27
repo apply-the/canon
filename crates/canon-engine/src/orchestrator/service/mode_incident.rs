@@ -131,7 +131,7 @@ impl EngineService {
         });
         let validation_decision =
             invocation_runtime::evaluate_request_policy(&validation_request, &policy_set);
-        let (validation_summary, validation_attempt) =
+        let (_validation_summary, validation_attempt) =
             self.change_validation_attempt(&validation_request)?;
 
         let artifact_paths = artifact_contract
@@ -170,10 +170,6 @@ impl EngineService {
             ),
         };
 
-        let evidence_backed_summary = format!(
-            "{context_summary}\n\nGenerated framing: {}\n\nCritique evidence: {}\n\nValidation evidence: {}",
-            generation_output.summary, critique_output.summary, validation_summary
-        );
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
@@ -198,10 +194,7 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_incident_artifact(
-                    &requirement.file_name,
-                    &evidence_backed_summary,
-                ),
+                contents: render_incident_artifact(&requirement.file_name, &context_summary),
             })
             .collect::<Vec<_>>();
 

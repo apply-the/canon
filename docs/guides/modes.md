@@ -1136,6 +1136,16 @@ handling before downstream work proceeds.
 A single canonical review brief or review packet under `canon-input/review.md`
 or `canon-input/review/`.
 
+Review is strongest when the packet authors these canonical H2 sections
+directly: `## Review Target`, `## Evidence Basis`, `## Boundary Findings`,
+`## Ownership Notes`, `## Missing Evidence`, `## Collection Priorities`,
+`## Decision Impact`, `## Reversibility Concerns`, `## Final Disposition`, and
+`## Accepted Risks`. Missing canonical H2 sections emit
+`## Missing Authored Body` naming the missing heading, and gate-critical status
+lines such as `Status: missing-evidence-open` and
+`Status: awaiting-disposition` stay inside the authored sections that drive
+them.
+
 ### Important Runtime Constraint
 
 Review is packet-backed, not diff-backed. Point it at an authored packet, not
@@ -1224,6 +1234,17 @@ governed verification packet.
 ### Input Shape
 
 A file-backed verification packet or short verification brief.
+
+Verification is strongest when the packet authors these canonical H2 sections
+directly: `## Claims Under Test`, `## Invariant Checks`,
+`## Contract Assumptions`, `## Verification Outcome`,
+`## Challenge Findings`, `## Contradictions`, `## Verified Claims`,
+`## Rejected Claims`, `## Overall Verdict`, `## Open Findings`, and
+`## Required Follow-Up`. Missing canonical H2 sections emit
+`## Missing Authored Body` naming the missing heading, and gate-critical
+status lines such as `Status: unsupported` and
+`Status: unresolved-findings-open` belong inside `## Overall Verdict` and
+`## Open Findings`.
 
 ### Good Input Should Include
 
@@ -1392,6 +1413,17 @@ existing system.
 
 A bounded incident brief or folder-backed incident packet.
 
+Incident is strongest when the packet authors these canonical H2 sections
+directly: `## Incident Scope`, `## Trigger And Current State`,
+`## Operational Constraints`, `## Known Facts`, `## Working Hypotheses`,
+`## Evidence Gaps`, `## Impacted Surfaces`, `## Propagation Paths`,
+`## Confidence And Unknowns`, `## Immediate Actions`, `## Ordered Sequence`,
+`## Stop Conditions`, `## Decision Points`, `## Approved Actions`,
+`## Deferred Actions`, `## Verification Checks`, `## Release Readiness`, and
+`## Follow-Up Work`. Missing canonical H2 sections emit
+`## Missing Authored Body` naming the missing heading, and the packet stays
+recommendation-only even when it is readable.
+
 ### Good Input Should Include
 
 - incident scope
@@ -1468,6 +1500,17 @@ system where compatibility, sequencing, and fallback credibility matter.
 ### Input Shape
 
 A bounded migration brief or folder-backed migration packet.
+
+Migration is strongest when the packet authors these canonical H2 sections
+directly: `## Current State`, `## Target State`, `## Transition Boundaries`,
+`## Guaranteed Compatibility`, `## Temporary Incompatibilities`,
+`## Coexistence Rules`, `## Ordered Steps`, `## Parallelizable Work`,
+`## Cutover Criteria`, `## Rollback Triggers`, `## Fallback Paths`,
+`## Re-Entry Criteria`, `## Verification Checks`, `## Residual Risks`,
+`## Release Readiness`, `## Migration Decisions`, `## Deferred Decisions`, and
+`## Approval Notes`. Missing canonical H2 sections emit
+`## Missing Authored Body` naming the missing heading, and fallback credibility
+stays explicitly blocked when rollback or re-entry content is missing.
 
 ### Good Input Should Include
 

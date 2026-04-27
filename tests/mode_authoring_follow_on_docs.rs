@@ -10,18 +10,20 @@ fn read(path: &str) -> String {
 }
 
 #[test]
-fn roadmap_records_the_delivered_follow_on_slice_and_keeps_remaining_scope_explicit() {
+fn roadmap_records_the_completed_authoring_specialization_slice() {
     let roadmap = read(ROADMAP_PATH);
 
     assert!(
         roadmap.contains(
-            "`system-shaping`, `implementation`, and `refactor` now share canonical authored H2 contracts"
+            "`review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts"
         ),
-        "roadmap must record the delivered 019 follow-on slice"
+        "roadmap must record the delivered 020 completion slice"
     );
     assert!(
-        roadmap.contains("The remaining authoring-specialization rollout is now limited to `review`, `verification`, `incident`, and `migration`."),
-        "roadmap must keep the remaining scope explicit after delivering the 019 slice"
+        roadmap.contains(
+            "Mode Authoring Specialization is now complete for the currently modeled governed modes."
+        ),
+        "roadmap must record that the modeled-mode rollout is complete"
     );
 }
 
@@ -30,14 +32,14 @@ fn modes_guide_describes_the_canonical_h2_contract_and_blocking_behavior_for_tar
     let guide = read(MODES_GUIDE_PATH);
 
     for heading in [
-        "`## System Shape`",
-        "`## Boundary Decisions`",
-        "`## Delivery Phases`",
-        "`## Hotspots`",
-        "`## Task Mapping`",
-        "`## Rollback Steps`",
-        "`## Preserved Behavior`",
-        "`## Decision`",
+        "`## Review Target`",
+        "`## Final Disposition`",
+        "`## Claims Under Test`",
+        "`## Overall Verdict`",
+        "`## Incident Scope`",
+        "`## Follow-Up Work`",
+        "`## Current State`",
+        "`## Re-Entry Criteria`",
     ] {
         assert!(guide.contains(heading), "mode guide missing {heading}");
     }
