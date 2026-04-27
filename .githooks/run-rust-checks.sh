@@ -15,9 +15,17 @@ fi
 
 step_index=1
 step_total=3
-if [ "$hook_name" = "pre-push" ]; then
-  step_total=4
-fi
+case "$hook_name" in
+  pre-commit)
+    step_total=1
+    ;;
+  pre-push)
+    step_total=3
+    ;;
+  *)
+    step_total=3
+    ;;
+esac
 
 run_step() {
   step_label=$1
@@ -39,26 +47,28 @@ run_step() {
 
 printf '%s\n' "[$hook_name] Running Rust quality checks in $repo_root"
 
-run_step \
-  "cargo fmt --check" \
-  "Run 'cargo fmt', restage any formatting changes, then retry." \
-  cargo fmt --check
-
-run_step \
-  "cargo clippy --workspace --all-targets --all-features -- -D warnings" \
-  "Run 'cargo clippy --workspace --all-targets --all-features -- -D warnings' and fix the reported warnings." \
-  cargo clippy --workspace --all-targets --all-features -- -D warnings
-
-run_step \
-  "cargo test" \
-  "Run 'cargo test' and fix the failing test or regression before retrying." \
-  cargo test
-
-if [ "$hook_name" = "pre-push" ]; then
+if [ "$hook_name" = "pre-commit" ]; then
   run_step \
-    "cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info" \
-    "Install 'cargo-llvm-cov' if needed, then run 'cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info' and fix the failing test or coverage regression before retrying." \
-    cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+    "cargo fmt --check" \
+    "Run 'cargo fmt', restage any formatting changes, then retry." \
+    cargo fmt --check
+else
+  run_step \
+    "cargo clippy --workspace --all-targets --all-features -- -D warnings" \
+    "Run 'cargo clippy --workspace --all-targets --all-features -- -D warnings' and fix the reported warnings." \
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  run_step \
+    "cargo test" \
+    "Run 'cargo test' and fix the failing test or regression before retrying." \
+    cargo test
+
+  if [ "$hook_name" = "pre-push" ]; then
+    run_step \
+      "cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info" \
+      "Install 'cargo-llvm-cov' if needed, then run 'cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info' and fix the failing test or coverage regression before retrying." \
+      cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+  fi
 fi
 
 printf '%s\n' "[$hook_name] All Rust quality checks passed."

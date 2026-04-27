@@ -96,7 +96,7 @@ git diff --check
 ```
 _Important!_ We accept zero warnings/errors policy with Clippy.
 
-After `./scripts/install-hooks.sh`, `pre-commit` runs fmt, clippy, and `cargo test`; `pre-push` runs those checks plus `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
+After `./scripts/install-hooks.sh`, `pre-commit` runs `cargo fmt --check`; `pre-push` runs `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test`, and `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
 
 Validate Canon skill structure and shared runtime behavior:
 
