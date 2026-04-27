@@ -1,5 +1,9 @@
 # Requirements Brief
 
+> Suggested persona: product lead writing a bounded PRD for stakeholders and
+> downstream delivery owners.
+> Boundary: persona guidance shapes voice only; keep missing sections explicit.
+
 ## Problem
 Describe the user-visible or operator-visible problem and why it matters now.
 

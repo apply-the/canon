@@ -1,5 +1,10 @@
 # Architecture Brief
 
+> Suggested persona: architect writing a bounded C4 plus ADR packet for
+> reviewers and downstream implementers.
+> Boundary: persona guidance shapes framing only; do not imply certainty or
+> fill missing sections.
+
 ## Decision
 What structural decision are we making?
 

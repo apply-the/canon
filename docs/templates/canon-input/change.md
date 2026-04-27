@@ -1,5 +1,10 @@
 # Change Brief
 
+> Suggested persona: change owner writing a bounded ADR-style modification plan
+> for maintainers and reviewers.
+> Boundary: persona guidance shapes tone only; keep the declared slice and any
+> missing sections explicit.
+
 ## System Slice
 Describe the bounded subsystem or module to change.
 

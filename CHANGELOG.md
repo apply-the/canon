@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.20.0`
+- None recorded after `0.21.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.20.0`.
+- No additional released feature-spec delivery is recorded after `0.21.0`.
+
+## [0.21.0] - 2026-04-27
+
+Delivered specs:
+
+- `021` - Industry-Standard Artifact Shapes With Personas
+
+Highlights:
+
+- Add the first slice of persona-aware industry-standard packet shaping for
+  `requirements`, `architecture`, and `change`.
+- Keep persona guidance bounded to presentation and audience fit while
+  preserving canonical authored H2 contracts, explicit missing-body markers,
+  and the existing approval plus evidence posture across the product lead,
+  architect, and change owner authoring personas.
+- Update roadmap, README, getting-started guidance, repo-local skills,
+  templates, worked examples, and focused documentation validation so the
+  first-slice shape-plus-persona mapping is visible outside chat history.
 
 ## [0.20.0] - 2026-04-26
 
