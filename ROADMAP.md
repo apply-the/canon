@@ -5,9 +5,9 @@ current implementation slice.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
-`refactor`, `review`, `verification`, `pr-review`, `incident`, and
-`migration`. The next roadmap should prioritize output quality, packaging,
-distribution, and authoring improvements instead of reopening already
+`refactor`, `review`, `verification`, `pr-review`, `incident`,
+`security-assessment`, and `migration`. The next roadmap should prioritize
+output quality, packaging, distribution, and authoring improvements instead of reopening already
 delivered mode surfaces.
 
 ## Delivered Feature: Domain Modeling And Boundary Design
@@ -91,6 +91,11 @@ vocabulary for domain work.
   containment packet, remains recommendation-only, can stop for explicit risk
   approval, and publishes readable packets under `docs/incidents/<RUN_ID>/`
   even when the packet is approval-gated or blocked.
+- `security-assessment` now ships as a governed operational mode that emits a
+  seven-artifact cybersecurity packet, remains recommendation-only, requires
+  `system_context=existing`, can stop for explicit risk approval, and
+  publishes readable packets under `docs/security-assessments/<RUN_ID>/` even
+  when the packet is approval-gated or blocked.
 - `migration` now ships as a governed operational mode that emits a six-artifact
   compatibility packet, remains recommendation-only, blocks explicitly on
   missing fallback credibility, and publishes readable packets under
@@ -421,7 +426,7 @@ normal part of mode shaping rather than a one-off exception.
 The roadmap beyond `022` should continue with the features below, ordered by
 their fit with the already-delivered authoring and decision-support layers.
 
-## Feature: Cybersecurity Risk Assessment Mode
+## Feature: 023 Cybersecurity Risk Assessment Mode
 
 ### Outcome
 
@@ -661,7 +666,7 @@ finding, modernization slices. Generic boilerplate fails the run.
 
 ### Relationship To Other Features
 
-- Composes with `Cybersecurity Risk Assessment Mode`: supply-chain findings
+- Composes with `023 Cybersecurity Risk Assessment Mode`: supply-chain findings
   feed the threat model and risk register; the security mode does not
   duplicate scanner orchestration.
 - Composes with `Refactor` and the delivered `Migration` mode: legacy posture

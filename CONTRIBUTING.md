@@ -21,7 +21,7 @@ guide instead.
 - Rust `1.95.0` via `rustup`
 - Git
 -`cargo-deny`
-- optional but recommended: `cargo-nextest`
+- `cargo-nextest` if you want the same test runner used by the repository pre-push hook and blocking CI workflows
 - `cargo-llvm-cov` if you use the installed `pre-push` hook
 - PowerShell (`pwsh`) for the PowerShell skill validator on macOS or Linux
 -If you are on Windows, you can install Cygwin to test Shell (`sh`) scripts.
@@ -86,17 +86,17 @@ cargo +1.95.0 install --path crates/canon-cli --bin canon
 Run these before opening or updating a pull request:
 
 ```bash
-cargo fmt --check
+cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --locked
+cargo nextest run --workspace --all-features
 cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
-cargo nextest run --locked
+cargo test --workspace --all-features
 cargo deny check licenses advisories bans sources
 git diff --check
 ```
 _Important!_ We accept zero warnings/errors policy with Clippy.
 
-After `./scripts/install-hooks.sh`, `pre-commit` runs `cargo fmt --check`; `pre-push` runs `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test`, and `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
+After `./scripts/install-hooks.sh`, `pre-commit` runs `cargo fmt --all -- --check`; `pre-push` runs `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo nextest run --workspace --all-features`, and `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
 
 Validate Canon skill structure and shared runtime behavior:
 

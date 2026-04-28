@@ -651,6 +651,106 @@ pub fn render_incident_artifact(file_name: &str, brief_summary: &str) -> String 
     }
 }
 
+pub fn render_security_assessment_artifact(file_name: &str, brief_summary: &str) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let assessment_scope = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Assessment Scope",
+        &[],
+        &["assessment scope"],
+    )
+    .unwrap_or_else(|| "assessment scope not yet authored".to_string());
+    let in_scope_assets = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "In-Scope Assets",
+        &[],
+        &["in-scope assets"],
+    )
+    .unwrap_or_else(|| "in-scope assets not yet authored".to_string());
+    let summary = format!(
+        "Bounded security assessment for {} covering {}.",
+        truncate_context_excerpt(&assessment_scope, 80),
+        truncate_context_excerpt(&in_scope_assets, 80)
+    );
+
+    match file_name {
+        "assessment-overview.md" => render_authored_artifact(
+            "Assessment Overview",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Assessment Scope", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "In-Scope Assets", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Trust Boundaries", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Out Of Scope", aliases: &[] },
+            ],
+        ),
+        "threat-model.md" => render_authored_artifact(
+            "Threat Model",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Threat Inventory", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Attacker Goals", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Boundary Threats", aliases: &[] },
+            ],
+        ),
+        "risk-register.md" => render_authored_artifact(
+            "Risk Register",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Risk Findings", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Likelihood And Impact", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Proposed Owners", aliases: &[] },
+            ],
+        ),
+        "mitigations.md" => render_authored_artifact(
+            "Mitigations",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Recommended Controls", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Tradeoffs", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Sequencing Notes", aliases: &[] },
+            ],
+        ),
+        "assumptions-and-gaps.md" => render_authored_artifact(
+            "Assumptions And Gaps",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Assumptions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Evidence Gaps", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Unobservable Surfaces", aliases: &[] },
+            ],
+        ),
+        "compliance-anchors.md" => render_authored_artifact(
+            "Compliance Anchors",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Applicable Standards", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Control Families", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Scope Limits", aliases: &[] },
+            ],
+        ),
+        "assessment-evidence.md" => render_authored_artifact(
+            "Assessment Evidence",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Source Inputs", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Independent Checks", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Deferred Verification", aliases: &[] },
+            ],
+        ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
 pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String {
     let normalized = brief_summary.to_lowercase();
     let current_state = extract_authored_section_or_marker(

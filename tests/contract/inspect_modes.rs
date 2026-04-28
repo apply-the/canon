@@ -43,6 +43,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "verification",
             "review",
             "incident",
+            "security-assessment",
             "migration",
         ])
     );
@@ -60,6 +61,8 @@ fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
     assert!(text.contains("refactor"));
     assert!(text.contains("incident"));
     assert!(text.contains("migration"));
+    assert!(text.contains("security-assessment"));
     assert_eq!(text.matches("incident").count(), 1);
+    assert_eq!(text.matches("security-assessment").count(), 1);
     assert_eq!(text.matches("migration").count(), 1);
 }

@@ -1,0 +1,15 @@
+version = 1
+# Requires explicit `--system-context existing` when starting a run.
+mode = "security-assessment"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Risk", "Architecture", "ReleaseReadiness"]
+artifacts = [
+    "assessment-overview.md",
+    "threat-model.md",
+    "risk-register.md",
+    "mitigations.md",
+    "assumptions-and-gaps.md",
+    "compliance-anchors.md",
+    "assessment-evidence.md",
+]

@@ -82,6 +82,15 @@ pub struct MigrationGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+pub struct SecurityAssessmentGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
 pub struct RefactorGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -469,6 +478,37 @@ pub fn evaluate_migration_gates(
                 "decision-record.md",
             ],
             GateKind::ReleaseReadiness,
+        ),
+    ]
+}
+
+pub fn evaluate_security_assessment_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: SecurityAssessmentGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["assessment-overview.md", "threat-model.md", "risk-register.md", "mitigations.md"],
+            "security assessment review requires scope, threats, risks, and mitigation guidance",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone security-assessment work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "security-assessment readiness requires persisted context, critique, and verification evidence",
         ),
     ]
 }

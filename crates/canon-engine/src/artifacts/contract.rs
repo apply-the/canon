@@ -246,6 +246,49 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::SecurityAssessment => vec![
+            requirement(
+                "assessment-overview.md",
+                &[
+                    "Summary",
+                    "Assessment Scope",
+                    "In-Scope Assets",
+                    "Trust Boundaries",
+                    "Out Of Scope",
+                ],
+                &[GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "threat-model.md",
+                &["Summary", "Threat Inventory", "Attacker Goals", "Boundary Threats"],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "risk-register.md",
+                &["Summary", "Risk Findings", "Likelihood And Impact", "Proposed Owners"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "mitigations.md",
+                &["Summary", "Recommended Controls", "Tradeoffs", "Sequencing Notes"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "assumptions-and-gaps.md",
+                &["Summary", "Assumptions", "Evidence Gaps", "Unobservable Surfaces"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "compliance-anchors.md",
+                &["Summary", "Applicable Standards", "Control Families", "Scope Limits"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "assessment-evidence.md",
+                &["Summary", "Source Inputs", "Independent Checks", "Deferred Verification"],
+                &[GateKind::ReleaseReadiness],
+            ),
+        ],
         Mode::Implementation => vec![
             requirement(
                 "task-mapping.md",
