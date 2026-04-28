@@ -110,6 +110,13 @@ src/auth/session.rs and src/auth/repository.rs only.
 ## Executed Changes
 - Add the bounded repository helper and thread it through the revocation service without widening the public API.
 
+## Options Matrix
+- Option 1 keeps the helper inside the auth-session slice.
+- Option 2 introduces a shared auth abstraction before the bounded slice is proven.
+
+## Recommendation
+- Start with the local helper and defer broader abstraction until a later change proves it necessary.
+
 ## Task Linkage
 - Step 1 adds the helper.
 - Step 2 rewires the service behind the existing external contract.
@@ -118,8 +125,14 @@ src/auth/session.rs and src/auth/repository.rs only.
 ## Completion Evidence
 - The emitted implementation packet and focused tests confirm the bounded slice is ready for operator review.
 
+## Adoption Implications
+- Operators can adopt the helper in the auth-session slice without widening the pattern across the rest of auth.
+
 ## Remaining Risks
 - Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.
+
+## Ecosystem Health
+- The surrounding auth subsystem is stable enough for a local helper, but shared abstraction pressure is still low.
 
 ## Safety-Net Evidence
 Contract coverage protects revocation formatting and audit ordering before mutation.
@@ -192,7 +205,7 @@ fn complete_incident_brief() -> &'static str {
 }
 
 fn complete_migration_brief() -> &'static str {
-    "# Migration Brief\n\n## Current State\n\nauth-v1 serves login and token refresh traffic.\n\n## Target State\n\nauth-v2 serves the same bounded traffic surface.\n\n## Transition Boundaries\n\nlogin and token refresh only.\n\n## Guaranteed Compatibility\n\n- existing tokens continue to validate\n\n## Temporary Incompatibilities\n\n- admin reporting stays on v1 during the rollout\n\n## Coexistence Rules\n\n- dual-write session metadata during cutover\n\n## Ordered Steps\n\n1. enable shadow reads\n2. start dual-write\n3. cut traffic to auth-v2\n\n## Parallelizable Work\n\n- docs and dashboards can update in parallel\n\n## Cutover Criteria\n\n- error rate and token validation remain stable\n\n## Rollback Triggers\n\n- token validation failures or elevated login errors\n\n## Fallback Paths\n\n- route bounded traffic back to auth-v1\n\n## Re-Entry Criteria\n\n- compatibility regressions are resolved and revalidated\n\n## Verification Checks\n\n- login and token validation pass against auth-v2\n\n## Residual Risks\n\n- admin reporting remains temporarily inconsistent\n\n## Release Readiness\n\n- keep recommendation-only posture until the owner accepts the packet\n\n## Migration Decisions\n\n- retain dual-write during the bounded cutover\n\n## Deferred Decisions\n\n- move admin reporting after the bounded migration completes\n\n## Approval Notes\n\n- explicit migration-lead sign-off is required before broader rollout\n"
+    "# Migration Brief\n\n## Current State\n\nauth-v1 serves login and token refresh traffic.\n\n## Target State\n\nauth-v2 serves the same bounded traffic surface.\n\n## Transition Boundaries\n\nlogin and token refresh only.\n\n## Guaranteed Compatibility\n\n- existing tokens continue to validate\n\n## Temporary Incompatibilities\n\n- admin reporting stays on v1 during the rollout\n\n## Coexistence Rules\n\n- dual-write session metadata during cutover\n\n## Options Matrix\n\n- Option 1 keeps dual-write through the cutover window.\n- Option 2 cuts directly to auth-v2 and accepts a tighter rollback window.\n\n## Ordered Steps\n\n1. enable shadow reads\n2. start dual-write\n3. cut traffic to auth-v2\n\n## Parallelizable Work\n\n- docs and dashboards can update in parallel\n\n## Cutover Criteria\n\n- error rate and token validation remain stable\n\n## Rollback Triggers\n\n- token validation failures or elevated login errors\n\n## Fallback Paths\n\n- route bounded traffic back to auth-v1\n\n## Re-Entry Criteria\n\n- compatibility regressions are resolved and revalidated\n\n## Adoption Implications\n\n- keep the auth token path bounded to auth-v2 before adjacent reporting workloads adopt it.\n\n## Verification Checks\n\n- login and token validation pass against auth-v2\n\n## Residual Risks\n\n- admin reporting remains temporarily inconsistent\n\n## Release Readiness\n\n- keep recommendation-only posture until the owner accepts the packet\n\n## Migration Decisions\n\n- retain dual-write during the bounded cutover\n\n## Tradeoff Analysis\n\n- dual-write raises temporary complexity but keeps rollback safer while the bounded surface proves stable\n\n## Recommendation\n\n- keep dual-write for the bounded auth token path and defer broader reporting migration\n\n## Ecosystem Health\n\n- auth-v2 dependencies are healthy enough for bounded cutover, but reporting integrations still lag behind\n\n## Deferred Decisions\n\n- move admin reporting after the bounded migration completes\n\n## Approval Notes\n\n- explicit migration-lead sign-off is required before broader rollout\n"
 }
 
 fn init_review_repo(workspace: &TempDir) {

@@ -108,6 +108,7 @@ Define the authored-body contract for the completion slice delivered in feature 
   - `## Guaranteed Compatibility`
   - `## Temporary Incompatibilities`
   - `## Coexistence Rules`
+  - `## Options Matrix`
 - `sequencing-plan.md`
   - `## Ordered Steps`
   - `## Parallelizable Work`
@@ -116,12 +117,16 @@ Define the authored-body contract for the completion slice delivered in feature 
   - `## Rollback Triggers`
   - `## Fallback Paths`
   - `## Re-Entry Criteria`
+  - `## Adoption Implications`
 - `migration-verification-report.md`
   - `## Verification Checks`
   - `## Residual Risks`
   - `## Release Readiness`
 - `decision-record.md`
   - `## Migration Decisions`
+  - `## Tradeoff Analysis`
+  - `## Recommendation`
+  - `## Ecosystem Health`
   - `## Deferred Decisions`
   - `## Approval Notes`
 

@@ -76,6 +76,13 @@ src/auth/session.rs and src/auth/repository.rs only.
 ## Executed Changes
 - Add the bounded repository helper and thread it through the revocation service without widening the public API.
 
+## Options Matrix
+- Option 1 keeps the helper inside the auth-session slice.
+- Option 2 introduces a shared auth abstraction before the bounded slice is proven.
+
+## Recommendation
+- Start with the local helper and defer broader abstraction until a later change proves it necessary.
+
 ## Task Linkage
 - Step 1 adds the helper.
 - Step 2 rewires the service behind the existing external contract.
@@ -84,8 +91,14 @@ src/auth/session.rs and src/auth/repository.rs only.
 ## Completion Evidence
 - The emitted implementation packet and focused tests confirm the bounded slice is ready for operator review.
 
+## Adoption Implications
+- Operators can adopt the helper in the auth-session slice without widening the pattern across the rest of auth.
+
 ## Remaining Risks
 - Repository wiring could still drift into adjacent auth modules if the bounded paths expand during review.
+
+## Ecosystem Health
+- The surrounding auth workspace is stable enough to absorb a local helper without triggering a platform-wide rewrite.
 
 ## Safety-Net Evidence
 Contract coverage protects revocation formatting and audit ordering before mutation.
@@ -237,10 +250,20 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     let implementation_notes = fs::read_to_string(artifact_root.join("implementation-notes.md"))
         .expect("implementation notes artifact");
     assert!(implementation_notes.contains("## Executed Changes"));
+    assert!(implementation_notes.contains("## Options Matrix"));
+    assert!(implementation_notes.contains("## Recommendation"));
     assert!(
         implementation_notes
             .contains("thread it through the revocation service without widening the public API")
     );
+
+    let completion_evidence = fs::read_to_string(artifact_root.join("completion-evidence.md"))
+        .expect("completion evidence artifact");
+    assert!(completion_evidence.contains("## Adoption Implications"));
+
+    let validation_hooks = fs::read_to_string(artifact_root.join("validation-hooks.md"))
+        .expect("validation hooks artifact");
+    assert!(validation_hooks.contains("## Ecosystem Health"));
 
     let rollback_notes = fs::read_to_string(artifact_root.join("rollback-notes.md"))
         .expect("rollback notes artifact");

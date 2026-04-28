@@ -64,7 +64,7 @@ content from the bounded source material BEFORE calling
 
 Do this every time, even when the user only handed you a short rollout note:
 
-1. Read the source inputs the user pointed at. Identify the real source state, target state, compatibility contract, sequencing pressure, and fallback credibility from code, configs, docs, and the stated rollout context. Do not guess.
+1. Read the source inputs the user pointed at. Identify the real source state, target state, compatibility contract, decision alternatives, ecosystem health, sequencing pressure, adoption implications, and fallback credibility from code, configs, docs, and the stated rollout context. Do not guess.
 2. Compose a single migration brief file at `canon-input/migration/brief.md` (or use `--input-text` for a one-shot inline brief). The file MUST include all of the following H2 sections, populated with concrete content tied to the source you just read:
 	 - `## Current State`
 	 - `## Target State`
@@ -72,16 +72,21 @@ Do this every time, even when the user only handed you a short rollout note:
 	 - `## Guaranteed Compatibility`
 	 - `## Temporary Incompatibilities`
 	 - `## Coexistence Rules`
+	 - `## Options Matrix`
 	 - `## Ordered Steps`
 	 - `## Parallelizable Work`
 	 - `## Cutover Criteria`
 	 - `## Rollback Triggers`
 	 - `## Fallback Paths`
 	 - `## Re-Entry Criteria`
+	 - `## Adoption Implications`
 	 - `## Verification Checks`
 	 - `## Residual Risks`
 	 - `## Release Readiness`
 	 - `## Migration Decisions`
+	 - `## Tradeoff Analysis`
+	 - `## Recommendation`
+	 - `## Ecosystem Health`
 	 - `## Deferred Decisions`
 	 - `## Approval Notes`
 3. Each section MUST be specific to the bounded migration surface you actually read. Boilerplate rollout text or vague coexistence claims are a failure.
@@ -89,6 +94,19 @@ Do this every time, even when the user only handed you a short rollout note:
 5. Then invoke Canon. Canon will preserve the authored sections into the migration packet, surface missing-context markers honestly, emit the exact `## Missing Authored Body` marker when required sections are absent, and gate the result through exploration, architecture, migration-safety, risk, and readiness checks.
 
 If you cannot author a credible migration body because compatibility or fallback is still too vague, say so directly and redirect to `$canon-architecture`, `$canon-system-shaping`, or `$canon-change` instead of submitting an empty brief.
+
+### Packet Shape And Persona
+
+Author the packet as a migration lead comparing rollout paths for operators,
+reviewers, and approvers.
+
+- Favor compatibility tradeoffs, options matrix decisions, ecosystem health,
+	adoption implications, and rollback credibility over generic rollout
+	optimism.
+- Keep recommendations bounded to the authored transition surface; do not
+	imply cutover approval or operational certainty the source does not support.
+- Persona guidance is presentation only. Missing authored sections remain
+	explicit gaps and must not be backfilled with migration-sounding prose.
 
 ## Canon Command Contract
 

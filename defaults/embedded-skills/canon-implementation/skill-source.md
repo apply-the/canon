@@ -62,8 +62,9 @@ Do this every time, even when the user starts from a short brief rather than a
 finished packet:
 
 1. Read the source inputs the user pointed at. Identify the bounded task map,
-allowed mutation surface, safety-net evidence, and rollback expectations. Do
-not guess.
+allowed mutation surface, viable implementation options, local ecosystem
+health, safety-net evidence, adoption implications, and rollback expectations.
+Do not guess.
 2. Compose a single implementation brief at `canon-input/implementation.md` or
 a folder-backed packet under `canon-input/implementation/`. The authored body
 MUST include all of the following canonical H2 sections with concrete content:
@@ -72,9 +73,13 @@ MUST include all of the following canonical H2 sections with concrete content:
 	- `## Mutation Bounds`
 	- `## Allowed Paths`
 	- `## Executed Changes`
+	- `## Options Matrix`
+	- `## Recommendation`
 	- `## Task Linkage`
 	- `## Completion Evidence`
+	- `## Adoption Implications`
 	- `## Remaining Risks`
+	- `## Ecosystem Health`
 	- `## Safety-Net Evidence`
 	- `## Independent Checks`
 	- `## Rollback Triggers`
@@ -87,6 +92,18 @@ naming the missing canonical heading instead of fabricating filler.
 5. If you cannot author a credible implementation body from the available
 source, stop and redirect to `$canon-change` or ask targeted clarification
 questions before invoking Canon rather than submitting an empty brief.
+
+### Packet Shape And Persona
+
+Author the packet as an implementation lead comparing bounded execution
+options for maintainers and approvers.
+
+- Favor task linkage, options matrix tradeoffs, ecosystem health, adoption
+	implications, and rollback clarity over execution theater.
+- Keep recommendations bounded to the declared mutation bounds and allowed
+	paths; do not imply broader implementation authority than the brief supports.
+- Persona guidance is presentation only. Missing authored sections remain
+	explicit gaps and must not be backfilled with confident implementation prose.
 
 ## Canon Command Contract
 

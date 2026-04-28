@@ -10,11 +10,11 @@ fn read(path: &str) -> String {
 }
 
 #[test]
-fn workspace_manifest_reports_0210() {
+fn workspace_manifest_reports_0220() {
     let manifest = read(WORKSPACE_MANIFEST);
     assert!(
-        manifest.contains("version = \"0.21.0\""),
-        "workspace manifest must report version 0.21.0"
+        manifest.contains("version = \"0.22.0\""),
+        "workspace manifest must report version 0.22.0"
     );
 }
 

@@ -259,17 +259,23 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "implementation-notes.md",
-                &["Summary", "Executed Changes", "Task Linkage"],
+                &[
+                    "Summary",
+                    "Executed Changes",
+                    "Options Matrix",
+                    "Recommendation",
+                    "Task Linkage",
+                ],
                 &[GateKind::ImplementationReadiness, GateKind::ReleaseReadiness],
             ),
             requirement(
                 "completion-evidence.md",
-                &["Summary", "Completion Evidence", "Remaining Risks"],
+                &["Summary", "Completion Evidence", "Adoption Implications", "Remaining Risks"],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             requirement(
                 "validation-hooks.md",
-                &["Summary", "Safety-Net Evidence", "Independent Checks"],
+                &["Summary", "Ecosystem Health", "Safety-Net Evidence", "Independent Checks"],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             requirement(
@@ -291,6 +297,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                     "Guaranteed Compatibility",
                     "Temporary Incompatibilities",
                     "Coexistence Rules",
+                    "Options Matrix",
                 ],
                 &[GateKind::Architecture, GateKind::MigrationSafety],
             ),
@@ -301,7 +308,13 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "fallback-plan.md",
-                &["Summary", "Rollback Triggers", "Fallback Paths", "Re-Entry Criteria"],
+                &[
+                    "Summary",
+                    "Rollback Triggers",
+                    "Fallback Paths",
+                    "Re-Entry Criteria",
+                    "Adoption Implications",
+                ],
                 &[GateKind::MigrationSafety, GateKind::Risk],
             ),
             requirement(
@@ -311,7 +324,15 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "decision-record.md",
-                &["Summary", "Migration Decisions", "Deferred Decisions", "Approval Notes"],
+                &[
+                    "Summary",
+                    "Migration Decisions",
+                    "Tradeoff Analysis",
+                    "Recommendation",
+                    "Ecosystem Health",
+                    "Deferred Decisions",
+                    "Approval Notes",
+                ],
                 &[GateKind::Architecture, GateKind::Risk],
             ),
         ],

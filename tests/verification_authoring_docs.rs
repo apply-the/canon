@@ -52,6 +52,18 @@ fn verification_contract_skill_template_and_example_share_canonical_headings() {
         skill_source.contains("Missing Authored Body"),
         "skill source must mention the missing-body marker"
     );
+    assert!(
+        skill_source.contains("### Packet Shape And Persona"),
+        "skill source missing persona section"
+    );
+    assert!(
+        skill_source.contains("Author the packet as an adversarial verifier"),
+        "skill source missing persona role"
+    );
+    assert!(
+        skill_source.contains("Persona guidance is presentation only."),
+        "skill source missing persona guardrail"
+    );
 }
 
 #[test]

@@ -18,6 +18,9 @@
 ## Coexistence Rules
 [How will v1 and v2 coexist? Are there dual writes, shadowing, feature flags, or separate deployments?]
 
+## Options Matrix
+[Compare the credible migration options. Which option preserves the bounded surface best, and what tradeoff does each option carry?]
+
 ## Ordered Steps
 [List the sequential phases from start to finish of the cutover.]
 - Phase 1: ...
@@ -38,6 +41,9 @@
 ## Re-Entry Criteria
 [What must be true before re-attempting the migration after fallback?]
 
+## Adoption Implications
+[State how widely the target state should spread after this bounded migration succeeds, and what surfaces must remain deferred.]
+
 ## Verification Checks
 [What will confirm that the new state operates correctly and within bounds?]
 
@@ -49,6 +55,15 @@
 
 ## Migration Decisions
 [What critical decisions have been fixed for how this cutover operates?]
+
+## Tradeoff Analysis
+[Explain the most important tradeoffs across compatibility, cutover speed, rollback safety, and operational burden.]
+
+## Recommendation
+[State the recommended migration option and why it is preferred for this bounded surface.]
+
+## Ecosystem Health
+[Summarize the readiness of dependent services, libraries, teams, or operational tooling that this migration relies on.]
 
 ## Deferred Decisions
 [What choices are deliberately pushed to later migration phases?]

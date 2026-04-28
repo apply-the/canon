@@ -276,7 +276,7 @@ slice remains explicitly limited to `requirements`, `architecture`, and
 - Provides the natural artifact homes for the option-analysis feature below,
   especially `Options Considered`, `Why Not`, and evaluation dossiers.
 
-## Feature: Decision Alternatives, Pattern Choices, And Framework Evaluations
+## Next Feature: 022 Decision Alternatives, Pattern Choices, And Framework Evaluations
 
 ### Outcome
 
@@ -285,6 +285,11 @@ jumping straight to one recommendation, it presents 2 to 4 viable
 alternatives, compares them explicitly, and recommends one with clear
 rationale grounded in the user's constraints, the real source surface, and
 observable ecosystem signals.
+
+This next slice also closes the most obvious persona gap left by the first
+artifact-shapes rollout: the in-scope decision-heavy modes MUST declare a
+credible authored counterpart so option packets read like bounded engineering
+work rather than anonymous summaries.
 
 ### Problem We Are Solving
 
@@ -310,6 +315,23 @@ observable ecosystem signals.
   and similar bounded stack decisions.
 - Build-vs-buy and OSS-vs-commercial choices where Canon stays
   recommendation-only and keeps explicit approval boundaries.
+
+### Modes And Persona Coverage In Scope
+
+- `architecture` keeps the architecture-decision persona and strengthens it
+  with explicit alternative analysis and reopening triggers.
+- `system-shaping` uses a system-design persona that can compare structural
+  patterns without pretending the structure is already fixed.
+- `change` uses a change-planning persona that can compare bounded pattern and
+  implementation alternatives while staying subordinate to invariants.
+- `implementation` uses a delivery-lead persona that can evaluate concrete
+  framework and library options against execution constraints.
+- `migration` uses a migration-lead persona that can compare coexistence,
+  modernization, and replacement paths without weakening compatibility gates.
+
+Persona guidance remains guidance-only: it shapes audience fit, critique
+posture, and decision framing, but it MUST NOT fabricate evidence, imply extra
+authority, or override Canon's approval, risk, or missing-gap semantics.
 
 ### Required Comparison Packet Shape
 
@@ -376,6 +398,28 @@ observable ecosystem signals.
   tradeoff analysis.
 - Feeds *Supply Chain And Legacy Analysis Mode* when ecosystem health,
   maintenance posture, and migration cost matter to the recommendation.
+
+### Follow-On Persona Completion
+
+- `review` should read like a lead or staff software engineer performing a
+  bounded code and design review.
+- `pr-review` should read like a PR reviewer with explicit severity and change
+  recommendation discipline.
+- `verification` should read like an adversarial verifier challenging claims
+  instead of restating them.
+- `incident` should read like an incident commander or operational lead focused
+  on containment credibility.
+- `migration` and `implementation` should preserve their execution-facing
+  personas consistently across future artifact-shape upgrades.
+
+The first artifact-shapes release intentionally stopped at `requirements`,
+`architecture`, and `change`. Future slices should treat persona coverage as a
+normal part of mode shaping rather than a one-off exception.
+
+## Remaining Roadmap Candidates
+
+The roadmap beyond `022` should continue with the features below, ordered by
+their fit with the already-delivered authoring and decision-support layers.
 
 ## Feature: Cybersecurity Risk Assessment Mode
 

@@ -697,6 +697,7 @@ pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String
                     aliases: &[],
                 },
                 AuthoredSectionSpec { canonical_heading: "Coexistence Rules", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Options Matrix", aliases: &[] },
             ],
         ),
         "sequencing-plan.md" => render_authored_artifact(
@@ -717,6 +718,7 @@ pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String
                 AuthoredSectionSpec { canonical_heading: "Rollback Triggers", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Fallback Paths", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Re-Entry Criteria", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Adoption Implications", aliases: &[] },
             ],
         ),
         "migration-verification-report.md" => render_authored_artifact(
@@ -735,6 +737,9 @@ pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Migration Decisions", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Tradeoff Analysis", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommendation", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Ecosystem Health", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Deferred Decisions", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Approval Notes", aliases: &[] },
             ],
@@ -1057,6 +1062,8 @@ pub fn render_implementation_artifact(
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Executed Changes", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Options Matrix", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommendation", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Task Linkage", aliases: &[] },
             ],
         ),
@@ -1066,6 +1073,7 @@ pub fn render_implementation_artifact(
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Completion Evidence", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Adoption Implications", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Remaining Risks", aliases: &[] },
             ],
         ),
@@ -1074,6 +1082,7 @@ pub fn render_implementation_artifact(
             &summary,
             brief_summary,
             &[
+                AuthoredSectionSpec { canonical_heading: "Ecosystem Health", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Safety-Net Evidence", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Independent Checks", aliases: &[] },
             ],
