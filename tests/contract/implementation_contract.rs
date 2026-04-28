@@ -56,17 +56,23 @@ fn implementation_artifacts_require_execution_specific_sections() {
             ),
             (
                 "implementation-notes.md",
-                vec!["Summary", "Executed Changes", "Task Linkage"],
+                vec![
+                    "Summary",
+                    "Executed Changes",
+                    "Options Matrix",
+                    "Recommendation",
+                    "Task Linkage",
+                ],
                 vec![GateKind::ImplementationReadiness, GateKind::ReleaseReadiness],
             ),
             (
                 "completion-evidence.md",
-                vec!["Summary", "Completion Evidence", "Remaining Risks"],
+                vec!["Summary", "Completion Evidence", "Adoption Implications", "Remaining Risks",],
                 vec![GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             (
                 "validation-hooks.md",
-                vec!["Summary", "Safety-Net Evidence", "Independent Checks"],
+                vec!["Summary", "Ecosystem Health", "Safety-Net Evidence", "Independent Checks",],
                 vec![GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             (

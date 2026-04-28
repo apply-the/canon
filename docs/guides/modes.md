@@ -925,16 +925,18 @@ with:
 
 The current-mode brief should use canonical authored H2 sections: `## Task Mapping`,
 `## Bounded Changes`, `## Mutation Bounds`, `## Allowed Paths`,
-`## Executed Changes`, `## Task Linkage`, `## Completion Evidence`,
-`## Remaining Risks`, `## Safety-Net Evidence`, `## Independent Checks`,
-`## Rollback Triggers`, and `## Rollback Steps`.
+`## Executed Changes`, `## Options Matrix`, `## Recommendation`,
+`## Task Linkage`, `## Completion Evidence`, `## Adoption Implications`,
+`## Remaining Risks`, `## Ecosystem Health`, `## Safety-Net Evidence`,
+`## Independent Checks`, `## Rollback Triggers`, and `## Rollback Steps`.
 
 ### Good Input Should Include
 
 - `## Task Mapping` and `## Bounded Changes` so the execution slice is explicit
 - `## Mutation Bounds` and `## Allowed Paths` so the allowed mutation surface is reviewable
-- `## Executed Changes`, `## Task Linkage`, `## Completion Evidence`, and `## Remaining Risks` so the packet explains what was done or recommended and what still remains risky
-- `## Safety-Net Evidence` and `## Independent Checks` so recommendation-only execution is challengeable
+- `## Executed Changes`, `## Options Matrix`, `## Recommendation`, and `## Task Linkage` so the packet explains the concrete bounded choice and why it won
+- `## Completion Evidence`, `## Adoption Implications`, and `## Remaining Risks` so the packet explains what is done, how far the choice should spread, and what still remains risky
+- `## Ecosystem Health`, `## Safety-Net Evidence`, and `## Independent Checks` so recommendation-only execution is challengeable against the surrounding platform reality
 - `## Rollback Triggers` and `## Rollback Steps` so the bounded rollback posture is explicit before approval
 
 ### Questions This Mode Answers
@@ -963,6 +965,16 @@ Implementation produces a governed execution packet with these artifacts:
 
 Run and status summaries surface `task-mapping.md` directly and make the
 current `recommendation-only` posture explicit.
+
+### Intended Persona
+
+Author implementation as if it were written by an implementation lead making a
+bounded execution recommendation for maintainers and approvers.
+
+- Favor task linkage, option tradeoffs, ecosystem health, adoption
+  implications, and rollback clarity over generic execution prose.
+- Boundary: the persona shapes framing only. It must not widen the declared
+  mutation surface, invent authority, or replace missing authored sections.
 
 ### Important Runtime Constraint
 
@@ -1542,11 +1554,13 @@ A bounded migration brief or folder-backed migration packet.
 Migration is strongest when the packet authors these canonical H2 sections
 directly: `## Current State`, `## Target State`, `## Transition Boundaries`,
 `## Guaranteed Compatibility`, `## Temporary Incompatibilities`,
-`## Coexistence Rules`, `## Ordered Steps`, `## Parallelizable Work`,
-`## Cutover Criteria`, `## Rollback Triggers`, `## Fallback Paths`,
-`## Re-Entry Criteria`, `## Verification Checks`, `## Residual Risks`,
-`## Release Readiness`, `## Migration Decisions`, `## Deferred Decisions`, and
-`## Approval Notes`. Missing canonical H2 sections emit
+`## Coexistence Rules`, `## Options Matrix`, `## Ordered Steps`,
+`## Parallelizable Work`, `## Cutover Criteria`, `## Rollback Triggers`,
+`## Fallback Paths`, `## Re-Entry Criteria`, `## Adoption Implications`,
+`## Verification Checks`, `## Residual Risks`, `## Release Readiness`,
+`## Migration Decisions`, `## Tradeoff Analysis`, `## Recommendation`,
+`## Ecosystem Health`, `## Deferred Decisions`, and `## Approval Notes`.
+Missing canonical H2 sections emit
 `## Missing Authored Body` naming the missing heading, and fallback credibility
 stays explicitly blocked when rollback or re-entry content is missing.
 
@@ -1555,11 +1569,11 @@ stays explicitly blocked when rollback or re-entry content is missing.
 - current state and target state
 - transition boundaries
 - guaranteed compatibility and temporary incompatibilities
-- coexistence rules
+- coexistence rules and an explicit `## Options Matrix`
 - ordered steps and cutover criteria
-- rollback triggers, fallback paths, and re-entry criteria
+- rollback triggers, fallback paths, re-entry criteria, and `## Adoption Implications`
 - verification checks and residual risks
-- release-readiness posture and migration decisions
+- release-readiness posture, migration decisions, tradeoff analysis, recommendation, and ecosystem health
 
 ### Questions This Mode Answers
 
@@ -1588,6 +1602,16 @@ Migration produces a governed operational packet with these artifacts:
 Run and status summaries surface `source-target-map.md` as the primary artifact
 and keep the packet's `recommendation-only` posture explicit.
 
+### Intended Persona
+
+Author migration as if it were written by a migration lead comparing bounded
+rollout paths for operators, reviewers, and approvers.
+
+- Favor compatibility tradeoffs, option comparison, ecosystem health,
+  adoption implications, and rollback credibility over generic rollout prose.
+- Boundary: the persona shapes framing only. It must not imply cutover
+  approval, invent authority, or replace missing authored sections.
+
 ### Typical Handoff After This Mode
 
 - inspect the packet or evidence first when compatibility or fallback is still contested
@@ -1600,6 +1624,13 @@ and keep the packet's `recommendation-only` posture explicit.
 - using `migration` before the source/target boundary is actually bounded
 - pretending fallback is credible when rollback triggers or paths are still missing
 - expecting Canon to execute cutover or rollback work on your behalf
+
+### Example Input
+
+See [docs/templates/canon-input/migration.md](docs/templates/canon-input/migration.md)
+for the starter template and
+[docs/examples/canon-input/migration-platform-consolidation.md](docs/examples/canon-input/migration-platform-consolidation.md)
+for a populated single-file example.
 
 ### Minimal Usage
 

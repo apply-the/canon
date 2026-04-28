@@ -60,6 +60,18 @@ Optional:
 - When reviewing uncommitted changes, use `WORKTREE` as the head ref: `canon run --mode pr-review --risk <RISK> --zone <ZONE> [--owner <OWNER>] --input <BASE_REF> --input WORKTREE`
 - Return the real Canon run id, state, and any review-disposition gate Canon emits.
 
+### Packet Shape And Persona
+
+Author the packet as a code reviewer writing bounded findings and disposition
+for maintainers.
+
+- Favor concrete diff-backed findings, changed-surface risk, and review
+  disposition over speculative redesign advice.
+- Keep conclusions bounded to the actual diff or worktree; do not invent
+  missing context or pretend to be an implementation planner.
+- Persona guidance is presentation only. Missing evidence or ambiguous diffs
+  remain explicit gaps and must not be papered over with reviewer voice.
+
 ## AI Companion Operating Model
 
 After preflight succeeds and the real Canon run exists, the assistant is

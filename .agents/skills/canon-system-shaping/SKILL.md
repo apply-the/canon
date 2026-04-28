@@ -115,6 +115,19 @@ source, stop and redirect to `$canon-requirements` or ask targeted
 clarification questions before invoking Canon rather than submitting an empty
 brief.
 
+### Packet Shape And Persona
+
+Author the packet as a system shaper comparing structural alternatives for
+downstream architects and implementers.
+
+- Favor boundary decisions, structural options, tradeoff rationale, and
+  delivery consequences over abstract vision statements.
+- Keep recommendations bounded to the authored intent and constraint markers;
+  do not imply organizational approval or operational certainty the source
+  does not support.
+- Persona guidance is presentation only. Missing authored sections remain
+  explicit gaps and must not be backfilled with systems-language prose.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode system-shaping --system-context <SYSTEM_CONTEXT> --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

@@ -52,7 +52,8 @@ fn migration_artifacts_require_compatibility_specific_sections() {
                     "Summary",
                     "Guaranteed Compatibility",
                     "Temporary Incompatibilities",
-                    "Coexistence Rules"
+                    "Coexistence Rules",
+                    "Options Matrix"
                 ],
             ),
             (
@@ -61,7 +62,13 @@ fn migration_artifacts_require_compatibility_specific_sections() {
             ),
             (
                 "fallback-plan.md",
-                vec!["Summary", "Rollback Triggers", "Fallback Paths", "Re-Entry Criteria"],
+                vec![
+                    "Summary",
+                    "Rollback Triggers",
+                    "Fallback Paths",
+                    "Re-Entry Criteria",
+                    "Adoption Implications",
+                ],
             ),
             (
                 "migration-verification-report.md",
@@ -69,7 +76,15 @@ fn migration_artifacts_require_compatibility_specific_sections() {
             ),
             (
                 "decision-record.md",
-                vec!["Summary", "Migration Decisions", "Deferred Decisions", "Approval Notes"],
+                vec![
+                    "Summary",
+                    "Migration Decisions",
+                    "Tradeoff Analysis",
+                    "Recommendation",
+                    "Ecosystem Health",
+                    "Deferred Decisions",
+                    "Approval Notes",
+                ],
             ),
         ]
     );

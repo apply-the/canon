@@ -24,14 +24,27 @@ Files, modules, and interfaces this packet may touch.
 ## Executed Changes
 - Describe the bounded implementation change that will be applied or recommended.
 
+## Options Matrix
+- Option 1: The narrowest bounded implementation approach.
+- Option 2: A broader abstraction or rollout path that is intentionally deferred.
+
+## Recommendation
+- State which implementation option should proceed and why.
+
 ## Task Linkage
 - Explain how the executed change maps back to the task plan.
 
 ## Completion Evidence
 - Name the evidence that will prove the bounded change is done.
 
+## Adoption Implications
+- State how this bounded implementation should or should not spread to adjacent surfaces.
+
 ## Remaining Risks
 - Residual risk 1.
+
+## Ecosystem Health
+- Summarize whether the surrounding libraries, modules, or platform constraints make this bounded choice healthy enough to proceed.
 
 ## Safety-Net Evidence
 Tests, checks, monitors, or review hooks that must exist before mutation.
