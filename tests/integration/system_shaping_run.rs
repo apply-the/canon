@@ -286,12 +286,17 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
 
     let architecture_outline = fs::read_to_string(artifact_root.join("architecture-outline.md"))
         .expect("architecture outline");
+    assert!(architecture_outline.contains("## Structural Options"));
+    assert!(architecture_outline.contains(
+        "Option 1 keeps authored-body preservation local to the current renderer helpers."
+    ));
     assert!(architecture_outline.contains("## Selected Boundaries"));
     assert!(
         architecture_outline.contains(
             "Runtime Governance remains separate from Artifact Authoring so packet fidelity does not blur approval semantics."
         )
     );
+    assert!(architecture_outline.contains("## Rationale"));
 
     let risk_hotspots =
         fs::read_to_string(artifact_root.join("risk-hotspots.md")).expect("risk hotspots");

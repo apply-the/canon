@@ -73,6 +73,25 @@ fn system_shaping_contract_skill_template_and_example_share_domain_modeling_sect
         skill_source.contains("Missing Authored Body"),
         "skill source must mention the missing-body marker"
     );
+    assert!(
+        skill_source.contains("### Packet Shape And Persona")
+            && skill_source.contains("system shaper")
+            && skill_source.contains("Persona guidance is presentation only"),
+        "skill source must document the structural persona boundary"
+    );
+
+    let template = read(TEMPLATE_PATH);
+    assert!(
+        template.contains("Suggested persona: system shaper")
+            && template.contains("persona guidance shapes framing only"),
+        "system-shaping template must document the bounded structural persona"
+    );
+
+    let example = read(EXAMPLE_PATH);
+    assert!(
+        example.contains("Authored as the system shaper"),
+        "system-shaping example must surface the intended persona"
+    );
 }
 
 #[test]

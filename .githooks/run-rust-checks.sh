@@ -59,9 +59,9 @@ else
     cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   run_step \
-    "cargo test" \
-    "Run 'cargo test' and fix the failing test or regression before retrying." \
-    cargo test
+    "cargo nextest run" \
+    "Run 'cargo nextest run' and fix the failing test or regression before retrying." \
+    cargo nextest run
 
   if [ "$hook_name" = "pre-push" ]; then
     run_step \

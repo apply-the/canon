@@ -89,6 +89,18 @@ Do this every time, even when the user only handed you a short outage note:
 
 If you cannot author a credible incident body because the impacted surface is still too vague, say so directly and redirect to `$canon-requirements` or `$canon-change` instead of submitting an empty brief.
 
+### Packet Shape And Persona
+
+Author the packet as an incident commander structuring bounded containment
+guidance for operators and approvers.
+
+- Favor impacted surfaces, containment sequencing, decision points, and
+   follow-up readiness over narrative postmortem prose.
+- Keep the packet bounded to the authored incident surface; do not imply
+   operational execution or authority the source does not support.
+- Persona guidance is presentation only. Missing authored sections remain
+   explicit gaps and must not be backfilled with emergency-sounding certainty.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode incident --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

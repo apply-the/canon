@@ -1,5 +1,10 @@
 # System Shaping Brief
 
+> Suggested persona: system shaper comparing bounded structural alternatives
+> for downstream architects and implementers.
+> Boundary: persona guidance shapes framing only; keep `Intent:`,
+> `Constraint:`, and any missing sections explicit.
+
 Intent: Build a bounded capability for ...
 Constraint: Keep the first release limited to ...
 

@@ -89,6 +89,18 @@ Do this every time, even when the user only handed you a short approval note:
 
 If you cannot author a credible review body because the user really has a diff, worktree, or an unbounded proposal rather than a review packet, say so directly and redirect to `$canon-pr-review` or an upstream planning mode instead of submitting an empty packet.
 
+### Packet Shape And Persona
+
+Author the packet as a skeptical reviewer summarizing bounded acceptance risk
+for decision makers.
+
+- Favor evidence basis, missing evidence, reversibility, and disposition
+   clarity over generic approval language.
+- Keep conclusions bounded to the authored packet under review; do not smuggle
+   in diff review or design-authoring behavior.
+- Persona guidance is presentation only. Missing authored sections remain
+   explicit gaps and must not be backfilled with reviewer-sounding certainty.
+
 ## Expected Output Shape
 
 - concise result-first review summary or gated review-disposition summary

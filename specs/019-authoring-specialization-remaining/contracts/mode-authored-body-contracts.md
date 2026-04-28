@@ -64,11 +64,15 @@ Define the authored-body contract for the `system-shaping`, `implementation`, an
   - `## Allowed Paths`
 - `implementation-notes.md`
   - `## Executed Changes`
+  - `## Options Matrix`
+  - `## Recommendation`
   - `## Task Linkage`
 - `completion-evidence.md`
   - `## Completion Evidence`
+  - `## Adoption Implications`
   - `## Remaining Risks`
 - `validation-hooks.md`
+  - `## Ecosystem Health`
   - `## Safety-Net Evidence`
   - `## Independent Checks`
 - `rollback-notes.md`
