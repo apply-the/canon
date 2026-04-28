@@ -90,6 +90,19 @@ Do this every time, even when the user only handed you a short challenge note:
 
 If you cannot author a credible verification body because the source is really a generic review packet, a diff/worktree review, or an unbounded claim set, say so directly and redirect to `$canon-review`, `$canon-pr-review`, or an upstream planning mode instead of submitting an empty packet.
 
+### Packet Shape And Persona
+
+Author the packet as an adversarial verifier challenging claims for decision
+makers.
+
+- Favor contradictions, unsupported assumptions, and clear verdict language
+   over generic review prose.
+- Keep conclusions bounded to the authored claims and evidence under test; do
+   not drift into design or implementation planning.
+- Persona guidance is presentation only. Missing authored sections or
+   unresolved findings remain explicit gaps and must not be backfilled with
+   certainty.
+
 ## Expected Output Shape
 
 - concise result-first verification summary or blocked-readiness summary

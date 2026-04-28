@@ -20,6 +20,10 @@ login endpoint and token signing only. Background syncing stays in the monolith.
 - write session state to both v1 and v2 during the test window
 - reads default to v1 first, falling back to v2 if missing
 
+## Options Matrix
+- Option 1 keeps dual-write during the cutover window.
+- Option 2 cuts directly to auth-v2 and accepts a narrower rollback window.
+
 ## Ordered Steps
 - Phase 1: Deploy auth-v2 with shadow writes enabled for new tokens.
 - Phase 2: Verify signature compatibility using sampled test requests.
@@ -46,6 +50,9 @@ login endpoint and token signing only. Background syncing stays in the monolith.
 - auth-v2 signature validation passes on sampled traffic with no mobile-client regressions
 - the on-call owner confirms the fallback cause is understood and bounded
 
+## Adoption Implications
+- keep the migration bounded to login and token signing until reporting and admin routes are evaluated separately
+
 ## Verification Checks
 - manual QA login testing across web and mobile
 - compare error metrics on `POST /login`
@@ -59,6 +66,15 @@ login endpoint and token signing only. Background syncing stays in the monolith.
 ## Migration Decisions
 - retain dual-write logic for at least 72 hours
 - do not migrate legacy admin API routes
+
+## Tradeoff Analysis
+- dual-write increases temporary operational complexity but keeps rollback safer while signature compatibility stabilizes
+
+## Recommendation
+- proceed with bounded dual-write for login and token signing, then revisit reporting separately
+
+## Ecosystem Health
+- auth-v2 dependencies and platform telemetry are healthy enough for the bounded cutover, but older admin integrations are not yet ready
 
 ## Deferred Decisions
 - defer deleting the auth-v1 DB tables to next quarter

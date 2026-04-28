@@ -28,6 +28,15 @@ const FULL_BRIEF: &str = r#"# Implementation Brief
 
 - No workspace mutation is implied by the guidance packet itself.
 
+## Options Matrix
+
+- Option 1 keeps the bounded repository helper local to auth session revocation.
+- Option 2 lifts the helper into a shared auth abstraction before the bounded slice proves out.
+
+## Recommendation
+
+- Start with the local helper and defer broader abstraction until the bounded slice proves reusable.
+
 ## Task Linkage
 
 - Map authored packet sections to emitted implementation artifacts.
@@ -36,9 +45,17 @@ const FULL_BRIEF: &str = r#"# Implementation Brief
 
 - Focused renderer and run suites protect the authored contract.
 
+## Adoption Implications
+
+- Operators can review the local helper posture before deciding whether to widen the pattern.
+
 ## Remaining Risks
 
 - Existing inline briefs may still exist during the transition.
+
+## Ecosystem Health
+
+- The auth workspace is stable enough for a bounded helper addition without forcing an abstraction rewrite.
 
 ## Safety-Net Evidence
 
@@ -87,6 +104,12 @@ This near-miss heading should not satisfy the canonical contract.
 #[test]
 fn implementation_renderer_preserves_authored_sections_verbatim() {
     let task_mapping = render_implementation_artifact("task-mapping.md", FULL_BRIEF, "maintainer");
+    let implementation_notes =
+        render_implementation_artifact("implementation-notes.md", FULL_BRIEF, "maintainer");
+    let completion_evidence =
+        render_implementation_artifact("completion-evidence.md", FULL_BRIEF, "maintainer");
+    let validation_hooks =
+        render_implementation_artifact("validation-hooks.md", FULL_BRIEF, "maintainer");
     let rollback_notes =
         render_implementation_artifact("rollback-notes.md", FULL_BRIEF, "maintainer");
 
@@ -95,6 +118,21 @@ fn implementation_renderer_preserves_authored_sections_verbatim() {
     ));
     assert!(task_mapping.contains("## Bounded Changes\n\n- execution artifact rendering only"));
     assert!(!task_mapping.contains(MISSING_AUTHORED_BODY_MARKER));
+
+    assert!(implementation_notes.contains(
+        "## Options Matrix\n\n- Option 1 keeps the bounded repository helper local to auth session revocation."
+    ));
+    assert!(implementation_notes.contains(
+        "## Recommendation\n\n- Start with the local helper and defer broader abstraction until the bounded slice proves reusable."
+    ));
+
+    assert!(completion_evidence.contains(
+        "## Adoption Implications\n\n- Operators can review the local helper posture before deciding whether to widen the pattern."
+    ));
+
+    assert!(validation_hooks.contains(
+        "## Ecosystem Health\n\n- The auth workspace is stable enough for a bounded helper addition without forcing an abstraction rewrite."
+    ));
 
     assert!(rollback_notes.contains(
         "## Rollback Triggers\n\n- Packet artifacts stop preserving authored bodies verbatim."

@@ -103,10 +103,15 @@ tradeoffs, and open questions.
 EOF
 ```
 
-For the current first slice, `requirements`, `architecture`, and `change`
-combine canonical packet shapes with bounded authoring personas: product lead,
-architect, and change owner. Persona guidance shapes voice and audience fit
-only; it never replaces missing required sections.
+Canon now combines canonical packet shapes with bounded authoring personas
+across planning, structural decision, framework evaluation, and review-heavy
+surfaces. `requirements`, `architecture`, and `change` keep the product lead,
+architect, and change owner personas from the earlier slice; `system-shaping`,
+`implementation`, and `migration` now make structural alternatives,
+ecosystem-health tradeoffs, and adoption implications explicit; and
+`review`, `pr-review`, `verification`, and `incident` now expose bounded
+persona guidance without changing runtime authority. Persona guidance shapes
+voice and audience fit only; it never replaces missing required sections.
 
 ### 3. Start A Run
 

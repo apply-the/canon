@@ -19,11 +19,31 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.21.0`
+- None recorded after `0.22.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.21.0`.
+- No additional released feature-spec delivery is recorded after `0.22.0`.
+
+## [0.22.0] - 2026-04-27
+
+Delivered specs:
+
+- `022` - Decision Alternatives, Pattern Choices, And Framework Evaluations
+
+Highlights:
+
+- Extend `implementation` and `migration` with explicit decision-alternative
+  sections such as `Options Matrix`, `Recommendation`, `Adoption Implications`,
+  and `Ecosystem Health` while preserving their existing artifact families,
+  gate behavior, and recommendation-only posture.
+- Make persona guidance explicit for `system-shaping`, `implementation`, and
+  `migration`, and complete adjacent review-like persona coverage for `review`,
+  `pr-review`, `verification`, and `incident` without granting new runtime
+  authority.
+- Update templates, worked examples, roadmap, release-facing docs, skill
+  mirrors, and focused validation so the 0.22.0 decision-and-persona surface is
+  visible outside chat history.
 
 ## [0.21.0] - 2026-04-27
 

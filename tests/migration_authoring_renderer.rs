@@ -26,6 +26,11 @@ const FULL_BRIEF: &str = r#"# Migration Brief
 
 - dual-write session metadata during cutover
 
+## Options Matrix
+
+- Option 1 keeps dual-write through the cutover window.
+- Option 2 cuts directly to auth-v2 and accepts a tighter rollback window.
+
 ## Ordered Steps
 
 1. enable shadow reads
@@ -52,6 +57,10 @@ const FULL_BRIEF: &str = r#"# Migration Brief
 
 - compatibility regressions are resolved and revalidated
 
+## Adoption Implications
+
+- The migration stays bounded to the auth token path before adjacent reporting workloads adopt auth-v2.
+
 ## Verification Checks
 
 - login and token validation pass against auth-v2
@@ -67,6 +76,18 @@ const FULL_BRIEF: &str = r#"# Migration Brief
 ## Migration Decisions
 
 - retain dual-write during the bounded cutover
+
+## Tradeoff Analysis
+
+- dual-write raises temporary complexity but keeps rollback safer while the bounded surface proves stable
+
+## Recommendation
+
+- keep dual-write for the bounded auth token path and defer broader reporting migration
+
+## Ecosystem Health
+
+- auth-v2 dependencies are healthy enough for bounded cutover, but reporting integrations still lag behind
 
 ## Deferred Decisions
 
@@ -114,7 +135,9 @@ This near-miss heading should not satisfy the canonical contract.
 #[test]
 fn migration_renderer_preserves_authored_sections_verbatim() {
     let source_target_map = render_migration_artifact("source-target-map.md", FULL_BRIEF);
+    let compatibility = render_migration_artifact("compatibility-matrix.md", FULL_BRIEF);
     let fallback_plan = render_migration_artifact("fallback-plan.md", FULL_BRIEF);
+    let decision_record = render_migration_artifact("decision-record.md", FULL_BRIEF);
 
     assert!(
         source_target_map
@@ -127,11 +150,27 @@ fn migration_renderer_preserves_authored_sections_verbatim() {
     assert!(!source_target_map.contains(MISSING_AUTHORED_BODY_MARKER));
 
     assert!(
+        compatibility.contains(
+            "## Options Matrix\n\n- Option 1 keeps dual-write through the cutover window."
+        )
+    );
+
+    assert!(
         fallback_plan.contains(
             "## Rollback Triggers\n\n- token validation failures or elevated login errors"
         )
     );
     assert!(fallback_plan.contains("## Fallback Paths\n\n- route bounded traffic back to auth-v1"));
+    assert!(fallback_plan.contains(
+        "## Adoption Implications\n\n- The migration stays bounded to the auth token path before adjacent reporting workloads adopt auth-v2."
+    ));
+
+    assert!(decision_record.contains(
+        "## Tradeoff Analysis\n\n- dual-write raises temporary complexity but keeps rollback safer while the bounded surface proves stable"
+    ));
+    assert!(decision_record.contains(
+        "## Ecosystem Health\n\n- auth-v2 dependencies are healthy enough for bounded cutover, but reporting integrations still lag behind"
+    ));
 }
 
 #[test]
