@@ -4,9 +4,9 @@ const README_PATH: &str = "README.md";
 const CHANGELOG_PATH: &str = "CHANGELOG.md";
 const MODES_GUIDE: &str = "docs/guides/modes.md";
 const ROADMAP_PATH: &str = "ROADMAP.md";
-const MIGRATION_TEMPLATE: &str = "docs/templates/canon-input/migration.md";
+const SECURITY_TEMPLATE: &str = "docs/templates/canon-input/security-assessment.md";
 const INCIDENT_TEMPLATE: &str = "docs/templates/canon-input/incident.md";
-const MIGRATION_EXAMPLE: &str = "docs/examples/canon-input/migration-platform-consolidation.md";
+const SECURITY_EXAMPLE: &str = "docs/examples/canon-input/security-assessment-webhook-platform.md";
 
 fn read(path: &str) -> String {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
@@ -15,56 +15,60 @@ fn read(path: &str) -> String {
 }
 
 #[test]
-fn release_docs_describe_the_022_decision_and_persona_surface() {
+fn release_docs_describe_the_022_security_assessment_surface() {
     let readme = read(README_PATH);
     assert!(
-        readme.contains("`system-shaping`")
-            && readme.contains("`implementation`")
-            && readme.contains("`migration`")
-            && readme.contains("`review`")
-            && readme.contains("`pr-review`")
-            && readme.contains("`verification`")
-            && readme.contains("`incident`"),
-        "README must summarize the 0.22.0 decision-and-persona surface"
+        readme.contains("`security-assessment`")
+            && readme.contains("recommendation-only")
+            && readme.contains("threat")
+            && readme.contains("risk")
+            && readme.contains("evidence"),
+        "README must summarize the 0.22.0 security-assessment surface"
     );
 
     let changelog = read(CHANGELOG_PATH);
     assert!(changelog.contains("## [0.22.0]"), "CHANGELOG missing 0.22.0 entry");
     assert!(
-        changelog.contains("Decision Alternatives, Pattern Choices, And Framework Evaluations"),
-        "CHANGELOG must describe feature 022"
+        changelog.contains("Cybersecurity Risk Assessment Mode"),
+        "CHANGELOG must describe feature 023"
     );
 
     let guide = read(MODES_GUIDE);
-    for heading in ["Options Matrix", "Recommendation", "Adoption Implications", "Ecosystem Health"]
-    {
+    for heading in [
+        "security-assessment",
+        "docs/security-assessments/<RUN_ID>/",
+        "Security risk assessment",
+        "system_context=existing",
+    ] {
         assert!(guide.contains(heading), "{MODES_GUIDE} missing {heading}");
     }
     assert!(
-        guide.contains("implementation lead") && guide.contains("migration lead"),
-        "modes guide must document the new implementation and migration personas"
+        guide.contains("approval-gated or")
+            && guide.contains("blocked operational packets")
+            && guide.contains("canon-input/security-assessment.md"),
+        "modes guide must document the security-assessment operational flow and input binding"
     );
 
     let roadmap = read(ROADMAP_PATH);
     assert!(
-        roadmap.contains(
-            "## Next Feature: 022 Decision Alternatives, Pattern Choices, And Framework Evaluations"
-        ) && roadmap.contains("## Remaining Roadmap Candidates"),
-        "ROADMAP must expose the 022 entry and remaining candidates"
+        roadmap.contains("`security-assessment`")
+            && roadmap.contains("docs/security-assessments/<RUN_ID>/")
+            && roadmap.contains("Current end-to-end depth exists"),
+        "ROADMAP must reflect the delivered security-assessment mode"
     );
 }
 
 #[test]
 fn release_scaffolds_exist_for_022_examples_and_templates() {
-    let migration_template = read(MIGRATION_TEMPLATE);
+    let security_template = read(SECURITY_TEMPLATE);
     for heading in [
-        "## Options Matrix",
-        "## Adoption Implications",
-        "## Tradeoff Analysis",
-        "## Recommendation",
-        "## Ecosystem Health",
+        "## Assessment Scope",
+        "## In-Scope Assets",
+        "## Threat Inventory",
+        "## Risk Findings",
+        "## Evidence Gaps",
     ] {
-        assert!(migration_template.contains(heading), "{MIGRATION_TEMPLATE} missing {heading}");
+        assert!(security_template.contains(heading), "{SECURITY_TEMPLATE} missing {heading}");
     }
 
     let incident_template = read(INCIDENT_TEMPLATE);
@@ -77,14 +81,14 @@ fn release_scaffolds_exist_for_022_examples_and_templates() {
         assert!(incident_template.contains(heading), "{INCIDENT_TEMPLATE} missing {heading}");
     }
 
-    let migration_example = read(MIGRATION_EXAMPLE);
+    let security_example = read(SECURITY_EXAMPLE);
     for heading in [
-        "## Options Matrix",
-        "## Adoption Implications",
-        "## Tradeoff Analysis",
-        "## Recommendation",
-        "## Ecosystem Health",
+        "## Assessment Scope",
+        "## In-Scope Assets",
+        "## Threat Inventory",
+        "## Risk Findings",
+        "## Evidence Gaps",
     ] {
-        assert!(migration_example.contains(heading), "{MIGRATION_EXAMPLE} missing {heading}");
+        assert!(security_example.contains(heading), "{SECURITY_EXAMPLE} missing {heading}");
     }
 }

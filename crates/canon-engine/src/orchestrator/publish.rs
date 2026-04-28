@@ -111,6 +111,7 @@ fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::Review => "docs/reviews",
         Mode::PrReview => "docs/reviews/prs",
         Mode::Incident => "docs/incidents",
+        Mode::SecurityAssessment => "docs/security-assessments",
         Mode::Migration => "docs/migrations",
     }
 }

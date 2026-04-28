@@ -78,6 +78,7 @@ specific LLM provider; the assistant in the chat is the model.
 - [`verification`](#mode-verification)
 - [`pr-review`](#mode-pr-review)
 - [`incident`](#mode-incident)
+- [`security-assessment`](#mode-security-assessment)
 - [`migration`](#mode-migration)
 
 ## Input Binding Rules
@@ -93,6 +94,7 @@ convention:
 - `change`: `canon-input/change.md` or `canon-input/change/`
 - `implementation`: `canon-input/implementation.md` or `canon-input/implementation/`
 - `incident`: `canon-input/incident.md` or `canon-input/incident/`
+- `security-assessment`: `canon-input/security-assessment.md` or `canon-input/security-assessment/`
 - `migration`: `canon-input/migration.md` or `canon-input/migration/`
 - `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
 - `review`: `canon-input/review.md` or `canon-input/review/`
@@ -158,10 +160,10 @@ Publishing copies the emitted artifact files out of `.canon/artifacts/` and
 into a visible workspace directory. It never mutates or deletes the governed
 copy under `.canon/`.
 
-Publishing is allowed for runs whose state is `Completed`. `incident` and
-`migration` are the exception: approval-gated or blocked operational packets
-may also publish when the emitted artifact set exists and the goal is packet
-review outside the runtime.
+Publishing is allowed for runs whose state is `Completed`. `incident`,
+`security-assessment`, and `migration` are the exception: approval-gated or
+blocked operational packets may also publish when the emitted artifact set
+exists and the goal is packet review outside the runtime.
 
 Default publish targets by mode:
 
@@ -173,6 +175,7 @@ Default publish targets by mode:
 - `change` -> `docs/changes/<RUN_ID>/`
 - `implementation` -> `docs/implementation/<RUN_ID>/`
 - `incident` -> `docs/incidents/<RUN_ID>/`
+- `security-assessment` -> `docs/security-assessments/<RUN_ID>/`
 - `migration` -> `docs/migrations/<RUN_ID>/`
 - `refactor` -> `docs/refactors/<RUN_ID>/`
 - `review` -> `docs/reviews/<RUN_ID>/`
@@ -262,14 +265,18 @@ stateDiagram-v2
 flowchart TD
   A[Special operational need] --> B{Scenario type}
   B -->|Incident or outage| INC[incident + system_context=existing]
+  B -->|Security risk assessment| SEC[security-assessment + system_context=existing]
   B -->|Migration initiative| MIG[migration + system_context=existing]
 
   INC --> I1[Incident packet: frame, hypotheses, blast radius, containment, decisions, follow-up]
+  SEC --> S1[Security packet: scope, threats, risks, mitigations, gaps, compliance anchors, evidence]
   MIG --> M1[Migration packet: source-target map, compatibility, sequencing, fallback, verification, decisions]
 
   I1 --> I2[Optional risk approval]
+  S1 --> S2[Optional risk approval]
   M1 --> M2[Optional risk approval]
   I2 --> IPUB[canon publish -> docs/incidents/<RUN_ID>/]
+  S2 --> SPUB[canon publish -> docs/security-assessments/<RUN_ID>/]
   M2 --> MPUB[canon publish -> docs/migrations/<RUN_ID>/]
 ```
 
@@ -280,7 +287,7 @@ flowchart TD
 - `change` defines bounded modification scope and preserved invariants.
 - `implementation` and `refactor` produce governed execution/preservation packets with approval gating.
 - `review`, `verification`, and `pr-review` challenge packet quality, evidence, and diff-level correctness.
-- `incident` and `migration` produce recommendation-only operational packets with publishable blocked or approval-gated review surfaces.
+- `incident`, `security-assessment`, and `migration` produce recommendation-only operational packets with publishable blocked or approval-gated review surfaces.
 
 ## Mode: discovery
 

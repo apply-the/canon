@@ -313,6 +313,7 @@ fn engine_service_initializes_runtime_and_materializes_skills() {
     assert!(listed.iter().any(|entry| entry.name == "canon-inspect-clarity"));
     assert!(listed.iter().any(|entry| entry.name == "canon-incident"));
     assert!(listed.iter().any(|entry| entry.name == "canon-migration"));
+    assert!(listed.iter().any(|entry| entry.name == "canon-security-assessment"));
 
     let updated = service.skills_update(AiTool::Codex).expect("skills update");
     assert!(updated.skills_materialized > 0 || updated.skills_skipped > 0);

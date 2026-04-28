@@ -130,6 +130,38 @@ Define the authored-body contract for the completion slice delivered in feature 
   - `## Deferred Decisions`
   - `## Approval Notes`
 
+## Security Assessment Required Sections
+
+- `assessment-overview.md`
+  - `## Assessment Scope`
+  - `## In-Scope Assets`
+  - `## Trust Boundaries`
+  - `## Out Of Scope`
+- `threat-model.md`
+  - `## Threat Inventory`
+  - `## Attacker Goals`
+  - `## Boundary Threats`
+- `risk-register.md`
+  - `## Risk Findings`
+  - `## Likelihood And Impact`
+  - `## Proposed Owners`
+- `mitigations.md`
+  - `## Recommended Controls`
+  - `## Tradeoffs`
+  - `## Sequencing Notes`
+- `assumptions-and-gaps.md`
+  - `## Assumptions`
+  - `## Evidence Gaps`
+  - `## Unobservable Surfaces`
+- `compliance-anchors.md`
+  - `## Applicable Standards`
+  - `## Control Families`
+  - `## Scope Limits`
+- `assessment-evidence.md`
+  - `## Source Inputs`
+  - `## Independent Checks`
+  - `## Deferred Verification`
+
 ## Rendering Rules
 
 - When a canonical authored section exists and is non-empty, the renderer preserves that section body verbatim in the corresponding emitted artifact.

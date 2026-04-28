@@ -40,6 +40,10 @@ const METHOD_FILES: &[(&str, &str)] = &[
     ("review.toml", include_str!("../../../../defaults/methods/review.toml")),
     ("pr-review.toml", include_str!("../../../../defaults/methods/pr-review.toml")),
     ("incident.toml", include_str!("../../../../defaults/methods/incident.toml")),
+    (
+        "security-assessment.toml",
+        include_str!("../../../../defaults/methods/security-assessment.toml"),
+    ),
     ("migration.toml", include_str!("../../../../defaults/methods/migration.toml")),
 ];
 
@@ -133,6 +137,12 @@ const SKILL_FILES: &[(&str, &str)] = &[
     (
         "canon-incident/SKILL.md",
         include_str!("../../../../defaults/embedded-skills/canon-incident/skill-source.md"),
+    ),
+    (
+        "canon-security-assessment/SKILL.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-security-assessment/skill-source.md"
+        ),
     ),
     (
         "canon-migration/SKILL.md",
