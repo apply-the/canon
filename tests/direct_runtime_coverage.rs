@@ -35,7 +35,8 @@ fn request(
             | Mode::Implementation
             | Mode::Refactor
             | Mode::Migration
-            | Mode::Incident => Some(SystemContext::Existing),
+            | Mode::Incident
+            | Mode::SupplyChainAnalysis => Some(SystemContext::Existing),
             _ => None,
         },
         classification: ClassificationProvenance::explicit(),
@@ -314,6 +315,7 @@ fn engine_service_initializes_runtime_and_materializes_skills() {
     assert!(listed.iter().any(|entry| entry.name == "canon-incident"));
     assert!(listed.iter().any(|entry| entry.name == "canon-migration"));
     assert!(listed.iter().any(|entry| entry.name == "canon-security-assessment"));
+    assert!(listed.iter().any(|entry| entry.name == "canon-supply-chain-analysis"));
 
     let updated = service.skills_update(AiTool::Codex).expect("skills update");
     assert!(updated.skills_materialized > 0 || updated.skills_skipped > 0);
@@ -940,6 +942,7 @@ fn artifact_contract_helpers_cover_analysis_profiles_and_validation_failures() {
         Mode::Architecture,
         Mode::Backlog,
         Mode::Implementation,
+        Mode::SupplyChainAnalysis,
     ] {
         let contract = contract_for_mode(mode);
         assert!(!contract.artifact_requirements.is_empty());

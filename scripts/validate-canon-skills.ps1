@@ -35,7 +35,8 @@ $AvailableNow = @(
   "canon-verification",
   "canon-pr-review",
   "canon-incident",
-  "canon-migration"
+  "canon-migration",
+  "canon-supply-chain-analysis"
 )
 
 $ModeledOnly = @()

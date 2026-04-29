@@ -91,6 +91,15 @@ pub struct SecurityAssessmentGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+pub struct SupplyChainAnalysisGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
 pub struct RefactorGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -509,6 +518,65 @@ pub fn evaluate_security_assessment_gates(
             context.validation_independence_satisfied,
             context.evidence_complete,
             "security-assessment readiness requires persisted context, critique, and verification evidence",
+        ),
+    ]
+}
+
+pub fn evaluate_supply_chain_analysis_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: SupplyChainAnalysisGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    let artifact_risk = operational_capture_gate(
+        named_artifact_gate(
+            GateKind::Risk,
+            contract,
+            artifacts,
+            &[
+                "analysis-overview.md",
+                "sbom-bundle.md",
+                "vulnerability-triage.md",
+                "license-compliance.md",
+                "legacy-posture.md",
+            ],
+            "supply-chain analysis requires scope, SBOM, vulnerability, license, and legacy posture evidence",
+        ),
+        artifacts,
+        &[
+            "analysis-overview.md",
+            "sbom-bundle.md",
+            "vulnerability-triage.md",
+            "license-compliance.md",
+            "legacy-posture.md",
+        ],
+        GateKind::Risk,
+    );
+    let mut risk = approval_aware_risk_gate(
+        context.owner,
+        context.risk,
+        context.zone,
+        context.approvals,
+        "systemic-impact or red-zone supply-chain-analysis work requires explicit approval before it can proceed",
+    );
+    if !artifact_risk.blockers.is_empty() {
+        risk.status = GateStatus::Blocked;
+        risk.blockers.extend(artifact_risk.blockers);
+    }
+
+    vec![
+        risk,
+        operational_capture_gate(
+            analysis_release_readiness_gate(
+                GateKind::ReleaseReadiness,
+                contract,
+                artifacts,
+                context.validation_independence_satisfied,
+                context.evidence_complete,
+                "supply-chain-analysis readiness requires persisted context, critique, and verification evidence",
+            ),
+            artifacts,
+            &["analysis-evidence.md", "policy-decisions.md"],
+            GateKind::ReleaseReadiness,
         ),
     ]
 }

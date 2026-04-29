@@ -257,12 +257,16 @@ fn canonical_mode_input_binding_is_defined_for_canonical_bound_modes() {
         Some(("implementation.md", "implementation"))
     );
     assert_eq!(canonical_mode_input_binding(Mode::Migration), Some(("migration.md", "migration")));
+    assert_eq!(
+        canonical_mode_input_binding(Mode::SupplyChainAnalysis),
+        Some(("supply-chain-analysis.md", "supply-chain-analysis"))
+    );
     assert_eq!(canonical_mode_input_binding(Mode::Refactor), Some(("refactor.md", "refactor")));
     assert_eq!(canonical_mode_input_binding(Mode::Requirements), None);
 }
 
 #[test]
-fn auto_bind_canonical_mode_inputs_supports_incident_and_migration_files() {
+fn auto_bind_canonical_mode_inputs_supports_operational_file_backed_modes() {
     let workspace = TempDir::new().expect("temp dir");
     let canon_input = workspace.path().join("canon-input");
     std::fs::create_dir_all(&canon_input).expect("canon-input dir");
@@ -276,6 +280,11 @@ fn auto_bind_canonical_mode_inputs_supports_incident_and_migration_files() {
         "# Migration Brief\n\n## Current State\n- v1\n",
     )
     .expect("migration file");
+    std::fs::write(
+        canon_input.join("supply-chain-analysis.md"),
+        "# Supply Chain Analysis Brief\n\n## Declared Scope\n- Rust workspace manifests\n",
+    )
+    .expect("supply-chain analysis file");
 
     let service = EngineService::new(workspace.path());
 
@@ -286,6 +295,10 @@ fn auto_bind_canonical_mode_inputs_supports_incident_and_migration_files() {
     assert_eq!(
         service.auto_bind_canonical_mode_inputs(Mode::Migration, &[], &[]),
         vec!["canon-input/migration.md".to_string()]
+    );
+    assert_eq!(
+        service.auto_bind_canonical_mode_inputs(Mode::SupplyChainAnalysis, &[], &[]),
+        vec!["canon-input/supply-chain-analysis.md".to_string()]
     );
 }
 
@@ -586,6 +599,10 @@ fn resolved_execution_posture_label_for_mode_defaults_operational_modes_to_recom
     );
     assert_eq!(
         resolved_execution_posture_label_for_mode(Mode::Migration, None, &[]).as_deref(),
+        Some("recommendation-only")
+    );
+    assert_eq!(
+        resolved_execution_posture_label_for_mode(Mode::SupplyChainAnalysis, None, &[]).as_deref(),
         Some("recommendation-only")
     );
     assert_eq!(resolved_execution_posture_label_for_mode(Mode::Backlog, None, &[]), None);

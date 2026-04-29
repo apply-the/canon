@@ -1,25 +1,22 @@
-use std::fs;
-use std::path::PathBuf;
-
 use assert_cmd::Command;
 use predicates::str::contains;
+use std::fs;
 use tempfile::TempDir;
 
 fn cli_command() -> Command {
-    if let Some(binary) = std::env::var_os("CARGO_BIN_EXE_canon") {
-        return Command::new(binary);
-    }
-
-    let workspace_target = std::env::var_os("CARGO_TARGET_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target"));
-    let candidate =
-        workspace_target.join("debug").join(format!("canon{}", std::env::consts::EXE_SUFFIX));
-    if candidate.exists() {
-        return Command::new(candidate);
-    }
-
-    Command::new("canon")
+    let mut command = Command::new("cargo");
+    command.args([
+        "run",
+        "--quiet",
+        "--manifest-path",
+        concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"),
+        "-p",
+        "canon-cli",
+        "--bin",
+        "canon",
+        "--",
+    ]);
+    command
 }
 
 #[test]
@@ -108,4 +105,34 @@ fn inspect_clarity_recurses_directory_inputs_and_accepts_multiple_paths_in_one_g
     assert_eq!(source_inputs.len(), 3, "source inputs should be de-duplicated");
     assert_eq!(json["entries"][0]["requires_clarification"].as_bool(), Some(true));
     assert!(text.contains("How is the Bird identified over USB?"));
+}
+
+#[test]
+fn inspect_clarity_surfaces_targeted_questions_for_supply_chain_inputs() {
+    let workspace = TempDir::new().expect("temp dir");
+    fs::write(
+        workspace.path().join("supply-chain-analysis.md"),
+        "# Supply Chain Analysis Brief\n\n## Declared Scope\n\n- Cargo workspace dependency and release posture only\n\n## Ecosystems In Scope\n\n- Cargo workspace manifests\n\n## Source Inputs\n\n- Cargo.toml\n",
+    )
+    .expect("supply-chain brief");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "inspect",
+            "clarity",
+            "--mode",
+            "supply-chain-analysis",
+            "--input",
+            "supply-chain-analysis.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .stdout(contains("\"target\": \"clarity\""))
+        .stdout(contains("\"mode\": \"supply-chain-analysis\""))
+        .stdout(contains("\"requires_clarification\": true"))
+        .stdout(contains("What licensing posture governs this repository surface"))
+        .stdout(contains("Are non-OSS scanner proposals allowed"));
 }

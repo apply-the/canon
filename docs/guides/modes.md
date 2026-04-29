@@ -80,6 +80,7 @@ specific LLM provider; the assistant in the chat is the model.
 - [`incident`](#mode-incident)
 - [`security-assessment`](#mode-security-assessment)
 - [`migration`](#mode-migration)
+- [`supply-chain-analysis`](#mode-supply-chain-analysis)
 
 ## Input Binding Rules
 
@@ -96,6 +97,7 @@ convention:
 - `incident`: `canon-input/incident.md` or `canon-input/incident/`
 - `security-assessment`: `canon-input/security-assessment.md` or `canon-input/security-assessment/`
 - `migration`: `canon-input/migration.md` or `canon-input/migration/`
+- `supply-chain-analysis`: `canon-input/supply-chain-analysis.md` or `canon-input/supply-chain-analysis/`
 - `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
 - `review`: `canon-input/review.md` or `canon-input/review/`
 - `verification`: `canon-input/verification.md` or `canon-input/verification/`
@@ -129,7 +131,8 @@ authored content.
 Modes that target a specific system state also require an explicit
 `--system-context` binding. Use `--system-context new|existing` for
 `system-shaping` and `architecture`; use `--system-context existing` for
-`backlog`, `change`, `implementation`, `incident`, `migration`, and `refactor`.
+`backlog`, `change`, `implementation`, `incident`, `security-assessment`,
+`migration`, `supply-chain-analysis`, and `refactor`.
 
 `review` is stricter in the current runtime slice: it expects exactly one
 authored review packet at `canon-input/review.md` or `canon-input/review/`.
@@ -161,9 +164,9 @@ into a visible workspace directory. It never mutates or deletes the governed
 copy under `.canon/`.
 
 Publishing is allowed for runs whose state is `Completed`. `incident`,
-`security-assessment`, and `migration` are the exception: approval-gated or
-blocked operational packets may also publish when the emitted artifact set
-exists and the goal is packet review outside the runtime.
+`security-assessment`, `migration`, and `supply-chain-analysis` are the
+exception: approval-gated or blocked operational packets may also publish when
+the emitted artifact set exists and the goal is packet review outside the runtime.
 
 Default publish targets by mode:
 
@@ -177,6 +180,7 @@ Default publish targets by mode:
 - `incident` -> `docs/incidents/<RUN_ID>/`
 - `security-assessment` -> `docs/security-assessments/<RUN_ID>/`
 - `migration` -> `docs/migrations/<RUN_ID>/`
+- `supply-chain-analysis` -> `docs/supply-chain/<RUN_ID>/`
 - `refactor` -> `docs/refactors/<RUN_ID>/`
 - `review` -> `docs/reviews/<RUN_ID>/`
 - `verification` -> `docs/verification/<RUN_ID>/`
@@ -267,17 +271,21 @@ flowchart TD
   B -->|Incident or outage| INC[incident + system_context=existing]
   B -->|Security risk assessment| SEC[security-assessment + system_context=existing]
   B -->|Migration initiative| MIG[migration + system_context=existing]
+  B -->|Supply chain or legacy review| SUP[supply-chain-analysis + system_context=existing]
 
   INC --> I1[Incident packet: frame, hypotheses, blast radius, containment, decisions, follow-up]
   SEC --> S1[Security packet: scope, threats, risks, mitigations, gaps, compliance anchors, evidence]
   MIG --> M1[Migration packet: source-target map, compatibility, sequencing, fallback, verification, decisions]
+  SUP --> U1[Supply chain packet: scope, SBOM, vulnerabilities, licenses, legacy posture, policy decisions, evidence]
 
   I1 --> I2[Optional risk approval]
   S1 --> S2[Optional risk approval]
   M1 --> M2[Optional risk approval]
+  U1 --> U2[Optional risk approval]
   I2 --> IPUB[canon publish -> docs/incidents/<RUN_ID>/]
   S2 --> SPUB[canon publish -> docs/security-assessments/<RUN_ID>/]
   M2 --> MPUB[canon publish -> docs/migrations/<RUN_ID>/]
+  U2 --> UPUB[canon publish -> docs/supply-chain/<RUN_ID>/]
 ```
 
 ### 5) Quick Legend
@@ -287,7 +295,7 @@ flowchart TD
 - `change` defines bounded modification scope and preserved invariants.
 - `implementation` and `refactor` produce governed execution/preservation packets with approval gating.
 - `review`, `verification`, and `pr-review` challenge packet quality, evidence, and diff-level correctness.
-- `incident`, `security-assessment`, and `migration` produce recommendation-only operational packets with publishable blocked or approval-gated review surfaces.
+- `incident`, `security-assessment`, `migration`, and `supply-chain-analysis` produce recommendation-only operational packets with publishable blocked or approval-gated review surfaces.
 
 ## Mode: discovery
 
@@ -1649,4 +1657,92 @@ canon run \
   --zone yellow \
   --owner migration-lead \
   --input canon-input/migration.md
+```
+
+## Mode: supply-chain-analysis
+
+### Use It For
+
+Produce a governed Supply chain packet for a bounded existing repository when
+SBOM coverage, vulnerability triage, license posture, and legacy signals need
+one recommendation-only review packet.
+
+### Input Shape
+
+A bounded supply-chain analysis brief or folder-backed packet.
+
+Supply-chain-analysis is strongest when the packet authors these canonical H2
+sections directly: `## Declared Scope`, `## Licensing Posture`,
+`## Distribution Model`, `## Ecosystems In Scope`,
+`## Out Of Scope Components`, `## Scanner Selection Rationale`,
+`## SBOM Outputs`, `## Findings By Severity`, `## Exploitability Notes`,
+`## Triage Decisions`, `## Compatibility Classes`,
+`## Flagged Incompatibilities`, `## Obligations`,
+`## Outdated Dependencies`, `## End Of Life Signals`,
+`## Abandonment Signals`, `## Modernization Slices`,
+`## Scanner Decisions`, `## Coverage Gaps`, `## Source Inputs`,
+`## Independent Checks`, and `## Deferred Verification`.
+
+### Good Input Should Include
+
+- explicit repository and manifest scope
+- OSS or commercial licensing posture and distribution model
+- ecosystems in scope and excluded components
+- scanner rationale, SBOM outputs, and missing-scanner decisions
+- vulnerability findings with triage decisions
+- license compatibility classes and obligations
+- outdated dependency, EOL, abandonment, and modernization signals
+
+### Questions This Mode Answers
+
+- which ecosystems and manifests are actually covered by the packet
+- whether the current dependency posture carries material vulnerability or license risk
+- where missing scanner coverage or deferred verification still block confidence
+- which bounded modernization slices deserve follow-on change or migration work
+
+### Questions This Mode Does Not Answer Well
+
+- how to execute dependency upgrades automatically
+- how to certify legal compliance or approve risk on behalf of the user
+- how to redesign the system beyond the bounded dependency and legacy surface
+
+### What Canon Emits
+
+Supply-chain-analysis produces a governed operational packet with these artifacts:
+
+- `analysis-overview.md`
+- `sbom-bundle.md`
+- `vulnerability-triage.md`
+- `license-compliance.md`
+- `legacy-posture.md`
+- `policy-decisions.md`
+- `analysis-evidence.md`
+
+Run and status summaries surface `analysis-overview.md` as the primary artifact
+and keep the packet's `recommendation-only` posture explicit.
+
+### Typical Handoff After This Mode
+
+- inspect the packet artifacts or evidence bundle first when scanner coverage or triage remains contested
+- approve `gate:risk` when a systemic or red-zone packet is credible enough for governed review
+- publish readable packets to `docs/supply-chain/<RUN_ID>/` for broader review, even when the run is still blocked or approval-gated
+- move to `change`, `migration`, or `security-assessment` when the next real step is modernization, replacement, or threat review
+
+### Example Input
+
+See [docs/templates/canon-input/supply-chain-analysis.md](docs/templates/canon-input/supply-chain-analysis.md)
+for the starter template and
+[docs/examples/canon-input/supply-chain-analysis-rust-workspace.md](docs/examples/canon-input/supply-chain-analysis-rust-workspace.md)
+for a populated single-file example.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode supply-chain-analysis \
+  --system-context existing \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner release-engineer \
+  --input canon-input/supply-chain-analysis.md
 ```

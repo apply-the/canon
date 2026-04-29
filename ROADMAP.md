@@ -6,9 +6,9 @@ current implementation slice.
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
 `refactor`, `review`, `verification`, `pr-review`, `incident`,
-`security-assessment`, and `migration`. The next roadmap should prioritize
-output quality, packaging, distribution, and authoring improvements instead of reopening already
-delivered mode surfaces.
+`security-assessment`, `migration`, and `supply-chain-analysis`. The next
+roadmap should prioritize output quality, packaging, distribution, and
+authoring improvements instead of reopening already delivered mode surfaces.
 
 ## Delivered Feature: Domain Modeling And Boundary Design
 
@@ -100,6 +100,10 @@ vocabulary for domain work.
   compatibility packet, remains recommendation-only, blocks explicitly on
   missing fallback credibility, and publishes readable packets under
   `docs/migrations/<RUN_ID>/` even when the packet is blocked or approval-gated.
+- `supply-chain-analysis` now ships as a governed operational mode that emits a
+  seven-artifact supply-chain packet, remains recommendation-only, requires
+  `system_context=existing`, and publishes readable packets under
+  `docs/supply-chain/<RUN_ID>/` even when the packet is blocked or approval-gated.
 - `backlog` is no longer a roadmap candidate. It now ships as a governed mode
   that publishes to `docs/planning/<RUN_ID>/` and preserves downstream handoff
   context through epics, slices, dependencies, sequencing, acceptance anchors,

@@ -274,8 +274,9 @@ impl EngineService {
         match mode {
             Mode::Requirements => self.inspect_requirements_clarity(inputs),
             Mode::Discovery => self.inspect_discovery_clarity(inputs),
+            Mode::SupplyChainAnalysis => self.inspect_supply_chain_analysis_clarity(inputs),
             other => Err(EngineError::UnsupportedInspectTarget(format!(
-                "clarity inspection is currently available only for requirements and discovery, not {}",
+                "clarity inspection is currently available only for requirements, discovery, and supply-chain-analysis, not {}",
                 other.as_str()
             ))),
         }
@@ -360,6 +361,50 @@ impl EngineService {
         Ok(ClarityInspectSummary {
             mode: Mode::Discovery.as_str().to_string(),
             summary: discovery_summary(&brief),
+            source_inputs,
+            requires_clarification,
+            missing_context,
+            clarification_questions,
+            reasoning_signals,
+            recommended_focus,
+        })
+    }
+
+    pub(super) fn inspect_supply_chain_analysis_clarity(
+        &self,
+        inputs: &[String],
+    ) -> Result<ClarityInspectSummary, EngineError> {
+        self.validate_authored_input_paths(Mode::SupplyChainAnalysis, inputs)?;
+        for input in inputs {
+            let resolved = self.resolve_input_path(input);
+            if !resolved.exists() {
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` was not found from {}",
+                    self.repo_root.display()
+                )));
+            }
+        }
+
+        let source_inputs = self.clarity_source_inputs(inputs)?;
+        let context_summary = self.read_requirements_context(inputs, &[])?;
+        let brief = SupplyChainAnalysisBrief::from_context(context_summary, &source_inputs);
+        let missing_context = supply_chain_analysis_missing_context(&brief);
+        let clarification_questions =
+            prioritized_supply_chain_analysis_clarification_questions(&brief);
+        let reasoning_signals = supply_chain_analysis_reasoning_signals(&source_inputs, &brief);
+        let requires_clarification =
+            !missing_context.is_empty() || !clarification_questions.is_empty();
+        let recommended_focus = if !missing_context.is_empty() {
+            "Resolve the missing licensing, distribution, ecosystem, and tool-policy decisions before treating the supply-chain packet as review-ready.".to_string()
+        } else if !clarification_questions.is_empty() {
+            "Review the missing posture and scanner-policy questions with the named owner before starting the governed run.".to_string()
+        } else {
+            "No critical clarification questions detected; the authored supply-chain brief is bounded enough for the governed run.".to_string()
+        };
+
+        Ok(ClarityInspectSummary {
+            mode: Mode::SupplyChainAnalysis.as_str().to_string(),
+            summary: brief.summary(),
             source_inputs,
             requires_clarification,
             missing_context,
