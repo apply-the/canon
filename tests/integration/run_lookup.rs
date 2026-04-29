@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 use std::process::Command as ProcessCommand;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
@@ -6,6 +7,19 @@ use assert_cmd::Command;
 use tempfile::TempDir;
 
 fn cli_command() -> Command {
+    if let Some(binary) = std::env::var_os("CARGO_BIN_EXE_canon") {
+        return Command::new(binary);
+    }
+
+    let workspace_target = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target"));
+    let candidate =
+        workspace_target.join("debug").join(format!("canon{}", std::env::consts::EXE_SUFFIX));
+    if candidate.exists() {
+        return Command::new(candidate);
+    }
+
     let mut command = Command::new("cargo");
     command.args([
         "run",

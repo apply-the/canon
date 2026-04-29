@@ -6,7 +6,7 @@ release_surface = "https://github.com/apply-the/canon/releases"
 version_command = "canon --version"
 version_check_strategy = "prefer-semver-then-command-probe"
 command_probe = "canon inspect modes --output json"
-required_modes = ["requirements", "change", "review", "verification", "pr-review", "incident", "migration"]
+required_modes = ["requirements", "change", "review", "verification", "pr-review", "incident", "security-assessment", "migration"]
 
 [notes]
 summary = "Canon CLI compatibility is semver-based when the binary exposes --version and command-contract-based when it does not; missing or incompatible binaries should be recovered through the release install guide."

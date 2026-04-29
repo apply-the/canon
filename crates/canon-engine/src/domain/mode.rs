@@ -21,6 +21,7 @@ pub enum Mode {
     Review,
     PrReview,
     Incident,
+    SecurityAssessment,
     Migration,
 }
 
@@ -64,6 +65,7 @@ impl Mode {
             Self::Review => "review",
             Self::PrReview => "pr-review",
             Self::Incident => "incident",
+            Self::SecurityAssessment => "security-assessment",
             Self::Migration => "migration",
         }
     }
@@ -82,6 +84,7 @@ impl Mode {
             Self::Verification,
             Self::Review,
             Self::Incident,
+            Self::SecurityAssessment,
             Self::Migration,
         ]
     }
@@ -110,6 +113,7 @@ impl std::str::FromStr for Mode {
             "review" => Ok(Self::Review),
             "pr-review" => Ok(Self::PrReview),
             "incident" => Ok(Self::Incident),
+            "security-assessment" => Ok(Self::SecurityAssessment),
             "migration" => Ok(Self::Migration),
             other => Err(format!("unsupported mode: {other}")),
         }
@@ -125,7 +129,8 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     use ImplementationDepth::Full;
     use Mode::{
         Architecture as ArchitectureMode, Backlog, Change, Discovery, Implementation, Incident,
-        Migration, PrReview, Refactor, Requirements, Review, SystemShaping, Verification,
+        Migration, PrReview, Refactor, Requirements, Review, SecurityAssessment, SystemShaping,
+        Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -325,6 +330,22 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
                 "follow-up verification",
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
+        },
+        ModeProfile {
+            mode: SecurityAssessment,
+            purpose: "Assess a bounded existing system for threats, risks, and recommendation-only mitigations.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Risk, Architecture, ReleaseReadiness],
+            artifact_families: vec![
+                "assessment overview",
+                "threat model",
+                "risk register",
+                "mitigations",
+                "assumptions and gaps",
+                "assessment evidence",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
         ModeProfile {
             mode: Migration,

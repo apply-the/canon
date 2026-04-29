@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-27
+Auto-generated from all feature plans. Last updated: 2026-04-28
 
 ## Governing Constitution
 
@@ -46,10 +46,12 @@ Auto-generated from all feature plans. Last updated: 2026-04-27
 
 - Full v0.1 depth: `requirements`, `discovery`, `system-shaping`,
   `architecture`, `backlog`, `change`, `implementation`, `refactor`,
-  `verification`, `review`, `pr-review`
+  `verification`, `review`, `pr-review`, `incident`,
+  `security-assessment`, `migration`
 - First-class modeled modes: `discovery`, `requirements`, `system-shaping`,
   `architecture`, `backlog`, `change`, `implementation`, `refactor`,
-  `verification`, `review`, `pr-review`, `incident`, `migration`
+  `verification`, `review`, `pr-review`, `incident`,
+  `security-assessment`, `migration`
 - Current planning feature risk: `Systemic Impact`
 
 ## Project Structure
@@ -93,9 +95,10 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
-- 022-decision-alternatives: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
+- 023-cybersecurity-risk-assessment: Delivered Cybersecurity Risk Assessment Mode as a first-class governed runtime mode with release, skill, and validation surfaces for `0.22.0`
+- 023-cybersecurity-risk-assessment: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
+- 023-cybersecurity-risk-assessment: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 - 021-artifact-shapes-personas: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
-- 020-authoring-specialization-completion: Added Rust 1.95.0, Edition 2024. + existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
@@ -107,7 +110,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
   `canon-backlog`,
   `canon-status`, `canon-inspect-invocations`, `canon-inspect-evidence`,
   `canon-inspect-artifacts`, `canon-inspect-clarity`, `canon-approve`, `canon-resume`,
-  `canon-change`, `canon-pr-review`.
+  `canon-change`, `canon-review`, `canon-verification`,
+  `canon-implementation`, `canon-refactor`, `canon-incident`,
+  `canon-security-assessment`, `canon-migration`, `canon-pr-review`.
 - Discoverable support-state skills MUST NOT fabricate Canon runs, run ids,
   approvals, evidence, or CLI output.
 - Skill validation commands:

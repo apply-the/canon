@@ -34,5 +34,6 @@ fn init_is_idempotent_and_creates_runtime_scaffolding() {
     second.current_dir(workspace.path()).arg("init").assert().success();
 
     assert!(canon.join("methods").join("pr-review.toml").exists());
+    assert!(canon.join("methods").join("security-assessment.toml").exists());
     assert!(canon.join("policies").join("adapters.toml").exists());
 }

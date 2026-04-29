@@ -26,7 +26,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    for mode in [Mode::Incident, Mode::Migration] {
+    for mode in [Mode::Incident, Mode::SecurityAssessment, Mode::Migration] {
         let profile =
             profiles.iter().find(|profile| profile.mode == mode).expect("profile should exist");
         assert!(
@@ -64,6 +64,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::Review,
         Mode::PrReview,
         Mode::Incident,
+        Mode::SecurityAssessment,
         Mode::Migration,
     ] {
         let profile = profiles
@@ -179,4 +180,25 @@ fn promoted_execution_modes_advertise_distinct_artifact_families() {
         ]
     );
     assert!(matches!(migration.implementation_depth, ImplementationDepth::Full));
+
+    let security_assessment = profiles
+        .iter()
+        .find(|profile| profile.mode == Mode::SecurityAssessment)
+        .expect("security-assessment profile");
+    assert_eq!(
+        security_assessment.artifact_families,
+        vec![
+            "assessment overview",
+            "threat model",
+            "risk register",
+            "mitigations",
+            "assumptions and gaps",
+            "assessment evidence",
+        ]
+    );
+    assert_eq!(
+        security_assessment.gate_profile,
+        vec![GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness,]
+    );
+    assert!(matches!(security_assessment.implementation_depth, ImplementationDepth::Full));
 }

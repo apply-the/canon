@@ -265,7 +265,7 @@ canonical_mode_input_hint() {
     change)
       printf '%s' 'canon-input/change.md or canon-input/change/'
       ;;
-    implementation|refactor|incident|migration)
+    implementation|refactor|incident|security-assessment|migration)
       printf '%s' "canon-input/${command_name}.md or canon-input/${command_name}/"
       ;;
     *)

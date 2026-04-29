@@ -104,14 +104,15 @@ EOF
 ```
 
 Canon now combines canonical packet shapes with bounded authoring personas
-across planning, structural decision, framework evaluation, and review-heavy
-surfaces. `requirements`, `architecture`, and `change` keep the product lead,
-architect, and change owner personas from the earlier slice; `system-shaping`,
-`implementation`, and `migration` now make structural alternatives,
-ecosystem-health tradeoffs, and adoption implications explicit; and
-`review`, `pr-review`, `verification`, and `incident` now expose bounded
-persona guidance without changing runtime authority. Persona guidance shapes
-voice and audience fit only; it never replaces missing required sections.
+across planning, operational security, and review-heavy surfaces. The product lead,
+architect, and change owner personas from the first slice remain in place for
+the core planning modes; `security-assessment` now joins the governed mode set
+as a recommendation-only operational packet for bounded existing-system threat,
+risk, mitigation, and evidence-gap analysis; `incident` and `migration` remain
+the adjacent recommendation-only operational packets; and the existing
+planning, execution, and review modes keep their prior bounded-authoring
+posture. Persona guidance shapes voice and audience fit only; it never replaces
+missing required sections.
 
 ### 3. Start A Run
 
