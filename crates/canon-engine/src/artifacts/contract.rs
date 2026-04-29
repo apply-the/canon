@@ -289,6 +289,62 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::SupplyChainAnalysis => vec![
+            requirement(
+                "analysis-overview.md",
+                &[
+                    "Summary",
+                    "Declared Scope",
+                    "Licensing Posture",
+                    "Distribution Model",
+                    "Ecosystems In Scope",
+                    "Out Of Scope Components",
+                ],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "sbom-bundle.md",
+                &[
+                    "Summary",
+                    "Scanner Selection Rationale",
+                    "SBOM Outputs",
+                    "Scanner Decisions",
+                    "Coverage Gaps",
+                ],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "vulnerability-triage.md",
+                &["Summary", "Findings By Severity", "Exploitability Notes", "Triage Decisions"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "license-compliance.md",
+                &["Summary", "Compatibility Classes", "Flagged Incompatibilities", "Obligations"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "legacy-posture.md",
+                &[
+                    "Summary",
+                    "Outdated Dependencies",
+                    "End Of Life Signals",
+                    "Abandonment Signals",
+                    "Modernization Slices",
+                ],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "policy-decisions.md",
+                &["Summary", "Scanner Decisions", "Coverage Gaps", "Deferred Verification"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "analysis-evidence.md",
+                &["Summary", "Source Inputs", "Independent Checks", "Deferred Verification"],
+                &[GateKind::ReleaseReadiness],
+            ),
+        ],
         Mode::Implementation => vec![
             requirement(
                 "task-mapping.md",

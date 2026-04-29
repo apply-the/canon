@@ -26,7 +26,9 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    for mode in [Mode::Incident, Mode::SecurityAssessment, Mode::Migration] {
+    for mode in
+        [Mode::Incident, Mode::SecurityAssessment, Mode::Migration, Mode::SupplyChainAnalysis]
+    {
         let profile =
             profiles.iter().find(|profile| profile.mode == mode).expect("profile should exist");
         assert!(
@@ -66,6 +68,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::Incident,
         Mode::SecurityAssessment,
         Mode::Migration,
+        Mode::SupplyChainAnalysis,
     ] {
         let profile = profiles
             .iter()
@@ -201,4 +204,23 @@ fn promoted_execution_modes_advertise_distinct_artifact_families() {
         vec![GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness,]
     );
     assert!(matches!(security_assessment.implementation_depth, ImplementationDepth::Full));
+
+    let supply_chain = profiles
+        .iter()
+        .find(|profile| profile.mode == Mode::SupplyChainAnalysis)
+        .expect("supply-chain-analysis profile");
+    assert_eq!(
+        supply_chain.artifact_families,
+        vec![
+            "analysis overview",
+            "sbom bundle",
+            "vulnerability triage",
+            "license compliance",
+            "legacy posture",
+            "policy decisions",
+            "analysis evidence",
+        ]
+    );
+    assert_eq!(supply_chain.gate_profile, vec![GateKind::Risk, GateKind::ReleaseReadiness]);
+    assert!(matches!(supply_chain.implementation_depth, ImplementationDepth::Full));
 }

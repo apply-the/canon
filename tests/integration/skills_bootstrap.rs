@@ -308,6 +308,10 @@ fn skills_list_returns_all_embedded_skills() {
     assert!(names.contains(&"canon-pr-review"), "should list canon-pr-review");
     assert!(names.contains(&"canon-discovery"), "should list canon-discovery");
     assert!(names.contains(&"canon-backlog"), "should list canon-backlog");
+    assert!(
+        names.contains(&"canon-supply-chain-analysis"),
+        "should list canon-supply-chain-analysis"
+    );
 }
 
 #[test]

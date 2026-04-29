@@ -1,0 +1,15 @@
+version = 1
+# Requires explicit `--system-context existing` when starting a run.
+mode = "supply-chain-analysis"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Risk", "ReleaseReadiness"]
+artifacts = [
+    "analysis-overview.md",
+    "sbom-bundle.md",
+    "vulnerability-triage.md",
+    "license-compliance.md",
+    "legacy-posture.md",
+    "policy-decisions.md",
+    "analysis-evidence.md",
+]

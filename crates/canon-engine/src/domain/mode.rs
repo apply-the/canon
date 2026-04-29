@@ -23,6 +23,7 @@ pub enum Mode {
     Incident,
     SecurityAssessment,
     Migration,
+    SupplyChainAnalysis,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,6 +68,7 @@ impl Mode {
             Self::Incident => "incident",
             Self::SecurityAssessment => "security-assessment",
             Self::Migration => "migration",
+            Self::SupplyChainAnalysis => "supply-chain-analysis",
         }
     }
 
@@ -86,6 +88,7 @@ impl Mode {
             Self::Incident,
             Self::SecurityAssessment,
             Self::Migration,
+            Self::SupplyChainAnalysis,
         ]
     }
 }
@@ -115,6 +118,7 @@ impl std::str::FromStr for Mode {
             "incident" => Ok(Self::Incident),
             "security-assessment" => Ok(Self::SecurityAssessment),
             "migration" => Ok(Self::Migration),
+            "supply-chain-analysis" => Ok(Self::SupplyChainAnalysis),
             other => Err(format!("unsupported mode: {other}")),
         }
     }
@@ -129,8 +133,8 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     use ImplementationDepth::Full;
     use Mode::{
         Architecture as ArchitectureMode, Backlog, Change, Discovery, Implementation, Incident,
-        Migration, PrReview, Refactor, Requirements, Review, SecurityAssessment, SystemShaping,
-        Verification,
+        Migration, PrReview, Refactor, Requirements, Review, SecurityAssessment,
+        SupplyChainAnalysis, SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -360,6 +364,23 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
                 "fallback plan",
                 "migration verification report",
                 "decision record",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
+        },
+        ModeProfile {
+            mode: SupplyChainAnalysis,
+            purpose: "Assess a bounded existing repository for SBOM, vulnerability, license, and legacy posture with explicit coverage gaps.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Risk, ReleaseReadiness],
+            artifact_families: vec![
+                "analysis overview",
+                "sbom bundle",
+                "vulnerability triage",
+                "license compliance",
+                "legacy posture",
+                "policy decisions",
+                "analysis evidence",
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },

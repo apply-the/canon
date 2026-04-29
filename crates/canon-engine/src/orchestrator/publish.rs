@@ -25,11 +25,12 @@ pub fn publish_run(
     let manifest = store.load_run_manifest(run_id)?;
     let state = store.load_run_state(run_id)?;
 
-    let operational_packet_publishable = matches!(manifest.mode, Mode::Incident | Mode::Migration)
-        && matches!(
-            state.state,
-            RunState::AwaitingApproval | RunState::Blocked | RunState::Completed
-        );
+    let operational_packet_publishable =
+        matches!(manifest.mode, Mode::Incident | Mode::Migration | Mode::SupplyChainAnalysis)
+            && matches!(
+                state.state,
+                RunState::AwaitingApproval | RunState::Blocked | RunState::Completed
+            );
 
     if state.state != RunState::Completed && !operational_packet_publishable {
         return Err(EngineError::Validation(format!(
@@ -113,6 +114,7 @@ fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::Incident => "docs/incidents",
         Mode::SecurityAssessment => "docs/security-assessments",
         Mode::Migration => "docs/migrations",
+        Mode::SupplyChainAnalysis => "docs/supply-chain",
     }
 }
 
