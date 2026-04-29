@@ -132,8 +132,8 @@ defaults_runtime_ps1="${ROOT}/defaults/embedded-skills/canon-shared/scripts/chec
 agents_runtime_sh="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.sh"
 agents_runtime_ps1="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.ps1"
 
-require_text "$defaults_runtime_sh" 'implementation|refactor|incident|migration)' 'shared bash runtime hints must recognize implementation/refactor/incident/migration canonical inputs'
-require_text "$agents_runtime_sh" 'implementation|refactor|incident|migration)' 'materialized bash runtime hints must recognize implementation/refactor/incident/migration canonical inputs'
+require_text "$defaults_runtime_sh" 'implementation|refactor|incident|security-assessment|migration)' 'shared bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration canonical inputs'
+require_text "$agents_runtime_sh" 'implementation|refactor|incident|security-assessment|migration)' 'materialized bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration canonical inputs'
 require_text "$defaults_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'shared PowerShell runtime hints must recognize implementation canonical inputs'
 require_text "$defaults_runtime_ps1" "'incident' { return 'canon-input/incident.md or canon-input/incident/' }" 'shared PowerShell runtime hints must recognize incident canonical inputs'
 require_text "$defaults_runtime_ps1" "'migration' { return 'canon-input/migration.md or canon-input/migration/' }" 'shared PowerShell runtime hints must recognize migration canonical inputs'

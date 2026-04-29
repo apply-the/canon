@@ -10,7 +10,10 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - run: cargo nextest run --workspace --all-features
 jobs:
   fmt:
     name: fmt

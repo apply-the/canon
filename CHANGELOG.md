@@ -25,25 +25,23 @@ Highlights:
 
 - No additional released feature-spec delivery is recorded after `0.22.0`.
 
-## [0.22.0] - 2026-04-27
+## [0.22.0] - 2026-04-28
 
 Delivered specs:
 
-- `022` - Decision Alternatives, Pattern Choices, And Framework Evaluations
+- `023` - Cybersecurity Risk Assessment Mode
 
 Highlights:
 
-- Extend `implementation` and `migration` with explicit decision-alternative
-  sections such as `Options Matrix`, `Recommendation`, `Adoption Implications`,
-  and `Ecosystem Health` while preserving their existing artifact families,
-  gate behavior, and recommendation-only posture.
-- Make persona guidance explicit for `system-shaping`, `implementation`, and
-  `migration`, and complete adjacent review-like persona coverage for `review`,
-  `pr-review`, `verification`, and `incident` without granting new runtime
-  authority.
-- Update templates, worked examples, roadmap, release-facing docs, skill
-  mirrors, and focused validation so the 0.22.0 decision-and-persona surface is
-  visible outside chat history.
+- Add a first-class `security-assessment` mode with a seven-artifact security
+  packet covering scope, threats, risks, mitigations, assumptions, compliance
+  anchors, and evidence.
+- Keep `security-assessment` recommendation-only, require
+  `--system-context existing`, publish to `docs/security-assessments/<RUN_ID>/`,
+  and gate systemic or red-zone packets through explicit `gate:risk` approval.
+- Add the new skill, method, templates, examples, runtime compatibility
+  references, and focused contract, renderer, run, bootstrap, and
+  discoverability validation for the 0.22.0 release surface.
 
 ## [0.21.0] - 2026-04-27
 

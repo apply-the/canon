@@ -30,6 +30,7 @@ pub(crate) fn summarize_mode_result(
         Mode::Change => summarize_change_mode_result(artifacts),
         Mode::Backlog => summarize_backlog_mode_result(artifacts),
         Mode::Incident => summarize_incident_mode_result(artifacts),
+        Mode::SecurityAssessment => summarize_security_assessment_mode_result(artifacts),
         Mode::Implementation => summarize_implementation_mode_result(artifacts),
         Mode::Migration => summarize_migration_mode_result(artifacts),
         Mode::Refactor => summarize_refactor_mode_result(artifacts),
@@ -694,6 +695,70 @@ fn summarize_incident_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mod
             primary.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&incident_scope, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+fn summarize_security_assessment_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "assessment-overview.md")?;
+    let threat_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "threat-model.md");
+    let risk_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "risk-register.md");
+
+    let assessment_scope = extract_context_section(&primary.contents, "Assessment Scope")
+        .unwrap_or_else(|| "NOT CAPTURED - Assessment scope section is missing.".to_string());
+    let in_scope_assets = extract_context_section(&primary.contents, "In-Scope Assets")
+        .unwrap_or_else(|| "NOT CAPTURED - In-scope assets section is missing.".to_string());
+    let threat_inventory = threat_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Threat Inventory"))
+        .unwrap_or_else(|| "NOT CAPTURED - Threat inventory section is missing.".to_string());
+    let risk_findings = risk_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Risk Findings"))
+        .unwrap_or_else(|| "NOT CAPTURED - Risk findings section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &assessment_scope,
+        &in_scope_assets,
+        &threat_inventory,
+        &risk_findings,
+    ]);
+    let asset_count = count_markdown_entries(&in_scope_assets);
+    let threat_count = count_markdown_entries(&threat_inventory);
+    let risk_count = count_markdown_entries(&risk_findings);
+
+    let headline = if missing_context_markers == 0 {
+        "Security-assessment packet ready for governed review.".to_string()
+    } else {
+        format!(
+            "Security-assessment packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact bounds {asset_count} in-scope asset set(s), {threat_count} threat set(s), and {risk_count} rated risk set(s). Scope: {}.",
+            truncate_context_excerpt(&assessment_scope, 120)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Assets: {asset_count}; threats: {threat_count}; risks: {risk_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: Some("recommendation-only".to_string()),
+        primary_artifact_title: "Assessment Overview".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&assessment_scope, 320),
         action_chips: Vec::new(),
     })
 }

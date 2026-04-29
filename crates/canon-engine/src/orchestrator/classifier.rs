@@ -18,7 +18,8 @@ pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
         | Mode::Implementation
         | Mode::Refactor
         | Mode::Migration
-        | Mode::Incident => SystemContextRequirement::Required,
+        | Mode::Incident
+        | Mode::SecurityAssessment => SystemContextRequirement::Required,
         Mode::Discovery
         | Mode::Requirements
         | Mode::Review
@@ -38,7 +39,9 @@ pub fn validate_system_context(
             mode.as_str(),
             supported_system_context_usage(mode)
         )),
-        (_, Some(SystemContext::New)) if matches!(mode, Mode::Change | Mode::Backlog) => {
+        (_, Some(SystemContext::New))
+            if matches!(mode, Mode::Change | Mode::Backlog | Mode::SecurityAssessment) =>
+        {
             Err(format!(
                 "mode `{}` currently supports only --system-context existing in this release",
                 mode.as_str()
@@ -50,7 +53,7 @@ pub fn validate_system_context(
 
 fn supported_system_context_usage(mode: Mode) -> &'static str {
     match mode {
-        Mode::Change | Mode::Backlog => "existing",
+        Mode::Change | Mode::Backlog | Mode::SecurityAssessment => "existing",
         _ => "new|existing",
     }
 }
