@@ -19,11 +19,46 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.22.0`
+- None recorded after `0.25.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.22.0`.
+- No additional released feature-spec delivery is recorded after `0.25.0`.
+
+## [0.25.0] - 2026-04-29
+
+Delivered specs:
+
+- `025` - Distribution Channels Beyond GitHub Releases
+
+Highlights:
+
+- Add the first package-manager distribution slice for Canon through Homebrew
+  while keeping GitHub Releases as the canonical source of binaries,
+  checksums, and release metadata.
+- Emit `canon-<version>-distribution-metadata.json` and
+  `canon-<version>-homebrew-formula.rb` from the verified release bundle and
+  validate their URL and checksum alignment before publication.
+- Add optional dedicated Homebrew tap synchronization with artifact-only
+  fallback, plus install, roadmap, and release-surface updates for the `0.25.0`
+  delivery.
+
+## [0.24.0] - 2026-04-29
+
+Delivered specs:
+
+- `024` - Supply Chain And Legacy Analysis Mode
+
+Highlights:
+
+- Add a first-class `supply-chain-analysis` mode for governed SBOM,
+  vulnerability, license-compliance, and legacy-posture analysis.
+- Keep `supply-chain-analysis` recommendation-only, bounded to existing-system
+  repository surfaces, and explicit about missing scanner coverage or missing
+  authored decisions.
+- Add the new method, skill, templates, examples, compatibility references,
+  and focused runtime plus release-surface validation for the `0.24.0`
+  delivery.
 
 ## [0.22.0] - 2026-04-28
 

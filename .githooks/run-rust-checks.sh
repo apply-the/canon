@@ -3,6 +3,10 @@ set -eu
 
 hook_name=${1:-hook}
 
+cleanup_llvm_cov_artifacts() {
+  cargo llvm-cov clean --workspace >/dev/null 2>&1 || true
+}
+
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$repo_root"
 
@@ -53,6 +57,9 @@ run_step \
   cargo fmt --all -- --check
 
 if [ "$hook_name" != "pre-commit" ]; then
+  # Keep profiling artifacts ephemeral for hook-driven coverage runs.
+  trap cleanup_llvm_cov_artifacts EXIT INT TERM
+
   run_step \
     "cargo clippy --workspace --all-targets --all-features -- -D warnings" \
     "Run 'cargo clippy --workspace --all-targets --all-features -- -D warnings' and fix the reported warnings." \

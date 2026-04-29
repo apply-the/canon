@@ -7,6 +7,8 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
+The current delivery line in this repository targets Canon `0.24.0`.
+
 ## What Canon Does
 
 Canon is the product entrypoint. The shipped binary is `canon`.
@@ -24,6 +26,16 @@ Canon is not a generic agent framework and it is not an opaque agent loop. It is
 
 Canon ships as a single binary named `canon`.
 
+### Homebrew
+
+On macOS and Linux you can install Canon from the official Homebrew tap:
+
+```bash
+brew tap apply-the/canon
+brew install canon
+canon --version
+```
+
 ### Prebuilt Binary
 
 Download the latest release from [Releases](https://github.com/apply-the/canon/releases).
@@ -31,12 +43,23 @@ Download the latest release from [Releases](https://github.com/apply-the/canon/r
 **macOS / Linux**
 
 ```bash
-VERSION=vX.Y.Z
-ARCH=$(uname -m)
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+VERSION=X.Y.Z
+
+case "$(uname -s)" in
+  Darwin) OS=macos ;;
+  Linux) OS=linux ;;
+  *) echo "Unsupported OS" >&2; exit 1 ;;
+esac
+
+case "$(uname -m)" in
+  arm64|aarch64) ARCH=arm64 ;;
+  x86_64) ARCH=x86_64 ;;
+  *) echo "Unsupported architecture" >&2; exit 1 ;;
+esac
+
 ARCHIVE="canon-${VERSION}-${OS}-${ARCH}.tar.gz"
 
-curl -LO "https://github.com/apply-the/canon/releases/download/${VERSION}/${ARCHIVE}"
+curl -LO "https://github.com/apply-the/canon/releases/download/v${VERSION}/${ARCHIVE}"
 tar -xzf "${ARCHIVE}"
 install -m 0755 canon "$HOME/.local/bin/canon"
 ```
@@ -44,10 +67,10 @@ install -m 0755 canon "$HOME/.local/bin/canon"
 **Windows (PowerShell)**
 
 ```powershell
-$Version = 'vX.Y.Z'
+$Version = 'X.Y.Z'
 $Archive = "canon-$Version-windows-x86_64.zip"
 
-Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/$Version/$Archive" -OutFile $Archive
+Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/v$Version/$Archive" -OutFile $Archive
 Expand-Archive -Path $Archive -DestinationPath "$env:USERPROFILE\bin" -Force
 ```
 
@@ -108,11 +131,13 @@ across planning, operational security, and review-heavy surfaces. The product le
 architect, and change owner personas from the first slice remain in place for
 the core planning modes; `security-assessment` now joins the governed mode set
 as a recommendation-only operational packet for bounded existing-system threat,
-risk, mitigation, and evidence-gap analysis; `incident` and `migration` remain
-the adjacent recommendation-only operational packets; and the existing
-planning, execution, and review modes keep their prior bounded-authoring
-posture. Persona guidance shapes voice and audience fit only; it never replaces
-missing required sections.
+risk, mitigation, and evidence-gap analysis; `supply-chain-analysis` now joins
+that operational family as a recommendation-only existing-system packet for
+SBOM, vulnerability, license, and legacy posture review with explicit coverage
+gaps; `incident` and `migration` remain the adjacent recommendation-only
+operational packets; and the existing planning, execution, and review modes
+keep their prior bounded-authoring posture. Persona guidance shapes voice and
+audience fit only; it never replaces missing required sections.
 
 ### 3. Start A Run
 

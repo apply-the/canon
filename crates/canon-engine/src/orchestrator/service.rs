@@ -16,8 +16,8 @@ use crate::artifacts::markdown::{
     render_implementation_artifact, render_incident_artifact, render_migration_artifact,
     render_pr_review_artifact, render_refactor_artifact,
     render_requirements_artifact_from_evidence, render_review_artifact,
-    render_security_assessment_artifact, render_system_shaping_artifact,
-    render_verification_artifact,
+    render_security_assessment_artifact, render_supply_chain_analysis_artifact,
+    render_system_shaping_artifact, render_verification_artifact,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
 use crate::domain::artifact::ArtifactRecord;
@@ -64,6 +64,7 @@ mod mode_requirements;
 mod mode_review;
 mod mode_security_assessment;
 mod mode_shaping;
+mod mode_supply_chain_analysis;
 
 use clarity::*;
 use context_parse::*;
@@ -577,6 +578,9 @@ impl EngineService {
             Mode::Backlog => self.run_backlog(&store, request, policy_set),
             Mode::Incident => self.run_incident(&store, request, policy_set),
             Mode::SecurityAssessment => self.run_security_assessment(&store, request, policy_set),
+            Mode::SupplyChainAnalysis => {
+                self.run_supply_chain_analysis(&store, request, policy_set)
+            }
             Mode::Implementation => self.run_implementation(&store, request, policy_set),
             Mode::Migration => self.run_migration(&store, request, policy_set),
             Mode::Refactor => self.run_refactor(&store, request, policy_set),
@@ -1186,6 +1190,18 @@ impl EngineService {
                 contract,
                 &artifact_inputs,
                 gatekeeper::SecurityAssessmentGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::SupplyChainAnalysis => gatekeeper::evaluate_supply_chain_analysis_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::SupplyChainAnalysisGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
                     zone: manifest.zone,
@@ -2499,6 +2515,7 @@ fn canonical_mode_input_binding(mode: Mode) -> Option<(&'static str, &'static st
         Mode::Implementation => Some(("implementation.md", "implementation")),
         Mode::Migration => Some(("migration.md", "migration")),
         Mode::SecurityAssessment => Some(("security-assessment.md", "security-assessment")),
+        Mode::SupplyChainAnalysis => Some(("supply-chain-analysis.md", "supply-chain-analysis")),
         Mode::Refactor => Some(("refactor.md", "refactor")),
         _ => None,
     }

@@ -6,9 +6,10 @@ current implementation slice.
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
 `refactor`, `review`, `verification`, `pr-review`, `incident`,
-`security-assessment`, and `migration`. The next roadmap should prioritize
-output quality, packaging, distribution, and authoring improvements instead of reopening already
-delivered mode surfaces.
+`security-assessment`, `migration`, and `supply-chain-analysis`. The next
+roadmap should prioritize protocol interoperability, authoring quality, and
+follow-on distribution channels instead of reopening already delivered mode
+surfaces.
 
 ## Delivered Feature: Domain Modeling And Boundary Design
 
@@ -100,6 +101,14 @@ vocabulary for domain work.
   compatibility packet, remains recommendation-only, blocks explicitly on
   missing fallback credibility, and publishes readable packets under
   `docs/migrations/<RUN_ID>/` even when the packet is blocked or approval-gated.
+- `supply-chain-analysis` now ships as a governed operational mode that emits a
+  seven-artifact supply-chain packet, remains recommendation-only, requires
+  `system_context=existing`, and publishes readable packets under
+  `docs/supply-chain/<RUN_ID>/` even when the packet is blocked or approval-gated.
+- Canon now ships the first slice of `Distribution Channels Beyond GitHub Releases`:
+  Homebrew installation for macOS and Linux, channel-neutral distribution
+  metadata, generated formula artifacts, and optional tap synchronization while
+  GitHub Releases remain the source of truth.
 - `backlog` is no longer a roadmap candidate. It now ships as a governed mode
   that publishes to `docs/planning/<RUN_ID>/` and preserves downstream handoff
   context through epics, slices, dependencies, sequencing, acceptance anchors,
@@ -687,11 +696,19 @@ finding, modernization slices. Generic boilerplate fails the run.
 ### Outcome
 
 Users can install Canon through familiar package-manager channels without
-depending on manual archive download and placement.
+depending on manual archive download and placement, while GitHub Releases stay
+the canonical source of downloadable binaries and release metadata.
 
-### First Slice
+### Delivered First Slice
 
 - Support Homebrew as the first package-manager channel for macOS and Linux.
+- Emit channel-neutral release metadata and a generated Homebrew formula from
+  the verified release bundle.
+- Support optional dedicated tap synchronization with a durable artifact-only
+  fallback when tap publication is not configured.
+
+### Remaining Scope
+
 - Support `winget` as the primary Windows package-manager channel.
 - Support Scoop as a secondary Windows channel.
 
@@ -703,8 +720,8 @@ depending on manual archive download and placement.
 ### Why This Feature
 
 - GitHub Releases are already the canonical source of downloadable binaries.
-- The next distribution step is reach and upgrade convenience, not basic release
-  production.
+- The next distribution step after Homebrew is Windows package-manager reach,
+  not rebuilding the release pipeline.
 - Homebrew gives the strongest first install story on macOS and a viable one on
   Linux.
 - `winget` is the most credible first-class Windows distribution target.
