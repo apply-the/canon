@@ -39,6 +39,7 @@ available_now=(
   "canon-pr-review"
   "canon-incident"
   "canon-migration"
+  "canon-supply-chain-analysis"
 )
 
 modeled_only=()
@@ -132,16 +133,23 @@ defaults_runtime_ps1="${ROOT}/defaults/embedded-skills/canon-shared/scripts/chec
 agents_runtime_sh="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.sh"
 agents_runtime_ps1="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.ps1"
 
-require_text "$defaults_runtime_sh" 'implementation|refactor|incident|security-assessment|migration)' 'shared bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration canonical inputs'
-require_text "$agents_runtime_sh" 'implementation|refactor|incident|security-assessment|migration)' 'materialized bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration canonical inputs'
+require_text "$defaults_runtime_sh" 'implementation|refactor|incident|security-assessment|migration|supply-chain-analysis)' 'shared bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration/supply-chain-analysis canonical inputs'
+require_text "$agents_runtime_sh" 'implementation|refactor|incident|security-assessment|migration|supply-chain-analysis)' 'materialized bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration/supply-chain-analysis canonical inputs'
 require_text "$defaults_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'shared PowerShell runtime hints must recognize implementation canonical inputs'
 require_text "$defaults_runtime_ps1" "'incident' { return 'canon-input/incident.md or canon-input/incident/' }" 'shared PowerShell runtime hints must recognize incident canonical inputs'
 require_text "$defaults_runtime_ps1" "'migration' { return 'canon-input/migration.md or canon-input/migration/' }" 'shared PowerShell runtime hints must recognize migration canonical inputs'
+require_text "$defaults_runtime_ps1" "'supply-chain-analysis' { return 'canon-input/supply-chain-analysis.md or canon-input/supply-chain-analysis/' }" 'shared PowerShell runtime hints must recognize supply-chain-analysis canonical inputs'
 require_text "$defaults_runtime_ps1" "'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }" 'shared PowerShell runtime hints must recognize refactor canonical inputs'
 require_text "$agents_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'materialized PowerShell runtime hints must recognize implementation canonical inputs'
 require_text "$agents_runtime_ps1" "'incident' { return 'canon-input/incident.md or canon-input/incident/' }" 'materialized PowerShell runtime hints must recognize incident canonical inputs'
 require_text "$agents_runtime_ps1" "'migration' { return 'canon-input/migration.md or canon-input/migration/' }" 'materialized PowerShell runtime hints must recognize migration canonical inputs'
+require_text "$agents_runtime_ps1" "'supply-chain-analysis' { return 'canon-input/supply-chain-analysis.md or canon-input/supply-chain-analysis/' }" 'materialized PowerShell runtime hints must recognize supply-chain-analysis canonical inputs'
 require_text "$agents_runtime_ps1" "'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }" 'materialized PowerShell runtime hints must recognize refactor canonical inputs'
+
+supply_chain_path="${SKILLS_DIR}/canon-supply-chain-analysis/SKILL.md"
+require_text "$supply_chain_path" '--input <INPUT_PATH>' 'canon-supply-chain-analysis: preflight must keep file-path input binding'
+require_text "$supply_chain_path" '--input-text <INPUT_TEXT>' 'canon-supply-chain-analysis: must document inline authored input binding'
+require_text "$supply_chain_path" '--system-context existing' 'canon-supply-chain-analysis: must bind existing system context explicitly'
 
 require_text "$requirements_path" '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
 require_text "$requirements_path" '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
