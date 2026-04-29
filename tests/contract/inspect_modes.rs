@@ -45,6 +45,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "incident",
             "security-assessment",
             "migration",
+            "supply-chain-analysis",
         ])
     );
 }
@@ -62,7 +63,9 @@ fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
     assert!(text.contains("incident"));
     assert!(text.contains("migration"));
     assert!(text.contains("security-assessment"));
+    assert!(text.contains("supply-chain-analysis"));
     assert_eq!(text.matches("incident").count(), 1);
     assert_eq!(text.matches("security-assessment").count(), 1);
     assert_eq!(text.matches("migration").count(), 1);
+    assert_eq!(text.matches("supply-chain-analysis").count(), 1);
 }

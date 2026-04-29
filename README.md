@@ -7,6 +7,8 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
+The current delivery line in this repository targets Canon `0.24.0`.
+
 ## What Canon Does
 
 Canon is the product entrypoint. The shipped binary is `canon`.
@@ -108,11 +110,13 @@ across planning, operational security, and review-heavy surfaces. The product le
 architect, and change owner personas from the first slice remain in place for
 the core planning modes; `security-assessment` now joins the governed mode set
 as a recommendation-only operational packet for bounded existing-system threat,
-risk, mitigation, and evidence-gap analysis; `incident` and `migration` remain
-the adjacent recommendation-only operational packets; and the existing
-planning, execution, and review modes keep their prior bounded-authoring
-posture. Persona guidance shapes voice and audience fit only; it never replaces
-missing required sections.
+risk, mitigation, and evidence-gap analysis; `supply-chain-analysis` now joins
+that operational family as a recommendation-only existing-system packet for
+SBOM, vulnerability, license, and legacy posture review with explicit coverage
+gaps; `incident` and `migration` remain the adjacent recommendation-only
+operational packets; and the existing planning, execution, and review modes
+keep their prior bounded-authoring posture. Persona guidance shapes voice and
+audience fit only; it never replaces missing required sections.
 
 ### 3. Start A Run
 

@@ -1,21 +1,11 @@
 use std::fs;
 
-const WORKSPACE_MANIFEST: &str = "Cargo.toml";
 const CHANGELOG_PATH: &str = "CHANGELOG.md";
 
 fn read(path: &str) -> String {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     fs::read_to_string(format!("{manifest_dir}/{path}"))
         .unwrap_or_else(|err| panic!("read {path}: {err}"))
-}
-
-#[test]
-fn workspace_manifest_reports_0220() {
-    let manifest = read(WORKSPACE_MANIFEST);
-    assert!(
-        manifest.contains("version = \"0.22.0\""),
-        "workspace manifest must report version 0.22.0"
-    );
 }
 
 #[test]

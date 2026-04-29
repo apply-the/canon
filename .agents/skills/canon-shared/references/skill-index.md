@@ -26,3 +26,4 @@ must stay brutally explicit about the boundary and nearest honest alternative.
 | `canon-refactor` | executable-wrapper | `available-now` | discoverable-standard | `canon-change`, `canon-review` |
 | `canon-incident` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-artifacts` |
 | `canon-migration` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-artifacts` |
+| `canon-supply-chain-analysis` | executable-wrapper | `available-now` | discoverable-standard | `canon-inspect-artifacts`, `canon-inspect-evidence` |

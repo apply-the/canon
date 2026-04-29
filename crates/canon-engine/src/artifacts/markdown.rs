@@ -9,6 +9,7 @@ struct AuthoredSectionSpec<'a> {
 }
 
 pub const MISSING_AUTHORED_BODY_MARKER: &str = "## Missing Authored Body";
+pub const MISSING_AUTHORED_DECISION_MARKER: &str = "## Missing Authored Decision";
 
 pub fn render_markdown(title: &str, summary: &str) -> String {
     format!("# {title}\n\n## Summary\n\n{summary}\n")
@@ -411,6 +412,28 @@ fn render_missing_authored_body_block(canonical_heading: &str) -> String {
     )
 }
 
+fn render_missing_authored_decision_block(canonical_heading: &str, guidance: &str) -> String {
+    format!(
+        "{MISSING_AUTHORED_DECISION_MARKER}\n\nDecision required - No `## {canonical_heading}` section was authored in the supplied brief.\n{guidance}\n\n## {canonical_heading}\n\nDecision required - maintainer confirmation is still missing for this section."
+    )
+}
+
+fn render_authored_decision_section(
+    authored_source: &str,
+    canonical_heading: &str,
+    aliases: &[&str],
+    guidance: &str,
+) -> String {
+    match extract_authored_h2_section(authored_source, canonical_heading, aliases) {
+        Some(body) => format!("## {}\n\n{}", canonical_heading, body),
+        None => format!(
+            "## {}\n\n{}",
+            canonical_heading,
+            render_missing_authored_decision_block(canonical_heading, guidance)
+        ),
+    }
+}
+
 fn extract_authored_h2_section(
     source: &str,
     canonical_heading: &str,
@@ -749,6 +772,165 @@ pub fn render_security_assessment_artifact(file_name: &str, brief_summary: &str)
         ),
         other => render_markdown(other, brief_summary),
     }
+}
+
+pub fn render_supply_chain_analysis_artifact(file_name: &str, brief_summary: &str) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let declared_scope = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Declared Scope",
+        &[],
+        &["declared scope"],
+    )
+    .unwrap_or_else(|| "declared scope not yet authored".to_string());
+    let ecosystems_in_scope = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Ecosystems In Scope",
+        &[],
+        &["ecosystems in scope"],
+    )
+    .unwrap_or_else(|| "ecosystems in scope not yet authored".to_string());
+    let summary = format!(
+        "Bounded supply-chain analysis for {} across {}.",
+        truncate_context_excerpt(&declared_scope, 80),
+        truncate_context_excerpt(&ecosystems_in_scope, 80)
+    );
+
+    match file_name {
+        "analysis-overview.md" => format!(
+            "# Analysis Overview\n\n## Summary\n\n{summary}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n",
+            render_authored_section(
+                brief_summary,
+                &AuthoredSectionSpec { canonical_heading: "Declared Scope", aliases: &[] }
+            ),
+            render_authored_decision_section(
+                brief_summary,
+                "Licensing Posture",
+                &[],
+                "Record the repository licensing posture explicitly and rerun."
+            ),
+            render_authored_decision_section(
+                brief_summary,
+                "Distribution Model",
+                &[],
+                "Record whether the analyzed dependencies are distributed externally or internal-only and rerun."
+            ),
+            render_authored_decision_section(
+                brief_summary,
+                "Ecosystems In Scope",
+                &[],
+                "Record which ecosystems remain in scope for the packet and rerun."
+            ),
+            render_authored_decision_section(
+                brief_summary,
+                "Out Of Scope Components",
+                &[],
+                "Record the explicit out-of-scope components and rerun."
+            ),
+        ),
+        "sbom-bundle.md" => format!(
+            "# SBOM Bundle\n\n## Summary\n\n{summary}\n\n{}\n\n{}\n\n{}\n\n{}\n",
+            render_authored_section(
+                brief_summary,
+                &AuthoredSectionSpec {
+                    canonical_heading: "Scanner Selection Rationale",
+                    aliases: &[],
+                }
+            ),
+            render_authored_section(
+                brief_summary,
+                &AuthoredSectionSpec { canonical_heading: "SBOM Outputs", aliases: &[] }
+            ),
+            render_authored_decision_section(
+                brief_summary,
+                "Scanner Decisions",
+                &[],
+                "Record non-OSS tool policy and any installed, skipped, or replaced scanner decisions, then rerun."
+            ),
+            render_supply_chain_coverage_gaps_section(brief_summary),
+        ),
+        "vulnerability-triage.md" => render_authored_artifact(
+            "Vulnerability Triage",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Findings By Severity", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Exploitability Notes", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Triage Decisions", aliases: &[] },
+            ],
+        ),
+        "license-compliance.md" => render_authored_artifact(
+            "License Compliance",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Compatibility Classes", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Flagged Incompatibilities",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Obligations", aliases: &[] },
+            ],
+        ),
+        "legacy-posture.md" => render_authored_artifact(
+            "Legacy Posture",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Outdated Dependencies", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "End Of Life Signals", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Abandonment Signals", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Modernization Slices", aliases: &[] },
+            ],
+        ),
+        "policy-decisions.md" => format!(
+            "# Policy Decisions\n\n## Summary\n\n{summary}\n\n{}\n\n{}\n\n{}\n",
+            render_authored_decision_section(
+                brief_summary,
+                "Scanner Decisions",
+                &[],
+                "Record non-OSS tool policy and any installed, skipped, or replaced scanner decisions, then rerun."
+            ),
+            render_supply_chain_coverage_gaps_section(brief_summary),
+            render_authored_section(
+                brief_summary,
+                &AuthoredSectionSpec { canonical_heading: "Deferred Verification", aliases: &[] }
+            ),
+        ),
+        "analysis-evidence.md" => render_authored_artifact(
+            "Analysis Evidence",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Source Inputs", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Independent Checks", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Deferred Verification", aliases: &[] },
+            ],
+        ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
+fn render_supply_chain_coverage_gaps_section(authored_source: &str) -> String {
+    if let Some(body) = extract_authored_h2_section(authored_source, "Coverage Gaps", &[]) {
+        return format!("## Coverage Gaps\n\n{body}");
+    }
+
+    if let Some(scanner_decisions) =
+        extract_authored_h2_section(authored_source, "Scanner Decisions", &[])
+    {
+        let normalized = scanner_decisions.to_lowercase();
+        if normalized.contains("skipped") || normalized.contains("replaced") {
+            return format!(
+                "## Coverage Gaps\n\nCoverage gap derived from recorded scanner decisions.\n\n{}\n\n- Impacted artifacts: sbom-bundle.md, vulnerability-triage.md, license-compliance.md, legacy-posture.md, policy-decisions.md\n- Next action: install the missing scanner or document an approved replacement and rerun the packet.",
+                truncate_context_excerpt(&scanner_decisions, 320)
+            );
+        }
+    }
+
+    render_missing_authored_body_block("Coverage Gaps")
 }
 
 pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String {

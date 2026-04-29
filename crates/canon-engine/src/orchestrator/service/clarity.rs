@@ -20,8 +20,113 @@ pub(crate) fn list_contains_missing_markers(values: &[String]) -> bool {
     values.iter().any(|value| value.contains("NOT CAPTURED"))
 }
 
+pub(crate) fn list_contains_missing_decision_markers(values: &[String]) -> bool {
+    values.iter().any(|value| value.contains("MISSING AUTHORED DECISION"))
+}
+
 pub(crate) fn count_captured_list_items(values: &[String]) -> usize {
     values.iter().filter(|value| !value.contains("NOT CAPTURED")).count()
+}
+
+// ── SupplyChainAnalysisBrief ────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+pub(crate) struct SupplyChainAnalysisBrief {
+    pub(crate) declared_scope: String,
+    pub(crate) licensing_posture: String,
+    pub(crate) distribution_model: String,
+    pub(crate) ecosystems_in_scope: Vec<String>,
+    pub(crate) out_of_scope_components: Vec<String>,
+    pub(crate) scanner_decisions: Vec<String>,
+    pub(crate) source_refs: Vec<String>,
+}
+
+impl SupplyChainAnalysisBrief {
+    pub(crate) fn from_context(context_summary: String, source_refs: &[String]) -> Self {
+        let normalized = context_summary.to_lowercase();
+        let declared_scope = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["declared scope", "scope"],
+        )
+        .map(|value| condense_context_block(&value, 320))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Declared Scope` section in the supply-chain input."
+                .to_string()
+        });
+        let licensing_posture = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["licensing posture", "license posture"],
+        )
+        .map(|value| condense_context_block(&value, 220))
+        .unwrap_or_else(|| {
+            "MISSING AUTHORED DECISION - Provide a `## Licensing Posture` section in the supply-chain input."
+                .to_string()
+        });
+        let distribution_model = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["distribution model"],
+        )
+        .map(|value| condense_context_block(&value, 220))
+        .unwrap_or_else(|| {
+            "MISSING AUTHORED DECISION - Provide a `## Distribution Model` section in the supply-chain input."
+                .to_string()
+        });
+        let ecosystems_in_scope = default_list(
+            extract_context_list(
+                &context_summary,
+                &normalized,
+                &["ecosystems in scope", "ecosystems", "ecosystem confirmation"],
+            ),
+            "MISSING AUTHORED DECISION - Provide a `## Ecosystems In Scope` section in the supply-chain input.",
+        );
+        let out_of_scope_components = default_list(
+            extract_context_list(
+                &context_summary,
+                &normalized,
+                &["out of scope components", "out of scope", "excluded"],
+            ),
+            "MISSING AUTHORED DECISION - Provide a `## Out Of Scope Components` section in the supply-chain input.",
+        );
+        let scanner_decisions = default_list(
+            extract_context_list(
+                &context_summary,
+                &normalized,
+                &["scanner decisions", "non-oss tool policy", "non oss tool policy"],
+            ),
+            "MISSING AUTHORED DECISION - Provide a `## Scanner Decisions` section that records non-OSS tool policy and any installed, skipped, or replaced scanner choices.",
+        );
+
+        Self {
+            declared_scope,
+            licensing_posture,
+            distribution_model,
+            ecosystems_in_scope,
+            out_of_scope_components,
+            scanner_decisions,
+            source_refs: source_refs.iter().map(ToString::to_string).collect(),
+        }
+    }
+
+    pub(crate) fn summary(&self) -> String {
+        let mut lines = vec![format!(
+            "Declared scope: {}",
+            truncate_context_excerpt(&self.declared_scope, 180)
+        )];
+
+        if !self.source_refs.is_empty() {
+            lines.push(format!("Source inputs: {}", self.source_refs.join(", ")));
+        }
+
+        lines.push(format!(
+            "Ecosystems in scope: {}",
+            count_captured_list_items(&self.ecosystems_in_scope)
+        ));
+
+        lines.join("\n")
+    }
 }
 
 // ── RequirementsBrief ─────────────────────────────────────────────────────────
@@ -517,6 +622,135 @@ pub(crate) fn prioritized_discovery_clarification_questions(
 
     questions.truncate(5);
     questions
+}
+
+// ── Supply-chain clarity ────────────────────────────────────────────────────
+
+pub(crate) fn supply_chain_analysis_missing_context(
+    brief: &SupplyChainAnalysisBrief,
+) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if brief.declared_scope.contains("NOT CAPTURED") {
+        missing.push(
+            "Declared scope is missing; the packet is not yet bounded to a specific manifest or repository surface."
+                .to_string(),
+        );
+    }
+    if brief.licensing_posture.contains("MISSING AUTHORED DECISION") {
+        missing.push(
+            "Licensing posture is unresolved; Canon must not guess whether the project is commercial, permissive OSS, copyleft OSS, or mixed."
+                .to_string(),
+        );
+    }
+    if brief.distribution_model.contains("MISSING AUTHORED DECISION") {
+        missing.push(
+            "Distribution model is unresolved; Canon must not guess whether the analyzed dependencies ship externally or remain internal-only."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.ecosystems_in_scope) {
+        missing.push(
+            "Ecosystem scope is unresolved; the packet needs an explicit keep-or-remove decision for the detected ecosystems."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.out_of_scope_components) {
+        missing.push(
+            "Out-of-scope components are unresolved; vendored, generated, or third-party exclusions still need explicit confirmation."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.scanner_decisions) {
+        missing.push(
+            "Scanner policy is unresolved; the packet still needs non-OSS tool-policy guidance and any install, skip, or replacement decisions."
+                .to_string(),
+        );
+    }
+
+    missing
+}
+
+pub(crate) fn prioritized_supply_chain_analysis_clarification_questions(
+    brief: &SupplyChainAnalysisBrief,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+
+    if brief.licensing_posture.contains("MISSING AUTHORED DECISION") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-licensing-posture",
+            "What licensing posture governs this repository surface: commercial, oss-permissive, oss-copyleft, or mixed?",
+            "License compatibility and obligations cannot be analyzed credibly until the governing posture is explicit.",
+            "`## Licensing Posture` is missing from the authored supply-chain brief.",
+        );
+    }
+    if brief.distribution_model.contains("MISSING AUTHORED DECISION") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-distribution-model",
+            "Is the analyzed dependency surface distributed externally or used only internally?",
+            "Distribution model changes which obligations and release-facing risks matter.",
+            "`## Distribution Model` is missing from the authored supply-chain brief.",
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.ecosystems_in_scope) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-ecosystem-scope",
+            "Which detected ecosystems remain in scope for this packet, and which should be removed from scope?",
+            "Scanner selection and coverage-gap reporting depend on an explicit ecosystem boundary.",
+            "`## Ecosystems In Scope` is missing from the authored supply-chain brief.",
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.out_of_scope_components) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-exclusions",
+            "Which vendored, generated, or third-party components are explicitly out of scope for this packet?",
+            "Without explicit exclusions, the packet may overstate or understate the bounded review surface.",
+            "`## Out Of Scope Components` is missing from the authored supply-chain brief.",
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.scanner_decisions) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-tool-policy",
+            "Are non-OSS scanner proposals allowed if OSS tooling cannot cover a required capability?",
+            "Canon must keep missing-scanner guidance inside the user's stated tool-policy boundary.",
+            "`## Scanner Decisions` is missing from the authored supply-chain brief.",
+        );
+    }
+
+    questions
+}
+
+pub(crate) fn supply_chain_analysis_reasoning_signals(
+    source_inputs: &[String],
+    brief: &SupplyChainAnalysisBrief,
+) -> Vec<String> {
+    let mut signals = Vec::new();
+
+    signals.push(format!("Source inputs inspected: {}", source_inputs.join(", ")));
+    signals.push(format!(
+        "Captured ecosystems in scope: {}",
+        count_captured_list_items(&brief.ecosystems_in_scope)
+    ));
+
+    if brief.licensing_posture.contains("MISSING AUTHORED DECISION") {
+        signals
+            .push("Licensing posture still requires explicit maintainer confirmation.".to_string());
+    }
+    if brief.distribution_model.contains("MISSING AUTHORED DECISION") {
+        signals.push(
+            "Distribution model still requires explicit maintainer confirmation.".to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.scanner_decisions) {
+        signals.push("Scanner policy remains incomplete; missing-scanner guidance would otherwise drift outside the stated tool policy.".to_string());
+    }
+
+    signals
 }
 
 pub(crate) fn discovery_reasoning_signals(

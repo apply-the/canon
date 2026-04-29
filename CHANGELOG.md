@@ -19,11 +19,28 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.22.0`
+- None recorded after `0.24.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.22.0`.
+- No additional released feature-spec delivery is recorded after `0.24.0`.
+
+## [0.24.0] - 2026-04-29
+
+Delivered specs:
+
+- `024` - Supply Chain And Legacy Analysis Mode
+
+Highlights:
+
+- Add a first-class `supply-chain-analysis` mode for governed SBOM,
+  vulnerability, license-compliance, and legacy-posture analysis.
+- Keep `supply-chain-analysis` recommendation-only, bounded to existing-system
+  repository surfaces, and explicit about missing scanner coverage or missing
+  authored decisions.
+- Add the new method, skill, templates, examples, compatibility references,
+  and focused runtime plus release-surface validation for the `0.24.0`
+  delivery.
 
 ## [0.22.0] - 2026-04-28
 

@@ -35,5 +35,6 @@ fn init_is_idempotent_and_creates_runtime_scaffolding() {
 
     assert!(canon.join("methods").join("pr-review.toml").exists());
     assert!(canon.join("methods").join("security-assessment.toml").exists());
+    assert!(canon.join("methods").join("supply-chain-analysis.toml").exists());
     assert!(canon.join("policies").join("adapters.toml").exists());
 }
