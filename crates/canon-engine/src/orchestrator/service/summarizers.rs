@@ -31,6 +31,7 @@ pub(crate) fn summarize_mode_result(
         Mode::Backlog => summarize_backlog_mode_result(artifacts),
         Mode::Incident => summarize_incident_mode_result(artifacts),
         Mode::SecurityAssessment => summarize_security_assessment_mode_result(artifacts),
+        Mode::SupplyChainAnalysis => summarize_supply_chain_analysis_mode_result(artifacts),
         Mode::Implementation => summarize_implementation_mode_result(artifacts),
         Mode::Migration => summarize_migration_mode_result(artifacts),
         Mode::Refactor => summarize_refactor_mode_result(artifacts),
@@ -759,6 +760,70 @@ fn summarize_security_assessment_mode_result(
             primary.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&assessment_scope, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+fn summarize_supply_chain_analysis_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "analysis-overview.md")?;
+    let vulnerability_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "vulnerability-triage.md");
+    let legacy_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "legacy-posture.md");
+
+    let declared_scope = extract_context_section(&primary.contents, "Declared Scope")
+        .unwrap_or_else(|| "NOT CAPTURED - Declared scope section is missing.".to_string());
+    let ecosystems_in_scope = extract_context_section(&primary.contents, "Ecosystems In Scope")
+        .unwrap_or_else(|| "NOT CAPTURED - Ecosystems in scope section is missing.".to_string());
+    let findings = vulnerability_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Findings By Severity"))
+        .unwrap_or_else(|| "NOT CAPTURED - Findings by severity section is missing.".to_string());
+    let modernization_slices = legacy_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Modernization Slices"))
+        .unwrap_or_else(|| "NOT CAPTURED - Modernization slices section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &declared_scope,
+        &ecosystems_in_scope,
+        &findings,
+        &modernization_slices,
+    ]);
+    let ecosystem_count = count_markdown_entries(&ecosystems_in_scope);
+    let finding_count = count_markdown_entries(&findings);
+    let modernization_count = count_markdown_entries(&modernization_slices);
+
+    let headline = if missing_context_markers == 0 {
+        "Supply-chain-analysis packet ready for governed review.".to_string()
+    } else {
+        format!(
+            "Supply-chain-analysis packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact bounds {ecosystem_count} ecosystem set(s), {finding_count} finding set(s), and {modernization_count} modernization slice set(s). Scope: {}.",
+            truncate_context_excerpt(&declared_scope, 120)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Ecosystems: {ecosystem_count}; findings: {finding_count}; modernization slices: {modernization_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: Some("recommendation-only".to_string()),
+        primary_artifact_title: "Analysis Overview".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&declared_scope, 320),
         action_chips: Vec::new(),
     })
 }
