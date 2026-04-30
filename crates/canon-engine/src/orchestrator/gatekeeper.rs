@@ -91,6 +91,15 @@ pub struct SecurityAssessmentGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+pub struct SystemAssessmentGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
 pub struct SupplyChainAnalysisGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -518,6 +527,42 @@ pub fn evaluate_security_assessment_gates(
             context.validation_independence_satisfied,
             context.evidence_complete,
             "security-assessment readiness requires persisted context, critique, and verification evidence",
+        ),
+    ]
+}
+
+pub fn evaluate_system_assessment_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: SystemAssessmentGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &[
+                "assessment-overview.md",
+                "coverage-map.md",
+                "component-view.md",
+                "integration-view.md",
+            ],
+            "system assessment review requires scope, coverage, component mapping, and integration evidence",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone system-assessment work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "system-assessment readiness requires persisted context, critique, and verification evidence",
         ),
     ]
 }

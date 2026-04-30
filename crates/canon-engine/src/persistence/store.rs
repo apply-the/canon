@@ -44,6 +44,7 @@ const METHOD_FILES: &[(&str, &str)] = &[
         "security-assessment.toml",
         include_str!("../../../../defaults/methods/security-assessment.toml"),
     ),
+    ("system-assessment.toml", include_str!("../../../../defaults/methods/system-assessment.toml")),
     ("migration.toml", include_str!("../../../../defaults/methods/migration.toml")),
     (
         "supply-chain-analysis.toml",
@@ -146,6 +147,12 @@ const SKILL_FILES: &[(&str, &str)] = &[
         "canon-security-assessment/SKILL.md",
         include_str!(
             "../../../../defaults/embedded-skills/canon-security-assessment/skill-source.md"
+        ),
+    ),
+    (
+        "canon-system-assessment/SKILL.md",
+        include_str!(
+            "../../../../defaults/embedded-skills/canon-system-assessment/skill-source.md"
         ),
     ),
     (

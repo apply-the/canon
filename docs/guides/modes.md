@@ -79,6 +79,7 @@ specific LLM provider; the assistant in the chat is the model.
 - [`pr-review`](#mode-pr-review)
 - [`incident`](#mode-incident)
 - [`security-assessment`](#mode-security-assessment)
+- [`system-assessment`](#mode-system-assessment)
 - [`migration`](#mode-migration)
 - [`supply-chain-analysis`](#mode-supply-chain-analysis)
 
@@ -96,6 +97,7 @@ convention:
 - `implementation`: `canon-input/implementation.md` or `canon-input/implementation/`
 - `incident`: `canon-input/incident.md` or `canon-input/incident/`
 - `security-assessment`: `canon-input/security-assessment.md` or `canon-input/security-assessment/`
+- `system-assessment`: `canon-input/system-assessment.md` or `canon-input/system-assessment/`
 - `migration`: `canon-input/migration.md` or `canon-input/migration/`
 - `supply-chain-analysis`: `canon-input/supply-chain-analysis.md` or `canon-input/supply-chain-analysis/`
 - `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
@@ -132,7 +134,7 @@ Modes that target a specific system state also require an explicit
 `--system-context` binding. Use `--system-context new|existing` for
 `system-shaping` and `architecture`; use `--system-context existing` for
 `backlog`, `change`, `implementation`, `incident`, `security-assessment`,
-`migration`, `supply-chain-analysis`, and `refactor`.
+`system-assessment`, `migration`, `supply-chain-analysis`, and `refactor`.
 
 `review` is stricter in the current runtime slice: it expects exactly one
 authored review packet at `canon-input/review.md` or `canon-input/review/`.
@@ -164,9 +166,10 @@ into a visible workspace directory. It never mutates or deletes the governed
 copy under `.canon/`.
 
 Publishing is allowed for runs whose state is `Completed`. `incident`,
-`security-assessment`, `migration`, and `supply-chain-analysis` are the
-exception: approval-gated or blocked operational packets may also publish when
-the emitted artifact set exists and the goal is packet review outside the runtime.
+`security-assessment`, `system-assessment`, `migration`, and
+`supply-chain-analysis` are the exception: approval-gated or blocked
+operational packets may also publish when the emitted artifact set exists and
+the goal is packet review outside the runtime.
 
 Default publish targets by mode:
 
@@ -179,6 +182,7 @@ Default publish targets by mode:
 - `implementation` -> `docs/implementation/<RUN_ID>/`
 - `incident` -> `docs/incidents/<RUN_ID>/`
 - `security-assessment` -> `docs/security-assessments/<RUN_ID>/`
+- `system-assessment` -> `docs/architecture/assessments/<RUN_ID>/`
 - `migration` -> `docs/migrations/<RUN_ID>/`
 - `supply-chain-analysis` -> `docs/supply-chain/<RUN_ID>/`
 - `refactor` -> `docs/refactors/<RUN_ID>/`
@@ -270,20 +274,24 @@ flowchart TD
   A[Special operational need] --> B{Scenario type}
   B -->|Incident or outage| INC[incident + system_context=existing]
   B -->|Security risk assessment| SEC[security-assessment + system_context=existing]
+  B -->|As-is system assessment| SYS[system-assessment + system_context=existing]
   B -->|Migration initiative| MIG[migration + system_context=existing]
   B -->|Supply chain or legacy review| SUP[supply-chain-analysis + system_context=existing]
 
   INC --> I1[Incident packet: frame, hypotheses, blast radius, containment, decisions, follow-up]
   SEC --> S1[Security packet: scope, threats, risks, mitigations, gaps, compliance anchors, evidence]
+  SYS --> Y1[System packet: overview, ISO 42010 views, assets, risks, observed findings, inferred findings, assessment gaps, evidence]
   MIG --> M1[Migration packet: source-target map, compatibility, sequencing, fallback, verification, decisions]
   SUP --> U1[Supply chain packet: scope, SBOM, vulnerabilities, licenses, legacy posture, policy decisions, evidence]
 
   I1 --> I2[Optional risk approval]
   S1 --> S2[Optional risk approval]
+  Y1 --> Y2[Optional risk approval]
   M1 --> M2[Optional risk approval]
   U1 --> U2[Optional risk approval]
   I2 --> IPUB[canon publish -> docs/incidents/<RUN_ID>/]
   S2 --> SPUB[canon publish -> docs/security-assessments/<RUN_ID>/]
+  Y2 --> YPUB[canon publish -> docs/architecture/assessments/<RUN_ID>/]
   M2 --> MPUB[canon publish -> docs/migrations/<RUN_ID>/]
   U2 --> UPUB[canon publish -> docs/supply-chain/<RUN_ID>/]
 ```
@@ -295,7 +303,7 @@ flowchart TD
 - `change` defines bounded modification scope and preserved invariants.
 - `implementation` and `refactor` produce governed execution/preservation packets with approval gating.
 - `review`, `verification`, and `pr-review` challenge packet quality, evidence, and diff-level correctness.
-- `incident`, `security-assessment`, `migration`, and `supply-chain-analysis` produce recommendation-only operational packets with publishable blocked or approval-gated review surfaces.
+- `incident`, `security-assessment`, `system-assessment`, `migration`, and `supply-chain-analysis` produce recommendation-only operational packets with publishable approval-gated or blocked operational packets for review.
 
 ## Mode: discovery
 
@@ -1553,6 +1561,121 @@ canon run \
   --zone red \
   --owner incident-commander \
   --input canon-input/incident.md
+```
+
+## Mode: system-assessment
+
+### Use It For
+
+Produce a governed as-is system assessment for a bounded existing system when
+current architecture coverage, dependencies, risks, and evidence gaps need one
+reviewable packet before downstream design or change work.
+
+### Input Shape
+
+A bounded system-assessment brief or folder-backed packet.
+
+System-assessment is strongest when the packet authors these canonical H2
+sections directly: `## Assessment Objective`, `## Stakeholders`,
+`## Primary Concerns`, `## Assessment Posture`, `## Stakeholder Concerns`,
+`## Assessed Views`, `## Partial Or Skipped Coverage`,
+`## Confidence By Surface`, `## Assessed Assets`,
+`## Critical Dependencies`, `## Boundary Notes`, `## Ownership Signals`,
+`## Responsibilities`, `## Primary Flows`, `## Observed Boundaries`,
+`## Components`, `## Interfaces`, `## Confidence Notes`,
+`## Execution Environments`, `## Network And Runtime Boundaries`,
+`## Deployment Signals`, `## Coverage Gaps`, `## Technology Stack`,
+`## Platform Dependencies`, `## Version Or Lifecycle Signals`,
+`## Evidence Gaps`, `## Integrations`, `## Data Exchanges`,
+`## Trust And Failure Boundaries`, `## Inference Notes`,
+`## Observed Risks`, `## Risk Triggers`, `## Impact Notes`,
+`## Likely Follow-On Modes`, `## Observed Findings`, `## Inferred Findings`,
+`## Assessment Gaps`, and `## Evidence Sources`. Missing canonical H2 sections
+emit `## Missing Authored Body` naming the missing heading, and Canon keeps the
+difference between direct evidence and inferred coverage explicit.
+
+### Good Input Should Include
+
+- assessment objective, stakeholder set, and primary concerns
+- the view families actually covered and any partial or skipped coverage
+- assets, dependencies, ownership, and boundary notes
+- component, deployment, technology, and integration evidence
+- observed risks, risk triggers, and likely follow-on modes
+- explicit observed findings, inferred findings, and assessment gaps with evidence sources
+
+### Questions This Mode Answers
+
+- what current system surface is actually covered by the packet
+- which view coverage is directly evidenced versus inferred
+- where dependencies, ownership, and boundaries concentrate architectural risk
+- which gaps block confident architecture, change, or security follow-on work
+
+### Questions This Mode Does Not Answer Well
+
+- how the future state should be redesigned from scratch
+- how to certify complete architecture coverage or production fitness
+- how to execute remediation or implementation automatically
+
+### What Canon Emits
+
+System-assessment produces a governed operational packet with these artifacts:
+
+- `assessment-overview.md`
+- `coverage-map.md`
+- `asset-inventory.md`
+- `functional-view.md`
+- `component-view.md`
+- `deployment-view.md`
+- `technology-view.md`
+- `integration-view.md`
+- `risk-register.md`
+- `assessment-evidence.md`
+
+Run and status summaries surface `assessment-overview.md` as the primary
+artifact and keep the packet's `recommendation-only` posture explicit.
+
+### Intended Persona
+
+Author system assessment as if it were written by a systems assessor producing
+an ISO 42010-style current-state packet for maintainers, reviewers, and
+approvers.
+
+- Favor evidence-backed viewpoint coverage, dependencies, risks, and explicit
+  observed findings, inferred findings, and assessment gaps over future-state advice.
+- Boundary: the persona shapes framing only. It must not imply redesign
+  approval, complete repository coverage, or certainty the packet does not
+  earn.
+
+### Typical Handoff After This Mode
+
+- inspect the packet or evidence first when coverage or viewpoint confidence is still contested
+- approve `gate:risk` when a systemic or red-zone packet is credible enough for governed review
+- publish readable packets to `docs/architecture/assessments/<RUN_ID>/` for broader review, even when the run is still blocked or approval-gated
+- move to `architecture`, `change`, or `security-assessment` when the next real step is future-state design, bounded modification, or targeted threat review
+
+### Common Mistakes
+
+- using `system-assessment` as a substitute for a future-state architecture decision
+- presenting inferred coverage as if it were directly observed evidence
+- expecting Canon to redesign the system or certify architectural completeness
+
+### Example Input
+
+See [docs/templates/canon-input/system-assessment.md](docs/templates/canon-input/system-assessment.md)
+for the starter template and
+[docs/examples/canon-input/system-assessment-commerce-platform.md](docs/examples/canon-input/system-assessment-commerce-platform.md)
+for a populated single-file example.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode system-assessment \
+  --system-context existing \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner architecture-reviewer \
+  --input canon-input/system-assessment.md
 ```
 
 ## Mode: migration

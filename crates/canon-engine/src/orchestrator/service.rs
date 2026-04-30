@@ -17,7 +17,8 @@ use crate::artifacts::markdown::{
     render_pr_review_artifact, render_refactor_artifact,
     render_requirements_artifact_from_evidence, render_review_artifact,
     render_security_assessment_artifact, render_supply_chain_analysis_artifact,
-    render_system_shaping_artifact, render_verification_artifact,
+    render_system_assessment_artifact, render_system_shaping_artifact,
+    render_verification_artifact,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
 use crate::domain::artifact::ArtifactRecord;
@@ -65,6 +66,7 @@ mod mode_review;
 mod mode_security_assessment;
 mod mode_shaping;
 mod mode_supply_chain_analysis;
+mod mode_system_assessment;
 
 use clarity::*;
 use context_parse::*;
@@ -577,6 +579,7 @@ impl EngineService {
             Mode::Change => self.run_change(&store, request, policy_set),
             Mode::Backlog => self.run_backlog(&store, request, policy_set),
             Mode::Incident => self.run_incident(&store, request, policy_set),
+            Mode::SystemAssessment => self.run_system_assessment(&store, request, policy_set),
             Mode::SecurityAssessment => self.run_security_assessment(&store, request, policy_set),
             Mode::SupplyChainAnalysis => {
                 self.run_supply_chain_analysis(&store, request, policy_set)
@@ -1178,6 +1181,18 @@ impl EngineService {
                 contract,
                 &artifact_inputs,
                 gatekeeper::IncidentGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::SystemAssessment => gatekeeper::evaluate_system_assessment_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::SystemAssessmentGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
                     zone: manifest.zone,
@@ -2514,6 +2529,7 @@ fn canonical_mode_input_binding(mode: Mode) -> Option<(&'static str, &'static st
         Mode::Incident => Some(("incident.md", "incident")),
         Mode::Implementation => Some(("implementation.md", "implementation")),
         Mode::Migration => Some(("migration.md", "migration")),
+        Mode::SystemAssessment => Some(("system-assessment.md", "system-assessment")),
         Mode::SecurityAssessment => Some(("security-assessment.md", "security-assessment")),
         Mode::SupplyChainAnalysis => Some(("supply-chain-analysis.md", "supply-chain-analysis")),
         Mode::Refactor => Some(("refactor.md", "refactor")),

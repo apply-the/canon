@@ -26,9 +26,13 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    for mode in
-        [Mode::Incident, Mode::SecurityAssessment, Mode::Migration, Mode::SupplyChainAnalysis]
-    {
+    for mode in [
+        Mode::Incident,
+        Mode::SecurityAssessment,
+        Mode::SystemAssessment,
+        Mode::Migration,
+        Mode::SupplyChainAnalysis,
+    ] {
         let profile =
             profiles.iter().find(|profile| profile.mode == mode).expect("profile should exist");
         assert!(
@@ -67,6 +71,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         Mode::PrReview,
         Mode::Incident,
         Mode::SecurityAssessment,
+        Mode::SystemAssessment,
         Mode::Migration,
         Mode::SupplyChainAnalysis,
     ] {
@@ -204,6 +209,31 @@ fn promoted_execution_modes_advertise_distinct_artifact_families() {
         vec![GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness,]
     );
     assert!(matches!(security_assessment.implementation_depth, ImplementationDepth::Full));
+
+    let system_assessment = profiles
+        .iter()
+        .find(|profile| profile.mode == Mode::SystemAssessment)
+        .expect("system-assessment profile");
+    assert_eq!(
+        system_assessment.artifact_families,
+        vec![
+            "assessment overview",
+            "coverage map",
+            "asset inventory",
+            "functional view",
+            "component view",
+            "deployment view",
+            "technology view",
+            "integration view",
+            "risk register",
+            "assessment evidence",
+        ]
+    );
+    assert_eq!(
+        system_assessment.gate_profile,
+        vec![GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness,]
+    );
+    assert!(matches!(system_assessment.implementation_depth, ImplementationDepth::Full));
 
     let supply_chain = profiles
         .iter()

@@ -246,6 +246,112 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::SystemAssessment => vec![
+            requirement(
+                "assessment-overview.md",
+                &[
+                    "Summary",
+                    "Assessment Objective",
+                    "Stakeholders",
+                    "Primary Concerns",
+                    "Assessment Posture",
+                ],
+                &[GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "coverage-map.md",
+                &[
+                    "Summary",
+                    "Stakeholder Concerns",
+                    "Assessed Views",
+                    "Partial Or Skipped Coverage",
+                    "Confidence By Surface",
+                ],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "asset-inventory.md",
+                &[
+                    "Summary",
+                    "Assessed Assets",
+                    "Critical Dependencies",
+                    "Boundary Notes",
+                    "Ownership Signals",
+                ],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "functional-view.md",
+                &[
+                    "Summary",
+                    "Responsibilities",
+                    "Primary Flows",
+                    "Observed Boundaries",
+                    "Confidence Notes",
+                ],
+                &[GateKind::Architecture],
+            ),
+            requirement(
+                "component-view.md",
+                &["Summary", "Components", "Responsibilities", "Interfaces", "Confidence Notes"],
+                &[GateKind::Architecture],
+            ),
+            requirement(
+                "deployment-view.md",
+                &[
+                    "Summary",
+                    "Execution Environments",
+                    "Network And Runtime Boundaries",
+                    "Deployment Signals",
+                    "Coverage Gaps",
+                ],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "technology-view.md",
+                &[
+                    "Summary",
+                    "Technology Stack",
+                    "Platform Dependencies",
+                    "Version Or Lifecycle Signals",
+                    "Evidence Gaps",
+                ],
+                &[GateKind::Risk],
+            ),
+            requirement(
+                "integration-view.md",
+                &[
+                    "Summary",
+                    "Integrations",
+                    "Data Exchanges",
+                    "Trust And Failure Boundaries",
+                    "Inference Notes",
+                ],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "risk-register.md",
+                &[
+                    "Summary",
+                    "Observed Risks",
+                    "Risk Triggers",
+                    "Impact Notes",
+                    "Likely Follow-On Modes",
+                ],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "assessment-evidence.md",
+                &[
+                    "Summary",
+                    "Observed Findings",
+                    "Inferred Findings",
+                    "Assessment Gaps",
+                    "Evidence Sources",
+                ],
+                &[GateKind::ReleaseReadiness],
+            ),
+        ],
         Mode::SecurityAssessment => vec![
             requirement(
                 "assessment-overview.md",

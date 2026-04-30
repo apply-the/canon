@@ -965,6 +965,75 @@ mod tests {
     }
 
     #[test]
+    fn run_summary_markdown_renders_system_assessment_primary_artifact() {
+        let summary = RunSummary {
+            run_id: "run-system-assessment-123".to_string(),
+            uuid: None,
+            owner: "Owner".to_string(),
+            mode: "system-assessment".to_string(),
+            risk: "bounded-impact".to_string(),
+            zone: "yellow".to_string(),
+            system_context: Some("existing".to_string()),
+            state: "AwaitingApproval".to_string(),
+            artifact_count: 10,
+            invocations_total: 3,
+            invocations_denied: 0,
+            invocations_pending_approval: 1,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: vec!["gate:risk".to_string()],
+            artifact_paths: vec![
+                ".canon/artifacts/run-system-assessment-123/system-assessment/assessment-overview.md"
+                    .to_string(),
+            ],
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            mode_result: Some(ModeResultSummary {
+                headline: "System assessment packet ready for governed architecture review."
+                    .to_string(),
+                artifact_packet_summary:
+                    "Primary artifact bounds the as-is system surface and keeps coverage gaps explicit."
+                        .to_string(),
+                execution_posture: Some("recommendation-only".to_string()),
+                primary_artifact_title: "Assessment Overview".to_string(),
+                primary_artifact_path:
+                    ".canon/artifacts/run-system-assessment-123/system-assessment/assessment-overview.md"
+                        .to_string(),
+                primary_artifact_action: ResultActionSummary {
+                    id: "open-primary-artifact".to_string(),
+                    label: "Open primary artifact".to_string(),
+                    host_action: "open-file".to_string(),
+                    target:
+                        ".canon/artifacts/run-system-assessment-123/system-assessment/assessment-overview.md"
+                            .to_string(),
+                    text_fallback:
+                        "Open the primary artifact at .canon/artifacts/run-system-assessment-123/system-assessment/assessment-overview.md."
+                            .to_string(),
+                },
+                result_excerpt:
+                    "Coverage remains strongest for component and integration views; deployment evidence is partial."
+                        .to_string(),
+                action_chips: Vec::new(),
+            }),
+            recommended_next_action: None,
+        };
+
+        let markdown = render_run_summary_markdown(&summary);
+
+        assert!(markdown.contains("Mode: system-assessment"));
+        assert!(markdown.contains("Execution Posture: recommendation-only"));
+        assert!(
+            markdown.contains("System assessment packet ready for governed architecture review.")
+        );
+        assert!(markdown.contains(
+            ".canon/artifacts/run-system-assessment-123/system-assessment/assessment-overview.md"
+        ));
+        assert!(markdown.contains("coverage gaps explicit"));
+    }
+
+    #[test]
     fn run_summary_markdown_keeps_mandatory_next_step_for_gated_runs() {
         let summary = RunSummary {
             run_id: "run-456".to_string(),
