@@ -12,6 +12,19 @@ brew install canon
 canon --version
 ```
 
+### Windows package manager
+
+Install Canon from Windows Package Manager after the generated manifest bundle
+is submitted:
+
+```powershell
+winget install ApplyThe.Canon
+winget upgrade ApplyThe.Canon
+```
+
+If the package-manager submission is not available yet, use the release zip
+fallback below.
+
 ### Direct Download
 
 Download the matching asset for your platform from this release:
@@ -51,6 +64,13 @@ Get-Command canon
 Integrity metadata is published as `canon-{{VERSION}}-SHA256SUMS.txt`.
 Distribution metadata is published as `canon-{{VERSION}}-distribution-metadata.json`.
 The Homebrew formula artifact is published as `canon-{{VERSION}}-homebrew-formula.rb`.
+
+Windows package-manager publication artifacts are generated as:
+
+- `canon-{{VERSION}}-distribution-metadata.json`
+- `ApplyThe.Canon.yaml`
+- `ApplyThe.Canon.locale.en-US.yaml`
+- `ApplyThe.Canon.installer.yaml`
 
 ## Quickstart
 

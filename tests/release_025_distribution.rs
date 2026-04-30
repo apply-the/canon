@@ -134,7 +134,7 @@ fn write_distribution_metadata(dist_dir: &Path, version: &str) -> PathBuf {
 #[cfg(unix)]
 #[test]
 fn distribution_metadata_describes_release_assets_for_homebrew_and_future_channels() {
-    let version = "0.25.0";
+    let version = "0.26.0";
     let bundle = create_release_bundle(version);
     let dist_dir = bundle.path().join("dist");
     let metadata_path = write_distribution_metadata(&dist_dir, version);
@@ -170,7 +170,7 @@ fn distribution_metadata_describes_release_assets_for_homebrew_and_future_channe
 #[cfg(unix)]
 #[test]
 fn homebrew_formula_renders_platform_specific_release_assets() {
-    let version = "0.25.0";
+    let version = "0.26.0";
     let bundle = create_release_bundle(version);
     let dist_dir = bundle.path().join("dist");
     let metadata_path = write_distribution_metadata(&dist_dir, version);
@@ -193,10 +193,10 @@ fn homebrew_formula_renders_platform_specific_release_assets() {
     assert!(formula.contains("system bin/\"canon\", \"init\", \"--output\", \"json\""));
 
     for artifact in [
-        "canon-0.25.0-macos-arm64.tar.gz",
-        "canon-0.25.0-macos-x86_64.tar.gz",
-        "canon-0.25.0-linux-arm64.tar.gz",
-        "canon-0.25.0-linux-x86_64.tar.gz",
+        "canon-0.26.0-macos-arm64.tar.gz",
+        "canon-0.26.0-macos-x86_64.tar.gz",
+        "canon-0.26.0-linux-arm64.tar.gz",
+        "canon-0.26.0-linux-x86_64.tar.gz",
     ] {
         assert!(formula.contains(artifact), "formula should reference {artifact}: {formula}");
     }
@@ -210,7 +210,7 @@ fn homebrew_formula_renders_platform_specific_release_assets() {
 #[cfg(unix)]
 #[test]
 fn release_surface_verifies_distribution_metadata_and_homebrew_formula() {
-    let version = "0.25.0";
+    let version = "0.26.0";
     let bundle = create_release_bundle(version);
     let dist_dir = bundle.path().join("dist");
     let metadata_path = write_distribution_metadata(&dist_dir, version);
@@ -244,7 +244,7 @@ fn release_surface_verifies_distribution_metadata_and_homebrew_formula() {
 #[cfg(unix)]
 #[test]
 fn sync_homebrew_tap_updates_formula_destination_when_tap_root_is_provided() {
-    let version = "0.25.0";
+    let version = "0.26.0";
     let bundle = create_release_bundle(version);
     let dist_dir = bundle.path().join("dist");
     let metadata_path = write_distribution_metadata(&dist_dir, version);
@@ -280,7 +280,7 @@ fn sync_homebrew_tap_updates_formula_destination_when_tap_root_is_provided() {
 #[cfg(unix)]
 #[test]
 fn sync_homebrew_tap_reports_artifact_only_when_no_tap_root_is_provided() {
-    let version = "0.25.0";
+    let version = "0.26.0";
     let bundle = create_release_bundle(version);
     let dist_dir = bundle.path().join("dist");
     let metadata_path = write_distribution_metadata(&dist_dir, version);
@@ -343,7 +343,7 @@ fn release_docs_describe_the_025_distribution_surface() {
     );
 
     let changelog = read_repo_text("CHANGELOG.md");
-    assert!(changelog.contains("## [0.25.0]"), "CHANGELOG missing 0.25.0 entry");
+    assert!(changelog.contains("## [0.26.0]"), "CHANGELOG missing 0.26.0 entry");
     assert!(
         changelog.contains("Distribution Channels Beyond GitHub Releases")
             && changelog.contains("Homebrew"),
@@ -354,7 +354,8 @@ fn release_docs_describe_the_025_distribution_surface() {
     assert!(
         roadmap.contains("Distribution Channels Beyond GitHub Releases")
             && roadmap.contains("Homebrew")
-            && roadmap.contains("Protocol Interoperability"),
-        "ROADMAP must reflect delivered distribution channels and the next follow-on"
+            && roadmap.contains("winget")
+            && !roadmap.contains("## Feature: Protocol Interoperability"),
+        "ROADMAP must reflect delivered Homebrew support and the current Windows distribution baseline"
     );
 }

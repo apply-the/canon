@@ -7,7 +7,7 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.24.0`.
+The current delivery line in this repository targets Canon `0.26.0`.
 
 ## What Canon Does
 
@@ -33,6 +33,16 @@ On macOS and Linux you can install Canon from the official Homebrew tap:
 ```bash
 brew tap apply-the/canon
 brew install canon
+canon --version
+```
+
+### Windows via winget
+
+Install or upgrade Canon from Windows Package Manager:
+
+```powershell
+winget install ApplyThe.Canon
+winget upgrade ApplyThe.Canon
 canon --version
 ```
 
@@ -64,7 +74,7 @@ tar -xzf "${ARCHIVE}"
 install -m 0755 canon "$HOME/.local/bin/canon"
 ```
 
-**Windows (PowerShell)**
+**Windows (PowerShell fallback)**
 
 ```powershell
 $Version = 'X.Y.Z'
@@ -183,6 +193,7 @@ Start here if you want more than the short README flow:
 
 - **[Getting Started](docs/guides/getting-started.md)** — Install Canon, initialize a repository, run your first packet, then inspect, approve, resume, and publish it.
 - **[Governance Modes](docs/guides/modes.md)** — Choose the right mode and canonical input shape for the work you are doing.
+- **[Publishing to winget](docs/guides/publishing-to-winget.md)** — Generate, verify, and submit the Windows package-manager manifest bundle from the canonical release artifacts.
 - **[Templates and Examples](docs/templates/canon-input/requirements.md)** — Start from the canonical first-slice packet shapes and follow through to the worked examples in `docs/examples/canon-input/`.
 - **[Governance Guardrails: Risk and Zone](docs/guides/risk-and-zone.md)** — Understand how risk and zone constrain autonomy and gate sensitive work.
 
