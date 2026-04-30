@@ -30,6 +30,8 @@ Highlights:
 Delivered specs:
 
 - `027` - System Assessment Mode
+- `026` - Winget Distribution And Roadmap Refocus
+- `025` - Distribution Channels Beyond GitHub Releases
 
 Highlights:
 
@@ -43,21 +45,22 @@ Highlights:
 - Add the new method, skill, templates, examples, compatibility references,
   and focused contract, renderer, run, bootstrap, and release-surface
   validation for the `0.26.0` delivery.
-
-## [0.25.0] - 2026-04-30
-
-Delivered specs:
-
-- `026` - Winget Distribution And Roadmap Refocus
-
-Highlights:
-
+- Add the first package-manager distribution slice for Canon through Homebrew
+  while keeping GitHub Releases as the canonical source of binaries,
+  checksums, and release metadata.
+- Emit `canon-<version>-distribution-metadata.json` and
+  `canon-<version>-homebrew-formula.rb` from the verified release bundle and
+  validate their URL and checksum alignment before publication.
 - Add repository-owned `winget` manifest generation for the Windows release
   archive while keeping GitHub Releases as the canonical binary and checksum
   surface.
+- Add optional dedicated Homebrew tap synchronization with artifact-only
+  fallback, plus install, roadmap, and release-surface updates for the `0.26.0`
+  delivery.
 - Extend the release workflow, verification helpers, and install docs so
-  Windows users can prefer `winget` while maintainers still retain the archive
-  fallback.
+  macOS and Linux users can prefer Homebrew, Windows users can prefer
+  `winget`, and maintainers still retain the archive fallback plus optional
+  tap synchronization.
 - Remove speculative Protocol Interoperability / MCP roadmap work from the
   active next-feature list in favor of concrete packaging and authoring focus.
 
@@ -78,7 +81,7 @@ Highlights:
   and focused runtime plus release-surface validation for the `0.24.0`
   delivery.
 
-## [0.22.0] - 2026-04-28
+## [0.23.0] - 2026-04-28
 
 Delivered specs:
 
