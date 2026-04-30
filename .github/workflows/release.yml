@@ -170,30 +170,38 @@ jobs:
             --release-notes dist/release-notes.md \
             --write-checksums
 
-      - name: Write distribution metadata
+  - name: Generate distribution metadata
         shell: bash
         run: |
           bash scripts/release/write-distribution-metadata.sh \
             --version '${{ needs.prepare-release-metadata.outputs.version }}' \
             --dist-dir dist \
-            --output "dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json"
+            --output dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json
 
       - name: Render Homebrew formula
         shell: bash
         run: |
           bash scripts/release/render-homebrew-formula.sh \
-            --metadata "dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json" \
-            --output "dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb"
+            --metadata dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json \
+            --output dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb
 
-      - name: Verify distribution artifacts
+      - name: Render winget manifests
+        shell: bash
+        run: |
+          bash scripts/release/render-winget-manifests.sh \
+            --metadata dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json \
+            --output-dir dist/winget
+
+      - name: Verify extended release surface
         shell: bash
         run: |
           bash scripts/release/verify-release-surface.sh \
             --version '${{ needs.prepare-release-metadata.outputs.version }}' \
             --dist-dir dist \
             --release-notes dist/release-notes.md \
-            --distribution-metadata "dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json" \
-            --homebrew-formula "dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb"
+            --distribution-metadata dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json \
+            --homebrew-formula dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb \
+            --winget-manifest-dir dist/winget
 
       - uses: actions/upload-artifact@v4
         with:
@@ -216,6 +224,9 @@ jobs:
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-SHA256SUMS.txt
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb
+            dist/winget/ApplyThe.Canon.yaml
+            dist/winget/ApplyThe.Canon.locale.en-US.yaml
+            dist/winget/ApplyThe.Canon.installer.yaml
 
   sync-homebrew-tap:
     name: sync-homebrew-tap
@@ -242,7 +253,7 @@ jobs:
         shell: bash
         run: |
           bash scripts/release/sync-homebrew-tap.sh \
-            --formula "dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb" \
+            --formula dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb \
             --tap-root homebrew-tap
 
       - name: Create Homebrew tap pull request
