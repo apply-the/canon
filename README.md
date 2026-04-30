@@ -26,6 +26,16 @@ Canon is not a generic agent framework and it is not an opaque agent loop. It is
 
 Canon ships as a single binary named `canon`.
 
+### Homebrew
+
+On macOS and Linux you can install Canon from the official Homebrew tap:
+
+```bash
+brew tap apply-the/canon
+brew install canon
+canon --version
+```
+
 ### Windows via winget
 
 Install or upgrade Canon from Windows Package Manager:
@@ -43,12 +53,23 @@ Download the latest release from [Releases](https://github.com/apply-the/canon/r
 **macOS / Linux**
 
 ```bash
-VERSION=vX.Y.Z
-ARCH=$(uname -m)
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+VERSION=X.Y.Z
+
+case "$(uname -s)" in
+  Darwin) OS=macos ;;
+  Linux) OS=linux ;;
+  *) echo "Unsupported OS" >&2; exit 1 ;;
+esac
+
+case "$(uname -m)" in
+  arm64|aarch64) ARCH=arm64 ;;
+  x86_64) ARCH=x86_64 ;;
+  *) echo "Unsupported architecture" >&2; exit 1 ;;
+esac
+
 ARCHIVE="canon-${VERSION}-${OS}-${ARCH}.tar.gz"
 
-curl -LO "https://github.com/apply-the/canon/releases/download/${VERSION}/${ARCHIVE}"
+curl -LO "https://github.com/apply-the/canon/releases/download/v${VERSION}/${ARCHIVE}"
 tar -xzf "${ARCHIVE}"
 install -m 0755 canon "$HOME/.local/bin/canon"
 ```
@@ -56,10 +77,10 @@ install -m 0755 canon "$HOME/.local/bin/canon"
 **Windows (PowerShell fallback)**
 
 ```powershell
-$Version = 'vX.Y.Z'
+$Version = 'X.Y.Z'
 $Archive = "canon-$Version-windows-x86_64.zip"
 
-Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/$Version/$Archive" -OutFile $Archive
+Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/v$Version/$Archive" -OutFile $Archive
 Expand-Archive -Path $Archive -DestinationPath "$env:USERPROFILE\bin" -Force
 ```
 

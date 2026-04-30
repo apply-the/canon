@@ -32,6 +32,11 @@ continuity.
   findings, and assessment gaps.
 - `supply-chain-analysis` remains delivered and publishes readable packets
   under `docs/supply-chain/<RUN_ID>/`.
+- `Distribution Channels Beyond GitHub Releases` now ships Homebrew
+  installation for macOS and Linux, generated distribution metadata,
+  Homebrew formula artifacts with optional tap synchronization, and `winget`
+  publication artifacts for Windows while GitHub Releases remain the source of
+  truth.
 
 ## Feature: Industry-Standard Artifact Shapes
 
@@ -288,17 +293,20 @@ their fit with the already-delivered authoring and decision-support layers.
 ### Outcome
 
 Users can install Canon through familiar package-manager channels without
-depending on manual archive download and placement.
+depending on manual archive download and placement, while GitHub Releases stay
+the canonical source of downloadable binaries and release metadata.
 
 ### Current Baseline
 
+- Homebrew is available for macOS and Linux through generated formula
+  artifacts and optional tap synchronization.
 - `winget` is now the primary Windows package-manager channel.
 
 ### Follow-On Slices
 
 - Support Scoop as a secondary Windows channel after `winget` is stable.
-- Revisit Homebrew only when there is a concrete public tap and release
-  automation plan worth maintaining.
+- Revisit additional package-manager channels only when there is a concrete
+  automation and maintenance plan worth carrying.
 
 ### Deferred
 
@@ -310,6 +318,8 @@ depending on manual archive download and placement.
 - GitHub Releases are already the canonical source of downloadable binaries.
 - The next distribution step is reach and upgrade convenience, not basic release
   production.
+- Homebrew gives the strongest current install story on macOS and a viable one
+  on Linux.
 - `winget` is the most credible first-class Windows distribution target.
 - Debian packaging adds maintenance cost too early, and speculative protocol
   work should not displace concrete packaging or authoring improvements until a
