@@ -19,19 +19,17 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.26.0`
+- None recorded after `0.27.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.26.0`.
+- No additional released feature-spec delivery is recorded after `0.27.0`.
 
-## [0.26.0] - 2026-04-30
+## [0.27.0] - 2026-04-30
 
 Delivered specs:
 
 - `027` - System Assessment Mode
-- `026` - Winget Distribution And Roadmap Refocus
-- `025` - Distribution Channels Beyond GitHub Releases
 
 Highlights:
 
@@ -44,7 +42,17 @@ Highlights:
   inferred findings.
 - Add the new method, skill, templates, examples, compatibility references,
   and focused contract, renderer, run, bootstrap, and release-surface
-  validation for the `0.26.0` delivery.
+  validation for the `0.27.0` delivery.
+
+## [0.26.0] - 2026-04-30
+
+Delivered specs:
+
+- `026` - Winget Distribution And Roadmap Refocus
+- `025` - Distribution Channels Beyond GitHub Releases
+
+Highlights:
+
 - Add the first package-manager distribution slice for Canon through Homebrew
   while keeping GitHub Releases as the canonical source of binaries,
   checksums, and release metadata.
