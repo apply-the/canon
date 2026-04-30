@@ -19,11 +19,28 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.24.0`
+- None recorded after `0.25.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.24.0`.
+- No additional released feature-spec delivery is recorded after `0.25.0`.
+
+## [0.25.0] - 2026-04-30
+
+Delivered specs:
+
+- `026` - Winget Distribution And Roadmap Refocus
+
+Highlights:
+
+- Add repository-owned `winget` manifest generation for the Windows release
+  archive while keeping GitHub Releases as the canonical binary and checksum
+  surface.
+- Extend the release workflow, verification helpers, and install docs so
+  Windows users can prefer `winget` while maintainers still retain the archive
+  fallback.
+- Remove speculative Protocol Interoperability / MCP roadmap work from the
+  active next-feature list in favor of concrete packaging and authoring focus.
 
 ## [0.24.0] - 2026-04-29
 
