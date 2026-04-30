@@ -4,6 +4,19 @@ Tag: {{TAG}}
 
 ## Install Canon
 
+### Windows package manager
+
+Install Canon from Windows Package Manager after the generated manifest bundle
+is submitted:
+
+```powershell
+winget install ApplyThe.Canon
+winget upgrade ApplyThe.Canon
+```
+
+If the package-manager submission is not available yet, use the release zip
+fallback below.
+
 Download the matching asset for your platform from this release:
 
 - `canon-{{VERSION}}-macos-arm64.tar.gz`
@@ -39,6 +52,13 @@ Get-Command canon
 | Windows x86_64 | `canon-{{VERSION}}-windows-x86_64.zip` |
 
 Integrity metadata is published as `canon-{{VERSION}}-SHA256SUMS.txt`.
+
+Windows package-manager publication artifacts are generated as:
+
+- `canon-{{VERSION}}-distribution-metadata.json`
+- `ApplyThe.Canon.yaml`
+- `ApplyThe.Canon.locale.en-US.yaml`
+- `ApplyThe.Canon.installer.yaml`
 
 ## Quickstart
 

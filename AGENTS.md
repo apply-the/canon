@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-29
+Auto-generated from all feature plans. Last updated: 2026-04-30
 
 ## Governing Constitution
 
@@ -39,6 +39,8 @@ Auto-generated from all feature plans. Last updated: 2026-04-29
 - Repository files plus existing `.canon/` runtime filesystem; no new persistent schema (021-artifact-shapes-personas)
 - Rust 1.95.0 workspace plus Markdown skill sources, Bash runtime checks, and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; existing shell and filesystem adapters; repo-local skill validation scripts (024-supply-chain-legacy)
 - Repository files plus existing `.canon/` runtime filesystem; scanner outputs and machine-readable SBOM references persist as normal run artifacts or payload references without a new persistent schema (024-supply-chain-legacy)
+- Rust 1.95.0 workspace plus Bash and PowerShell release helpers and GitHub Actions YAML + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), shell tooling (`jq`, `shasum`, `unzip`), and Windows Package Manager manifest schema v1.12.0 (026-winget-distribution)
+- repository files plus ephemeral release artifacts in `dist/` during packaging and validation (026-winget-distribution)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -97,9 +99,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 026-winget-distribution: Added Rust 1.95.0 workspace plus Bash and PowerShell release helpers and GitHub Actions YAML + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), shell tooling (`jq`, `shasum`, `unzip`), and Windows Package Manager manifest schema v1.12.0
 - 024-supply-chain-legacy: Added Rust 1.95.0 workspace plus Markdown skill sources, Bash runtime checks, and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; existing shell and filesystem adapters; repo-local skill validation scripts
 - 023-cybersecurity-risk-assessment: Delivered Cybersecurity Risk Assessment Mode as a first-class governed runtime mode with release, skill, and validation surfaces for `0.22.0`
-- 023-cybersecurity-risk-assessment: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
