@@ -7,178 +7,27 @@ Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
 `refactor`, `review`, `verification`, `pr-review`, `incident`,
 `security-assessment`, `migration`, and `supply-chain-analysis`. The next
-roadmap should prioritize output quality, packaging, distribution, and
-authoring improvements instead of reopening already delivered mode surfaces.
+roadmap should prioritize output quality, packaging, distribution,
+existing-system assessment, publish structure, and authoring improvements
+instead of reopening already delivered mode surfaces.
 
-## Delivered Feature: Domain Modeling And Boundary Design
+## Current Delivered Reference
 
-### Outcome
+The roadmap below is intentionally forward-looking. Delivered work is kept here
+only as a compact baseline so future candidates have the right constraints and
+continuity.
 
-Canon now strengthens the already-delivered shaping and architecture modes by
-making Domain-Driven Design outputs first-class: explicit ubiquitous language,
-bounded contexts, context relationships, and domain invariants that can flow
-into later architecture, change planning, and review.
-
-### Modes In Scope
-
-- `system-shaping`
-- `architecture`
-- `change`
-
-### Why These Modes Belong Together
-
-- They are the modes where domain boundaries, ownership, and invariants matter
-  more than raw implementation sequencing.
-- They benefit from a shared language for bounded contexts, context crossings,
-  and preserved business rules.
-- They reduce downstream drift by making the domain model explicit before
-  execution-heavy modes begin.
-
-### Continuity With Current Mode Model
-
-- `system-shaping` becomes the primary entry point for domain discovery when a
-  capability's structure is not yet fixed.
-- `architecture` formalizes domain boundaries and relationships once the
-  structure is being settled.
-- `change` enforces domain invariants during bounded modification of an
-  existing system.
-
-This extends the current mode model instead of introducing a separate planning
-vocabulary for domain work.
-
-### Delivered First Slice
-
-- `system-shaping` now emits `domain-model.md` with candidate bounded contexts,
-  core/supporting domain hypotheses, ubiquitous language, domain invariants,
-  and explicit boundary risks.
-- `architecture` now emits `context-map.md` with bounded contexts, context
-  relationships, integration seams, anti-corruption candidates, ownership
-  boundaries, and shared invariants alongside the existing C4 artifacts.
-- `change` now strengthens its existing packet with domain slice, domain
-  invariants, cross-context risk, and boundary tradeoff sections instead of
-  treating the system as one undifferentiated code surface.
-- The existing critique-first posture remains intact: missing authored sections
-  surface `## Missing Authored Body` instead of fabricated certainty.
-
-### Remaining Follow-On Scope
-
-- Broader industry-standard artifact shaping remains deferred to the separate
-  `Industry-Standard Artifact Shapes` roadmap item.
-- Wider authored-body specialization for the remaining governed modes remains
-  deferred to the broader `Mode Authoring Specialization` roadmap item.
-
-## Delivered Recently
-
-- `system-shaping`, `architecture`, and `change` now ship the first slice of
-  Domain Modeling And Boundary Design: `system-shaping` adds
-  `domain-model.md`, `architecture` adds `context-map.md`, and `change`
-  strengthens its existing packet with explicit domain slice, domain
-  invariants, cross-context risk, and boundary tradeoff sections. Skills,
-  templates, examples, renderers, contracts, and gates all align on the new
-  authored sections and preserve the critique-first `## Missing Authored Body`
-  fallback.
-
-- `architecture` now extends its packet with three C4 artifacts —
-  `system-context.md` (Architecture + Exploration gates), `container-view.md`
-  (Architecture gate), and `component-view.md` (Architecture +
-  ReleaseReadiness gates). The renderer preserves authored `## System Context`,
-  `## Containers`, and `## Components` sections verbatim and emits an explicit
-  `## Missing Authored Body` block referencing the canonical heading whenever
-  the brief omits a section. Existing decision, invariant, tradeoff, boundary,
-  and readiness artifacts are unchanged.
-
-- `incident` now ships as a governed operational mode that emits a six-artifact
-  containment packet, remains recommendation-only, can stop for explicit risk
-  approval, and publishes readable packets under `docs/incidents/<RUN_ID>/`
-  even when the packet is approval-gated or blocked.
-- `security-assessment` now ships as a governed operational mode that emits a
-  seven-artifact cybersecurity packet, remains recommendation-only, requires
-  `system_context=existing`, can stop for explicit risk approval, and
-  publishes readable packets under `docs/security-assessments/<RUN_ID>/` even
-  when the packet is approval-gated or blocked.
-- `migration` now ships as a governed operational mode that emits a six-artifact
-  compatibility packet, remains recommendation-only, blocks explicitly on
-  missing fallback credibility, and publishes readable packets under
-  `docs/migrations/<RUN_ID>/` even when the packet is blocked or approval-gated.
-- `supply-chain-analysis` now ships as a governed operational mode that emits a
-  seven-artifact supply-chain packet, remains recommendation-only, requires
-  `system_context=existing`, and publishes readable packets under
-  `docs/supply-chain/<RUN_ID>/` even when the packet is blocked or approval-gated.
-- `backlog` is no longer a roadmap candidate. It now ships as a governed mode
-  that publishes to `docs/planning/<RUN_ID>/` and preserves downstream handoff
-  context through epics, slices, dependencies, sequencing, acceptance anchors,
-  and planning risks.
-- `canon-backlog` skill now requires the assistant to author the real backlog
-  body (Epic Tree, Capability To Epic Map, Dependency Map, Delivery Slices,
-  Sequencing Plan, Acceptance Anchors, Planning Risks) before invoking Canon,
-  and the renderer preserves those authored sections verbatim instead of
-  emitting templated placeholders.
-- requirements, discovery, change, and architecture now ship the first slice of Mode Authoring Specialization: their skills, templates, examples, and renderers share canonical authored H2 contracts; Canon preserves authored sections verbatim; and missing required sections surface `## Missing Authored Body` while release-readiness gates stay honest.
-- `system-shaping`, `implementation`, and `refactor` now share canonical authored H2 contracts across skills, templates, examples, renderers, direct-run fixtures, and run-path validation. Complete packets preserve authored sections verbatim; incomplete packets emit `## Missing Authored Body` and stay gate-blocked instead of pretending the packet is ready for approval.
-- `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts across skills, templates, examples, renderers, contract tests, run-path fixtures, and release guidance. Review keeps `gate:review-disposition` explicit, verification stays blocked on unsupported or unresolved findings, and incident plus migration remain recommendation-only while still surfacing readable blocked or approval-gated packets.
-- `architecture` now ships an ADR-like decision surface inside the existing packet: `architecture-decisions.md` preserves `Decision`, `Constraints`, `Decision Drivers`, `Recommendation`, and `Consequences`; `tradeoff-matrix.md` preserves `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`; and the existing C4 artifacts remain unchanged.
-- `pr-review` now emits `conventional-comments.md` as a reviewer-facing
-  companion to `review-summary.md`, publishes it under
-  `docs/reviews/prs/<RUN_ID>/`, and preserves the existing review-disposition
-  gate and primary artifact semantics.
-
-## Feature: Mode Authoring Specialization (Skills As Real AI Authors)
-
-### Outcome
-
-Every governed Canon mode that produces a multi-artifact packet treats the AI
-assistant as the actual author of the per-artifact body, the same way
-`canon-backlog` and SpecKit's `/speckit.tasks` do today. Canon stays the
-governor, validator, and persister; the model stays responsible for producing
-real, source-grounded content for each artifact, not a templated echo of the
-brief.
-
-### Problem We Are Solving
-
-- Today most generative modes ship a *Clarification Loop* and a *Provenance
-  Sidecar*, but they do not enforce a per-artifact authored body shape.
-- When the AI submits a thin brief, the renderer fills artifacts with generic
-  scaffolding ("Establish a bounded foundation", "Deliver visible slices"),
-  which the user correctly perceives as Canon "producing nothing".
-- The fix already shipped for `backlog` is a repeatable pattern: required H2
-  sections per artifact, renderer preserves authored sections verbatim, and an
-  explicit `## Missing Authored Body` marker when the model failed to author
-  the section.
-
-### Modes In Scope
-
-- `requirements`
-- `discovery`
-- `system-shaping`
-- `architecture`
-- `change`
-- `implementation`
-- `refactor`
-- `review`
-- `verification`
-- `pr-review`
-- `incident`
-- `migration`
-
-### Delivered First Slice
-
-- `requirements`, `discovery`, `change`, `architecture`, `system-shaping`, `implementation`, `refactor`, `review`, `verification`, `incident`, and `migration` now require explicit authored H2 sections in their skills, templates, and worked examples.
-- Their renderers preserve authored sections verbatim and emit `## Missing Authored Body` when the assistant omits a required section.
-- `review` preserves `gate:review-disposition`, `verification` stays blocked on unsupported or unresolved findings, and `incident` plus `migration` remain recommendation-only while still publishing readable blocked or approval-gated packets.
-
-### Remaining Scope
-
-- Mode Authoring Specialization is now complete for the currently modeled governed modes.
-- Future work should focus on authoring quality, stronger validation, and industry-standard artifact shapes rather than more missing-mode coverage.
-
-### Why This Feature
-
-- It generalizes the only fix that turned `backlog` from a placeholder
-  generator into a real backlog producer.
-- It keeps Canon honest: when the AI did not do the work, the artifact says so
-  out loud instead of pretending.
-- It is strictly additive to the current orchestrator and skill structure; no
-  domain model changes required.
+- requirements, discovery, change now ship the first slice of
+  author-specialized mode guidance and remain in the delivered scope.
+- `architecture` keeps the established persona baseline for
+  `architect for C4/ADR work`; `requirements` keeps the baseline for
+  `product lead for PRD work`; `change` keeps the baseline for
+  `change owner for bounded change decisions`. Keep personas guidance-only.
+- `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts, and Mode Authoring Specialization is now complete for the currently modeled governed modes.
+- `security-assessment` remains delivered and publishes readable packets under
+  `docs/security-assessments/<RUN_ID>/`.
+- `supply-chain-analysis` remains delivered and publishes readable packets
+  under `docs/supply-chain/<RUN_ID>/`.
 
 ## Feature: Industry-Standard Artifact Shapes
 
@@ -430,262 +279,6 @@ normal part of mode shaping rather than a one-off exception.
 The roadmap beyond `022` should continue with the features below, ordered by
 their fit with the already-delivered authoring and decision-support layers.
 
-## Feature: 023 Cybersecurity Risk Assessment Mode
-
-### Outcome
-
-Canon governs an explicit security-risk-assessment workflow that produces a
-real, reviewable threat model and risk register grounded in the source the AI
-actually read, instead of leaving security as an implicit concern of other
-modes.
-
-### Mode
-
-- New mode: `security-assessment` (working name; final name to be decided
-  during the planning run).
-
-### Why A Dedicated Mode
-
-- Security risk assessment is a recognized engineering workflow with its own
-  artifact shapes (threat model, risk register, mitigation plan) and its own
-  reviewers.
-- Folding it into `architecture` or `change` hides it and produces weaker
-  output than a dedicated mode with a critique-first posture aimed
-  specifically at threats and mitigations.
-- It composes with the rest of Canon: `architecture` defines the surface,
-  `security-assessment` interrogates that surface for threats, `change` and
-  `implementation` carry the mitigations into bounded execution.
-
-### First Slice Artifact Contract
-
-- `assessment-overview.md` — bounded scope, in-scope assets, trust boundaries,
-  data classifications, and out-of-scope assets.
-- `threat-model.md` — STRIDE-shaped threats per trust boundary or asset, with
-  attacker-goal framing.
-- `risk-register.md` — likelihood × impact rated risks with owner, status, and
-  source trace links.
-- `mitigations.md` — proposed controls, mapped to risk-register entries, with
-  preserved-vs-changed-behavior framing.
-- `assumptions-and-gaps.md` — explicit unverified assumptions, missing telemetry,
-  and unobservable surfaces.
-- `compliance-anchors.md` — references to applicable standards (OWASP ASVS,
-  CIS, ISO 27001 control families, GDPR articles when in scope) without
-  pretending Canon performs a compliance audit.
-- `assessment-evidence.md` — independent verification notes, separate from the
-  generation lineage.
-
-### Required Authored H2 Sections
-
-The assistant must author the body before invoking Canon, mirroring the
-backlog pattern: scope, asset inventory, trust boundaries, STRIDE-per-boundary,
-risk register, mitigation plan, assumptions, and compliance anchors. Generic
-boilerplate fails the run.
-
-### Required Inputs
-
-- `RISK`
-- `ZONE`
-- at least one of: an architecture run id, an authored architecture packet, or
-  a real source surface (code paths, infra-as-code, threat-relevant configs).
-
-### Why This Feature
-
-- Closes a real gap: today `architecture` and `change` mention security as a
-  constraint but do not produce a reviewable security artifact.
-- Gives downstream `pr-review`, `verification`, and `incident` a concrete
-  upstream to reference.
-- Stays within Canon's recommendation-only posture for v0.x; mitigations are
-  proposed, not auto-applied.
-
-### Why This Order
-
-- It depends on the *Mode Authoring Specialization* and *Industry-Standard
-  Artifact Shapes* features so it can be authored as a real STRIDE/risk
-  packet from day one rather than as a placeholder mode.
-
-## Feature: Supply Chain And Legacy Analysis Mode
-
-### Outcome
-
-Canon governs a bounded analysis of an existing codebase's supply chain and
-legacy posture, producing a reviewable packet with the SBOM, known-vulnerability
-triage, license-compliance posture, and a legacy-modernization snapshot.
-Canon does not reimplement scanners; it orchestrates established tools as
-governed adapters and turns their raw output into a critique-first artifact
-set.
-
-### Mode
-
-- New mode: `supply-chain-analysis` (working name; final name to be decided
-  during the planning run).
-
-### Why A Dedicated Mode
-
-- SBOM, CVE triage, license compatibility, and legacy-modernization framing
-  are all reads against an existing system, not changes to it. They fit
-  Canon's analysis posture, not its execution posture.
-- Today no Canon mode produces a defensible answer to "is it safe and legal to
-  ship this dependency surface, and what does the legacy debt look like?"
-- Folding this into `architecture`, `change`, or `security-assessment` hides
-  the supply-chain dimension and dilutes each mode's purpose.
-
-### Tool Composition (Recommendation, Not Reimplementation)
-
-- SBOM generation: Syft (or equivalent) per ecosystem.
-- Vulnerability triage: OSV-Scanner, Grype, GitHub Advisory Database lookups,
-  and ecosystem-native sources such as `cargo audit`, `npm audit`, `pip-audit`,
-  `govulncheck`.
-- License analysis: ScanCode Toolkit, `cargo deny`, `license-checker`, or
-  ecosystem-native equivalents, with explicit policy for commercial vs OSS
-  compatibility.
-- Legacy posture: ecosystem-native version, EOL, and abandonment signals
-  (e.g. `cargo outdated`, `npm outdated`, `pip list --outdated`,
-  endoflife.date references).
-
-Each tool runs as a governed adapter invocation through the existing
-request/decision/evidence pipeline. Canon never invents scanner output and
-never claims a vulnerability without a tool-backed source.
-
-### Pre-Run Clarification Loop
-
-Before invoking any scanner, the assistant MUST run a short clarification
-loop with the user when required information is not present in the authored
-brief. Defaults are never silently assumed for choices that change the
-license-compatibility verdict or the toolchain that gets executed.
-
-Required clarifications, asked in this order, only when the brief does not
-already answer them:
-
-1. **Project licensing posture.** Ask whether the project is `commercial`
-   (proprietary, distributed under a non-OSI license), `oss-permissive`
-   (MIT/Apache/BSD class), `oss-copyleft` (GPL/AGPL/MPL class), or `mixed`.
-   This drives `license-compliance.md`. There is no default.
-2. **Distribution model.** Ask whether dependencies will be distributed
-   (binary shipped, container image published, library released) or only
-   used internally. Copyleft obligations and SBOM expectations differ.
-3. **Ecosystem confirmation.** Show the ecosystems Canon detected from
-   manifests and ask the user to confirm or remove any that are
-   intentionally out of scope.
-4. **Out-of-scope components.** Ask for vendored, third-party, or generated
-   directories that should be excluded from the scan surface.
-5. **Tool licensing preference.** Ask whether the user authorizes Canon to
-   propose installation of scanners that are not OSI-approved open source
-   (for example, source-available, free-tier-only, or commercial scanners).
-   The default is `oss-only`. Canon never proposes a non-OSS scanner unless
-   the user opts in here, and even then only as an alternative alongside an
-   OSS option.
-
-The clarification loop must batch these questions (3 to 5 per round, never
-more than 7), accept inline answers, and write the user's responses into
-the run's provenance sidecar so the policy decisions per finding can be
-traced back to a real authored choice rather than to an inferred default.
-
-If the user refuses to answer a question that materially changes the verdict
-(licensing posture, tool licensing preference), the run stops with an
-explicit `## Missing Authored Decision` marker. Canon does not guess.
-
-### Toolchain Detection And Install Prompting
-
-Canon must detect which scanners are needed for the ecosystems present in the
-repository, check whether each one is on `PATH`, and prompt the user for an
-explicit installation decision when a required scanner is missing. The
-assistant never installs anything silently and never bypasses the missing
-tool by inventing the scan result.
-
-- Ecosystem detection is driven by the manifests present in the source
-  surface (`Cargo.toml`, `package.json` / `pnpm-lock.yaml` / `yarn.lock`,
-  `pyproject.toml` / `requirements.txt` / `poetry.lock`, `go.mod`, `pom.xml`
-  / `build.gradle`, `Gemfile`, `composer.json`, `*.csproj`, `pubspec.yaml`,
-  etc.). Each detected ecosystem maps to a required scanner set.
-- For each missing scanner, Canon emits a structured prompt that includes:
-  the scanner name, the ecosystem it serves, why it is needed, the supported
-  install commands per platform (Homebrew, `winget`, `apt`, language-native
-  installers), the upstream project URL, and the SPDX license identifier.
-- Canon proposes installation **only for OSI-approved open source tools** by
-  default. Closed-source, source-available, or commercially-licensed scanners
-  are never auto-suggested by Canon. The user can opt in to non-OSS scanner
-  proposals through the *Pre-Run Clarification Loop*; even then, Canon must
-  also surface an OSS alternative whenever one exists, and must record the
-  user's authorization in the provenance sidecar.
-- The user's install decision is recorded as a Canon decision artifact with
-  three possible outcomes: `installed` (with the install command actually
-  run), `skipped` (with rationale, and the affected scanner output marked as
-  `unavailable` in the packet), or `replaced` (the user pointed Canon at an
-  alternative OSS scanner that covers the same capability).
-- When a scanner is skipped, the corresponding sections of
-  `vulnerability-triage.md`, `license-compliance.md`, or `legacy-posture.md`
-  must carry an explicit `## Coverage Gap` marker naming the missing scanner
-  and the ecosystem left uncovered, so downstream readers see the gap
-  instead of assuming the surface was scanned.
-- Installation itself stays a user action. Canon shows the command,
-  Canon does not execute the install. This preserves the recommendation-only
-  posture and avoids privileged side effects in a governed run.
-
-### First Slice Artifact Contract
-
-- `analysis-overview.md` — bounded scope (which ecosystems, which manifests,
-  which paths), commercial vs OSS posture declaration, and out-of-scope
-  components.
-- `sbom-bundle.md` — human-readable index pointing at machine SBOMs
-  (CycloneDX or SPDX) emitted alongside the packet.
-- `vulnerability-triage.md` — known vulnerabilities grouped by severity, with
-  exploitability framing, affected component, fixed version, and triage
-  decision (`accept`, `mitigate`, `defer with rationale`).
-- `license-compliance.md` — license inventory grouped by compatibility class,
-  flagged incompatibilities for the declared posture (commercial vs OSS),
-  and license obligations the project must honor.
-- `legacy-posture.md` — outdated, EOL, and abandoned dependencies with
-  modernization recommendations bounded to slice level (no task breakdown).
-- `policy-decisions.md` — explicit accept/reject decisions per finding, tied
-  to the source manifest line and to a decision rationale.
-- `analysis-evidence.md` — independent verification notes, tool versions,
-  scan timestamps, and source manifests, separate from the generation
-  lineage.
-
-### Required Authored H2 Sections
-
-The assistant must author the body before invoking Canon, mirroring the
-backlog and security patterns: declared scope, commercial-vs-OSS posture,
-ecosystems in scope, scanner selection rationale, triage decisions per
-finding, modernization slices. Generic boilerplate fails the run.
-
-### Required Inputs
-
-- `RISK`
-- `ZONE`
-- a real source surface (manifest paths such as `Cargo.toml`, `package.json`,
-  `pyproject.toml`, `go.mod`, `pom.xml`, or a repository root containing
-  them).
-- explicit declaration of commercial vs OSS posture so license compliance is
-  evaluated against the right policy class.
-
-### Why This Feature
-
-- Closes a real gap: today Canon has no defensible answer for SBOM,
-  vulnerability, or license posture.
-- Makes Canon useful for commercial teams that must justify dependency
-  choices and modernization roadmaps to stakeholders or auditors.
-- Stays within Canon's recommendation-only posture: scans are evidence,
-  triage decisions are authored, no automatic dependency rewrites.
-
-### Relationship To Other Features
-
-- Composes with `023 Cybersecurity Risk Assessment Mode`: supply-chain findings
-  feed the threat model and risk register; the security mode does not
-  duplicate scanner orchestration.
-- Composes with `Refactor` and the delivered `Migration` mode: legacy posture
-  produces the bounded slices those modes can pick up.
-- Depends on the *Governed Execution Adapters* primitives already shipped, so
-  scanner adapters slot into the existing capability and decision pipeline.
-
-### Why This Order
-
-- It depends on *Mode Authoring Specialization* so the packet has authored
-  triage decisions instead of raw scanner dumps.
-- It depends on *Industry-Standard Artifact Shapes* so SBOM, vulnerability,
-  and license outputs use CycloneDX/SPDX, CVSS, and SPDX license identifiers
-  rather than Canon-internal vocabulary.
-
 ## Feature: Distribution Channels Beyond GitHub Releases
 
 ### Outcome
@@ -693,11 +286,15 @@ finding, modernization slices. Generic boilerplate fails the run.
 Users can install Canon through familiar package-manager channels without
 depending on manual archive download and placement.
 
-### First Slice
+### Current Baseline
 
-- Support Homebrew as the first package-manager channel for macOS and Linux.
-- Support `winget` as the primary Windows package-manager channel.
-- Support Scoop as a secondary Windows channel.
+- `winget` is now the primary Windows package-manager channel.
+
+### Follow-On Slices
+
+- Support Scoop as a secondary Windows channel after `winget` is stable.
+- Revisit Homebrew only when there is a concrete public tap and release
+  automation plan worth maintaining.
 
 ### Deferred
 
@@ -709,61 +306,85 @@ depending on manual archive download and placement.
 - GitHub Releases are already the canonical source of downloadable binaries.
 - The next distribution step is reach and upgrade convenience, not basic release
   production.
-- Homebrew gives the strongest first install story on macOS and a viable one on
-  Linux.
 - `winget` is the most credible first-class Windows distribution target.
-- Debian packaging adds maintenance cost too early.
+- Debian packaging adds maintenance cost too early, and speculative protocol
+  work should not displace concrete packaging or authoring improvements until a
+  named interoperability target creates immediate value.
 
-## Feature: Protocol Interoperability
+## Feature: System Assessment Mode
 
 ### Outcome
 
-Canon remains protocol-agnostic at the core while gaining a practical path to
-govern structured external-tool invocation and future interoperable exposure.
+Canon gains a dedicated existing-system assessment mode that explains what a
+system is today, with explicit evidence, confidence, coverage, and gaps,
+without pretending the user is already making a new architecture decision.
+The mode should use ISO 42010 as the reference frame for architectural views,
+stakeholder concerns, and coverage reporting, while staying bounded to the
+subset of views the first slice can support credibly.
 
-### Direction
+### Distinction From `architecture`
 
-- Canon core must remain protocol-agnostic.
-- First protocol adapter: MCP consumer support.
-- Future external surface: a minimal MCP server.
-- A2A remains a later architectural option, not a near-term implementation
-  priority.
+- `architecture` remains the mode for authored decisions, tradeoffs,
+  recommendations, and bounded C4 plus ADR packets.
+- `system-assessment` becomes the read-only mode for understanding an existing
+  codebase as-is before a user writes an architecture, change, migration, or
+  security packet.
 
 ### First Slice
 
-- Treat MCP as the first protocol Canon actively consumes for governed external
-  tool invocation.
-- Route MCP requests through the same request, decision, approval, and evidence
-  pipeline used by other execution adapters.
-- Keep policy, capability typing, lineage, and verification semantics shared
-  across protocols.
-- Only ship MCP runtime behavior if it fits the common invocation pipeline
-  cleanly, without introducing protocol-specific special cases into the core.
+- Require `system_context=existing`.
+- Keep the analysis read-only against the source tree and repository runtime
+  surfaces.
+- Emit an assessment packet with an executive summary, coverage map, evidence
+  discipline, explicit `FACT` / `INFERENCE` / `GAP` findings, confidence per
+  assessed surface, an asset inventory, and a risk register.
+- Use ISO 42010 view language to name what was assessed, what was skipped, and
+  what remains only partially covered.
+- Start with the highest-value as-is views for engineering decisions:
+  functional, component, deployment, technology, and integration, while making
+  missing data, operations, security, or history coverage explicit instead of
+  inventing it.
+- Treat deeper full-spectrum assessment as a follow-on, not as a reason to
+  over-widen the first slice.
 
-### Future Minimal MCP Server Surface
+### Why This Feature
 
-- Start a governed run.
-- Inspect run state and evidence.
-- Request a structured review.
-- Avoid exposing the full internal engine surface.
+- Existing-system users often need a trustworthy picture of the current system
+  before they can author a meaningful `architecture` or `change` packet.
+- The current `architecture` mode is intentionally decision-shaped and should
+  not be overloaded into repo archaeology.
+- Evidence-first assessment strengthens downstream `change`, `migration`,
+  `security-assessment`, and architecture work by turning an unknown repo into
+  a bounded, reviewable understanding surface.
 
-### Explicitly Deferred
+## Feature: Structured External Publish Destinations
 
-- A2A support, unless Canon needs to operate as a remote interoperable agent.
-- Agent discovery, remote delegation, and network-visible multi-agent topology.
-- Broad protocol exposure beyond narrowly governed capabilities.
+### Outcome
 
-### Why This Order
+Published Canon packets land outside `.canon/` in human-browsable directory
+structures with meaningful names and date-prefixed folders, while preserving
+run-id traceability in packet metadata instead of making the run id the only
+visible path anchor.
 
-- MCP solves tool and resource interoperability, which matches Canon's current
-  need to govern calls to external tools.
-- A2A solves agent-to-agent interoperability, which is a different layer of the
-  system.
-- Canon is currently closer to a governed local execution runtime than to a
-  remote agent platform.
-- Supporting MCP first strengthens the execution layer without forcing premature
-  multi-agent architecture.
+### First Slice
 
-### Planning Principle
+- Keep `.canon/` as runtime and evidence storage only.
+- Standardize `publish` on external roots such as `docs/` rather than treating
+  `.canon/` as the final reading surface.
+- Replace run-id-only publish destinations with a canonical structure like
+  `<publish-root>/<family>/<YYYY-MM-DD>-<descriptor>/`.
+- Derive `<descriptor>` from the authored packet title or an explicit publish
+  slug; fall back to the mode name only when no better label exists.
+- Write publish metadata into the published packet so run id, mode, risk,
+  zone, publish timestamp, and source artifact lineage stay recoverable.
+- Preserve blocked or approval-gated publishing where the mode already allows
+  it, but publish those packets under the same structured external contract.
 
-MCP first, A2A later if Canon becomes a network-visible agent.
+### Why This Feature
+
+- `.canon/` is the governed runtime surface; it should not be the only place
+  humans browse final documents.
+- Run-id-only paths are machine-traceable but poor for repository navigation,
+  Git review, and long-term documentation browsing.
+- Teams need to understand what a published packet was from the path alone,
+  and a date-prefixed descriptor gives that without sacrificing traceability.
