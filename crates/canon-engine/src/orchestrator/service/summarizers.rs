@@ -27,6 +27,7 @@ pub(crate) fn summarize_mode_result(
         Mode::Discovery => summarize_discovery_mode_result(artifacts),
         Mode::SystemShaping => summarize_system_shaping_mode_result(artifacts),
         Mode::Architecture => summarize_architecture_mode_result(artifacts),
+        Mode::SystemAssessment => summarize_system_assessment_mode_result(artifacts),
         Mode::Change => summarize_change_mode_result(artifacts),
         Mode::Backlog => summarize_backlog_mode_result(artifacts),
         Mode::Incident => summarize_incident_mode_result(artifacts),
@@ -760,6 +761,70 @@ fn summarize_security_assessment_mode_result(
             primary.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&assessment_scope, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+fn summarize_system_assessment_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "assessment-overview.md")?;
+    let coverage_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "coverage-map.md");
+    let risk_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "risk-register.md");
+
+    let assessment_objective = extract_context_section(&primary.contents, "Assessment Objective")
+        .unwrap_or_else(|| "NOT CAPTURED - Assessment objective section is missing.".to_string());
+    let stakeholders = extract_context_section(&primary.contents, "Stakeholders")
+        .unwrap_or_else(|| "NOT CAPTURED - Stakeholders section is missing.".to_string());
+    let assessed_views = coverage_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Assessed Views"))
+        .unwrap_or_else(|| "NOT CAPTURED - Assessed views section is missing.".to_string());
+    let observed_risks = risk_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Observed Risks"))
+        .unwrap_or_else(|| "NOT CAPTURED - Observed risks section is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([
+        &assessment_objective,
+        &stakeholders,
+        &assessed_views,
+        &observed_risks,
+    ]);
+    let stakeholder_count = count_markdown_entries(&stakeholders);
+    let view_count = count_markdown_entries(&assessed_views);
+    let risk_count = count_markdown_entries(&observed_risks);
+
+    let headline = if missing_context_markers == 0 {
+        "System-assessment packet ready for governed review.".to_string()
+    } else {
+        format!(
+            "System-assessment packet completed with {missing_context_markers} explicit missing-context marker(s)."
+        )
+    };
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "Primary artifact bounds {stakeholder_count} stakeholder set(s), {view_count} assessed view set(s), and {risk_count} observed risk set(s). Objective: {}.",
+            truncate_context_excerpt(&assessment_objective, 120)
+        )
+    } else {
+        format!(
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Stakeholders: {stakeholder_count}; views: {view_count}; observed risks: {risk_count}."
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: Some("recommendation-only".to_string()),
+        primary_artifact_title: "Assessment Overview".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&assessment_objective, 320),
         action_chips: Vec::new(),
     })
 }

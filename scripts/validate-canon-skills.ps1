@@ -123,6 +123,18 @@ $ReviewPath = Join-Path $SkillsDir "canon-review/SKILL.md"
 $VerificationPath = Join-Path $SkillsDir "canon-verification/SKILL.md"
 $PrReviewPath = Join-Path $SkillsDir "canon-pr-review/SKILL.md"
 $ClarityPath = Join-Path $SkillsDir "canon-inspect-clarity/SKILL.md"
+$IncidentPath = Join-Path $SkillsDir "canon-incident/SKILL.md"
+$MigrationPath = Join-Path $SkillsDir "canon-migration/SKILL.md"
+$SystemAssessmentPath = Join-Path $SkillsDir "canon-system-assessment/SKILL.md"
+$DefaultsRuntimeSh = Join-Path $Root "defaults/embedded-skills/canon-shared/scripts/check-runtime.sh"
+$DefaultsRuntimePs1 = Join-Path $Root "defaults/embedded-skills/canon-shared/scripts/check-runtime.ps1"
+$AgentsRuntimeSh = Join-Path $Root ".agents/skills/canon-shared/scripts/check-runtime.sh"
+$AgentsRuntimePs1 = Join-Path $Root ".agents/skills/canon-shared/scripts/check-runtime.ps1"
+
+Require-Text $DefaultsRuntimeSh 'implementation|refactor|incident|security-assessment|system-assessment|migration|supply-chain-analysis)' 'shared bash runtime hints must recognize implementation/refactor/incident/security-assessment/system-assessment/migration/supply-chain-analysis canonical inputs'
+Require-Text $AgentsRuntimeSh 'implementation|refactor|incident|security-assessment|system-assessment|migration|supply-chain-analysis)' 'materialized bash runtime hints must recognize implementation/refactor/incident/security-assessment/system-assessment/migration/supply-chain-analysis canonical inputs'
+Require-Text $DefaultsRuntimePs1 "'system-assessment' { return 'canon-input/system-assessment.md or canon-input/system-assessment/' }" 'shared PowerShell runtime hints must recognize system-assessment canonical inputs'
+Require-Text $AgentsRuntimePs1 "'system-assessment' { return 'canon-input/system-assessment.md or canon-input/system-assessment/' }" 'materialized PowerShell runtime hints must recognize system-assessment canonical inputs'
 
 Require-Text $RequirementsPath '--input <INPUT_PATH>' 'canon-requirements: preflight must keep file-path input binding'
 Require-Text $RequirementsPath '--input-text <INPUT_TEXT>' 'canon-requirements: must document inline authored input binding'
@@ -134,6 +146,18 @@ Require-Text $ArchitecturePath '--system-context <SYSTEM_CONTEXT>' 'canon-archit
 Require-Text $ImplementationPath '--input <INPUT_PATH>' 'canon-implementation: preflight must keep file-path input binding'
 Require-Text $ImplementationPath '--input-text <INPUT_TEXT>' 'canon-implementation: must document inline authored input binding'
 Require-Text $ImplementationPath '--system-context existing' 'canon-implementation: must bind existing system context explicitly'
+Require-Text $IncidentPath '--input <INPUT_PATH>' 'canon-incident: preflight must keep file-path input binding'
+Require-Text $IncidentPath '--input-text <INPUT_TEXT>' 'canon-incident: must document inline authored input binding'
+Require-Text $IncidentPath '--system-context existing' 'canon-incident: must bind existing system context explicitly'
+Require-Text $MigrationPath '--input <INPUT_PATH>' 'canon-migration: preflight must keep file-path input binding'
+Require-Text $MigrationPath '--input-text <INPUT_TEXT>' 'canon-migration: must document inline authored input binding'
+Require-Text $MigrationPath '--system-context existing' 'canon-migration: must bind existing system context explicitly'
+Require-Text $SystemAssessmentPath '--input <INPUT_PATH>' 'canon-system-assessment: preflight must keep file-path input binding'
+Require-Text $SystemAssessmentPath '--input-text <INPUT_TEXT>' 'canon-system-assessment: must document inline authored input binding'
+Require-Text $SystemAssessmentPath '--system-context existing' 'canon-system-assessment: must bind existing system context explicitly'
+Require-Text $SystemAssessmentPath '## Observed Findings' 'canon-system-assessment: must require observed findings in the authored body contract'
+Require-Text $SystemAssessmentPath '## Inferred Findings' 'canon-system-assessment: must require inferred findings in the authored body contract'
+Require-Text $SystemAssessmentPath '## Assessment Gaps' 'canon-system-assessment: must require assessment gaps in the authored body contract'
 Require-Text $RefactorPath '--input <INPUT_PATH>' 'canon-refactor: preflight must keep file-path input binding'
 Require-Text $RefactorPath '--input-text <INPUT_TEXT>' 'canon-refactor: must document inline authored input binding'
 Require-Text $RefactorPath '--system-context existing' 'canon-refactor: must bind existing system context explicitly'

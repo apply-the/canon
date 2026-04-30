@@ -99,9 +99,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 027-system-assessment-mode: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 - 026-winget-distribution: Added Rust 1.95.0 workspace plus Bash and PowerShell release helpers and GitHub Actions YAML + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), shell tooling (`jq`, `shasum`, `unzip`), and Windows Package Manager manifest schema v1.12.0
 - 024-supply-chain-legacy: Added Rust 1.95.0 workspace plus Markdown skill sources, Bash runtime checks, and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; existing shell and filesystem adapters; repo-local skill validation scripts
-- 023-cybersecurity-risk-assessment: Delivered Cybersecurity Risk Assessment Mode as a first-class governed runtime mode with release, skill, and validation surfaces for `0.22.0`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
@@ -115,7 +115,7 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
   `canon-inspect-artifacts`, `canon-inspect-clarity`, `canon-approve`, `canon-resume`,
   `canon-change`, `canon-review`, `canon-verification`,
   `canon-implementation`, `canon-refactor`, `canon-incident`,
-  `canon-security-assessment`, `canon-migration`, `canon-pr-review`.
+  `canon-security-assessment`, `canon-system-assessment`, `canon-migration`, `canon-pr-review`.
 - Discoverable support-state skills MUST NOT fabricate Canon runs, run ids,
   approvals, evidence, or CLI output.
 - Skill validation commands:

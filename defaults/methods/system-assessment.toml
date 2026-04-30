@@ -1,0 +1,18 @@
+version = 1
+# Requires explicit `--system-context existing` when starting a run.
+mode = "system-assessment"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Risk", "Architecture", "ReleaseReadiness"]
+artifacts = [
+    "assessment-overview.md",
+    "coverage-map.md",
+    "asset-inventory.md",
+    "functional-view.md",
+    "component-view.md",
+    "deployment-view.md",
+    "technology-view.md",
+    "integration-view.md",
+    "risk-register.md",
+    "assessment-evidence.md",
+]

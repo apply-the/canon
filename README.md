@@ -7,7 +7,7 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.25.0`.
+The current delivery line in this repository targets Canon `0.26.0`.
 
 ## What Canon Does
 
@@ -123,6 +123,9 @@ as a recommendation-only operational packet for bounded existing-system threat,
 risk, mitigation, and evidence-gap analysis; `supply-chain-analysis` now joins
 that operational family as a recommendation-only existing-system packet for
 SBOM, vulnerability, license, and legacy posture review with explicit coverage
+gaps; `system-assessment` now joins the same existing-system family as a
+recommendation-only as-is architecture packet using ISO 42010-style viewpoint
+coverage with explicit observed findings, inferred findings, and assessment
 gaps; `incident` and `migration` remain the adjacent recommendation-only
 operational packets; and the existing planning, execution, and review modes
 keep their prior bounded-authoring posture. Persona guidance shapes voice and
