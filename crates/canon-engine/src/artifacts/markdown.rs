@@ -1308,10 +1308,8 @@ pub fn render_backlog_artifact(
                 source_refs,
             ),
             None => format!(
-                "# Epic Tree\n\n## Summary\n\n{}\n\n## Epic Tree\n\n- Initiative: {}\n- Epic 1: Establish a bounded foundation for {}\n- Epic 2: Deliver visible slices without descending into task plans\n\n## Scope Boundaries\n\n- Preserve planning-only granularity at {}.\n- Keep excluded work explicit: {}\n\n## Source Trace Links\n\n{}\n\n## Missing Authored Body\n\nNo `## Epic Tree` section was authored in the backlog input; the entries above are placeholders. Add a real epic tree to the input to replace them.\n",
+                "# Epic Tree\n\n## Summary\n\n{}\n\n## Epic Tree\n\nNo authored epic tree was recorded for this packet.\n\n## Scope Boundaries\n\n- Preserve planning-only granularity at {}.\n- Keep excluded work explicit: {}\n\n## Source Trace Links\n\n{}\n\n## Missing Authored Body\n\nNo `## Epic Tree` section was authored in the backlog input. Canon did not synthesize placeholder epics because that would look like approved decomposition. Author a real epic tree in the backlog input and rerun.\n",
                 delivery_intent,
-                truncate_context_excerpt(&delivery_intent, 120),
-                truncate_context_excerpt(&delivery_intent, 120),
                 planning_context.desired_granularity.as_str(),
                 truncate_context_excerpt(&out_of_scope, 200),
                 source_refs,
@@ -1323,11 +1321,8 @@ pub fn render_backlog_artifact(
                 delivery_intent, body, source_refs, closure_findings,
             ),
             None => format!(
-                "# Capability To Epic Map\n\n## Summary\n\n{}\n\n## Capability Mapping\n\n- Source capability set remains anchored to the authored delivery intent.\n- Priority inputs shape which epic lands first: {}\n\n## Source Trace Links\n\n{}\n\n## Planning Gaps\n\n{}\n\n## Missing Authored Body\n\nNo `## Capability To Epic Map` section was authored in the backlog input.\n",
-                delivery_intent,
-                truncate_context_excerpt(&priorities, 200),
-                source_refs,
-                closure_findings,
+                "# Capability To Epic Map\n\n## Summary\n\n{}\n\n## Capability Mapping\n\nNo authored capability-to-epic map was recorded for this packet.\n\n## Source Trace Links\n\n{}\n\n## Planning Gaps\n\n{}\n\n## Missing Authored Body\n\nNo `## Capability To Epic Map` section was authored in the backlog input. Canon did not infer capability-to-epic mappings from priorities alone because that would look like approved reasoning.\n",
+                delivery_intent, source_refs, closure_findings,
             ),
         },
         "dependency-map.md" => match authored_dependency_map {
@@ -1336,7 +1331,7 @@ pub fn render_backlog_artifact(
                 delivery_intent, body, closure_findings,
             ),
             None => format!(
-                "# Dependency Map\n\n## Summary\n\n{}\n\n## Dependencies\n\n- Shared planning constraints: {}\n- Source references remain the upstream dependency basis.\n\n## Blocking Edges\n\n{}\n\n## External Dependencies\n\n- Any external blockers must remain visible in planning risks before downstream implementation work starts.\n\n## Missing Authored Body\n\nNo `## Dependency Map` section was authored in the backlog input.\n",
+                "# Dependency Map\n\n## Summary\n\n{}\n\n## Dependencies\n\nNo authored dependency map was recorded for this packet. Shared planning constraints remain: {}\n\n## Blocking Edges\n\n{}\n\n## External Dependencies\n\n- Source references remain the upstream dependency basis.\n- Any external blockers must remain visible in planning risks before downstream implementation work starts.\n\n## Missing Authored Body\n\nNo `## Dependency Map` section was authored in the backlog input. Canon kept only explicit constraints and closure findings instead of inventing dependency edges.\n",
                 delivery_intent,
                 truncate_context_excerpt(&constraints, 220),
                 closure_findings,
@@ -1351,7 +1346,7 @@ pub fn render_backlog_artifact(
                 source_refs,
             ),
             None => format!(
-                "# Delivery Slices\n\n## Summary\n\n{}\n\n## Delivery Slices\n\n- Slice 1: Establish the bounded planning and dependency spine.\n- Slice 2: Deliver the first user-visible outcome tied to the highest-priority source input.\n- Slice 3: Address the highest planning risk before broader rollout.\n\n## Slice Boundaries\n\n- Slices stay above task level and stop at implementation-ready decomposition.\n- Excluded work stays explicit: {}\n\n## Dependency Links\n\n{}\n\n## Missing Authored Body\n\nNo `## Delivery Slices` section was authored in the backlog input; the slices above are placeholders.\n",
+                "# Delivery Slices\n\n## Summary\n\n{}\n\n## Delivery Slices\n\nNo authored delivery slices were recorded for this packet.\n\n## Slice Boundaries\n\n- Slices stay above task level and stop at implementation-ready decomposition.\n- Excluded work stays explicit: {}\n\n## Dependency Links\n\n{}\n\n## Missing Authored Body\n\nNo `## Delivery Slices` section was authored in the backlog input. Canon did not synthesize example slices because that would look like approved decomposition.\n",
                 delivery_intent,
                 truncate_context_excerpt(&out_of_scope, 220),
                 source_refs,
@@ -1365,7 +1360,7 @@ pub fn render_backlog_artifact(
                 truncate_context_excerpt(&priorities, 220),
             ),
             None => format!(
-                "# Sequencing Plan\n\n## Summary\n\n{}\n\n## Sequencing\n\n1. Establish the bounded foundation implied by the source inputs.\n2. Deliver the first slice that resolves the highest-priority planning pressure.\n3. Sequence follow-on slices only after named dependency blockers are visible.\n\n## Ordering Rationale\n\n{}\n\n## Readiness Signals\n\n- A downstream implementation reader can identify one bounded slice, its dependencies, and its acceptance anchor without hidden context.\n- Closure findings remain explicit if they still weaken confidence.\n\n## Missing Authored Body\n\nNo `## Sequencing` or `## Sequencing Plan` section was authored in the backlog input.\n",
+                "# Sequencing Plan\n\n## Summary\n\n{}\n\n## Sequencing\n\nNo authored sequencing plan was recorded for this packet.\n\n## Ordering Rationale\n\n{}\n\n## Readiness Signals\n\n- A downstream implementation reader can identify one bounded slice, its dependencies, and its acceptance anchor without hidden context.\n- Closure findings remain explicit if they still weaken confidence.\n\n## Missing Authored Body\n\nNo `## Sequencing` or `## Sequencing Plan` section was authored in the backlog input. Canon did not invent sequencing steps from priorities alone.\n",
                 delivery_intent,
                 truncate_context_excerpt(&priorities, 220),
             ),
@@ -1376,7 +1371,7 @@ pub fn render_backlog_artifact(
                 delivery_intent, body, source_refs,
             ),
             None => format!(
-                "# Acceptance Anchors\n\n## Summary\n\n{}\n\n## Acceptance Anchors\n\n- Anchor A: the first delivery slice is bounded enough for downstream implementation planning.\n- Anchor B: dependency blockers are named rather than implied.\n- Anchor C: priority and source traceability remain readable in the packet.\n\n## Source Trace Links\n\n{}\n\n## Deferred Detail\n\n- Task breakdown, tracker-specific work items, and executable test plans remain downstream work.\n\n## Missing Authored Body\n\nNo `## Acceptance Anchors` section was authored in the backlog input.\n",
+                "# Acceptance Anchors\n\n## Summary\n\n{}\n\n## Acceptance Anchors\n\nNo authored acceptance anchors were recorded for this packet.\n\n## Source Trace Links\n\n{}\n\n## Deferred Detail\n\n- Task breakdown, tracker-specific work items, and executable test plans remain downstream work.\n\n## Missing Authored Body\n\nNo `## Acceptance Anchors` section was authored in the backlog input. Canon did not fabricate acceptance anchors from traceability alone.\n",
                 delivery_intent, source_refs,
             ),
         },
@@ -2409,14 +2404,30 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 mod tests {
     use super::{
         MISSING_AUTHORED_BODY_MARKER, extract_authored_h2_section, extract_marker,
-        render_architecture_artifact, render_change_artifact, render_discovery_artifact,
-        render_incident_artifact, render_migration_artifact, render_missing_authored_body_block,
-        render_pr_review_artifact, render_requirements_artifact,
-        render_requirements_artifact_from_evidence, render_review_artifact,
-        render_system_shaping_artifact, render_verification_artifact,
+        render_architecture_artifact, render_backlog_artifact, render_change_artifact,
+        render_discovery_artifact, render_incident_artifact, render_migration_artifact,
+        render_missing_authored_body_block, render_pr_review_artifact,
+        render_requirements_artifact, render_requirements_artifact_from_evidence,
+        render_review_artifact, render_system_shaping_artifact, render_verification_artifact,
     };
+    use crate::domain::run::{BacklogGranularity, BacklogPlanningContext, ClosureAssessment};
     use crate::review::findings::{FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket};
     use crate::review::summary::{ReviewDisposition, ReviewSummary};
+
+    fn sample_backlog_planning_context() -> BacklogPlanningContext {
+        BacklogPlanningContext {
+            mode: "backlog".to_string(),
+            delivery_intent: "Prepare a bounded delivery backlog for runtime honesty work."
+                .to_string(),
+            desired_granularity: BacklogGranularity::EpicPlusSlice,
+            planning_horizon: Some("feature 033".to_string()),
+            source_refs: vec!["specs/033-reasoning-evidence-clarity/plan.md".to_string()],
+            priority_inputs: vec!["Remove fake reasoning from fallback artifacts".to_string()],
+            constraints: vec!["Stay above task level".to_string()],
+            out_of_scope: vec!["New runtime modes".to_string()],
+            closure_assessment: ClosureAssessment::sufficient(),
+        }
+    }
 
     #[test]
     fn extract_marker_prefers_markdown_section_over_inline_mentions() {
@@ -2800,5 +2811,29 @@ mod tests {
         assert!(architecture.contains("## Evaluation Criteria"));
         assert!(architecture.contains(MISSING_AUTHORED_BODY_MARKER));
         assert!(architecture.contains("`## Why Not The Others`"));
+    }
+
+    #[test]
+    fn render_backlog_fallback_artifacts_keep_missing_authored_body_explicit() {
+        let brief = "# Backlog Brief\n\n## Delivery Intent\n\nPrepare a bounded delivery backlog for runtime honesty work.\n\n## Desired Granularity\n\nepic-plus-slice\n\n## Planning Horizon\n\nfeature 033\n\n## Source References\n\n- specs/033-reasoning-evidence-clarity/plan.md\n\n## Constraints\n\n- Stay above task level\n";
+        let planning_context = sample_backlog_planning_context();
+
+        let epic_tree = render_backlog_artifact("epic-tree.md", brief, &planning_context);
+        let slices = render_backlog_artifact("delivery-slices.md", brief, &planning_context);
+        let sequencing = render_backlog_artifact("sequencing-plan.md", brief, &planning_context);
+        let anchors = render_backlog_artifact("acceptance-anchors.md", brief, &planning_context);
+
+        assert!(epic_tree.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(epic_tree.contains("did not synthesize placeholder epics"));
+        assert!(!epic_tree.contains("Epic 1:"));
+        assert!(slices.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(slices.contains("did not synthesize example slices"));
+        assert!(!slices.contains("Slice 1:"));
+        assert!(sequencing.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(sequencing.contains("did not invent sequencing steps"));
+        assert!(!sequencing.contains("1. Establish the bounded foundation"));
+        assert!(anchors.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(anchors.contains("did not fabricate acceptance anchors"));
+        assert!(!anchors.contains("Anchor A:"));
     }
 }

@@ -52,9 +52,52 @@ continuity.
   derived from the same canonical release bundle while GitHub Releases remain
   the source of truth.
 
-No active remaining-candidate feature blocks are currently listed below. Until
-the next slice is chosen, the rest of this file is delivered history kept for
-continuity and release-trace context.
+There are no active remaining candidate feature blocks recorded immediately
+after the delivered 033 slice. Future roadmap work should continue to focus on
+output quality and authoring durability without reopening the now-delivered
+reasoning-evidence contract.
+
+## Delivered Feature: 033 Cross-Mode Reasoning Evidence And Clarity Expansion
+
+### Outcome
+
+Canon now exposes cross-mode reasoning posture directly instead of letting
+structural completeness masquerade as strong reasoning.
+
+### Problem We Solved
+
+- `inspect clarity` previously exposed `reasoning_signals` for only a narrow
+  subset of modes, leaving many file-backed surfaces without a shared pre-run
+  honesty check.
+- Backlog fallback artifacts could still read like approved decomposition even
+  when no authored epic tree, slices, sequencing, or anchors existed.
+- Review-family result posture still risked collapsing evidence-bounded or
+  no-direct-contradiction states into generic success language.
+
+### Delivered Surface
+
+- Extend `inspect clarity` and `reasoning_signals` across the remaining
+  file-backed governed modes while keeping `pr-review` explicitly diff-backed.
+- Surface materially-closed and weak-support reasoning signals so Canon can say
+  directly when a packet is still shallow or when the decision is already
+  bounded.
+- Tighten backlog fallback artifacts so Canon preserves explicit missing-body
+  language instead of synthesizing plausible epics, slices, sequencing, or
+  acceptance anchors.
+- Surface `evidence-bounded` review posture and explicit
+  `no-direct-contradiction` verification posture in the runtime summaries.
+- Synchronize version surfaces, shared skill guidance, README, mode guidance,
+  roadmap continuity, and changelog references for the `0.33.0` delivery.
+
+### Invariants Preserved
+
+- Canon still preserves explicit `## Missing Authored Body`, blocked,
+  unsupported, and unresolved-findings honesty markers instead of softening
+  them into generic filler.
+- `pr-review` remains diff-backed and is not forced into the file-backed
+  clarity path.
+- `.canon/` persistence, approval targets, publish destinations, and
+  recommendation-only operational posture remain unchanged.
 
 ## Delivered Feature: 032 Scoop Distribution Follow-On
 

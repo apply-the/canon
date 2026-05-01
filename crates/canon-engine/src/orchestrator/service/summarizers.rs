@@ -1199,12 +1199,16 @@ fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
     ]);
     let disposition_status = extract_labeled_context_value(&final_disposition, "Status")
         .unwrap_or_else(|| "unknown-disposition".to_string());
+    let missing_evidence_status = extract_labeled_context_value(&missing_evidence, "Status")
+        .unwrap_or_else(|| "unknown-evidence-posture".to_string());
     let rationale = extract_labeled_context_value(&final_disposition, "Rationale")
         .unwrap_or_else(|| truncate_context_excerpt(&final_disposition, 320));
     let boundary_count = count_context_items_without_placeholders(
         &boundary_findings,
         &["No boundary expansion beyond the authored review target was detected."],
     );
+    let no_boundary_expansion = boundary_findings
+        .contains("No boundary expansion beyond the authored review target was detected.");
     let accepted_risk_count = count_context_items_without_placeholders(
         &accepted_risks,
         &[
@@ -1223,7 +1227,12 @@ fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
                 "Review packet completed with explicit approval for the remaining concerns."
                     .to_string()
             }
-            _ => "Review packet ready for downstream inspection and bounded follow-up.".to_string(),
+            _ if missing_evidence_status == "evidence-bounded" && no_boundary_expansion => {
+                "Review packet is evidence-bounded with no boundary expansion beyond the authored target.".to_string()
+            }
+            _ => format!(
+                "Review packet preserves `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture."
+            ),
         }
     } else {
         format!(
@@ -1231,9 +1240,15 @@ fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
         )
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
-        format!(
-            "Primary artifact records `{disposition_status}` disposition with {boundary_count} boundary finding set(s) and {accepted_risk_count} accepted-risk or review-note set(s)."
-        )
+        if no_boundary_expansion {
+            format!(
+                "Primary artifact records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, no boundary expansion beyond the authored review target, and {accepted_risk_count} accepted-risk or review-note set(s)."
+            )
+        } else {
+            format!(
+                "Primary artifact records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, {boundary_count} boundary finding set(s), and {accepted_risk_count} accepted-risk or review-note set(s)."
+            )
+        }
     } else {
         format!(
             "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Boundary findings: {boundary_count}; accepted risks: {accepted_risk_count}."
@@ -1264,6 +1279,8 @@ fn summarize_verification_mode_result(
         artifacts.iter().find(|artifact| artifact.record.file_name == "unresolved-findings.md");
     let invariants_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "invariants-checklist.md");
+    let adversarial_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "adversarial-review.md");
 
     let verified_claims = extract_context_section(&primary.contents, "Verified Claims")
         .unwrap_or_else(|| "NOT CAPTURED - Verified claims section is missing.".to_string());
@@ -1277,6 +1294,9 @@ fn summarize_verification_mode_result(
     let claims_under_test = invariants_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Claims Under Test"))
         .unwrap_or_else(|| "NOT CAPTURED - Claims under test section is missing.".to_string());
+    let contradictions = adversarial_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Contradictions"))
+        .unwrap_or_else(|| "NOT CAPTURED - Contradictions section is missing.".to_string());
 
     let missing_context_markers = count_missing_context_markers([
         &verified_claims,
@@ -1293,6 +1313,20 @@ fn summarize_verification_mode_result(
         &claims_under_test,
         &["The current invariants are bounded enough for recorded verification."],
     );
+    let contradiction_count = count_context_items_without_placeholders(
+        &contradictions,
+        &[
+            "none recorded",
+            "No direct contradiction was identified against the current claim set.",
+            "No direct contradiction was identified against the current verification packet.",
+        ],
+    );
+    let no_direct_contradiction = contradictions.contains("none recorded")
+        || contradictions
+            .contains("No direct contradiction was identified against the current claim set.")
+        || contradictions.contains(
+            "No direct contradiction was identified against the current verification packet.",
+        );
     let open_finding_count = count_context_items_without_placeholders(
         &open_findings,
         &[
@@ -1306,9 +1340,13 @@ fn summarize_verification_mode_result(
             format!(
                 "Verification found {open_finding_count} unresolved finding(s) and blocked release readiness."
             )
+        } else if no_direct_contradiction {
+            format!(
+                "Verification completed with `{verdict_status}` verdict, no direct contradictions, and {claim_count} claim set(s) under test."
+            )
         } else {
             format!(
-                "Verification packet completed with `{verdict_status}` verdict across {claim_count} claim set(s)."
+                "Verification packet completed with `{verdict_status}` verdict across {claim_count} claim set(s) and {contradiction_count} contradiction set(s)."
             )
         }
     } else {
@@ -1317,9 +1355,15 @@ fn summarize_verification_mode_result(
         )
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
-        format!(
-            "Primary artifact records `{verdict_status}` verdict with {claim_count} claim set(s) under test and {open_finding_count} unresolved finding set(s)."
-        )
+        if no_direct_contradiction {
+            format!(
+                "Primary artifact records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and explicit no-direct-contradiction posture."
+            )
+        } else {
+            format!(
+                "Primary artifact records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and {contradiction_count} contradiction set(s)."
+            )
+        }
     } else {
         format!(
             "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Claim sets: {claim_count}; open findings: {open_finding_count}."
@@ -1605,5 +1649,52 @@ mod tests {
             .expect("migration summary should exist once the operational mode is implemented");
         assert!(migration_summary.headline.to_ascii_lowercase().contains("migration"));
         assert_eq!(migration_summary.execution_posture.as_deref(), Some("recommendation-only"));
+    }
+
+    #[test]
+    fn summarize_review_mode_result_surfaces_evidence_bounded_posture() {
+        let artifacts = vec![
+            make_artifact(
+                "review-disposition.md",
+                "## Final Disposition\n\nStatus: ready-with-review-notes\n\nRationale: bounded review packet is ready for inspection.\n\n## Accepted Risks\n\n- residual review notes remain bounded to this package.",
+            ),
+            make_artifact(
+                "boundary-assessment.md",
+                "## Boundary Findings\n\n- No boundary expansion beyond the authored review target was detected.",
+            ),
+            make_artifact(
+                "missing-evidence.md",
+                "## Missing Evidence\n\nStatus: evidence-bounded\n\n- No critical evidence gaps remain from the authored review packet.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::Review, &artifacts).expect("review summary");
+        assert!(summary.headline.contains("evidence-bounded"));
+        assert!(summary.headline.contains("no boundary expansion"));
+        assert!(summary.artifact_packet_summary.contains("evidence-bounded"));
+    }
+
+    #[test]
+    fn summarize_verification_mode_result_surfaces_no_direct_contradiction_posture() {
+        let artifacts = vec![
+            make_artifact(
+                "verification-report.md",
+                "## Verified Claims\n\n- rollback remains bounded\n\n## Rejected Claims\n\n- none recorded\n\n## Overall Verdict\n\nStatus: supported\n\nRationale: current evidence covers the authored claim set.",
+            ),
+            make_artifact(
+                "unresolved-findings.md",
+                "## Open Findings\n\nStatus: no-open-findings\n\n- No unresolved findings remain from the current verification packet.",
+            ),
+            make_artifact(
+                "invariants-checklist.md",
+                "## Claims Under Test\n\n- rollback remains bounded\n- operator evidence stays attached to the packet",
+            ),
+            make_artifact("adversarial-review.md", "## Contradictions\n\n- none recorded"),
+        ];
+
+        let summary =
+            summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
+        assert!(summary.headline.contains("no direct contradictions"));
+        assert!(summary.artifact_packet_summary.contains("no-direct-contradiction"));
     }
 }

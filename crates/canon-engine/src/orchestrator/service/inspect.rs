@@ -275,11 +275,50 @@ impl EngineService {
             Mode::Requirements => self.inspect_requirements_clarity(inputs),
             Mode::Discovery => self.inspect_discovery_clarity(inputs),
             Mode::SupplyChainAnalysis => self.inspect_supply_chain_analysis_clarity(inputs),
-            other => Err(EngineError::UnsupportedInspectTarget(format!(
-                "clarity inspection is currently available only for requirements, discovery, and supply-chain-analysis, not {}",
-                other.as_str()
-            ))),
+            Mode::PrReview => Err(EngineError::UnsupportedInspectTarget(
+                "clarity inspection is not available for pr-review because it uses diff-backed inputs rather than authored packet files".to_string(),
+            )),
+            other => self.inspect_authored_mode_clarity(other, inputs),
         }
+    }
+
+    pub(super) fn inspect_authored_mode_clarity(
+        &self,
+        mode: Mode,
+        inputs: &[String],
+    ) -> Result<ClarityInspectSummary, EngineError> {
+        self.validate_authored_input_paths(mode, inputs)?;
+        for input in inputs {
+            let resolved = self.resolve_input_path(input);
+            if !resolved.exists() {
+                return Err(EngineError::Validation(format!(
+                    "input `{input}` was not found from {}",
+                    self.repo_root.display()
+                )));
+            }
+        }
+
+        let source_inputs = self.clarity_source_inputs(inputs)?;
+        let context_summary = self.read_requirements_context(inputs, &[])?;
+        let brief = AuthoredModeBrief::from_context(mode, context_summary, &source_inputs);
+        let missing_context = authored_mode_missing_context(&brief);
+        let clarification_questions = prioritized_authored_mode_clarification_questions(&brief);
+        let reasoning_signals = authored_mode_reasoning_signals(&source_inputs, &brief);
+        let requires_clarification =
+            !missing_context.is_empty() || !clarification_questions.is_empty();
+        let recommended_focus =
+            authored_mode_recommended_focus(&brief, &missing_context, &clarification_questions);
+
+        Ok(ClarityInspectSummary {
+            mode: mode.as_str().to_string(),
+            summary: brief.summary(),
+            source_inputs,
+            requires_clarification,
+            missing_context,
+            clarification_questions,
+            reasoning_signals,
+            recommended_focus,
+        })
     }
 
     pub(super) fn inspect_requirements_clarity(
