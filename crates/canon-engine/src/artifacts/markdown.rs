@@ -774,6 +774,166 @@ pub fn render_security_assessment_artifact(file_name: &str, brief_summary: &str)
     }
 }
 
+pub fn render_system_assessment_artifact(file_name: &str, brief_summary: &str) -> String {
+    let normalized = brief_summary.to_lowercase();
+    let assessment_objective = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Assessment Objective",
+        &[],
+        &["assessment objective"],
+    )
+    .unwrap_or_else(|| "assessment objective not yet authored".to_string());
+    let stakeholders = extract_authored_section_or_marker(
+        brief_summary,
+        &normalized,
+        "Stakeholders",
+        &[],
+        &["stakeholders"],
+    )
+    .unwrap_or_else(|| "stakeholders not yet authored".to_string());
+    let summary = format!(
+        "Bounded system assessment for {} with reader context {}.",
+        truncate_context_excerpt(&assessment_objective, 80),
+        truncate_context_excerpt(&stakeholders, 80)
+    );
+
+    match file_name {
+        "assessment-overview.md" => render_authored_artifact(
+            "Assessment Overview",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Assessment Objective", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Stakeholders", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Primary Concerns", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Assessment Posture", aliases: &[] },
+            ],
+        ),
+        "coverage-map.md" => render_authored_artifact(
+            "Coverage Map",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Stakeholder Concerns", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Assessed Views", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Partial Or Skipped Coverage",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Confidence By Surface", aliases: &[] },
+            ],
+        ),
+        "asset-inventory.md" => render_authored_artifact(
+            "Asset Inventory",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Assessed Assets", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Critical Dependencies", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Boundary Notes", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Ownership Signals", aliases: &[] },
+            ],
+        ),
+        "functional-view.md" => render_authored_artifact(
+            "Functional View",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Responsibilities", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Primary Flows", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Observed Boundaries", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Confidence Notes", aliases: &[] },
+            ],
+        ),
+        "component-view.md" => render_authored_artifact(
+            "Component View",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Components", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Responsibilities", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Interfaces", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Confidence Notes", aliases: &[] },
+            ],
+        ),
+        "deployment-view.md" => render_authored_artifact(
+            "Deployment View",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Execution Environments", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Network And Runtime Boundaries",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Deployment Signals", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Coverage Gaps", aliases: &[] },
+            ],
+        ),
+        "technology-view.md" => render_authored_artifact(
+            "Technology View",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Technology Stack", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Platform Dependencies", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Version Or Lifecycle Signals",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Evidence Gaps", aliases: &[] },
+            ],
+        ),
+        "integration-view.md" => render_authored_artifact(
+            "Integration View",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Integrations", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Data Exchanges", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: "Trust And Failure Boundaries",
+                    aliases: &[],
+                },
+                AuthoredSectionSpec { canonical_heading: "Inference Notes", aliases: &[] },
+            ],
+        ),
+        "risk-register.md" => render_authored_artifact(
+            "Risk Register",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Observed Risks", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Risk Triggers", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Impact Notes", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Likely Follow-On Modes", aliases: &[] },
+            ],
+        ),
+        "assessment-evidence.md" => render_authored_artifact(
+            "Assessment Evidence",
+            &summary,
+            brief_summary,
+            &[
+                AuthoredSectionSpec {
+                    canonical_heading: "Observed Findings",
+                    aliases: &["FACT Findings"],
+                },
+                AuthoredSectionSpec {
+                    canonical_heading: "Inferred Findings",
+                    aliases: &["INFERENCE Findings"],
+                },
+                AuthoredSectionSpec {
+                    canonical_heading: "Assessment Gaps",
+                    aliases: &["GAP Findings"],
+                },
+                AuthoredSectionSpec { canonical_heading: "Evidence Sources", aliases: &[] },
+            ],
+        ),
+        other => render_markdown(other, brief_summary),
+    }
+}
+
 pub fn render_supply_chain_analysis_artifact(file_name: &str, brief_summary: &str) -> String {
     let normalized = brief_summary.to_lowercase();
     let declared_scope = extract_authored_section_or_marker(

@@ -265,7 +265,7 @@ canonical_mode_input_hint() {
     change)
       printf '%s' 'canon-input/change.md or canon-input/change/'
       ;;
-    implementation|refactor|incident|security-assessment|migration|supply-chain-analysis)
+    implementation|refactor|incident|security-assessment|system-assessment|migration|supply-chain-analysis)
       printf '%s' "canon-input/${command_name}.md or canon-input/${command_name}/"
       ;;
     *)
@@ -764,7 +764,7 @@ if [[ "${run_start_command}" == "true" ]]; then
     system-shaping|architecture)
       system_context_usage="new|existing"
       ;;
-    change)
+    change|system-assessment)
       system_context_usage="existing"
       ;;
   esac
@@ -787,9 +787,9 @@ if [[ "${run_start_command}" == "true" ]]; then
     fi
   fi
 
-  if [[ "${command_name}" == "change" && -n "${normalized_system_context}" && "${normalized_system_context}" != "existing" ]]; then
+  if [[ ("${command_name}" == "change" || "${command_name}" == "system-assessment") && -n "${normalized_system_context}" && "${normalized_system_context}" != "existing" ]]; then
     emit_failure "invalid-input" 17 \
-      "Mode change currently supports only --system-context existing in this release." \
+      "Mode ${command_name} currently supports only --system-context existing in this release." \
       "Retry with --system-context existing." \
       "FAILED_SLOT=system-context" \
       "FAILED_KIND=SystemContextField"

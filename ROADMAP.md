@@ -6,10 +6,10 @@ current implementation slice.
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
 `refactor`, `review`, `verification`, `pr-review`, `incident`,
-`security-assessment`, `migration`, and `supply-chain-analysis`. The next
-roadmap should prioritize output quality, packaging, distribution,
-existing-system assessment, publish structure, and authoring improvements
-instead of reopening already delivered mode surfaces.
+`security-assessment`, `system-assessment`, `migration`, and
+`supply-chain-analysis`. The next roadmap should prioritize output quality,
+packaging, distribution, publish structure, and authoring improvements instead
+of reopening already delivered mode surfaces.
 
 ## Current Delivered Reference
 
@@ -26,6 +26,10 @@ continuity.
 - `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts, and Mode Authoring Specialization is now complete for the currently modeled governed modes.
 - `security-assessment` remains delivered and publishes readable packets under
   `docs/security-assessments/<RUN_ID>/`.
+- `system-assessment` remains delivered as the as-is architecture packet,
+  publishes readable packets under `docs/architecture/assessments/<RUN_ID>/`,
+  and uses ISO 42010-style coverage with explicit observed findings, inferred
+  findings, and assessment gaps.
 - `supply-chain-analysis` remains delivered and publishes readable packets
   under `docs/supply-chain/<RUN_ID>/`.
 - `Distribution Channels Beyond GitHub Releases` now ships Homebrew
@@ -346,8 +350,9 @@ subset of views the first slice can support credibly.
 - Keep the analysis read-only against the source tree and repository runtime
   surfaces.
 - Emit an assessment packet with an executive summary, coverage map, evidence
-  discipline, explicit `FACT` / `INFERENCE` / `GAP` findings, confidence per
-  assessed surface, an asset inventory, and a risk register.
+  discipline, explicit observed findings, inferred findings, and assessment
+  gaps, confidence per assessed surface, an asset inventory, and a risk
+  register.
 - Use ISO 42010 view language to name what was assessed, what was skipped, and
   what remains only partially covered.
 - Start with the highest-value as-is views for engineering decisions:
