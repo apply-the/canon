@@ -117,6 +117,10 @@ fn create_requirements_run(workspace: &TempDir) -> String {
     json["run_id"].as_str().expect("run_id").to_string()
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 #[test]
 fn run_creation_emits_canonical_display_id() {
     let _guard = run_lookup_test_guard();
@@ -218,7 +222,14 @@ fn publish_accepts_last_alias_and_writes_default_destination() {
 
     cli_command().current_dir(workspace.path()).args(["publish", "@last"]).assert().success();
 
-    assert!(workspace.path().join("specs").join(run_id).join("problem-statement.md").exists());
+    assert!(
+        workspace
+            .path()
+            .join("specs")
+            .join(default_publish_leaf(&run_id, "requirements"))
+            .join("problem-statement.md")
+            .exists()
+    );
 }
 
 #[test]
@@ -313,7 +324,7 @@ fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
             .path()
             .join("docs")
             .join("implementation")
-            .join(run_id)
+            .join(default_publish_leaf(run_id, "implementation"))
             .join("task-mapping.md")
             .exists()
     );
@@ -372,7 +383,7 @@ fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
             .path()
             .join("docs")
             .join("planning")
-            .join(run_id)
+            .join(default_publish_leaf(run_id, "backlog"))
             .join("backlog-overview.md")
             .exists()
     );

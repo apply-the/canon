@@ -165,6 +165,12 @@ Publishing copies the emitted artifact files out of `.canon/artifacts/` and
 into a visible workspace directory. It never mutates or deletes the governed
 copy under `.canon/`.
 
+Without `--to`, Canon uses a structured default leaf like
+`<YYYY-MM-DD>-<descriptor>/` under the mode's existing family root and writes
+`packet-metadata.json` beside the published artifacts so run identity, mode,
+risk, zone, publish timestamp, and source artifact lineage remain recoverable
+outside `.canon/`.
+
 Publishing is allowed for runs whose state is `Completed`. `incident`,
 `security-assessment`, `system-assessment`, `migration`, and
 `supply-chain-analysis` are the exception: approval-gated or blocked
@@ -173,22 +179,22 @@ the goal is packet review outside the runtime.
 
 Default publish targets by mode:
 
-- `requirements` -> `specs/<RUN_ID>/`
-- `discovery` -> `docs/discovery/<RUN_ID>/`
-- `system-shaping` -> `docs/architecture/shaping/<RUN_ID>/`
-- `architecture` -> `docs/architecture/decisions/<RUN_ID>/`
-- `backlog` -> `docs/planning/<RUN_ID>/`
-- `change` -> `docs/changes/<RUN_ID>/`
-- `implementation` -> `docs/implementation/<RUN_ID>/`
-- `incident` -> `docs/incidents/<RUN_ID>/`
-- `security-assessment` -> `docs/security-assessments/<RUN_ID>/`
-- `system-assessment` -> `docs/architecture/assessments/<RUN_ID>/`
-- `migration` -> `docs/migrations/<RUN_ID>/`
-- `supply-chain-analysis` -> `docs/supply-chain/<RUN_ID>/`
-- `refactor` -> `docs/refactors/<RUN_ID>/`
-- `review` -> `docs/reviews/<RUN_ID>/`
-- `verification` -> `docs/verification/<RUN_ID>/`
-- `pr-review` -> `docs/reviews/prs/<RUN_ID>/`
+- `requirements` -> `specs/<YYYY-MM-DD>-<descriptor>/`
+- `discovery` -> `docs/discovery/<YYYY-MM-DD>-<descriptor>/`
+- `system-shaping` -> `docs/architecture/shaping/<YYYY-MM-DD>-<descriptor>/`
+- `architecture` -> `docs/architecture/decisions/<YYYY-MM-DD>-<descriptor>/`
+- `backlog` -> `docs/planning/<YYYY-MM-DD>-<descriptor>/`
+- `change` -> `docs/changes/<YYYY-MM-DD>-<descriptor>/`
+- `implementation` -> `docs/implementation/<YYYY-MM-DD>-<descriptor>/`
+- `incident` -> `docs/incidents/<YYYY-MM-DD>-<descriptor>/`
+- `security-assessment` -> `docs/security-assessments/<YYYY-MM-DD>-<descriptor>/`
+- `system-assessment` -> `docs/architecture/assessments/<YYYY-MM-DD>-<descriptor>/`
+- `migration` -> `docs/migrations/<YYYY-MM-DD>-<descriptor>/`
+- `supply-chain-analysis` -> `docs/supply-chain/<YYYY-MM-DD>-<descriptor>/`
+- `refactor` -> `docs/refactors/<YYYY-MM-DD>-<descriptor>/`
+- `review` -> `docs/reviews/<YYYY-MM-DD>-<descriptor>/`
+- `verification` -> `docs/verification/<YYYY-MM-DD>-<descriptor>/`
+- `pr-review` -> `docs/reviews/prs/<YYYY-MM-DD>-<descriptor>/`
 
 Use `--to <PATH>` when the default destination is not the right public home
 for the packet.
@@ -289,11 +295,11 @@ flowchart TD
   Y1 --> Y2[Optional risk approval]
   M1 --> M2[Optional risk approval]
   U1 --> U2[Optional risk approval]
-  I2 --> IPUB[canon publish -> docs/incidents/<RUN_ID>/]
-  S2 --> SPUB[canon publish -> docs/security-assessments/<RUN_ID>/]
-  Y2 --> YPUB[canon publish -> docs/architecture/assessments/<RUN_ID>/]
-  M2 --> MPUB[canon publish -> docs/migrations/<RUN_ID>/]
-  U2 --> UPUB[canon publish -> docs/supply-chain/<RUN_ID>/]
+  I2 --> IPUB[canon publish -> docs/incidents/<YYYY-MM-DD>-<descriptor>/]
+  S2 --> SPUB[canon publish -> docs/security-assessments/<YYYY-MM-DD>-<descriptor>/]
+  Y2 --> YPUB[canon publish -> docs/architecture/assessments/<YYYY-MM-DD>-<descriptor>/]
+  M2 --> MPUB[canon publish -> docs/migrations/<YYYY-MM-DD>-<descriptor>/]
+  U2 --> UPUB[canon publish -> docs/supply-chain/<YYYY-MM-DD>-<descriptor>/]
 ```
 
 ### 5) Quick Legend
@@ -355,7 +361,7 @@ and decision pressure explicit before a later mode becomes trustworthy.
 
 ### Typical Handoff After This Mode
 
-- publish the approved discovery packet with `canon publish <RUN_ID>` to `docs/discovery/<RUN_ID>/`, or use `--to` for a different public destination
+- publish the approved discovery packet with `canon publish <RUN_ID>` to `docs/discovery/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for a different public destination
 - move to `requirements` when the problem boundary is stable enough for explicit framing
 - move to `system-shaping` when the team now understands the problem and is ready to shape a new capability
 - move to `architecture` when the key remaining work is choosing among structural options
@@ -467,7 +473,7 @@ this bounded scope.
 
 ### Typical Handoff After This Mode
 
-- publish the approved requirements packet with `canon publish <RUN_ID>` to `specs/<RUN_ID>/`, or use `--to` to place the PRD elsewhere
+- publish the approved requirements packet with `canon publish <RUN_ID>` to `specs/<YYYY-MM-DD>-<descriptor>/`, or use `--to` to place the PRD elsewhere
 - move to `discovery` if the problem is still too fuzzy and the unknowns are more important than the framing
 - move to `system-shaping` if the problem is bounded and the next step is shaping a new capability
 - move to `change` if the work is clearly about a bounded change in an existing system
@@ -575,7 +581,7 @@ filling in the gap.
 
 ### Typical Handoff After This Mode
 
-- publish the approved system-shaping packet with `canon publish <RUN_ID>` to `docs/architecture/shaping/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved system-shaping packet with `canon publish <RUN_ID>` to `docs/architecture/shaping/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - move to `architecture` when the next step is to settle structural tradeoffs or invariants
 - move to `change` when the structure is clear and the next step is a bounded modification in an existing system
 - move to `requirements` only if the intent turned out not to be bounded enough after all
@@ -690,7 +696,7 @@ not a failure in the mode itself.
 
 ### Typical Handoff After This Mode
 
-- publish the approved architecture packet with `canon publish <RUN_ID>` to `docs/architecture/decisions/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved architecture packet with `canon publish <RUN_ID>` to `docs/architecture/decisions/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - move to `change` when the structural decision now needs a bounded change plan in an existing system
 - move to later implementation work once the boundaries and invariants are accepted
 - return to `discovery` or `requirements` only if the decision surface itself was not actually bounded
@@ -792,7 +798,7 @@ carrying false precision into execution.
 
 ### Typical Handoff After This Mode
 
-- publish the approved backlog packet with `canon publish <RUN_ID>` to `docs/planning/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved backlog packet with `canon publish <RUN_ID>` to `docs/planning/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - move into `implementation` only after selecting a bounded slice from the packet
 - return to `architecture` or `system-shaping` if closure findings show the source decisions are still too weak
 - use `dependency-map.md`, `sequencing-plan.md`, and `acceptance-anchors.md` to keep later execution work traceable to earlier decisions
@@ -902,7 +908,7 @@ bounded ADR-style modification plan.
 
 ### Typical Handoff After This Mode
 
-- publish the approved change packet with `canon publish <RUN_ID>` to `docs/changes/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved change packet with `canon publish <RUN_ID>` to `docs/changes/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - inspect the emitted artifact bundle before approving any consequential follow-up
 - move into later implementation work only after the preserved behavior and allowed change surface are explicit
 - use `pr-review` later when there is a real diff to challenge
@@ -1031,7 +1037,7 @@ explicitly before you run `implementation`.
 
 ### Typical Handoff After This Mode
 
-- publish the approved implementation packet with `canon publish <RUN_ID>` to `docs/implementation/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved implementation packet with `canon publish <RUN_ID>` to `docs/implementation/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - inspect the emitted packet before accepting or expanding any later mutation posture
 - move to `review` when a non-PR packet needs explicit disposition
 - move to `pr-review` when the real target becomes a diff or `WORKTREE`
@@ -1159,7 +1165,7 @@ behavior, scope, or no-feature-addition proof.
 
 ### Typical Handoff After This Mode
 
-- publish the approved refactor packet with `canon publish <RUN_ID>` to `docs/refactors/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved refactor packet with `canon publish <RUN_ID>` to `docs/refactors/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - inspect the emitted packet before accepting or expanding any later mutation posture
 - move to `review` when a non-PR packet needs explicit disposition
 - move to `pr-review` when the real target becomes a diff or `WORKTREE`
@@ -1266,7 +1272,7 @@ happy path or gated path is readable without a mandatory inspect step first.
 
 ### Typical Handoff After This Mode
 
-- publish the approved review packet with `canon publish <RUN_ID>` to `docs/reviews/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved review packet with `canon publish <RUN_ID>` to `docs/reviews/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - inspect the review packet when you need the full findings bundle
 - approve `gate:review-disposition` only after the remaining risk is consciously accepted
 - move to `pr-review` only when the real target becomes a diff or worktree instead of a file-backed packet
@@ -1358,7 +1364,7 @@ supported or blocked posture is visible without a mandatory inspect step first.
 
 ### Typical Handoff After This Mode
 
-- publish the approved verification packet with `canon publish <RUN_ID>` to `docs/verification/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved verification packet with `canon publish <RUN_ID>` to `docs/verification/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - inspect the verification packet when unresolved findings remain
 - inspect evidence when you need provenance or validation lineage behind the verdict
 - move to `review` only when the next step is disposition over a bounded package, not challenge of claims
@@ -1453,7 +1459,7 @@ Or, for uncommitted work:
 
 ### Typical Handoff After This Mode
 
-- publish the approved PR review packet with `canon publish <RUN_ID>` to `docs/reviews/prs/<RUN_ID>/`, or use `--to` for another public destination
+- publish the approved PR review packet with `canon publish <RUN_ID>` to `docs/reviews/prs/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - read the run or status result summary first, then inspect the emitted review packet when you need the full findings bundle
 - approve a review-disposition gate only when the remaining risk is consciously accepted
 - move back to Change or Architecture only if the review shows that the underlying change plan or decision packet is still weak
@@ -1543,7 +1549,7 @@ and keep the packet's `recommendation-only` posture explicit.
 
 - inspect the packet or evidence first when the incident surface is still contested
 - approve `gate:risk` when a systemic or red-zone incident packet is credible enough to advance
-- publish readable packets to `docs/incidents/<RUN_ID>/` for external review, even when the run is still approval-gated or blocked
+- publish readable packets to `docs/incidents/<YYYY-MM-DD>-<descriptor>/` for external review, even when the run is still approval-gated or blocked
 - move to `change` only when the next real step is bounded code-change planning rather than operational reasoning
 
 ### Common Mistakes
@@ -1651,7 +1657,7 @@ approvers.
 
 - inspect the packet or evidence first when coverage or viewpoint confidence is still contested
 - approve `gate:risk` when a systemic or red-zone packet is credible enough for governed review
-- publish readable packets to `docs/architecture/assessments/<RUN_ID>/` for broader review, even when the run is still blocked or approval-gated
+- publish readable packets to `docs/architecture/assessments/<YYYY-MM-DD>-<descriptor>/` for broader review, even when the run is still blocked or approval-gated
 - move to `architecture`, `change`, or `security-assessment` when the next real step is future-state design, bounded modification, or targeted threat review
 
 ### Common Mistakes
@@ -1756,7 +1762,7 @@ rollout paths for operators, reviewers, and approvers.
 
 - inspect the packet or evidence first when compatibility or fallback is still contested
 - approve `gate:risk` when a systemic or red-zone migration packet is credible enough to advance
-- publish readable packets to `docs/migrations/<RUN_ID>/` for external review, even when the run is still approval-gated or blocked
+- publish readable packets to `docs/migrations/<YYYY-MM-DD>-<descriptor>/` for external review, even when the run is still approval-gated or blocked
 - move to `change` only when the next real step is bounded code-change planning rather than migration reasoning
 
 ### Common Mistakes
@@ -1850,7 +1856,7 @@ and keep the packet's `recommendation-only` posture explicit.
 
 - inspect the packet artifacts or evidence bundle first when scanner coverage or triage remains contested
 - approve `gate:risk` when a systemic or red-zone packet is credible enough for governed review
-- publish readable packets to `docs/supply-chain/<RUN_ID>/` for broader review, even when the run is still blocked or approval-gated
+- publish readable packets to `docs/supply-chain/<YYYY-MM-DD>-<descriptor>/` for broader review, even when the run is still blocked or approval-gated
 - move to `change`, `migration`, or `security-assessment` when the next real step is modernization, replacement, or threat review
 
 ### Example Input

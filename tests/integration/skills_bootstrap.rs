@@ -251,6 +251,43 @@ fn skills_install_for_codex_works_without_canon_dir() {
 }
 
 #[test]
+fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
+    let workspace = TempDir::new().expect("temp dir");
+
+    let mut command = cli_command();
+    command
+        .current_dir(workspace.path())
+        .args(["skills", "install", "--ai", "codex"])
+        .assert()
+        .success();
+
+    let installed = std::fs::read_to_string(
+        workspace
+            .path()
+            .join(".agents")
+            .join("skills")
+            .join("canon-shared")
+            .join("references")
+            .join("runtime-compatibility.toml"),
+    )
+    .expect("read installed runtime compatibility reference");
+    let embedded = std::fs::read_to_string(format!(
+        "{}/defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .expect("read embedded runtime compatibility reference");
+
+    assert_eq!(
+        installed, embedded,
+        "skills install should materialize the current embedded runtime compatibility reference"
+    );
+    assert!(
+        installed.contains("expected_workspace_version = \"0.29.0\""),
+        "skills install should carry the 0.29.0 runtime compatibility expectation"
+    );
+}
+
+#[test]
 fn skills_install_for_claude_works_without_canon_dir() {
     let workspace = TempDir::new().expect("temp dir");
 

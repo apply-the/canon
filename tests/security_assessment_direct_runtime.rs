@@ -62,6 +62,10 @@ fn security_assessment_request(input: &str, risk: RiskClass, zone: UsageZone) ->
     }
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 fn complete_brief() -> &'static str {
     "# Security Assessment Brief\n\n## Assessment Scope\n\n- webhook ingress and signature verification only\n\n## In-Scope Assets\n\n- edge webhook gateway\n- signature verification service\n\n## Trust Boundaries\n\n- internet to edge gateway\n- edge gateway to verification service\n\n## Out Of Scope\n\n- downstream analytics processing\n\n## Threat Inventory\n\n- forged webhook payloads\n- replay attempts with stale signatures\n\n## Attacker Goals\n\n- inject unauthorized events\n\n## Boundary Threats\n\n- proxies may strip signature headers before verification\n\n## Risk Findings\n\n- replay protection is currently not enforced for all webhook actions\n\n## Likelihood And Impact\n\n- likelihood is moderate and impact is high for privileged event handlers\n\n## Proposed Owners\n\n- platform security owns the recommendation backlog\n\n## Recommended Controls\n\n- enforce replay-window validation and reject stale signatures\n\n## Tradeoffs\n\n- tighter replay windows increase sensitivity to clock skew\n\n## Sequencing Notes\n\n1. capture replay-window telemetry\n2. enable bounded rejection after verification passes\n\n## Assumptions\n\n- secret rotation stays in the managed secret store\n\n## Evidence Gaps\n\n- no packet capture confirms all proxy layers preserve signature headers\n\n## Unobservable Surfaces\n\n- third-party sender retry timing remains partially opaque\n\n## Applicable Standards\n\n- OWASP ASVS request integrity guidance applies here\n\n## Control Families\n\n- request validation and secret handling are the primary control families\n\n## Scope Limits\n\n- this packet informs controls and does not certify compliance\n\n## Source Inputs\n\n- src/webhooks/verifier.rs\n- infra/proxy/webhook-gateway.yaml\n\n## Independent Checks\n\n- focused run and renderer suites validate the packet surface\n\n## Deferred Verification\n\n- run a bounded replay simulation after the control lands\n"
 }
@@ -129,16 +133,16 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
     );
 
     let published = service.publish(&summary.run_id, None).expect("publish should succeed");
-    assert!(
-        published.published_to.ends_with(&format!("docs/security-assessments/{}", summary.run_id))
-    );
+    let leaf = default_publish_leaf(&summary.run_id, "security-assessment");
+    assert!(published.published_to.ends_with(&format!("docs/security-assessments/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("assessment-overview.md")));
+    assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 
     let published_overview = workspace
         .path()
         .join("docs")
         .join("security-assessments")
-        .join(&summary.run_id)
+        .join(&leaf)
         .join("assessment-overview.md");
     assert!(published_overview.exists());
     let overview_contents = fs::read_to_string(published_overview).expect("published overview");

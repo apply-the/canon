@@ -74,6 +74,10 @@ fn add_completed_review_diff(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "uppercase review labels"]);
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 #[test]
 fn published_pr_review_packet_includes_conventional_comments_artifact() {
     let workspace = TempDir::new().expect("temp dir");
@@ -115,9 +119,19 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
         .join("docs")
         .join("reviews")
         .join("prs")
-        .join(run_id)
+        .join(default_publish_leaf(run_id, "pr-review"))
         .join("conventional-comments.md");
     let published_text = fs::read_to_string(published).expect("published conventional comments");
+    assert!(
+        workspace
+            .path()
+            .join("docs")
+            .join("reviews")
+            .join("prs")
+            .join(default_publish_leaf(run_id, "pr-review"))
+            .join("packet-metadata.json")
+            .exists()
+    );
 
     assert!(published_text.contains("## Conventional Comments"));
     assert!(published_text.contains("praise:"));

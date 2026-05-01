@@ -8,6 +8,10 @@ use canon_engine::domain::run::{ClassificationProvenance, SystemContext};
 use canon_engine::orchestrator::service::RunRequest;
 use tempfile::TempDir;
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
     command.args([
@@ -106,5 +110,7 @@ fn engine_publish_allows_approval_gated_operational_packets() {
     assert_eq!(run.state, "AwaitingApproval");
 
     let published = service.publish(&run.run_id, None).expect("publish should succeed");
-    assert!(published.published_to.ends_with(&format!("docs/incidents/{}", run.run_id)));
+    let leaf = default_publish_leaf(&run.run_id, "incident");
+    assert!(published.published_to.ends_with(&format!("docs/incidents/{leaf}")));
+    assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 }
