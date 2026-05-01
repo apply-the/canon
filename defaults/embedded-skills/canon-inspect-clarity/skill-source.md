@@ -1,6 +1,6 @@
 ---
 name: canon-inspect-clarity
-description: Use when you need Canon-backed missing-context findings and targeted clarification questions from authored requirements or discovery inputs before starting a run.
+description: Use when you need Canon-backed missing-context findings, materially-closed decision signals, and targeted clarification questions from authored file-backed mode inputs before starting a run.
 ---
 
 # Canon Inspect Clarity
@@ -12,12 +12,13 @@ description: Use when you need Canon-backed missing-context findings and targete
 
 ## Purpose
 
-Inspect authored requirements or discovery inputs for missing context before
-starting a governed run.
+Inspect authored file-backed mode inputs for missing context, weak reasoning,
+or materially-closed decisions before starting a governed run.
 
 ## When To Trigger
 
-- The user has a requirements or discovery brief, but it is still underspecified.
+- The user has a file-backed governed brief, but it is still underspecified,
+  structurally shallow, or already materially closes the decision.
 - The user wants Canon to reason over the current inputs and ask targeted
   clarification questions before run start.
 
@@ -27,11 +28,14 @@ starting a governed run.
   resume behavior.
 - The user already wants to start a run and the authored input is sufficiently
   clear.
-- The mode is not `requirements` or `discovery`.
+- The mode is `pr-review` or another non-file-backed surface.
 
 ## Required Inputs
 
-- `MODE` as `requirements` or `discovery`
+- `MODE` as one of `requirements`, `discovery`, `system-shaping`,
+  `architecture`, `backlog`, `change`, `implementation`, `refactor`,
+  `review`, `verification`, `incident`, `security-assessment`,
+  `system-assessment`, `migration`, or `supply-chain-analysis`
 - one canonical authored-input surface or one or more explicit `INPUT_PATH`
   values
 
@@ -39,26 +43,24 @@ starting a governed run.
 
 - Verify `canon` is on PATH. If missing, point to the install guide.
 - `.canon/` is not required for this inspection surface.
-- Reject unsupported modes. Today only `requirements` and `discovery` are
-  valid.
-- For auto-binding only, treat `canon-input/requirements.md` or
-  `canon-input/requirements/` as the canonical authored-input locations for
-  `requirements`, and prefer the directory when both exist so Canon inspects
-  the full authored surface instead of a single child file.
-- For auto-binding only, treat `canon-input/discovery.md` or
-  `canon-input/discovery/` as the canonical authored-input locations for
-  `discovery`, and prefer the directory when both exist so Canon inspects the
-  full authored surface instead of a single child file.
+- Reject unsupported modes. Today every file-backed governed mode except
+  `pr-review` is valid for clarity inspection.
+- For auto-binding only, use the canonical `canon-input/<MODE>.md` or
+  `canon-input/<MODE>/` authored-input location for any supported file-backed
+  mode, and prefer the directory when both exist so Canon inspects the full
+  authored surface instead of a single child file.
+- Keep the stricter `review` input contract: only `canon-input/review.md` or
+  `canon-input/review/` is valid for that mode.
 - Never infer `--input` from the active editor file, open tabs, recent
   `.canon/` artifacts, or any other path under `.canon/`.
 - If the selected canonical location or explicit input is a folder, inspect the
   whole directory recursively, including authored files under subfolders.
 - If the user provided multiple explicit files or folders, inspect all of them
   together in a single clarity result.
-- Never narrow a canonical directory such as `canon-input/requirements/` to a
-  single child file when the directory itself exists.
-- If `MODE` is missing, ask only whether the user wants `requirements` or
-  `discovery` clarification.
+- Never narrow a canonical directory such as `canon-input/change/` to a single
+  child file when the directory itself exists.
+- If `MODE` is missing, ask only which supported file-backed mode Canon should
+  inspect.
 - If the input path is missing, ask only for the authored folder path or one or
   more authored file paths that Canon should inspect.
 - Verify each selected input exists before invoking Canon.
@@ -80,7 +82,9 @@ starting a governed run.
 - analyzed mode
 - source input paths
 - Canon-backed missing-context findings grounded in the authored inputs
-- reasoning signals that explain why Canon is asking follow-up questions
+- reasoning signals that explain why Canon is asking follow-up questions,
+  why the packet is still weak, or why the decision is already materially
+  closed
 - prioritized clarification questions
 - recommended focus area when Canon found one
 - no run id, approval target, or evidence packet because this is a pre-run
@@ -88,9 +92,10 @@ starting a governed run.
 
 ## Failure Handling Guidance
 
-- If `MODE` is missing or unsupported, ask only for `requirements` or
-  `discovery` and show the exact Canon CLI retry form `canon inspect clarity
-  --mode <MODE> --input <INPUT_PATH> [<INPUT_PATH> ...]`.
+- If `MODE` is missing or unsupported, ask only for the intended file-backed
+  mode and show the exact Canon CLI retry form `canon inspect clarity --mode
+  <MODE> --input <INPUT_PATH> [<INPUT_PATH> ...]`. Make the `pr-review`
+  exclusion explicit when relevant.
 - If the input path is missing or invalid, ask only for the exact authored
   folder path or exact authored file path set and show the exact Canon CLI
   retry form `canon inspect clarity --mode <MODE> --input <INPUT_PATH>
@@ -106,10 +111,11 @@ starting a governed run.
 
 - If Canon reports that clarification is still required, surface the top
   questions directly and keep the next step on answering them.
-- If the analyzed inputs are for `requirements`, recommend `$canon-requirements`
-  once the top gaps are answered.
-- If the analyzed inputs are for `discovery`, recommend `$canon-discovery` once
-  the top gaps are answered.
+- If Canon reports that the authored packet already materially closes the
+  decision, say so directly and keep the next step on preserving that closure
+  in the matching governed run rather than inventing more balance.
+- Once the top gaps are answered, recommend the matching governed mode skill
+  for the analyzed file-backed mode.
 - Use `$canon-inspect-evidence` or other run-scoped skills only after a real
   run exists.
 - Do not fabricate a started run, pending approval, or emitted artifact set
@@ -118,5 +124,7 @@ starting a governed run.
 ## Related Skills
 
 - `$canon-requirements`
-- `$canon-discovery`
+- `$canon-change`
+- `$canon-review`
+- `$canon-verification`
 - `$canon-init`

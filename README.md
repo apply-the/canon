@@ -9,13 +9,8 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.32.0`.
+The current delivery line in this repository targets Canon `0.33.0`.
 
-Canon `0.32.0` extends the distribution surface with a repository-generated
-Scoop manifest derived from the canonical GitHub Release bundle. Homebrew,
-`winget`, and Scoop now share the same release metadata, canonical Windows
-archive, and checksum verification surface, while direct archive fallback
-remains available.
 
 ## What Canon Does
 
@@ -170,6 +165,18 @@ skeptical reviewer posture for findings-first acceptance packets.
 `incident`, and `migration` remain the adjacent recommendation-only operational
 or assessment packets. Persona guidance shapes voice and audience fit only; it
 never replaces missing required sections.
+
+Before starting any file-backed mode, you can inspect the authored packet with
+`canon inspect clarity --mode <MODE> --input <PATH>`.
+
+```bash
+canon inspect clarity --mode change --input canon-input/change.md
+```
+
+That pre-run surface now works across the file-backed governed modes and
+returns missing-context findings, targeted clarification questions, and
+reasoning signals that can say the packet is still weak or already materially
+closes the decision. `pr-review` stays excluded because it is diff-backed.
 
 ### 3. Start A Run
 

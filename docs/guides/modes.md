@@ -64,6 +64,35 @@ specific LLM provider; the assistant in the chat is the model.
 - use `system-shaping --system-context existing` when you are working inside
   an existing system but the next need is still structural, not modification
 
+## Pre-Run Clarity Inspection
+
+Use `canon inspect clarity` before starting a run when the authored packet may
+still be shallow or when you need Canon to say explicitly that the packet
+already materially closes the decision.
+
+Supported today for file-backed modes:
+
+- `requirements`
+- `discovery`
+- `system-shaping`
+- `architecture`
+- `backlog`
+- `change`
+- `implementation`
+- `refactor`
+- `review`
+- `verification`
+- `incident`
+- `security-assessment`
+- `system-assessment`
+- `migration`
+- `supply-chain-analysis`
+
+The clarity result surfaces a bounded summary, missing-context findings when
+present, targeted clarification questions when present, and reasoning signals
+that can call out weak support or a materially closed choice. `pr-review`
+remains excluded because it inspects diffs rather than authored packet files.
+
 ## Supported Today
 
 - [`discovery`](#mode-discovery)

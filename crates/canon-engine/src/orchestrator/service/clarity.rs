@@ -1,6 +1,6 @@
-//! Brief parsing for requirements and discovery modes.
+//! Brief parsing and clarity helpers for inspectable authored modes.
 //!
-//! Owns `RequirementsBrief`, `DiscoveryBrief`, and all clarity-inspection
+//! Owns mode-specific brief parsers plus the shared clarity-inspection
 //! functions (missing context, clarification questions, reasoning signals).
 
 use super::ClarificationQuestionSummary;
@@ -9,6 +9,7 @@ use super::context_parse::{
     first_meaningful_line, infer_discovery_next_phase, render_repo_surface_block,
     split_context_items, truncate_context_excerpt,
 };
+use crate::domain::mode::Mode;
 
 // ── Simple list utilities (used by RequirementsBrief and clarity functions) ───
 
@@ -26,6 +27,22 @@ pub(crate) fn list_contains_missing_decision_markers(values: &[String]) -> bool 
 
 pub(crate) fn count_captured_list_items(values: &[String]) -> usize {
     values.iter().filter(|value| !value.contains("NOT CAPTURED")).count()
+}
+
+fn has_authored_value(value: &str) -> bool {
+    !value.contains("NOT CAPTURED") && !value.contains("MISSING AUTHORED")
+}
+
+fn required_context_marker(
+    source: &str,
+    normalized: &str,
+    markers: &[&str],
+    fallback: &str,
+    max_chars: usize,
+) -> String {
+    extract_context_marker(source, normalized, markers)
+        .map(|value| condense_context_block(&value, max_chars))
+        .unwrap_or_else(|| fallback.to_string())
 }
 
 // ── SupplyChainAnalysisBrief ────────────────────────────────────────────────
@@ -333,6 +350,801 @@ impl DiscoveryBrief {
             generation_summary,
         )
     }
+}
+
+// ── Shared authored-mode clarity ────────────────────────────────────────────
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AuthoredClarityFamily {
+    Planning,
+    Execution,
+    Assessment,
+}
+
+impl AuthoredClarityFamily {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Planning => "planning",
+            Self::Execution => "execution",
+            Self::Assessment => "assessment",
+        }
+    }
+}
+
+pub(crate) fn authored_clarity_family(mode: Mode) -> AuthoredClarityFamily {
+    match mode {
+        Mode::SystemShaping | Mode::Architecture | Mode::Change | Mode::Backlog => {
+            AuthoredClarityFamily::Planning
+        }
+        Mode::Implementation | Mode::Refactor | Mode::Migration => AuthoredClarityFamily::Execution,
+        Mode::Review
+        | Mode::Verification
+        | Mode::Incident
+        | Mode::SecurityAssessment
+        | Mode::SystemAssessment => AuthoredClarityFamily::Assessment,
+        Mode::Requirements | Mode::Discovery | Mode::PrReview | Mode::SupplyChainAnalysis => {
+            AuthoredClarityFamily::Planning
+        }
+    }
+}
+
+fn authored_primary_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            &["system shape", "decision", "delivery intent", "intended change", "problem"]
+        }
+        AuthoredClarityFamily::Execution => {
+            &["task mapping", "refactor scope", "current state", "target state"]
+        }
+        AuthoredClarityFamily::Assessment => &[
+            "review target",
+            "claims under test",
+            "incident scope",
+            "assessment scope",
+            "assessment objective",
+        ],
+    }
+}
+
+fn authored_boundary_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => &[
+            "constraints",
+            "boundary decisions",
+            "candidate boundaries",
+            "change surface",
+            "system slice",
+            "desired granularity",
+            "planning horizon",
+            "domain slice",
+            "excluded areas",
+            "out of scope",
+        ],
+        AuthoredClarityFamily::Execution => &[
+            "bounded changes",
+            "mutation bounds",
+            "allowed paths",
+            "transition boundaries",
+            "rollback triggers",
+            "fallback paths",
+            "refactor scope",
+        ],
+        AuthoredClarityFamily::Assessment => &[
+            "boundary findings",
+            "assessment scope",
+            "in-scope assets",
+            "trust boundaries",
+            "incident scope",
+            "assessed views",
+            "impacted surfaces",
+            "scope limits",
+            "out of scope",
+        ],
+    }
+}
+
+fn authored_support_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => &[
+            "rationale",
+            "decision evidence",
+            "decision drivers",
+            "sequencing rationale",
+            "source references",
+            "validation strategy",
+            "independent checks",
+        ],
+        AuthoredClarityFamily::Execution => &[
+            "decision evidence",
+            "completion evidence",
+            "safety-net evidence",
+            "verification checks",
+            "independent checks",
+            "rollback steps",
+            "contract drift",
+        ],
+        AuthoredClarityFamily::Assessment => &[
+            "evidence basis",
+            "known facts",
+            "observed findings",
+            "inferred findings",
+            "evidence sources",
+            "collection priorities",
+            "control families",
+            "verified claims",
+        ],
+    }
+}
+
+fn authored_decision_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => &[
+            "selected boundaries",
+            "recommendation",
+            "decision record",
+            "recommended direction",
+            "recommended path",
+            "decision",
+        ],
+        AuthoredClarityFamily::Execution => {
+            &["recommendation", "decision", "migration decisions", "approval notes"]
+        }
+        AuthoredClarityFamily::Assessment => &[
+            "final disposition",
+            "overall verdict",
+            "verification outcome",
+            "decision impact",
+            "immediate actions",
+        ],
+    }
+}
+
+fn authored_tradeoff_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => &[
+            "boundary tradeoffs",
+            "tradeoffs",
+            "consequences",
+            "pros",
+            "cons",
+            "cross-context risks",
+            "risk per phase",
+        ],
+        AuthoredClarityFamily::Execution => &[
+            "adoption implications",
+            "tradeoff analysis",
+            "remaining risks",
+            "residual risks",
+            "temporary incompatibilities",
+        ],
+        AuthoredClarityFamily::Assessment => &[
+            "accepted risks",
+            "reversibility concerns",
+            "tradeoffs",
+            "likelihood and impact",
+            "impact notes",
+        ],
+    }
+}
+
+fn authored_option_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => &[
+            "structural options",
+            "options considered",
+            "options",
+            "candidate bounded contexts",
+            "candidate boundaries",
+            "why not the others",
+        ],
+        AuthoredClarityFamily::Execution => {
+            &["candidate frameworks", "options matrix", "parallelizable work", "why not the others"]
+        }
+        AuthoredClarityFamily::Assessment => &[],
+    }
+}
+
+fn authored_gap_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    match family {
+        AuthoredClarityFamily::Planning => &[
+            "boundary risks and open questions",
+            "unresolved risks",
+            "unresolved questions",
+            "gaps",
+            "open questions",
+        ],
+        AuthoredClarityFamily::Execution => &[
+            "remaining risks",
+            "residual risks",
+            "deferred decisions",
+            "regression findings",
+            "feature audit",
+        ],
+        AuthoredClarityFamily::Assessment => &[
+            "missing evidence",
+            "evidence gaps",
+            "assessment gaps",
+            "confidence and unknowns",
+            "open findings",
+            "risk findings",
+            "deferred verification",
+            "unobservable surfaces",
+        ],
+    }
+}
+
+fn authored_primary_fallback(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "NOT CAPTURED - Provide a planning subject such as `## System Shape`, `## Decision`, `## Delivery Intent`, or `## Intended Change`."
+        }
+        AuthoredClarityFamily::Execution => {
+            "NOT CAPTURED - Provide an execution subject such as `## Task Mapping`, `## Refactor Scope`, `## Current State`, or `## Target State`."
+        }
+        AuthoredClarityFamily::Assessment => {
+            "NOT CAPTURED - Provide an assessment target such as `## Review Target`, `## Claims Under Test`, `## Incident Scope`, or `## Assessment Scope`."
+        }
+    }
+}
+
+fn authored_boundary_fallback(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "NOT CAPTURED - Provide a planning boundary such as `## Constraints`, `## Boundary Decisions`, `## Candidate Boundaries`, or `## Change Surface`."
+        }
+        AuthoredClarityFamily::Execution => {
+            "NOT CAPTURED - Provide a mutation boundary such as `## Bounded Changes`, `## Mutation Bounds`, `## Allowed Paths`, or `## Transition Boundaries`."
+        }
+        AuthoredClarityFamily::Assessment => {
+            "NOT CAPTURED - Provide an assessment boundary such as `## Boundary Findings`, `## Assessment Scope`, `## Assessed Views`, or `## Impacted Surfaces`."
+        }
+    }
+}
+
+fn authored_support_fallback(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "NOT CAPTURED - Provide explicit rationale or support such as `## Rationale`, `## Decision Evidence`, or `## Decision Drivers`."
+        }
+        AuthoredClarityFamily::Execution => {
+            "NOT CAPTURED - Provide execution support such as `## Decision Evidence`, `## Safety-Net Evidence`, `## Verification Checks`, or `## Rollback Steps`."
+        }
+        AuthoredClarityFamily::Assessment => {
+            "NOT CAPTURED - Provide an evidence basis such as `## Evidence Basis`, `## Known Facts`, `## Observed Findings`, or `## Evidence Sources`."
+        }
+    }
+}
+
+fn authored_decision_fallback(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "NOT CAPTURED - Provide a `## Recommendation`, `## Selected Boundaries`, or `## Decision` section if the planning packet is already materially closed."
+        }
+        AuthoredClarityFamily::Execution => {
+            "NOT CAPTURED - Provide a `## Recommendation`, `## Decision`, or `## Migration Decisions` section if the execution plan is already decided."
+        }
+        AuthoredClarityFamily::Assessment => {
+            "NOT CAPTURED - Provide a `## Final Disposition`, `## Overall Verdict`, or equivalent conclusion section."
+        }
+    }
+}
+
+fn authored_preserved_fallback() -> &'static str {
+    "NOT CAPTURED - Provide a preservation boundary such as `## Preserved Behavior`, `## Guaranteed Compatibility`, or `## Invariant Checks`."
+}
+
+fn authored_preserved_markers() -> &'static [&'static str] {
+    &[
+        "preserved behavior",
+        "guaranteed compatibility",
+        "coexistence rules",
+        "invariant checks",
+        "operational constraints",
+    ]
+}
+
+fn is_authored_gap_question(value: &str) -> bool {
+    let trimmed = value.trim();
+    if trimmed.contains('?') {
+        return true;
+    }
+
+    let normalized = trimmed.to_lowercase();
+    [
+        "what ", "which ", "how ", "who ", "when ", "where ", "should ", "can ", "is ", "are ",
+        "does ", "do ",
+    ]
+    .iter()
+    .any(|prefix| normalized.starts_with(prefix))
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct AuthoredModeBrief {
+    pub(crate) mode: Mode,
+    pub(crate) family: AuthoredClarityFamily,
+    pub(crate) primary_subject: String,
+    pub(crate) boundary: String,
+    pub(crate) support_evidence: String,
+    pub(crate) decision_state: String,
+    pub(crate) preserved_boundary: String,
+    pub(crate) options: Vec<String>,
+    pub(crate) tradeoffs: Vec<String>,
+    pub(crate) questions_or_gaps: Vec<String>,
+    pub(crate) source_refs: Vec<String>,
+}
+
+impl AuthoredModeBrief {
+    pub(crate) fn from_context(
+        mode: Mode,
+        context_summary: String,
+        source_refs: &[String],
+    ) -> Self {
+        let family = authored_clarity_family(mode);
+        let normalized = context_summary.to_lowercase();
+
+        Self {
+            mode,
+            family,
+            primary_subject: required_context_marker(
+                &context_summary,
+                &normalized,
+                authored_primary_markers(family),
+                authored_primary_fallback(family),
+                320,
+            ),
+            boundary: required_context_marker(
+                &context_summary,
+                &normalized,
+                authored_boundary_markers(family),
+                authored_boundary_fallback(family),
+                320,
+            ),
+            support_evidence: required_context_marker(
+                &context_summary,
+                &normalized,
+                authored_support_markers(family),
+                authored_support_fallback(family),
+                320,
+            ),
+            decision_state: required_context_marker(
+                &context_summary,
+                &normalized,
+                authored_decision_markers(family),
+                authored_decision_fallback(family),
+                260,
+            ),
+            preserved_boundary: if matches!(family, AuthoredClarityFamily::Execution) {
+                required_context_marker(
+                    &context_summary,
+                    &normalized,
+                    authored_preserved_markers(),
+                    authored_preserved_fallback(),
+                    260,
+                )
+            } else {
+                "NOT APPLICABLE".to_string()
+            },
+            options: extract_context_list(
+                &context_summary,
+                &normalized,
+                authored_option_markers(family),
+            ),
+            tradeoffs: extract_context_list(
+                &context_summary,
+                &normalized,
+                authored_tradeoff_markers(family),
+            ),
+            questions_or_gaps: extract_context_list(
+                &context_summary,
+                &normalized,
+                authored_gap_markers(family),
+            ),
+            source_refs: source_refs.iter().map(ToString::to_string).collect(),
+        }
+    }
+
+    pub(crate) fn materially_closed(&self) -> bool {
+        has_authored_value(&self.decision_state) && count_captured_list_items(&self.options) <= 1
+    }
+
+    pub(crate) fn weak_reasoning(&self) -> bool {
+        if !has_authored_value(&self.boundary) || !has_authored_value(&self.support_evidence) {
+            return true;
+        }
+
+        match self.family {
+            AuthoredClarityFamily::Planning => {
+                count_captured_list_items(&self.options) == 0
+                    && !has_authored_value(&self.decision_state)
+            }
+            AuthoredClarityFamily::Execution => !has_authored_value(&self.preserved_boundary),
+            AuthoredClarityFamily::Assessment => {
+                matches!(self.mode, Mode::Review | Mode::Verification)
+                    && !has_authored_value(&self.decision_state)
+            }
+        }
+    }
+
+    pub(crate) fn summary(&self) -> String {
+        let mut lines = match self.family {
+            AuthoredClarityFamily::Planning => vec![
+                format!("Planning focus: {}", truncate_context_excerpt(&self.primary_subject, 180)),
+                format!("Boundary: {}", truncate_context_excerpt(&self.boundary, 180)),
+                if has_authored_value(&self.decision_state) {
+                    format!(
+                        "Decision posture: {}",
+                        truncate_context_excerpt(&self.decision_state, 180)
+                    )
+                } else {
+                    format!(
+                        "Decision posture: {} option signal(s), {} tradeoff signal(s)",
+                        count_captured_list_items(&self.options),
+                        count_captured_list_items(&self.tradeoffs)
+                    )
+                },
+            ],
+            AuthoredClarityFamily::Execution => vec![
+                format!(
+                    "Execution focus: {}",
+                    truncate_context_excerpt(&self.primary_subject, 180)
+                ),
+                format!("Mutation boundary: {}", truncate_context_excerpt(&self.boundary, 180)),
+                format!(
+                    "Preservation posture: {}",
+                    truncate_context_excerpt(&self.preserved_boundary, 180)
+                ),
+            ],
+            AuthoredClarityFamily::Assessment => vec![
+                format!(
+                    "Assessment target: {}",
+                    truncate_context_excerpt(&self.primary_subject, 180)
+                ),
+                format!("Scope boundary: {}", truncate_context_excerpt(&self.boundary, 180)),
+                if has_authored_value(&self.decision_state) {
+                    format!(
+                        "Review posture: {}",
+                        truncate_context_excerpt(&self.decision_state, 180)
+                    )
+                } else {
+                    format!(
+                        "Evidence basis: {}",
+                        truncate_context_excerpt(&self.support_evidence, 180)
+                    )
+                },
+            ],
+        };
+
+        if !self.source_refs.is_empty() {
+            lines.push(format!("Source inputs: {}", self.source_refs.join(", ")));
+        }
+
+        lines.join("\n")
+    }
+}
+
+pub(crate) fn authored_mode_missing_context(brief: &AuthoredModeBrief) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if !has_authored_value(&brief.primary_subject) {
+        missing.push(match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "Planning intent is missing; Canon cannot tell what bounded problem or decision this packet is meant to drive.".to_string()
+            }
+            AuthoredClarityFamily::Execution => {
+                "Execution target is missing; Canon cannot tell which bounded change, refactor, or migration surface this packet controls.".to_string()
+            }
+            AuthoredClarityFamily::Assessment => {
+                "Assessment target is missing; Canon cannot tell what claim, incident, or system slice this packet is evaluating.".to_string()
+            }
+        });
+    }
+
+    if !has_authored_value(&brief.boundary) {
+        missing.push(match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "Planning boundary is missing; the packet does not yet state the scope, slice, or constraint Canon must preserve.".to_string()
+            }
+            AuthoredClarityFamily::Execution => {
+                "Mutation boundary is missing; execution output would otherwise overreach beyond the authored scope.".to_string()
+            }
+            AuthoredClarityFamily::Assessment => {
+                "Assessment boundary is missing; the packet does not yet say which evidence surface is actually in scope.".to_string()
+            }
+        });
+    }
+
+    if !has_authored_value(&brief.support_evidence) {
+        missing.push(match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "Planning support is missing; the packet has no explicit rationale or decision evidence anchoring its direction.".to_string()
+            }
+            AuthoredClarityFamily::Execution => {
+                "Execution evidence is missing; the packet lacks safety-net, rollback, or validation support for the proposed work.".to_string()
+            }
+            AuthoredClarityFamily::Assessment => {
+                "Evidence basis is missing; assessment output would otherwise rely on inferred confidence instead of authored support.".to_string()
+            }
+        });
+    }
+
+    match brief.family {
+        AuthoredClarityFamily::Planning => {
+            if count_captured_list_items(&brief.options) == 0
+                && !has_authored_value(&brief.decision_state)
+            {
+                missing.push(
+                    "Decision posture is shallow; the packet names neither viable options nor a materially closed direction.".to_string(),
+                );
+            } else if count_captured_list_items(&brief.tradeoffs) == 0 && !brief.materially_closed()
+            {
+                missing.push(
+                    "Tradeoff evidence is missing; planning output would otherwise overstate certainty.".to_string(),
+                );
+            }
+        }
+        AuthoredClarityFamily::Execution => {
+            if !has_authored_value(&brief.preserved_boundary) {
+                missing.push(
+                    "Preserved behavior or compatibility boundary is missing; execution output would weaken change-preservation guarantees.".to_string(),
+                );
+            }
+        }
+        AuthoredClarityFamily::Assessment => {
+            if matches!(brief.mode, Mode::Review | Mode::Verification)
+                && !has_authored_value(&brief.decision_state)
+            {
+                missing.push(
+                    "Disposition or verdict is missing; review-family output would otherwise imply a conclusion that is not yet authored.".to_string(),
+                );
+            }
+        }
+    }
+
+    missing
+}
+
+pub(crate) fn prioritized_authored_mode_clarification_questions(
+    brief: &AuthoredModeBrief,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+
+    if !has_authored_value(&brief.primary_subject) {
+        let prompt = match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "What concrete planning target or decision should this packet drive?"
+            }
+            AuthoredClarityFamily::Execution => {
+                "Which implementation, refactor, or migration surface is actually in scope?"
+            }
+            AuthoredClarityFamily::Assessment => {
+                "What exact review, verification, incident, or assessment target is under examination?"
+            }
+        };
+
+        push_clarification_question(
+            &mut questions,
+            "clarify-authored-target",
+            prompt,
+            "Without a bounded target, Canon cannot tell whether the packet is actually reasoning about the intended surface.",
+            authored_primary_fallback(brief.family),
+        );
+    }
+
+    if !has_authored_value(&brief.boundary) {
+        let prompt = match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "Which boundary, slice, or scope limit must this packet preserve?"
+            }
+            AuthoredClarityFamily::Execution => {
+                "Which paths, mutation bounds, or transition boundaries are explicitly allowed?"
+            }
+            AuthoredClarityFamily::Assessment => {
+                "Which evidence surfaces are in scope, and which ones are explicitly excluded?"
+            }
+        };
+
+        push_clarification_question(
+            &mut questions,
+            "clarify-authored-boundary",
+            prompt,
+            "Boundaries keep the packet honest about what Canon is allowed to interpret or recommend.",
+            authored_boundary_fallback(brief.family),
+        );
+    }
+
+    if !has_authored_value(&brief.support_evidence) {
+        let prompt = match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "What explicit rationale or evidence supports the chosen planning direction?"
+            }
+            AuthoredClarityFamily::Execution => {
+                "What safety-net, validation, or rollback evidence makes this execution plan safe?"
+            }
+            AuthoredClarityFamily::Assessment => {
+                "What evidence basis supports this packet instead of inferred reasoning?"
+            }
+        };
+
+        push_clarification_question(
+            &mut questions,
+            "clarify-authored-support",
+            prompt,
+            "Without explicit support, the packet risks sounding more grounded than it actually is.",
+            authored_support_fallback(brief.family),
+        );
+    }
+
+    match brief.family {
+        AuthoredClarityFamily::Planning => {
+            if count_captured_list_items(&brief.options) == 0
+                && !has_authored_value(&brief.decision_state)
+            {
+                push_clarification_question(
+                    &mut questions,
+                    "clarify-authored-decision-posture",
+                    "Which options were considered, or is the decision already materially closed?",
+                    "Planning packets should either preserve viable alternatives or say directly that the decision is already closed.",
+                    authored_decision_fallback(brief.family),
+                );
+            }
+        }
+        AuthoredClarityFamily::Execution => {
+            if !has_authored_value(&brief.preserved_boundary) {
+                push_clarification_question(
+                    &mut questions,
+                    "clarify-authored-preservation",
+                    "Which behavior, compatibility, or invariant guarantees must remain intact?",
+                    "Execution packets need an explicit preservation boundary before they can claim grounded reasoning.",
+                    authored_preserved_fallback(),
+                );
+            }
+        }
+        AuthoredClarityFamily::Assessment => {
+            if matches!(brief.mode, Mode::Review | Mode::Verification)
+                && !has_authored_value(&brief.decision_state)
+            {
+                push_clarification_question(
+                    &mut questions,
+                    "clarify-authored-disposition",
+                    "What disposition or verdict is actually justified by the authored evidence?",
+                    "Review-family packets should not imply approval, contradiction, or rejection without an authored conclusion.",
+                    authored_decision_fallback(brief.family),
+                );
+            }
+        }
+    }
+
+    for (index, gap) in brief.questions_or_gaps.iter().enumerate() {
+        if !is_authored_gap_question(gap) {
+            continue;
+        }
+
+        let prompt = question_prompt(gap);
+        push_clarification_question(
+            &mut questions,
+            &format!("authored-gap-question-{}", index + 1),
+            &prompt,
+            "This unresolved question is already authored in the packet and should stay visible before a governed run starts.",
+            "Captured from the authored gaps, open questions, or evidence-gap section.",
+        );
+    }
+
+    questions.truncate(5);
+    questions
+}
+
+pub(crate) fn authored_mode_reasoning_signals(
+    source_inputs: &[String],
+    brief: &AuthoredModeBrief,
+) -> Vec<String> {
+    let mut signals = Vec::new();
+
+    signals.push(format!(
+        "Detected {} authored input surface(s): {}.",
+        source_inputs.len(),
+        if source_inputs.is_empty() {
+            "no-authored-source-inputs-recorded".to_string()
+        } else {
+            source_inputs.join(", ")
+        }
+    ));
+    signals.push(match brief.family {
+        AuthoredClarityFamily::Planning => format!(
+            "Captured {} option signal(s), {} tradeoff signal(s), and {} gap or question signal(s).",
+            count_captured_list_items(&brief.options),
+            count_captured_list_items(&brief.tradeoffs),
+            count_captured_list_items(&brief.questions_or_gaps)
+        ),
+        AuthoredClarityFamily::Execution => format!(
+            "Captured preservation posture `{}`, {} tradeoff signal(s), and {} gap or risk signal(s).",
+            if has_authored_value(&brief.preserved_boundary) {
+                truncate_context_excerpt(&brief.preserved_boundary, 72)
+            } else {
+                "NOT CAPTURED".to_string()
+            },
+            count_captured_list_items(&brief.tradeoffs),
+            count_captured_list_items(&brief.questions_or_gaps)
+        ),
+        AuthoredClarityFamily::Assessment => format!(
+            "Captured {} authored gap signal(s) with review posture `{}`.",
+            count_captured_list_items(&brief.questions_or_gaps),
+            if has_authored_value(&brief.decision_state) {
+                truncate_context_excerpt(&brief.decision_state, 72)
+            } else {
+                "NOT CAPTURED".to_string()
+            }
+        ),
+    });
+
+    if brief.materially_closed() {
+        signals.push(format!(
+            "The authored packet already materially closes the decision around `{}`; Canon should preserve that closure instead of inventing balanced alternatives.",
+            truncate_context_excerpt(&brief.decision_state, 96)
+        ));
+    } else if brief.weak_reasoning() {
+        signals.push(match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "Headings are present but the planning packet still lacks enough boundary, evidence, or decision support to justify strong reasoning.".to_string()
+            }
+            AuthoredClarityFamily::Execution => {
+                "The execution packet still lacks enough preservation or safety-net support to read as grounded reasoning.".to_string()
+            }
+            AuthoredClarityFamily::Assessment => {
+                "The assessment packet still lacks enough evidence or conclusion support to read as review-ready reasoning.".to_string()
+            }
+        });
+    } else {
+        signals.push(match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "The planning packet contains bounded intent, explicit support, and enough decision posture to reason without inventing extra balance.".to_string()
+            }
+            AuthoredClarityFamily::Execution => {
+                "The execution packet contains bounded scope, preservation posture, and supporting evidence for grounded reasoning.".to_string()
+            }
+            AuthoredClarityFamily::Assessment => {
+                "The assessment packet contains a bounded target, evidence basis, and review posture strong enough for grounded reasoning.".to_string()
+            }
+        });
+    }
+
+    signals
+}
+
+pub(crate) fn authored_mode_recommended_focus(
+    brief: &AuthoredModeBrief,
+    missing_context: &[String],
+    clarification_questions: &[ClarificationQuestionSummary],
+) -> String {
+    if !missing_context.is_empty() {
+        return match brief.family {
+            AuthoredClarityFamily::Planning => {
+                "Resolve the missing planning boundaries and evidence before treating this packet as reasoning-ready downstream input.".to_string()
+            }
+            AuthoredClarityFamily::Execution => {
+                "Resolve the missing execution boundary, preservation, and safety-net support before using this packet to justify mutation.".to_string()
+            }
+            AuthoredClarityFamily::Assessment => {
+                "Resolve the missing evidence or scope boundaries before treating this packet as reviewable assessment output.".to_string()
+            }
+        };
+    }
+
+    if brief.materially_closed() {
+        return "The authored packet already materially closes the decision; preserve that closure and its supporting evidence instead of manufacturing extra balance.".to_string();
+    }
+
+    if !clarification_questions.is_empty() {
+        return format!(
+            "Review the remaining authored {} questions before starting {} mode.",
+            brief.family.label(),
+            brief.mode.as_str()
+        );
+    }
+
+    format!(
+        "No critical clarification questions detected; the authored packet is bounded enough for {} mode.",
+        brief.mode.as_str()
+    )
 }
 
 // ── Clarification question helpers ────────────────────────────────────────────
@@ -920,5 +1732,45 @@ mod tests {
     fn default_list_returns_original_when_non_empty() {
         let result = default_list(vec!["item".to_string()], "fallback");
         assert_eq!(result, vec!["item".to_string()]);
+    }
+
+    #[test]
+    fn authored_mode_reasoning_signals_detect_materially_closed_decisions() {
+        let brief = AuthoredModeBrief {
+            mode: Mode::Architecture,
+            family: AuthoredClarityFamily::Planning,
+            primary_subject: "Split artifact rendering from summary posture.".to_string(),
+            boundary: "Keep existing .canon schema unchanged.".to_string(),
+            support_evidence: "Shared posture avoids drift across modes.".to_string(),
+            decision_state: "Use shared posture helpers in the runtime layer.".to_string(),
+            preserved_boundary: "NOT APPLICABLE".to_string(),
+            options: vec!["Shared helper".to_string()],
+            tradeoffs: vec!["Less per-mode wording freedom.".to_string()],
+            questions_or_gaps: Vec::new(),
+            source_refs: vec!["canon-input/architecture.md".to_string()],
+        };
+
+        let signals = authored_mode_reasoning_signals(&brief.source_refs, &brief);
+        assert!(signals.iter().any(|signal| signal.contains("materially closes the decision")));
+    }
+
+    #[test]
+    fn authored_mode_missing_context_flags_execution_preservation_gaps() {
+        let brief = AuthoredModeBrief {
+            mode: Mode::Implementation,
+            family: AuthoredClarityFamily::Execution,
+            primary_subject: "Implement shared clarity helpers.".to_string(),
+            boundary: "crates/canon-engine/src/orchestrator/service".to_string(),
+            support_evidence: "inspect_clarity targeted tests".to_string(),
+            decision_state: "Use shared authored-mode parsing.".to_string(),
+            preserved_boundary: authored_preserved_fallback().to_string(),
+            options: Vec::new(),
+            tradeoffs: Vec::new(),
+            questions_or_gaps: Vec::new(),
+            source_refs: vec!["canon-input/implementation.md".to_string()],
+        };
+
+        let missing = authored_mode_missing_context(&brief);
+        assert!(missing.iter().any(|item| item.contains("Preserved behavior")));
     }
 }

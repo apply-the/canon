@@ -19,11 +19,30 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.32.0`
+- None recorded after `0.33.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.32.0`.
+- No additional released feature-spec delivery is recorded after `0.33.0`.
+
+## [0.33.0] - 2026-05-01
+
+Delivered specs:
+
+- `033` - Cross-Mode Reasoning Evidence And Clarity Expansion
+
+Highlights:
+
+- Extend `inspect clarity` and `reasoning_signals` across the remaining
+  file-backed governed modes so maintainers can see missing context, weak
+  evidence, or materially-closed decisions before a run starts.
+- Tighten backlog fallback artifacts and review or verification result posture
+  so Canon preserves explicit missing-body, evidence-bounded,
+  unresolved-findings, and no-direct-contradiction honesty instead of generic
+  reasoning theater.
+- Align the `0.33.0` release surface across workspace manifests, runtime
+  compatibility references, shared skill guidance, README, mode guidance,
+  roadmap continuity, and final validation closeout.
 
 ## [0.32.0] - 2026-05-01
 
