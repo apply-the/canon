@@ -25,6 +25,19 @@ winget upgrade ApplyThe.Canon
 If the package-manager submission is not available yet, use the release zip
 fallback below.
 
+### Windows via Scoop
+
+Install Canon from Scoop after the generated manifest is merged into the Scoop
+main bucket:
+
+```powershell
+scoop install canon
+scoop update canon
+```
+
+If the Scoop bucket update is not available yet, use `winget` or the release
+zip fallback below.
+
 ### Direct Download
 
 Download the matching asset for your platform from this release:
@@ -71,6 +84,7 @@ Windows package-manager publication artifacts are generated as:
 - `ApplyThe.Canon.yaml`
 - `ApplyThe.Canon.locale.en-US.yaml`
 - `ApplyThe.Canon.installer.yaml`
+- `canon-{{VERSION}}-scoop-manifest.json`
 
 ## Quickstart
 
