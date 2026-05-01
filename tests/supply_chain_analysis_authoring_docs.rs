@@ -17,7 +17,7 @@ fn supply_chain_authoring_docs_describe_clarification_and_publish_surface() {
     let guide = read(MODES_GUIDE);
     for needle in [
         "## Mode: supply-chain-analysis",
-        "docs/supply-chain/<RUN_ID>/",
+        "docs/supply-chain/<YYYY-MM-DD>-<descriptor>/",
         "canon-input/supply-chain-analysis.md",
         "missing scanner coverage or deferred verification",
     ] {

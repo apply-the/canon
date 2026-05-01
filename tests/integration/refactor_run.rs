@@ -51,6 +51,10 @@ fn init_repo(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "seed refactor repo"]);
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 fn complete_brief() -> &'static str {
     r#"# Refactor Brief
 
@@ -274,7 +278,7 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
             .path()
             .join("docs")
             .join("refactors")
-            .join(run_id)
+            .join(default_publish_leaf(run_id, "refactor"))
             .join("preserved-behavior.md")
             .exists()
     );
@@ -415,7 +419,7 @@ fn red_zone_refactor_run_remains_recommendation_only_and_publishable() {
             .path()
             .join("docs")
             .join("refactors")
-            .join(run_id)
+            .join(default_publish_leaf(run_id, "refactor"))
             .join("preserved-behavior.md")
             .exists()
     );

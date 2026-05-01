@@ -105,9 +105,20 @@ fn run_backlog_flow(workspace: &TempDir) -> String {
     json["run_id"].as_str().expect("run id").to_string()
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 fn read_published_file(workspace: &TempDir, run_id: &str, file_name: &str) -> String {
-    fs::read_to_string(workspace.path().join("docs").join("planning").join(run_id).join(file_name))
-        .expect("published file")
+    fs::read_to_string(
+        workspace
+            .path()
+            .join("docs")
+            .join("planning")
+            .join(default_publish_leaf(run_id, "backlog"))
+            .join(file_name),
+    )
+    .expect("published file")
 }
 
 #[test]
@@ -215,8 +226,17 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
             .path()
             .join("docs")
             .join("planning")
-            .join(&run_id)
+            .join(default_publish_leaf(&run_id, "backlog"))
             .join("delivery-slices.md")
+            .exists()
+    );
+    assert!(
+        workspace
+            .path()
+            .join("docs")
+            .join("planning")
+            .join(default_publish_leaf(&run_id, "backlog"))
+            .join("packet-metadata.json")
             .exists()
     );
 

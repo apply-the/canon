@@ -55,6 +55,10 @@ fn incomplete_brief() -> &'static str {
     "# Migration Brief\n\nCurrent State: auth-v1 serves login and token refresh traffic.\nTarget State: auth-v2 serves the same bounded traffic surface.\nTransition Boundaries: login and token refresh only.\nGuaranteed Compatibility:\n- existing tokens continue to validate\nTemporary Incompatibilities:\n- admin reporting stays on v1 during the rollout\nCoexistence Rules:\n- dual-write session metadata during cutover\nOrdered Steps:\n- enable shadow reads\n- start dual-write\n- cut traffic to auth-v2\nParallelizable Work:\n- docs and dashboards can update in parallel\nCutover Criteria:\n- error rate and token validation remain stable\nVerification Checks:\n- login and token validation pass against auth-v2\nResidual Risks:\n- admin reporting remains temporarily inconsistent\nRelease Readiness:\n- fallback credibility is not yet established\nMigration Decisions:\n- retain dual-write during the bounded cutover\nDeferred Decisions:\n- move admin reporting after the bounded migration completes\nApproval Notes:\n- explicit migration-lead sign-off is required before broader rollout\n"
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 #[test]
 fn blocked_migration_packet_is_publishable_with_honest_fallback_gaps() {
     let workspace = TempDir::new().expect("temp dir");
@@ -92,8 +96,21 @@ fn blocked_migration_packet_is_publishable_with_honest_fallback_gaps() {
 
     cli_command().current_dir(workspace.path()).args(["publish", run_id]).assert().success();
 
-    let published =
-        workspace.path().join("docs").join("migrations").join(run_id).join("fallback-plan.md");
+    let published = workspace
+        .path()
+        .join("docs")
+        .join("migrations")
+        .join(default_publish_leaf(run_id, "migration"))
+        .join("fallback-plan.md");
     let published_text = fs::read_to_string(published).expect("published fallback plan");
+    assert!(
+        workspace
+            .path()
+            .join("docs")
+            .join("migrations")
+            .join(default_publish_leaf(run_id, "migration"))
+            .join("packet-metadata.json")
+            .exists()
+    );
     assert!(published_text.contains("NOT CAPTURED"));
 }
