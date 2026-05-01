@@ -98,7 +98,7 @@ questions before invoking Canon rather than submitting an empty brief.
 ### Packet Shape And Persona
 
 Author the packet as an implementation lead comparing bounded execution
-options for maintainers and approvers.
+options for maintainers and approvers inside a task-mapped delivery packet.
 
 - Favor task linkage, options matrix tradeoffs, ecosystem health, adoption
 	implications, decision evidence, and rollback clarity over execution theater.

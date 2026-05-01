@@ -6,6 +6,8 @@ const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-refactor/skill-source
 const SKILL_MIRROR: &str = ".agents/skills/canon-refactor/SKILL.md";
 const TEMPLATE_PATH: &str = "docs/templates/canon-input/refactor.md";
 const EXAMPLE_PATH: &str = "docs/examples/canon-input/refactor-auth-session-cleanup.md";
+const MODES_GUIDE: &str = "docs/guides/modes.md";
+const ROADMAP_PATH: &str = "ROADMAP.md";
 
 const CANONICAL_HEADINGS: &[&str] = &[
     "## Preserved Behavior",
@@ -53,9 +55,44 @@ fn refactor_contract_skill_template_and_example_share_canonical_headings() {
         skill_source.contains("Missing Authored Body"),
         "skill source must mention the missing-body marker"
     );
+    assert!(
+        skill_source.contains("### Packet Shape And Persona"),
+        "skill source missing persona section"
+    );
+    assert!(
+        skill_source.contains("Author the packet as a preservation-focused maintainer"),
+        "skill source missing persona role"
+    );
+    assert!(
+        skill_source.contains("Persona guidance is presentation only."),
+        "skill source missing persona guardrail"
+    );
 }
 
 #[test]
 fn refactor_skill_mirror_matches_skill_source() {
     assert_eq!(read(SKILL_SOURCE), read(SKILL_MIRROR));
+}
+
+#[test]
+fn refactor_mode_guide_and_roadmap_document_the_remaining_shape_slice() {
+    let guide = read(MODES_GUIDE);
+    assert!(
+        guide.contains("preserved-behavior matrix plus")
+            && guide.contains("structural-rationale packet")
+            && guide.contains("preservation-focused maintainer"),
+        "mode guide must describe the refactor packet shape and persona"
+    );
+
+    let roadmap = read(ROADMAP_PATH);
+    assert!(
+        roadmap.contains("## Delivered Feature: 031 Remaining Industry-Standard Artifact Shapes")
+            && roadmap.contains("preserved-behavior matrix plus")
+            && roadmap.contains("preservation-focused maintainer"),
+        "roadmap must record the delivered 031 refactor slice"
+    );
+    assert!(
+        roadmap.contains("Persona guidance remains presentation only"),
+        "roadmap must keep the refactor persona boundary explicit"
+    );
 }

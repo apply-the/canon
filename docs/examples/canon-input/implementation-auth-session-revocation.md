@@ -1,5 +1,8 @@
 # Implementation Brief: Bounded Session Revocation Hardening
 
+Use this brief to author a task-mapped delivery packet with explicit option
+comparison, decision evidence, and rollback posture.
+
 Feature Slice: Auth session revocation repository wiring inside the existing login subsystem.
 Primary Upstream Mode: change
 Upstream Sources:

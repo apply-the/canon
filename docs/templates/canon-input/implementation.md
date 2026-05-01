@@ -1,5 +1,8 @@
 # Implementation Brief
 
+Use this brief to author a task-mapped delivery packet with explicit option
+comparison, decision evidence, and rollback posture.
+
 Feature Slice: The concrete feature or component this execution packet covers.
 Primary Upstream Mode: change | architecture | direct
 Upstream Sources:

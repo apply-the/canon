@@ -1,5 +1,8 @@
 # Verification Brief
 
+Use this brief to author a claims, evidence, and independence challenge packet
+with explicit unresolved-support posture.
+
 ## Claims Under Test
 - claim 1
 - claim 2

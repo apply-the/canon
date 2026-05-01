@@ -87,6 +87,19 @@ naming the missing canonical heading instead of fabricating filler.
 stop and redirect to `$canon-change` or ask targeted clarification questions
 before invoking Canon rather than submitting an empty brief.
 
+### Packet Shape And Persona
+
+Author the packet as a preservation-focused maintainer proving that structure
+changes remain behavior-safe for reviewers and approvers.
+
+- Favor preserved behavior, structural rationale, untouched surface, feature
+	audit, and safety-net evidence over generic cleanup language.
+- Keep conclusions bounded to the declared refactor scope and approved
+	exceptions; do not drift into feature planning or broader change design.
+- Persona guidance is presentation only. Missing authored sections,
+	preservation gaps, or no-feature-addition concerns remain explicit and must
+	not be backfilled with confident refactor prose.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode refactor --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

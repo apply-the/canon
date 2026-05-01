@@ -25,6 +25,10 @@ continuity.
   domain map plus structural-options shaping, and findings-first review packet
   guidance. Keep personas guidance-only.
 - `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts, and Mode Authoring Specialization is now complete for the currently modeled governed modes.
+- `implementation`, `refactor`, and `verification` now ship the 031 closeout
+  slice with a task-mapped delivery packet, a preserved-behavior plus
+  structural-rationale packet, and a claims-and-evidence challenge packet.
+  Persona guidance remains presentation only.
 - `security-assessment` remains delivered and publishes readable packets under
   `docs/security-assessments/<YYYY-MM-DD>-<descriptor>/`.
 - `system-assessment` remains delivered as the as-is architecture packet,
@@ -72,12 +76,13 @@ preserving the winning choice.
   the remaining architecture C4 work plus other mode-specific shapes should now
   bind that direction into the broader authoring contract.
 
-### Mode To Shape Mapping (Roadmap Vision)
+### Mode To Shape Mapping (Delivered Baseline)
 
-The mapping below describes the broader roadmap direction. Delivered slices now
-cover `requirements`, `architecture`, `change`, `discovery`,
-`system-shaping`, and `review`; the remaining subsection highlights what is
-still deferred.
+The mapping below describes the delivered baseline across the currently
+modeled authoring modes. Delivered slices now cover `requirements`,
+`architecture`, `change`, `discovery`, `system-shaping`, `review`,
+`implementation`, `refactor`, and `verification`; no modeled mode in this
+artifact-shape family remains deferred.
 
 - `requirements` → PRD shape (Problem, Outcomes, Users, Use Cases, Constraints,
   Success Metrics, Open Questions, Out of Scope) and a Lean Canvas seed
@@ -132,11 +137,11 @@ still deferred.
   critique posture, and audience fit, but it must never override artifact
   contracts, invent authority, or weaken evidence requirements.
 
-### Remaining Follow-On Scope
+### Completion Status
 
-- Extend the same artifact-shape and persona-bounded contract to the remaining
-  roadmap candidates such as `implementation`, `refactor`, and `verification`
-  without widening Canon into a new runtime domain.
+- `031` closes the remaining modeled-mode follow-on scope by shipping
+  `implementation`, `refactor`, and `verification` as the final
+  artifact-shape slice for the current governed mode set.
 
 ### Why This Feature
 
@@ -155,6 +160,42 @@ still deferred.
 - Composes with `Domain Modeling And Boundary Design` for `system-shaping`.
 - Provides the natural artifact homes for the option-analysis feature below,
   especially `Options Considered`, `Why Not`, and evaluation dossiers.
+
+## Delivered Feature: 031 Remaining Industry-Standard Artifact Shapes
+
+### Outcome
+
+Canon now extends industry-standard artifact shapes to `implementation`,
+`refactor`, and `verification` so delivery, preservation, and challenge work
+read like reviewer-native packets rather than generic AI summaries.
+
+### Problem We Solved
+
+- The earlier artifact-shapes slices proved the pattern for planning,
+  architecture, exploratory, and review work, but execution, preservation, and
+  challenge packets still needed clearer native framing.
+- These modes already had canonical authored-body contracts, but the remaining
+  rollout needed explicit packet-shape and persona coverage in skills, docs,
+  release surfaces, and regressions.
+
+### Delivered Shape Mapping
+
+- `implementation` now reads like a task-mapped delivery packet with option
+  comparison, decision evidence, and rollback posture authored by a bounded
+  implementation lead.
+- `refactor` now reads like a preserved-behavior matrix plus
+  structural-rationale packet authored by a preservation-focused maintainer.
+- `verification` now reads like a claims, evidence, and independence
+  challenge packet authored by an adversarial verifier.
+
+### Invariants Preserved
+
+- Canon still preserves the exact authored H2 contracts for the targeted
+  modes.
+- Missing or weak authored sections still emit explicit `## Missing Authored
+  Body` markers instead of confident filler.
+- Persona guidance remains presentation only; it does not widen authority,
+  weaken evidence, or normalize missing context.
 
 ## Delivered Feature: 030 Industry-Standard Artifact Shapes Follow-On
 

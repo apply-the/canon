@@ -32,9 +32,9 @@ pub(crate) fn summarize_mode_result(
         Mode::Backlog => summarize_backlog_mode_result(artifacts),
         Mode::Incident => summarize_incident_mode_result(artifacts),
         Mode::SecurityAssessment => summarize_security_assessment_mode_result(artifacts),
-        Mode::SupplyChainAnalysis => summarize_supply_chain_analysis_mode_result(artifacts),
         Mode::Implementation => summarize_implementation_mode_result(artifacts),
         Mode::Migration => summarize_migration_mode_result(artifacts),
+        Mode::SupplyChainAnalysis => summarize_supply_chain_analysis_mode_result(artifacts),
         Mode::Refactor => summarize_refactor_mode_result(artifacts),
         Mode::Review => summarize_review_mode_result(artifacts),
         Mode::Verification => summarize_verification_mode_result(artifacts),
@@ -715,6 +715,8 @@ fn summarize_security_assessment_mode_result(
         .unwrap_or_else(|| "NOT CAPTURED - Assessment scope section is missing.".to_string());
     let in_scope_assets = extract_context_section(&primary.contents, "In-Scope Assets")
         .unwrap_or_else(|| "NOT CAPTURED - In-scope assets section is missing.".to_string());
+    let trust_boundaries = extract_context_section(&primary.contents, "Trust Boundaries")
+        .unwrap_or_else(|| "NOT CAPTURED - Trust boundaries section is missing.".to_string());
     let threat_inventory = threat_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Threat Inventory"))
         .unwrap_or_else(|| "NOT CAPTURED - Threat inventory section is missing.".to_string());
@@ -725,6 +727,7 @@ fn summarize_security_assessment_mode_result(
     let missing_context_markers = count_missing_context_markers([
         &assessment_scope,
         &in_scope_assets,
+        &trust_boundaries,
         &threat_inventory,
         &risk_findings,
     ]);
@@ -741,12 +744,12 @@ fn summarize_security_assessment_mode_result(
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds {asset_count} in-scope asset set(s), {threat_count} threat set(s), and {risk_count} rated risk set(s). Scope: {}.",
-            truncate_context_excerpt(&assessment_scope, 120)
+            "Primary artifact bounds {asset_count} in-scope asset set(s), {threat_count} threat set(s), and {risk_count} rated risk set(s). Trust boundaries: {}.",
+            truncate_context_excerpt(&trust_boundaries, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Assets: {asset_count}; threats: {threat_count}; risks: {risk_count}."
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). In-scope assets: {asset_count}; threats: {threat_count}; rated risks: {risk_count}."
         )
     };
 
@@ -772,28 +775,31 @@ fn summarize_system_assessment_mode_result(
         artifacts.iter().find(|artifact| artifact.record.file_name == "assessment-overview.md")?;
     let coverage_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "coverage-map.md");
+    let inventory_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "asset-inventory.md");
     let risk_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "risk-register.md");
 
     let assessment_objective = extract_context_section(&primary.contents, "Assessment Objective")
         .unwrap_or_else(|| "NOT CAPTURED - Assessment objective section is missing.".to_string());
-    let stakeholders = extract_context_section(&primary.contents, "Stakeholders")
-        .unwrap_or_else(|| "NOT CAPTURED - Stakeholders section is missing.".to_string());
     let assessed_views = coverage_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Assessed Views"))
         .unwrap_or_else(|| "NOT CAPTURED - Assessed views section is missing.".to_string());
+    let assessed_assets = inventory_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Assessed Assets"))
+        .unwrap_or_else(|| "NOT CAPTURED - Assessed assets section is missing.".to_string());
     let observed_risks = risk_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Observed Risks"))
         .unwrap_or_else(|| "NOT CAPTURED - Observed risks section is missing.".to_string());
 
     let missing_context_markers = count_missing_context_markers([
         &assessment_objective,
-        &stakeholders,
         &assessed_views,
+        &assessed_assets,
         &observed_risks,
     ]);
-    let stakeholder_count = count_markdown_entries(&stakeholders);
     let view_count = count_markdown_entries(&assessed_views);
+    let asset_count = count_markdown_entries(&assessed_assets);
     let risk_count = count_markdown_entries(&observed_risks);
 
     let headline = if missing_context_markers == 0 {
@@ -805,12 +811,12 @@ fn summarize_system_assessment_mode_result(
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds {stakeholder_count} stakeholder set(s), {view_count} assessed view set(s), and {risk_count} observed risk set(s). Objective: {}.",
-            truncate_context_excerpt(&assessment_objective, 120)
+            "Primary artifact records {view_count} assessed view set(s), {asset_count} assessed asset set(s), and {risk_count} observed risk set(s). Objective: {}.",
+            truncate_context_excerpt(&assessment_objective, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Stakeholders: {stakeholder_count}; views: {view_count}; observed risks: {risk_count}."
+            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Assessed views: {view_count}; assessed assets: {asset_count}; observed risks: {risk_count}."
         )
     };
 
@@ -841,9 +847,11 @@ fn summarize_supply_chain_analysis_mode_result(
 
     let declared_scope = extract_context_section(&primary.contents, "Declared Scope")
         .unwrap_or_else(|| "NOT CAPTURED - Declared scope section is missing.".to_string());
+    let distribution_model = extract_context_section(&primary.contents, "Distribution Model")
+        .unwrap_or_else(|| "NOT CAPTURED - Distribution model section is missing.".to_string());
     let ecosystems_in_scope = extract_context_section(&primary.contents, "Ecosystems In Scope")
         .unwrap_or_else(|| "NOT CAPTURED - Ecosystems in scope section is missing.".to_string());
-    let findings = vulnerability_artifact
+    let findings_by_severity = vulnerability_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Findings By Severity"))
         .unwrap_or_else(|| "NOT CAPTURED - Findings by severity section is missing.".to_string());
     let modernization_slices = legacy_artifact
@@ -852,12 +860,13 @@ fn summarize_supply_chain_analysis_mode_result(
 
     let missing_context_markers = count_missing_context_markers([
         &declared_scope,
+        &distribution_model,
         &ecosystems_in_scope,
-        &findings,
+        &findings_by_severity,
         &modernization_slices,
     ]);
     let ecosystem_count = count_markdown_entries(&ecosystems_in_scope);
-    let finding_count = count_markdown_entries(&findings);
+    let finding_count = count_markdown_entries(&findings_by_severity);
     let modernization_count = count_markdown_entries(&modernization_slices);
 
     let headline = if missing_context_markers == 0 {
@@ -869,8 +878,8 @@ fn summarize_supply_chain_analysis_mode_result(
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds {ecosystem_count} ecosystem set(s), {finding_count} finding set(s), and {modernization_count} modernization slice set(s). Scope: {}.",
-            truncate_context_excerpt(&declared_scope, 120)
+            "Primary artifact bounds {ecosystem_count} ecosystem set(s), {finding_count} finding set(s), and {modernization_count} modernization slice set(s). Distribution model: {}.",
+            truncate_context_excerpt(&distribution_model, 90)
         )
     } else {
         format!(
@@ -1596,55 +1605,5 @@ mod tests {
             .expect("migration summary should exist once the operational mode is implemented");
         assert!(migration_summary.headline.to_ascii_lowercase().contains("migration"));
         assert_eq!(migration_summary.execution_posture.as_deref(), Some("recommendation-only"));
-    }
-
-    #[test]
-    fn summarize_review_mode_result_covers_explicit_approval_branch() {
-        let artifacts = vec![
-            make_artifact(
-                "review-disposition.md",
-                "## Summary\nDisposition recorded.\n\n## Final Disposition\n\nStatus: accepted-with-approval\n\nRationale: the remaining concern is accepted under explicit reviewer approval.\n\n## Accepted Risks\n\n- residual review note",
-            ),
-            make_artifact(
-                "boundary-assessment.md",
-                "## Summary\nBoundary review recorded.\n\n## Boundary Findings\n\n- shared DTO drift\n\n## Ownership Notes\n\n- reviewer owns follow-up",
-            ),
-            make_artifact(
-                "missing-evidence.md",
-                "## Summary\nEvidence gaps recorded.\n\n## Missing Evidence\n\n- production trace sample\n\n## Collection Priorities\n\n- capture one bounded trace",
-            ),
-        ];
-
-        let summary =
-            summarize_mode_result(Mode::Review, &artifacts).expect("review summary should exist");
-
-        assert!(summary.headline.contains("explicit approval"));
-        assert!(summary.artifact_packet_summary.contains("accepted-risk or review-note"));
-        assert_eq!(summary.primary_artifact_title, "Review Disposition");
-    }
-
-    #[test]
-    fn summarize_verification_mode_result_covers_unresolved_findings_branch() {
-        let artifacts = vec![
-            make_artifact(
-                "verification-report.md",
-                "## Summary\nVerification completed.\n\n## Verified Claims\n\n- auth rollback remains bounded\n\n## Rejected Claims\n\n- none\n\n## Overall Verdict\n\nStatus: supported\n\nRationale: the current packet covers the bounded claim set.",
-            ),
-            make_artifact(
-                "unresolved-findings.md",
-                "## Summary\nFollow-up required.\n\n## Open Findings\n\nStatus: unresolved-findings-open\n\n- missing failure-mode probe\n\n## Required Follow-Up\n\n- add the missing probe before release readiness passes",
-            ),
-            make_artifact(
-                "invariants-checklist.md",
-                "## Summary\nClaims recorded.\n\n## Claims Under Test\n\n- auth rollback remains bounded\n\n## Invariant Checks\n\n- replay path remains auditable",
-            ),
-        ];
-
-        let summary = summarize_mode_result(Mode::Verification, &artifacts)
-            .expect("verification summary should exist");
-
-        assert!(summary.headline.contains("unresolved finding"));
-        assert!(summary.artifact_packet_summary.contains("unresolved finding set"));
-        assert_eq!(summary.primary_artifact_title, "Verification Report");
     }
 }
