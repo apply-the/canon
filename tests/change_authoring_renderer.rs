@@ -69,9 +69,32 @@ Add bounded repository methods and preserve the public auth contract.
 
 Prefer additive change over normalization to preserve operator expectations.
 
+## Decision Drivers
+
+- Preserve operator expectations.
+- Keep the auth contract stable during the bounded repository change.
+
+## Options Considered
+
+- Option 1 keeps the additive repository helper inside the auth boundary.
+- Option 2 normalizes scheduling and cleanup behavior in the same slice.
+
+## Decision Evidence
+
+- Existing operator workflows still depend on the current auth cleanup ordering.
+- Contract tests already guard the preserved API surface.
+
 ## Boundary Tradeoffs
 
 - keep cleanup logic inside the auth boundary even if that duplicates some scheduling code
+
+## Recommendation
+
+- Start with the additive repository helper and defer normalization to a later slice.
+
+## Why Not The Others
+
+- Normalizing cleanup behavior now would widen the change surface beyond the bounded auth slice.
 
 ## Consequences
 
@@ -121,6 +144,7 @@ fn change_renderer_preserves_authored_sections_verbatim() {
     let system_slice = render_change_artifact("system-slice.md", FULL_BRIEF, "maintainer");
     let implementation_plan =
         render_change_artifact("implementation-plan.md", FULL_BRIEF, "maintainer");
+    let decision_record = render_change_artifact("decision-record.md", FULL_BRIEF, "maintainer");
 
     assert!(
         system_slice.contains("## System Slice\n\nauth session boundary and persistence layer.")
@@ -132,6 +156,11 @@ fn change_renderer_preserves_authored_sections_verbatim() {
     assert!(!system_slice.contains(MISSING_AUTHORED_BODY_MARKER));
     assert!(implementation_plan.contains("## Implementation Plan\n\nAdd bounded repository methods and preserve the public auth contract."));
     assert!(implementation_plan.contains("## Sequencing\n\n1. Add bounded repository methods."));
+    assert!(decision_record.contains("## Decision Drivers\n\n- Preserve operator expectations."));
+    assert!(decision_record.contains("## Options Considered\n\n- Option 1 keeps the additive repository helper inside the auth boundary."));
+    assert!(decision_record.contains("## Decision Evidence\n\n- Existing operator workflows still depend on the current auth cleanup ordering."));
+    assert!(decision_record.contains("## Recommendation\n\n- Start with the additive repository helper and defer normalization to a later slice."));
+    assert!(decision_record.contains("## Why Not The Others\n\n- Normalizing cleanup behavior now would widen the change surface beyond the bounded auth slice."));
 }
 
 #[test]

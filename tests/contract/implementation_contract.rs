@@ -59,7 +59,9 @@ fn implementation_artifacts_require_execution_specific_sections() {
                 vec![
                     "Summary",
                     "Executed Changes",
+                    "Candidate Frameworks",
                     "Options Matrix",
+                    "Decision Evidence",
                     "Recommendation",
                     "Task Linkage",
                 ],

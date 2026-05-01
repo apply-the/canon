@@ -63,9 +63,29 @@ Introduce a Redis connection pool at process startup, wrap profile reads with ca
 ## Decision Record
 Choose explicit cache-aside invalidation over TTL-only expiration so user-driven profile edits remain immediately consistent and failure handling stays visible.
 
+## Decision Drivers
+- Preserve immediate consistency after profile writes.
+- Keep degraded-cache behavior visible instead of hiding it behind best-effort semantics.
+
+## Options Considered
+- Option 1: explicit cache-aside invalidation after successful writes.
+- Option 2: TTL-only expiration with fewer write-path hooks.
+- Option 3: write-through caching that treats Redis as part of the synchronous write path.
+
+## Decision Evidence
+- Existing profile writes already rely on PostgreSQL as the source of truth.
+- SRE review requires visibility into degraded-cache fallback before rollout.
+
 ## Boundary Tradeoffs
 - Keeping cache invalidation inside the profile-read boundary preserves ownership clarity but requires extra bootstrap wiring in the same service.
 - Avoiding write-through semantics protects legacy correctness but leaves read latency partially dependent on PostgreSQL during degraded-cache periods.
+
+## Recommendation
+- Use explicit cache-aside invalidation for the bounded profile-read slice and defer broader cache normalization.
+
+## Why Not The Others
+- TTL-only expiration risks stale reads immediately after writes when the rollout is still proving correctness.
+- Write-through caching would widen the failure surface of profile writes beyond the bounded change slice.
 
 ## Consequences
 - Startup now depends on Redis health wiring and deployment configuration.

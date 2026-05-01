@@ -41,6 +41,7 @@ Define the authored-body contract for the `system-shaping`, `implementation`, an
   - `## Structural Options`
   - `## Selected Boundaries`
   - `## Rationale`
+  - `## Why Not The Others`
 - `capability-map.md`
   - `## Capabilities`
   - `## Dependencies`
@@ -64,7 +65,9 @@ Define the authored-body contract for the `system-shaping`, `implementation`, an
   - `## Allowed Paths`
 - `implementation-notes.md`
   - `## Executed Changes`
+  - `## Candidate Frameworks`
   - `## Options Matrix`
+  - `## Decision Evidence`
   - `## Recommendation`
   - `## Task Linkage`
 - `completion-evidence.md`

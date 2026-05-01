@@ -70,8 +70,15 @@ login endpoint and token signing only. Background syncing stays in the monolith.
 ## Tradeoff Analysis
 - dual-write increases temporary operational complexity but keeps rollback safer while signature compatibility stabilizes
 
+## Decision Evidence
+- shadow-traffic validation already proves auth-v2 signature compatibility on the bounded login surface
+- reporting metrics still diverge, so the broader admin rollout lacks comparable evidence
+
 ## Recommendation
 - proceed with bounded dual-write for login and token signing, then revisit reporting separately
+
+## Why Not The Others
+- a direct cutover would shrink the rollback window before compatibility evidence is strong enough
 
 ## Ecosystem Health
 - auth-v2 dependencies and platform telemetry are healthy enough for the bounded cutover, but older admin integrations are not yet ready

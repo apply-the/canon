@@ -73,7 +73,9 @@ MUST include all of the following canonical H2 sections with concrete content:
 	- `## Mutation Bounds`
 	- `## Allowed Paths`
 	- `## Executed Changes`
+	- `## Candidate Frameworks`
 	- `## Options Matrix`
+	- `## Decision Evidence`
 	- `## Recommendation`
 	- `## Task Linkage`
 	- `## Completion Evidence`
@@ -99,7 +101,7 @@ Author the packet as an implementation lead comparing bounded execution
 options for maintainers and approvers.
 
 - Favor task linkage, options matrix tradeoffs, ecosystem health, adoption
-	implications, and rollback clarity over execution theater.
+	implications, decision evidence, and rollback clarity over execution theater.
 - Keep recommendations bounded to the declared mutation bounds and allowed
 	paths; do not imply broader implementation authority than the brief supports.
 - Persona guidance is presentation only. Missing authored sections remain

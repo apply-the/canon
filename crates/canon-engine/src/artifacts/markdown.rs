@@ -247,6 +247,7 @@ pub fn render_system_shaping_artifact(
                 AuthoredSectionSpec { canonical_heading: "Structural Options", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Selected Boundaries", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Rationale", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Why Not The Others", aliases: &[] },
             ],
         ),
         "capability-map.md" => render_authored_artifact(
@@ -573,7 +574,12 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Decision Record", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Decision Drivers", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Options Considered", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Decision Evidence", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Boundary Tradeoffs", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommendation", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Why Not The Others", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Consequences", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Unresolved Questions", aliases: &[] },
             ],
@@ -1180,7 +1186,9 @@ pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String
             &[
                 AuthoredSectionSpec { canonical_heading: "Migration Decisions", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Tradeoff Analysis", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Decision Evidence", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Recommendation", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Why Not The Others", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Ecosystem Health", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Deferred Decisions", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Approval Notes", aliases: &[] },
@@ -1504,7 +1512,9 @@ pub fn render_implementation_artifact(
             brief_summary,
             &[
                 AuthoredSectionSpec { canonical_heading: "Executed Changes", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Candidate Frameworks", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Options Matrix", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Decision Evidence", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Recommendation", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Task Linkage", aliases: &[] },
             ],

@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.27.0`
+- None recorded after `0.28.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.27.0`.
+- No additional released feature-spec delivery is recorded after `0.28.0`.
+
+## [0.28.0] - 2026-05-01
+
+Delivered specs:
+
+- `028` - Decision Alternatives
+
+Highlights:
+
+- Extend `system-shaping` and `change` with explicit rejected-alternative
+  reasoning so structural and bounded-change packets preserve why competing
+  options lost instead of only recording the winning path.
+- Extend `implementation` and `migration` with candidate-framework,
+  decision-evidence, and rejection-rationale sections so bounded stack and
+  rollout choices remain inspectable and recommendation-only.
+- Align the `0.28.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, templates, examples, guidance, and final
+  validation for the shipped slice.
 
 ## [0.27.0] - 2026-04-30
 
