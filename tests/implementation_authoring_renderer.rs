@@ -28,10 +28,20 @@ const FULL_BRIEF: &str = r#"# Implementation Brief
 
 - No workspace mutation is implied by the guidance packet itself.
 
+## Candidate Frameworks
+
+- Candidate 1 keeps the helper local to the auth session slice.
+- Candidate 2 lifts the helper into a shared auth abstraction before the bounded slice proves out.
+
 ## Options Matrix
 
 - Option 1 keeps the bounded repository helper local to auth session revocation.
 - Option 2 lifts the helper into a shared auth abstraction before the bounded slice proves out.
+
+## Decision Evidence
+
+- Existing auth-session rollback expectations already align with the local helper approach.
+- The current renderer and run suites prove the bounded implementation contract without widening execution posture.
 
 ## Recommendation
 
@@ -120,7 +130,13 @@ fn implementation_renderer_preserves_authored_sections_verbatim() {
     assert!(!task_mapping.contains(MISSING_AUTHORED_BODY_MARKER));
 
     assert!(implementation_notes.contains(
+        "## Candidate Frameworks\n\n- Candidate 1 keeps the helper local to the auth session slice."
+    ));
+    assert!(implementation_notes.contains(
         "## Options Matrix\n\n- Option 1 keeps the bounded repository helper local to auth session revocation."
+    ));
+    assert!(implementation_notes.contains(
+        "## Decision Evidence\n\n- Existing auth-session rollback expectations already align with the local helper approach."
     ));
     assert!(implementation_notes.contains(
         "## Recommendation\n\n- Start with the local helper and defer broader abstraction until the bounded slice proves reusable."

@@ -9,7 +9,7 @@
 | `change-surface.md` | `## Change Surface`, `## Ownership` | Emit marker naming the missing canonical heading if a required section is absent or empty |
 | `implementation-plan.md` | `## Implementation Plan`, `## Sequencing` | Emit marker naming the missing canonical heading if a required section is absent or empty |
 | `validation-strategy.md` | `## Validation Strategy`, `## Independent Checks` | Emit marker naming the missing canonical heading if a required section is absent or empty |
-| `decision-record.md` | `## Decision Record`, `## Consequences`, `## Unresolved Questions` | Emit marker naming the missing canonical heading if a required section is absent or empty |
+| `decision-record.md` | `## Decision Record`, `## Decision Drivers`, `## Options Considered`, `## Decision Evidence`, `## Boundary Tradeoffs`, `## Recommendation`, `## Why Not The Others`, `## Consequences`, `## Unresolved Questions` | Emit marker naming the missing canonical heading if a required section is absent or empty |
 
 ## Skill and Docs Expectation
 

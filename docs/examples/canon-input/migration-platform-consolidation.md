@@ -80,8 +80,18 @@ Developer laptops, production deploys, and billing jobs stay out of scope.
 - phased cutover costs extra operational overhead but preserves rollback
   credibility and keeps secrets-broker failures bounded
 
+## Decision Evidence
+- canary queue telemetry and mirrored metadata already support bounded
+  comparison between the old and new runner stacks
+- shared platform-runner ownership and secrets-broker support are healthy for
+  CI, but downstream deploy tooling lacks equivalent readiness signals
+
 ## Recommendation
 - proceed with phased queue cutover through the shared platform-runner and defer broader platform consolidation until CI stability is proven
+
+## Why Not The Others
+- a same-day hard switch would trade away rollback credibility before the
+  bounded CI queues prove stable on the new stack
 
 ## Ecosystem Health
 - shared platform-runner telemetry, ownership, and secrets-broker support are

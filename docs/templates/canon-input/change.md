@@ -56,9 +56,27 @@ Describe the high-level change approach.
 ## Decision Record
 Explain why this change is preferable.
 
+## Decision Drivers
+- Decision driver 1
+- Decision driver 2
+
+## Options Considered
+- Option 1 and why it remains viable
+- Option 2 and why it remains viable or risky
+
+## Decision Evidence
+- Evidence source 1 grounding the recommendation
+- Evidence source 2 grounding the rejection logic
+
 ## Boundary Tradeoffs
 - Tradeoff 1 created by keeping the change bounded
 - Tradeoff 2 created by keeping the change bounded
+
+## Recommendation
+- Recommended bounded change path
+
+## Why Not The Others
+- Why the losing change paths lost in this slice
 
 ## Consequences
 - Consequence 1

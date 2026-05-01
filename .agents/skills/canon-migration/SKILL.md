@@ -85,7 +85,9 @@ Do this every time, even when the user only handed you a short rollout note:
 	 - `## Release Readiness`
 	 - `## Migration Decisions`
 	 - `## Tradeoff Analysis`
+	 - `## Decision Evidence`
 	 - `## Recommendation`
+	 - `## Why Not The Others`
 	 - `## Ecosystem Health`
 	 - `## Deferred Decisions`
 	 - `## Approval Notes`
@@ -101,7 +103,7 @@ Author the packet as a migration lead comparing rollout paths for operators,
 reviewers, and approvers.
 
 - Favor compatibility tradeoffs, options matrix decisions, ecosystem health,
-	adoption implications, and rollback credibility over generic rollout
+	decision evidence, adoption implications, and rollback credibility over generic rollout
 	optimism.
 - Keep recommendations bounded to the authored transition surface; do not
 	imply cutover approval or operational certainty the source does not support.
