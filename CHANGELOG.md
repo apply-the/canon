@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.29.0`
+- None recorded after `0.30.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.29.0`.
+- No additional released feature-spec delivery is recorded after `0.30.0`.
+
+## [0.30.0] - 2026-05-01
+
+Delivered specs:
+
+- `030` - Artifact Shapes Follow-On
+
+Highlights:
+
+- Extend the industry-standard artifact-shapes rollout to `discovery`,
+  `system-shaping`, and `review` with explicit exploratory, domain-map plus
+  structural-options, and findings-first reviewer-native packet framing.
+- Keep canonical authored H2 contracts, explicit `## Missing Authored Body`
+  honesty, and bounded persona guidance intact while broadening the packet
+  shape contract across the three follow-on modes.
+- Align the `0.30.0` release surface across workspace manifests, lockfile,
+  shared runtime compatibility references, release-facing docs, focused
+  release regression tests, and final validation evidence.
 
 ## [0.29.0] - 2026-05-01
 

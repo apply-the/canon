@@ -1,7 +1,7 @@
 # Discovery Brief
 
 ## Problem Domain
-What problem space are we actually trying to understand?
+What user outcome or blocked job are we actually trying to understand?
 
 ## Repo Surface
 - Relevant repo path 1
@@ -12,7 +12,7 @@ What problem space are we actually trying to understand?
 - Tension 2
 
 ## Downstream Handoff
-What should the next mode inherit if this discovery packet is accepted?
+What should the next mode inherit if this OST and JTBD-flavored discovery packet is accepted?
 
 ## Unknowns
 - Unknown 1
@@ -23,8 +23,8 @@ What should the next mode inherit if this discovery packet is accepted?
 - Assumption 2
 
 ## Validation Targets
-- Validation target 1
-- Validation target 2
+- Assumption test 1
+- Assumption test 2
 
 ## Confidence Levels
 - High confidence: what is already grounded
@@ -42,8 +42,8 @@ What should the next mode inherit if this discovery packet is accepted?
 What would make this packet ready for requirements, architecture, or change?
 
 ## Options
-1. Option 1
-2. Option 2
+1. Opportunity or solution branch 1
+2. Opportunity or solution branch 2
 
 ## Constraints
 - Constraint 1
@@ -53,7 +53,7 @@ What would make this packet ready for requirements, architecture, or change?
 State the most credible next direction and why it is the current favorite.
 
 ## Next-Phase Shape
-Describe what the next bounded packet should look like.
+Describe what the next bounded packet should look like if this OST and JTBD-flavored framing is accepted.
 
 ## Pressure Points
 - Pressure point 1

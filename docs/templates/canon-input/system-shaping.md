@@ -1,7 +1,8 @@
 # System Shaping Brief
 
-> Suggested persona: system shaper comparing bounded structural alternatives
-> for downstream architects and implementers.
+> Suggested persona: system shaper and bounded system designer comparing
+> domain-map and structural-options alternatives for downstream architects and
+> implementers.
 > Boundary: persona guidance shapes framing only; keep `Intent:`,
 > `Constraint:`, and any missing sections explicit.
 

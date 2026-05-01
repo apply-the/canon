@@ -319,7 +319,16 @@ Explore a blurry problem space before you can write trustworthy requirements.
 
 ### Input Shape
 
-A discovery brief authored with canonical H2 sections. For this first slice, a credible brief includes `## Problem Domain`, `## Repo Surface`, `## Immediate Tensions`, `## Downstream Handoff`, `## Unknowns`, `## Assumptions`, `## Validation Targets`, `## Confidence Levels`, `## In-Scope Context`, `## Out-of-Scope Context`, `## Translation Trigger`, `## Options`, `## Constraints`, `## Recommended Direction`, `## Next-Phase Shape`, `## Pressure Points`, `## Blocking Decisions`, `## Open Questions`, and `## Recommended Owner`.
+A discovery brief authored with canonical H2 sections. For the 030 follow-on
+slice, discovery should read like an Opportunity Solution Tree seed plus a
+Jobs-To-Be-Done flavored brief authored by an exploratory research lead while
+still using the exact canonical headings `## Problem Domain`, `## Repo
+Surface`, `## Immediate Tensions`, `## Downstream Handoff`, `## Unknowns`,
+`## Assumptions`, `## Validation Targets`, `## Confidence Levels`,
+`## In-Scope Context`, `## Out-of-Scope Context`, `## Translation Trigger`,
+`## Options`, `## Constraints`, `## Recommended Direction`, `## Next-Phase
+Shape`, `## Pressure Points`, `## Blocking Decisions`, `## Open Questions`,
+and `## Recommended Owner`.
 
 ### Good Input Should Include
 
@@ -327,8 +336,11 @@ A discovery brief authored with canonical H2 sections. For this first slice, a c
 - `## Immediate Tensions` and `## Downstream Handoff` so the next mode can inherit the right boundary
 - `## Unknowns`, `## Assumptions`, `## Validation Targets`, and `## Confidence Levels` so the packet stays honest about uncertainty
 - `## In-Scope Context`, `## Out-of-Scope Context`, and `## Translation Trigger` so the discovery boundary is explicit
-- `## Options`, `## Constraints`, `## Recommended Direction`, and `## Next-Phase Shape` so the exploratory path is reviewable
+- `## Options`, `## Constraints`, `## Recommended Direction`, and `## Next-Phase Shape` so the exploratory opportunity or solution branches stay reviewable
 - `## Pressure Points`, `## Blocking Decisions`, `## Open Questions`, and `## Recommended Owner` so the unresolved work is easy to hand off
+
+Discovery should sound like bounded exploratory research, not like a completed
+requirements or architecture decision.
 
 ### Questions This Mode Answers
 
@@ -510,8 +522,10 @@ Domain Hypotheses`, `## Ubiquitous Language`, `## Domain Invariants`,
 `## Selected Boundaries`, `## Rationale`, `## Why Not The Others`, `## Capabilities`,
 `## Dependencies`, `## Gaps`, `## Delivery Phases`,
 `## Sequencing Rationale`, `## Risk per Phase`, `## Hotspots`,
-`## Mitigation Status`, and `## Unresolved Risks`. This mode also requires
-explicit `--system-context new|existing` when you start the run.
+`## Mitigation Status`, and `## Unresolved Risks`. In the 030 follow-on slice,
+the packet should read like a domain map plus structural-options brief
+authored by a bounded system designer. This mode also requires explicit
+`--system-context new|existing` when you start the run.
 
 ### System Context Guidance
 
@@ -530,8 +544,8 @@ This mode works best when the brief includes explicit markers like:
 
 - `Intent:` and `Constraint:` markers so the shaping evidence is actually bounded
 - `## System Shape`, `## Boundary Decisions`, and `## Domain Responsibilities` so the primary artifact is author-authored instead of synthesized
-- `## Candidate Bounded Contexts`, `## Core And Supporting Domain Hypotheses`, `## Ubiquitous Language`, and `## Domain Invariants` so the domain-model packet is reviewable
-- `## Structural Options`, `## Selected Boundaries`, `## Rationale`, and `## Why Not The Others` so the architecture outline carries explicit tradeoffs and rejected alternatives
+- `## Candidate Bounded Contexts`, `## Core And Supporting Domain Hypotheses`, `## Ubiquitous Language`, and `## Domain Invariants` so the domain-model packet reads like a reviewable domain map
+- `## Structural Options`, `## Selected Boundaries`, `## Rationale`, and `## Why Not The Others` so the architecture outline carries explicit tradeoffs and rejected structural alternatives
 - `## Capabilities`, `## Dependencies`, and `## Gaps` so the capability map stays honest about seams and missing work
 - `## Delivery Phases`, `## Sequencing Rationale`, `## Risk per Phase`, `## Hotspots`, `## Mitigation Status`, and `## Unresolved Risks` so the downstream delivery and risk artifacts do not collapse into filler
 
@@ -1224,7 +1238,9 @@ directly: `## Review Target`, `## Evidence Basis`, `## Boundary Findings`,
 `## Missing Authored Body` naming the missing heading, and gate-critical status
 lines such as `Status: missing-evidence-open` and
 `Status: awaiting-disposition` stay inside the authored sections that drive
-them.
+them. In the 030 follow-on slice, the packet should read like a findings-first
+review bundle with severity, location, rationale, and recommended change
+detail carried inside the canonical sections when the packet supports it.
 
 ### Important Runtime Constraint
 
@@ -1236,7 +1252,7 @@ diff or local code changes, use `pr-review`.
 
 - what packet is being reviewed
 - which artifacts or evidence are in scope
-- the main boundary or ownership concern
+- the main boundary or ownership concern, ideally phrased as reviewer-native findings with severity, location, rationale, and recommended change
 - the acceptance question or pending decision
 - any missing evidence or open concern that may require explicit disposition
 
@@ -1255,7 +1271,7 @@ diff or local code changes, use `pr-review`.
 
 ### What Canon Emits
 
-Review produces a governed review packet with these artifacts:
+Review produces a governed findings-first review packet with these artifacts:
 
 - `review-brief.md`
 - `boundary-assessment.md`

@@ -7,13 +7,15 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.29.0`.
+The current delivery line in this repository targets Canon `0.30.0`.
 
-Canon `0.29.0` makes published packets easier to browse and audit: default
-publish destinations now land under per-mode family roots with date-prefixed
-descriptor folders, and each published packet carries a
-`packet-metadata.json` sidecar so run id, mode, risk, zone, publish
-timestamp, and source artifact lineage remain recoverable outside `.canon/`.
+Canon `0.30.0` extends the industry-standard artifact-shapes rollout across
+three more high-leverage modes: `discovery` now reads like an Opportunity
+Solution Tree plus Jobs-To-Be-Done flavored exploratory brief,
+`system-shaping` now reads like a domain map plus structural-options packet,
+and `review` now reads like a findings-first review bundle. The existing
+canonical headings, explicit `## Missing Authored Body` honesty, and bounded
+persona posture remain unchanged.
 
 ## What Canon Does
 
@@ -143,20 +145,17 @@ EOF
 ```
 
 Canon now combines canonical packet shapes with bounded authoring personas
-across planning, operational security, and review-heavy surfaces. The product lead,
-architect, and change owner personas from the first slice remain in place for
-the core planning modes; `security-assessment` now joins the governed mode set
-as a recommendation-only operational packet for bounded existing-system threat,
-risk, mitigation, and evidence-gap analysis; `supply-chain-analysis` now joins
-that operational family as a recommendation-only existing-system packet for
-SBOM, vulnerability, license, and legacy posture review with explicit coverage
-gaps; `system-assessment` now joins the same existing-system family as a
-recommendation-only as-is architecture packet using ISO 42010-style viewpoint
-coverage with explicit observed findings, inferred findings, and assessment
-gaps; `incident` and `migration` remain the adjacent recommendation-only
-operational packets; and the existing planning, execution, and review modes
-keep their prior bounded-authoring posture. Persona guidance shapes voice and
-audience fit only; it never replaces missing required sections.
+across planning, shaping, operational security, and review-heavy surfaces.
+`requirements`, `architecture`, and `change` keep their established product
+lead, architect, and change-owner packet shaping. `discovery` now uses an
+exploratory research lead posture to seed an Opportunity Solution Tree plus
+Jobs-To-Be-Done brief, `system-shaping` now uses a bounded system designer
+posture for domain-map and structural-options packets, and `review` now uses a
+skeptical reviewer posture for findings-first acceptance packets.
+`security-assessment`, `supply-chain-analysis`, `system-assessment`,
+`incident`, and `migration` remain the adjacent recommendation-only operational
+or assessment packets. Persona guidance shapes voice and audience fit only; it
+never replaces missing required sections.
 
 ### 3. Start A Run
 

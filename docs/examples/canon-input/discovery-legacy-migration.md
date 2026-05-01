@@ -1,7 +1,7 @@
 # Discovery Brief: Legacy Auth Migration
 
 ## Problem Domain
-The current authentication system is written in a deprecated framework and relies on MD5 hashes. We need to understand whether the right next step is a fresh internal auth service, a third-party identity provider, or an incremental hardening path around the current service.
+The current authentication system is written in a deprecated framework and relies on MD5 hashes. The blocked job is modernizing identity and enterprise login flows without breaking active users or missing the compliance deadline. We need to understand whether the right next step is a fresh internal auth service, a third-party identity provider, or an incremental hardening path around the current service.
 
 ## Repo Surface
 - `services/auth-v1/` for the current login flow and password verification logic.
@@ -27,7 +27,7 @@ If this discovery packet lands cleanly, the next packet should be a requirements
 - The profile service team can support schema-preserving identifier bridges if a provider path is chosen.
 
 ## Validation Targets
-- Measure the latency impact of external token validation versus a local internal service.
+- Measure the latency impact of external token validation versus a local internal service as an assumption test for the provider path.
 - Confirm whether the profile coupling can be isolated behind a stable id-mapping layer.
 - Verify whether a forced password reset is commercially acceptable for enterprise tenants.
 

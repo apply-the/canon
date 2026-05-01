@@ -6,6 +6,7 @@ const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-system-shaping/skill-
 const SKILL_MIRROR: &str = ".agents/skills/canon-system-shaping/SKILL.md";
 const TEMPLATE_PATH: &str = "docs/templates/canon-input/system-shaping.md";
 const EXAMPLE_PATH: &str = "docs/examples/canon-input/system-shaping-billing.md";
+const MODES_GUIDE: &str = "docs/guides/modes.md";
 
 const CONTRACT_SECTIONS: &[&str] = &[
     "System-Shaping Required Sections",
@@ -58,6 +59,11 @@ fn system_shaping_contract_skill_template_and_example_share_domain_modeling_sect
     for section in CONTRACT_SECTIONS {
         assert!(contract.contains(section), "{CONTRACT_PATH} missing {section}");
     }
+    assert!(
+        contract.contains("domain map plus structural-options")
+            && contract.contains("bounded system designer"),
+        "contract must describe the 030 system-shaping shape and persona"
+    );
 
     for path in [SKILL_SOURCE, TEMPLATE_PATH, EXAMPLE_PATH] {
         let content = read(path);
@@ -78,6 +84,8 @@ fn system_shaping_contract_skill_template_and_example_share_domain_modeling_sect
     assert!(
         skill_source.contains("### Packet Shape And Persona")
             && skill_source.contains("system shaper")
+            && skill_source.contains("domain map plus structural-options")
+            && skill_source.contains("bounded system designer")
             && skill_source.contains("Persona guidance is presentation only"),
         "skill source must document the structural persona boundary"
     );
@@ -85,14 +93,24 @@ fn system_shaping_contract_skill_template_and_example_share_domain_modeling_sect
     let template = read(TEMPLATE_PATH);
     assert!(
         template.contains("Suggested persona: system shaper")
+            && template.contains("bounded system designer")
+            && template.contains("domain-map and structural-options")
             && template.contains("persona guidance shapes framing only"),
         "system-shaping template must document the bounded structural persona"
     );
 
     let example = read(EXAMPLE_PATH);
     assert!(
-        example.contains("Authored as the system shaper"),
+        example.contains("Authored as the system shaper")
+            && example.contains("domain map plus structural-options packet"),
         "system-shaping example must surface the intended persona"
+    );
+
+    let guide = read(MODES_GUIDE);
+    assert!(
+        guide.contains("domain map plus structural-options brief")
+            && guide.contains("bounded system designer"),
+        "mode guide must describe the 030 system-shaping shape and persona"
     );
 }
 
