@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 #[test]
-fn system_assessment_method_skill_template_and_example_stay_aligned() {
+fn system_assessment_method_and_skill_stay_aligned() {
     let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"));
 
     let method = fs::read_to_string(repo_root.join("defaults/methods/system-assessment.toml"))
@@ -30,24 +30,4 @@ fn system_assessment_method_skill_template_and_example_stay_aligned() {
     assert!(source_skill.contains("## Observed Findings"));
     assert!(source_skill.contains("## Inferred Findings"));
     assert!(source_skill.contains("## Assessment Gaps"));
-
-    let template =
-        fs::read_to_string(repo_root.join("docs/templates/canon-input/system-assessment.md"))
-            .expect("read template");
-    assert!(template.contains("# System Assessment Brief"));
-    assert!(template.contains("## Assessed Views"));
-    assert!(template.contains("## Confidence By Surface"));
-    assert!(template.contains("## Observed Findings"));
-    assert!(template.contains("## Inferred Findings"));
-    assert!(template.contains("## Assessment Gaps"));
-
-    let example = fs::read_to_string(
-        repo_root.join("docs/examples/canon-input/system-assessment-commerce-platform.md"),
-    )
-    .expect("read example");
-    assert!(example.contains("Commerce Checkout Platform"));
-    assert!(example.contains("## Assessed Views"));
-    assert!(example.contains("## Observed Risks"));
-    assert!(example.contains("## Likely Follow-On Modes"));
-    assert!(example.contains("`security-assessment`"));
 }

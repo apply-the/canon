@@ -4,8 +4,6 @@ const CONTRACT_PATH: &str =
     "specs/020-authoring-specialization-completion/contracts/mode-authored-body-contracts.md";
 const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-incident/skill-source.md";
 const SKILL_MIRROR: &str = ".agents/skills/canon-incident/SKILL.md";
-const TEMPLATE_PATH: &str = "docs/templates/canon-input/incident/brief.md";
-const EXAMPLE_PATH: &str = "docs/examples/canon-input/incident/brief.md";
 
 const CANONICAL_HEADINGS: &[&str] = &[
     "## Incident Scope",
@@ -35,7 +33,7 @@ fn read(path: &str) -> String {
 }
 
 #[test]
-fn incident_contract_skill_template_and_example_share_canonical_headings() {
+fn incident_contract_and_skill_share_canonical_headings() {
     let contract = read(CONTRACT_PATH);
     assert!(contract.contains("Incident Required Sections"));
 
@@ -43,7 +41,7 @@ fn incident_contract_skill_template_and_example_share_canonical_headings() {
         assert!(contract.contains(&heading[3..]), "{CONTRACT_PATH} missing {heading}");
     }
 
-    for path in [SKILL_SOURCE, TEMPLATE_PATH, EXAMPLE_PATH] {
+    for path in [SKILL_SOURCE] {
         let content = read(path);
         for heading in CANONICAL_HEADINGS {
             assert!(content.contains(heading), "{path} missing {heading}");

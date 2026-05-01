@@ -44,6 +44,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-01
 - Rust 1.95.0 workspace plus GitHub Actions YAML, Bash, + existing workspace crates `canon-cli`, (025-distribution-channels)
 - repository files; generated `dist/` release bundle artifacts; (025-distribution-channels)
 - Rust 1.95.0 workspace plus Markdown documentation and Spec Kit artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; Spec Kit scripts under `.specify/scripts/bash/` (029-publish-destinations)
+- Rust 1.95.0 workspace plus Bash, PowerShell release helpers, GitHub Actions YAML, and JSON packaging metadata + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, GitHub Actions release automation, and Scoop manifest JSON conventions (032-scoop-distribution)
+- repository files plus ephemeral `dist/` release artifacts and generated `lcov.info` during validation (032-scoop-distribution)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -102,9 +104,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 032-scoop-distribution: Added Rust 1.95.0 workspace plus Bash, PowerShell release helpers, GitHub Actions YAML, and JSON packaging metadata + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, GitHub Actions release automation, and Scoop manifest JSON conventions
 - 031-remaining-artifact-shapes: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 - 030-artifact-shapes-follow-on: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
-- 029-publish-destinations: Added Rust 1.95.0 workspace plus Markdown documentation and Spec Kit artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; Spec Kit scripts under `.specify/scripts/bash/`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

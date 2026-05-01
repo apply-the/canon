@@ -170,7 +170,7 @@ jobs:
             --release-notes dist/release-notes.md \
             --write-checksums
 
-  - name: Generate distribution metadata
+      - name: Generate distribution metadata
         shell: bash
         run: |
           bash scripts/release/write-distribution-metadata.sh \
@@ -192,6 +192,13 @@ jobs:
             --metadata dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json \
             --output-dir dist/winget
 
+      - name: Render Scoop manifest
+        shell: bash
+        run: |
+          bash scripts/release/render-scoop-manifest.sh \
+            --metadata dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json \
+            --output dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-scoop-manifest.json
+
       - name: Verify extended release surface
         shell: bash
         run: |
@@ -201,7 +208,8 @@ jobs:
             --release-notes dist/release-notes.md \
             --distribution-metadata dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json \
             --homebrew-formula dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb \
-            --winget-manifest-dir dist/winget
+            --winget-manifest-dir dist/winget \
+            --scoop-manifest dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-scoop-manifest.json
 
       - uses: actions/upload-artifact@v4
         with:
@@ -224,6 +232,7 @@ jobs:
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-SHA256SUMS.txt
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-homebrew-formula.rb
+            dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-scoop-manifest.json
             dist/winget/ApplyThe.Canon.yaml
             dist/winget/ApplyThe.Canon.locale.en-US.yaml
             dist/winget/ApplyThe.Canon.installer.yaml

@@ -9,15 +9,13 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.31.0`.
+The current delivery line in this repository targets Canon `0.32.0`.
 
-Canon `0.31.0` closes the remaining industry-standard artifact-shapes rollout
-for the current modeled modes: `implementation` now reads like a task-mapped
-delivery packet with option comparison and rollback posture, `refactor` now
-reads like a preserved-behavior plus structural-rationale packet, and
-`verification` now reads like a claims-and-evidence challenge packet. The
-existing canonical headings, explicit `## Missing Authored Body` honesty, and
-bounded persona posture remain unchanged.
+Canon `0.32.0` extends the distribution surface with a repository-generated
+Scoop manifest derived from the canonical GitHub Release bundle. Homebrew,
+`winget`, and Scoop now share the same release metadata, canonical Windows
+archive, and checksum verification surface, while direct archive fallback
+remains available.
 
 ## What Canon Does
 
@@ -55,6 +53,20 @@ winget install ApplyThe.Canon
 winget upgrade ApplyThe.Canon
 canon --version
 ```
+
+### Windows via Scoop
+
+Install or upgrade Canon from Scoop after the generated manifest lands in the
+Scoop main bucket:
+
+```powershell
+scoop install canon
+scoop update canon
+canon --version
+```
+
+If the Scoop bucket update is not available yet, use `winget` or the direct
+release zip fallback below.
 
 ### Prebuilt Binary
 
@@ -204,6 +216,7 @@ Start here if you want more than the short README flow:
 - **[Getting Started](docs/guides/getting-started.md)** — Install Canon, initialize a repository, run your first packet, then inspect, approve, resume, and publish it.
 - **[Governance Modes](docs/guides/modes.md)** — Choose the right mode and canonical input shape for the work you are doing.
 - **[Publishing to winget](docs/guides/publishing-to-winget.md)** — Generate, verify, and submit the Windows package-manager manifest bundle from the canonical release artifacts.
+- **[Publishing to Scoop](docs/guides/publishing-to-scoop.md)** — Generate, verify, and submit the Scoop manifest derived from the canonical release bundle.
 - **[Templates and Examples](docs/templates/canon-input/requirements.md)** — Start from the canonical first-slice packet shapes and follow through to the worked examples in `docs/examples/canon-input/`.
 - **[Governance Guardrails: Risk and Zone](docs/guides/risk-and-zone.md)** — Understand how risk and zone constrain autonomy and gate sensitive work.
 

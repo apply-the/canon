@@ -19,11 +19,28 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.31.0`
+- None recorded after `0.32.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.31.0`.
+- No additional released feature-spec delivery is recorded after `0.32.0`.
+
+## [0.32.0] - 2026-05-01
+
+Delivered specs:
+
+- `032` - Scoop Distribution Follow-On
+
+Highlights:
+
+- Add repository-owned Scoop manifest generation for the canonical Windows
+  release archive while keeping GitHub Releases as the source of binaries,
+  filenames, and checksums.
+- Extend shared distribution metadata and release-surface verification so the
+  canonical Windows asset advertises both `winget` and Scoop and mismatched
+  URLs or hashes fail validation.
+- Update install docs, maintainer publication guides, roadmap, runtime
+  compatibility references, and release surfaces for the `0.32.0` delivery.
 
 ## [0.31.0] - 2026-05-01
 

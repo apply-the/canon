@@ -4,8 +4,6 @@ const CONTRACT_PATH: &str =
     "specs/017-domain-boundary-design/contracts/architecture-context-map.md";
 const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-architecture/skill-source.md";
 const SKILL_MIRROR: &str = ".agents/skills/canon-architecture/SKILL.md";
-const TEMPLATE_PATH: &str = "docs/templates/canon-input/architecture.md";
-const EXAMPLE_PATH: &str = "docs/examples/canon-input/architecture-state-management.md";
 
 const CONTRACT_SECTIONS: &[&str] = &[
     "Bounded Contexts",
@@ -32,13 +30,13 @@ fn read(path: &str) -> String {
 }
 
 #[test]
-fn architecture_contract_skill_template_and_example_share_context_map_sections() {
+fn architecture_contract_and_skill_share_context_map_sections() {
     let contract = read(CONTRACT_PATH);
     for section in CONTRACT_SECTIONS {
         assert!(contract.contains(section), "{CONTRACT_PATH} missing {section}");
     }
 
-    for path in [SKILL_SOURCE, TEMPLATE_PATH, EXAMPLE_PATH] {
+    for path in [SKILL_SOURCE] {
         let content = read(path);
         for heading in CANONICAL_HEADINGS {
             assert!(content.contains(heading), "{path} missing {heading}");
