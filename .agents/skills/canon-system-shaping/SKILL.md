@@ -118,11 +118,15 @@ brief.
 
 ### Packet Shape And Persona
 
-Author the packet as a system shaper comparing structural alternatives for
-downstream architects and implementers.
+Author the packet as a system shaper and bounded system designer producing a
+domain map plus structural-options brief for downstream architects and
+implementers.
 
-- Favor boundary decisions, structural options, tradeoff rationale, and
-  delivery consequences over abstract vision statements.
+- Favor candidate bounded contexts, boundary decisions, structural options,
+  tradeoff rationale, and delivery consequences over abstract vision
+  statements.
+- Treat `domain-model.md` as the domain-map spine of the packet and
+  `architecture-outline.md` as the structural-options comparison surface.
 - Make rejection logic explicit when more than one structural option remains
   viable; reviewers should be able to see why the losing options lost.
 - Keep recommendations bounded to the authored intent and constraint markers;

@@ -17,12 +17,13 @@ The roadmap below is intentionally forward-looking. Delivered work is kept here
 only as a compact baseline so future candidates have the right constraints and
 continuity.
 
-- requirements, discovery, change now ship the first slice of
-  author-specialized mode guidance and remain in the delivered scope.
-- `architecture` keeps the established persona baseline for
-  `architect for C4/ADR work`; `requirements` keeps the baseline for
-  `product lead for PRD work`; `change` keeps the baseline for
-  `change owner for bounded change decisions`. Keep personas guidance-only.
+- `requirements`, `architecture`, and `change` ship the first
+  industry-standard artifact-shapes slice with PRD, C4 plus ADR, and ADR-style
+  bounded change packet guidance.
+- `discovery`, `system-shaping`, and `review` now ship the 030 follow-on slice
+  with Opportunity Solution Tree plus Jobs-To-Be-Done exploratory framing,
+  domain map plus structural-options shaping, and findings-first review packet
+  guidance. Keep personas guidance-only.
 - `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts, and Mode Authoring Specialization is now complete for the currently modeled governed modes.
 - `security-assessment` remains delivered and publishes readable packets under
   `docs/security-assessments/<YYYY-MM-DD>-<descriptor>/`.
@@ -73,9 +74,10 @@ preserving the winning choice.
 
 ### Mode To Shape Mapping (Roadmap Vision)
 
-The mapping below describes the broader roadmap direction. The delivered first
-slice remains explicitly limited to `requirements`, `architecture`, and
-`change` as scoped in the subsection that follows.
+The mapping below describes the broader roadmap direction. Delivered slices now
+cover `requirements`, `architecture`, `change`, `discovery`,
+`system-shaping`, and `review`; the remaining subsection highlights what is
+still deferred.
 
 - `requirements` → PRD shape (Problem, Outcomes, Users, Use Cases, Constraints,
   Success Metrics, Open Questions, Out of Scope) and a Lean Canvas seed
@@ -117,21 +119,24 @@ slice remains explicitly limited to `requirements`, `architecture`, and
 - `verification` → Claims/Evidence/Independence matrix authored with an
   explicit adversarial verifier persona.
 
-### First Slice
+### Delivered Slices To Date
 
-- Pick three high-leverage modes for the next pass: `architecture` (C4 + ADR),
-  `requirements` (PRD), and `change` (ADR + pattern-choice appendix).
-- For each, extend the skill with the required H2 sections in the chosen
-  industry shape, extend the renderer to recognize and preserve those
-  sections, and add per-shape unit tests.
-- Add an explicit persona layer to the same skills so the assistant authors as
-  the right bounded counterpart for the packet: product lead for PRD work,
-  architect for C4/ADR work, and change owner for bounded change decisions.
-- Keep personas guidance-only: it may shape voice, emphasis, critique posture,
-  and audience fit, but it must never override artifact contracts, invent
-  authority, or weaken evidence requirements.
-- Defer the remaining modes to a second slice once the first three prove the
-  authoring + renderer contract.
+- First slice: `requirements` (PRD), `architecture` (C4 + ADR), and `change`
+  (ADR + pattern-choice appendix) established the artifact-shape and
+  persona-bounded authoring contract.
+- Follow-on slice: `discovery` now ships an Opportunity Solution Tree plus
+  Jobs-To-Be-Done flavored packet, `system-shaping` now ships a domain map plus
+  structural-options packet, and `review` now ships a findings-first reviewer
+  packet.
+- Both slices keep personas guidance-only: it may shape voice, emphasis,
+  critique posture, and audience fit, but it must never override artifact
+  contracts, invent authority, or weaken evidence requirements.
+
+### Remaining Follow-On Scope
+
+- Extend the same artifact-shape and persona-bounded contract to the remaining
+  roadmap candidates such as `implementation`, `refactor`, and `verification`
+  without widening Canon into a new runtime domain.
 
 ### Why This Feature
 
@@ -150,6 +155,43 @@ slice remains explicitly limited to `requirements`, `architecture`, and
 - Composes with `Domain Modeling And Boundary Design` for `system-shaping`.
 - Provides the natural artifact homes for the option-analysis feature below,
   especially `Options Considered`, `Why Not`, and evaluation dossiers.
+
+## Delivered Feature: 030 Industry-Standard Artifact Shapes Follow-On
+
+### Outcome
+
+Canon now extends industry-standard artifact shapes to `discovery`,
+`system-shaping`, and `review` so exploratory, system-design, and bounded
+packet-review work read like reviewer-native artifacts rather than generic AI
+summaries.
+
+### Problem We Solved
+
+- The earlier artifact-shapes slice proved the pattern for `requirements`,
+  `architecture`, and `change`, but discovery, shaping, and review still read
+  too much like Canon-internal summaries.
+- Those modes already had canonical authored-body contracts, but they needed
+  clearer packet framing and authored personas to match how engineers actually
+  consume exploratory, domain-boundary, and review work.
+
+### Delivered Shape Mapping
+
+- `discovery` now reads like an Opportunity Solution Tree plus
+  Jobs-To-Be-Done flavored exploratory brief authored by an exploratory
+  research lead.
+- `system-shaping` now reads like a domain map plus structural-options packet
+  authored by a bounded system designer.
+- `review` now reads like a findings-first review bundle carrying severity,
+  location, rationale, and recommended change detail inside the canonical
+  review sections.
+
+### Invariants Preserved
+
+- Canon still preserves the exact authored H2 contracts for the targeted modes.
+- Missing or weak authored sections still emit explicit `## Missing Authored
+  Body` markers instead of reviewer-sounding filler.
+- Approval posture, evidence semantics, `.canon/` runtime storage, and publish
+  behavior remain unchanged by this slice.
 
 ## Delivered Feature: 028 Decision Alternatives, Pattern Choices, And Framework Evaluations
 

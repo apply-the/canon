@@ -89,6 +89,23 @@ Do this every time:
 4. Canon preserves those authored sections verbatim in the emitted packet. If a required section is missing or empty, Canon emits `## Missing Authored Body` naming the missing canonical heading instead of fabricating generic filler.
 5. If you cannot author a credible discovery body from the available source, run `$canon-inspect-clarity` or ask targeted questions before invoking Canon rather than submitting an empty brief.
 
+### Packet Shape And Persona
+
+Author the packet as an exploratory research lead seeding an Opportunity Solution Tree and Jobs-To-Be-Done flavored brief for downstream product and engineering framing.
+
+- Use `## Problem Domain` and `## Immediate Tensions` to name the desired
+  outcome, the blocked job, and the tension preventing progress.
+- Use `## Options`, `## Recommended Direction`, and `## Next-Phase Shape` to
+  present credible opportunity or solution branches without pretending one
+  branch is already committed.
+- Use `## Validation Targets`, `## Confidence Levels`, and `## Assumptions` as
+  the assumption-test spine of the packet.
+- Keep recommendations bounded to the authored exploration surface; do not
+  imply that discovery has already settled requirements, architecture, or
+  delivery.
+- Persona guidance is presentation only. Missing authored sections remain
+  explicit gaps and must not be backfilled with exploratory-sounding prose.
+
 ## Canon Command Contract
 
 - Canon command: `canon run --mode discovery --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`

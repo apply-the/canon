@@ -27,6 +27,8 @@ Define the authored-body contract for the `system-shaping`, `implementation`, an
 
 ## System-Shaping Required Sections
 
+For the 030 artifact-shapes follow-on, `system-shaping` should read like a domain map plus structural-options brief authored by a bounded system designer.
+
 - `system-shape.md`
   - `## System Shape`
   - `## Boundary Decisions`
