@@ -92,11 +92,11 @@ If you cannot author a credible verification body because the source is really a
 
 ### Packet Shape And Persona
 
-Author the packet as an adversarial verifier challenging claims for decision
-makers.
+Author the packet as an adversarial verifier challenging claims, evidence
+quality, and independence for decision makers.
 
-- Favor contradictions, unsupported assumptions, and clear verdict language
-   over generic review prose.
+- Favor contradictions, unsupported assumptions, independence gaps, and clear
+   verdict language over generic review prose.
 - Keep conclusions bounded to the authored claims and evidence under test; do
    not drift into design or implementation planning.
 - Persona guidance is presentation only. Missing authored sections or

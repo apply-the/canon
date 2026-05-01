@@ -1,4 +1,7 @@
-# Verification Brief: E2E Test Flakiness 
+# Verification Brief: E2E Test Flakiness
+
+Use this brief to author a claims, evidence, and independence challenge packet
+with explicit unresolved-support posture.
 
 ## Claims Under Test
 - Claim 1: The Playwright checkout flow fails nondeterministically (30% failure rate) solely due to third-party Stripe sandbox latency, not our internal state transitions.

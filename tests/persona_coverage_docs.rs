@@ -5,6 +5,7 @@ const MODES: &[(&str, &str)] = &[
     ("canon-architecture", "Author the packet as an architect"),
     ("canon-change", "Author the packet as a change owner"),
     ("canon-implementation", "Author the packet as an implementation lead"),
+    ("canon-refactor", "Author the packet as a preservation-focused maintainer"),
     ("canon-migration", "Author the packet as a migration lead"),
     ("canon-review", "Author the packet as a skeptical reviewer"),
     ("canon-pr-review", "Author the packet as a code reviewer"),
