@@ -7,12 +7,13 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.28.0`.
+The current delivery line in this repository targets Canon `0.29.0`.
 
-Canon `0.28.0` strengthens decision-heavy packets: `system-shaping` and
-`change` now preserve explicit rejected alternatives, while `implementation`
-and `migration` now carry candidate-framework and decision-evidence sections
-for bounded stack and rollout choices.
+Canon `0.29.0` makes published packets easier to browse and audit: default
+publish destinations now land under per-mode family roots with date-prefixed
+descriptor folders, and each published packet carries a
+`packet-metadata.json` sidecar so run id, mode, risk, zone, publish
+timestamp, and source artifact lineage remain recoverable outside `.canon/`.
 
 ## What Canon Does
 
@@ -193,7 +194,7 @@ canon publish <RUN_ID>
 - Use `canon run` to start a governed packet.
 - Use `canon inspect ...` to see what Canon actually recorded.
 - Use `canon approve` and `canon resume` when a run is gated.
-- Use `canon publish` when you want a completed packet copied into `docs/` or another visible path.
+- Use `canon publish` when you want a completed packet copied into `docs/` or `specs/` under a structured default folder, or into another visible path with `--to`.
 
 ## Documentation
 

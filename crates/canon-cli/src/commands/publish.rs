@@ -33,6 +33,10 @@ mod tests {
     use canon_engine::domain::run::ClassificationProvenance;
     use canon_engine::{EngineService, RunRequest};
 
+    fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+        format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+    }
+
     fn requirements_request(risk: RiskClass, zone: UsageZone) -> RunRequest {
         RunRequest {
             mode: Mode::Requirements,
@@ -66,11 +70,13 @@ mod tests {
 
         let code = execute(&service, PublishCommand { run_id: run.run_id.clone(), to: None })
             .expect("publish should succeed");
-        let published_dir = workspace.path().join("specs").join(&run.run_id);
+        let published_dir =
+            workspace.path().join("specs").join(default_publish_leaf(&run.run_id, "requirements"));
 
         assert_eq!(code, 0);
         assert!(published_dir.join("problem-statement.md").exists());
         assert!(published_dir.join("constraints.md").exists());
+        assert!(published_dir.join("packet-metadata.json").exists());
     }
 
     #[test]
@@ -114,5 +120,6 @@ mod tests {
         assert_eq!(code, 0);
         assert!(workspace.path().join(&override_path).join("problem-statement.md").exists());
         assert!(!workspace.path().join("specs").join(run.run_id).exists());
+        assert!(workspace.path().join(&override_path).join("packet-metadata.json").exists());
     }
 }

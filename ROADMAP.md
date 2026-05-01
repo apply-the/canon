@@ -8,7 +8,7 @@ Current end-to-end depth exists for `requirements`, `discovery`,
 `refactor`, `review`, `verification`, `pr-review`, `incident`,
 `security-assessment`, `system-assessment`, `migration`, and
 `supply-chain-analysis`. The next roadmap should prioritize output quality,
-packaging, distribution, publish structure, and authoring improvements instead
+packaging, distribution, and authoring improvements instead
 of reopening already delivered mode surfaces.
 
 ## Current Delivered Reference
@@ -25,16 +25,21 @@ continuity.
   `change owner for bounded change decisions`. Keep personas guidance-only.
 - `review`, `verification`, `incident`, and `migration` now share canonical authored H2 contracts, and Mode Authoring Specialization is now complete for the currently modeled governed modes.
 - `security-assessment` remains delivered and publishes readable packets under
-  `docs/security-assessments/<RUN_ID>/`.
+  `docs/security-assessments/<YYYY-MM-DD>-<descriptor>/`.
 - `system-assessment` remains delivered as the as-is architecture packet,
-  publishes readable packets under `docs/architecture/assessments/<RUN_ID>/`,
+  publishes readable packets under
+  `docs/architecture/assessments/<YYYY-MM-DD>-<descriptor>/`,
   and uses ISO 42010-style coverage with explicit observed findings, inferred
   findings, and assessment gaps.
 - `system-shaping`, `change`, `implementation`, and `migration` now preserve
   explicit alternatives, decision evidence, and rejected-option rationale in
   their decision-heavy packet surfaces.
 - `supply-chain-analysis` remains delivered and publishes readable packets
-  under `docs/supply-chain/<RUN_ID>/`.
+  under `docs/supply-chain/<YYYY-MM-DD>-<descriptor>/`.
+- Published packets now use structured default leaf directories such as
+  `<YYYY-MM-DD>-<descriptor>/` and ship a `packet-metadata.json` sidecar so
+  canonical run identity and source artifact lineage remain recoverable
+  outside `.canon/`.
 - `Distribution Channels Beyond GitHub Releases` now ships Homebrew
   installation for macOS and Linux, generated distribution metadata,
   Homebrew formula artifacts with optional tap synchronization, and `winget`
@@ -374,7 +379,7 @@ subset of views the first slice can support credibly.
   `security-assessment`, and architecture work by turning an unknown repo into
   a bounded, reviewable understanding surface.
 
-## Feature: Structured External Publish Destinations
+## Delivered Feature: 029 Structured External Publish Destinations
 
 ### Outcome
 

@@ -1,5 +1,5 @@
 [canon]
-expected_workspace_version = "0.28.0"
+expected_workspace_version = "0.29.0"
 install_command = "follow the install guide at https://github.com/apply-the/canon#install"
 install_guidance_ref = "https://github.com/apply-the/canon#install"
 release_surface = "https://github.com/apply-the/canon/releases"

@@ -141,6 +141,12 @@ canon publish <RUN_ID>
 canon publish <RUN_ID> --to docs/custom/path
 ```
 
+Without `--to`, Canon publishes into the mode's default family root under a
+date-prefixed descriptor leaf such as
+`docs/reviews/prs/<YYYY-MM-DD>-<descriptor>/` and includes
+`packet-metadata.json` so canonical run identity stays recoverable outside
+`.canon/`.
+
 ## The Core Commands
 
 | Command | What it is for |
@@ -151,7 +157,7 @@ canon publish <RUN_ID> --to docs/custom/path
 | `canon inspect ...` | Read invocations, evidence, artifacts, and other runtime detail |
 | `canon approve` | Record an approval for a gated run |
 | `canon resume` | Continue a run after approval or follow-up work |
-| `canon publish` | Copy emitted artifacts into a visible repository path |
+| `canon publish` | Copy emitted artifacts into a visible repository path, using a structured default destination when `--to` is omitted |
 
 ## Choosing the Right Inputs
 

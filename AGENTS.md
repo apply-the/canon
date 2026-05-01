@@ -43,6 +43,7 @@ Auto-generated from all feature plans. Last updated: 2026-05-01
 - repository files plus ephemeral release artifacts in `dist/` during packaging and validation (026-winget-distribution)
 - Rust 1.95.0 workspace plus GitHub Actions YAML, Bash, + existing workspace crates `canon-cli`, (025-distribution-channels)
 - repository files; generated `dist/` release bundle artifacts; (025-distribution-channels)
+- Rust 1.95.0 workspace plus Markdown documentation and Spec Kit artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; Spec Kit scripts under `.specify/scripts/bash/` (029-publish-destinations)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -101,9 +102,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 029-publish-destinations: Added Rust 1.95.0 workspace plus Markdown documentation and Spec Kit artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; Spec Kit scripts under `.specify/scripts/bash/`
 - 028-decision-alternatives: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 - 027-system-assessment-mode: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
-- 026-winget-distribution: Added Rust 1.95.0 workspace plus Bash and PowerShell release helpers and GitHub Actions YAML + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), shell tooling (`jq`, `shasum`, `unzip`), and Windows Package Manager manifest schema v1.12.0
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
