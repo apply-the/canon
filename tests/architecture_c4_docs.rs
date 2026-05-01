@@ -79,7 +79,7 @@ fn architecture_mode_guide_and_roadmap_document_persona_guidance() {
 
     let roadmap = read(ROADMAP_PATH);
     assert!(
-        roadmap.contains("architect for C4/ADR work")
+        roadmap.contains("explicit architecture-decision persona")
             && roadmap.contains("Keep personas guidance-only"),
         "roadmap must document the architecture persona layer and its boundary"
     );
