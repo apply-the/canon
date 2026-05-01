@@ -55,6 +55,10 @@ fn complete_brief() -> &'static str {
     "# Incident Brief\n\n## Incident Scope\n\npayments-api and checkout flow only.\n\n## Trigger And Current State\n\nelevated 5xx responses after the last deploy.\n\n## Operational Constraints\n\n- no autonomous remediation\n- no schema changes\n\n## Known Facts\n\n- errors started after the deploy\n- rollback remains available\n\n## Working Hypotheses\n\n- retry amplification is exhausting the service\n\n## Evidence Gaps\n\n- database saturation is not yet confirmed\n\n## Impacted Surfaces\n\n- payments-api\n- checkout flow\n\n## Propagation Paths\n\n- checkout request path\n\n## Confidence And Unknowns\n\n- medium confidence until saturation evidence is collected\n\n## Immediate Actions\n\n- disable async retries\n\n## Ordered Sequence\n\n1. capture blast radius\n2. disable retries\n3. reassess error rate\n\n## Stop Conditions\n\n- error rate stabilizes below the alert threshold\n\n## Decision Points\n\n- decide whether rollback is still required\n\n## Approved Actions\n\n- disable retries within the bounded surface\n\n## Deferred Actions\n\n- schema-level changes remain out of scope\n\n## Verification Checks\n\n- confirm 5xx rate drops\n\n## Release Readiness\n\n- keep recommendation-only posture until the owner accepts the packet\n\n## Follow-Up Work\n\n- add a saturation dashboard and post-incident review item\n"
 }
 
+fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
+    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
+}
+
 #[test]
 fn approval_gated_incident_packet_is_publishable_before_risk_approval() {
     let workspace = TempDir::new().expect("temp dir");
@@ -96,9 +100,18 @@ fn approval_gated_incident_packet_is_publishable_before_risk_approval() {
         .path()
         .join("docs")
         .join("incidents")
-        .join(run_id)
+        .join(default_publish_leaf(run_id, "incident"))
         .join("follow-up-verification.md");
     let published_text = fs::read_to_string(published).expect("published follow-up verification");
+    assert!(
+        workspace
+            .path()
+            .join("docs")
+            .join("incidents")
+            .join(default_publish_leaf(run_id, "incident"))
+            .join("packet-metadata.json")
+            .exists()
+    );
     assert!(
         published_text.contains("recommendation-only posture until the owner accepts the packet")
     );

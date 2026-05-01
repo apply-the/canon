@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.28.0`
+- None recorded after `0.29.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.28.0`.
+- No additional released feature-spec delivery is recorded after `0.29.0`.
+
+## [0.29.0] - 2026-05-01
+
+Delivered specs:
+
+- `029` - Publish Destinations
+
+Highlights:
+
+- Replace run-id-only default publish destinations with readable
+  date-prefixed descriptor folders under the existing `specs/` and `docs/`
+  family roots.
+- Emit `packet-metadata.json` with each published packet so run id, mode,
+  risk, zone, publish timestamp, destination, and source artifact lineage stay
+  recoverable outside `.canon/`.
+- Align the `0.29.0` release surface across workspace manifests, lockfile,
+  shared runtime compatibility references, release-facing docs, focused
+  release regression tests, and final validation evidence.
 
 ## [0.28.0] - 2026-05-01
 
