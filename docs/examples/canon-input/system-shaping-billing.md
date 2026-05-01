@@ -1,7 +1,7 @@
 # System Shaping Brief: Billing
 
-_Authored as the system shaper for reviewers and downstream implementers
-evaluating bounded billing structure._
+_Authored as the system shaper and bounded system designer for reviewers and
+downstream implementers evaluating a domain map plus structural-options packet._
 
 Intent: Build a bounded capability for invoicing, automated payment collection, and Stripe integration.
 Constraint: Keep the first release limited to credit card integrations (no ACH or wire transfers yet).

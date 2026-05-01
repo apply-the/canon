@@ -91,11 +91,16 @@ If you cannot author a credible review body because the user really has a diff, 
 
 ### Packet Shape And Persona
 
-Author the packet as a skeptical reviewer summarizing bounded acceptance risk
-for decision makers.
+Author the packet as a skeptical reviewer producing a findings-first review
+bundle for decision makers.
 
+- Use `## Boundary Findings`, `## Missing Evidence`, and `## Decision Impact`
+   to surface reviewer-native findings with explicit severity, location,
+   rationale, and recommended change detail when the packet supports them.
 - Favor evidence basis, missing evidence, reversibility, and disposition
    clarity over generic approval language.
+- Keep `## Final Disposition` and `## Accepted Risks` as the bounded decision
+   summary, not as a replacement for concrete findings.
 - Keep conclusions bounded to the authored packet under review; do not smuggle
    in diff review or design-authoring behavior.
 - Persona guidance is presentation only. Missing authored sections remain

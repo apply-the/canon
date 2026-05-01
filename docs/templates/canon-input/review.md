@@ -9,7 +9,10 @@
 - artifact 2
 
 ## Boundary Findings
-[What boundary or ownership edge must remain explicit?]
+- Severity: low | medium | high
+	Location: [artifact path, packet section, or boundary under review]
+	Rationale: [What boundary or ownership edge must remain explicit?]
+	Recommended Change: [What should change or be clarified before acceptance?]
 
 ## Ownership Notes
 [Who owns the decision, remaining risk, or downstream acceptance?]

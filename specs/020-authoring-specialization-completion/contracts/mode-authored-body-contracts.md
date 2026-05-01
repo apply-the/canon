@@ -36,6 +36,8 @@ Define the authored-body contract for the completion slice delivered in feature 
 
 ## Review Required Sections
 
+For the 030 artifact-shapes follow-on, `review` should read like a findings-first review bundle with reviewer-native severity, location, rationale, and recommended change detail carried inside the canonical sections when the packet supports it.
+
 - `review-brief.md`
   - `## Review Target`
   - `## Evidence Basis`

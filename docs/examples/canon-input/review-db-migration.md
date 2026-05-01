@@ -13,8 +13,14 @@
 
 ## Boundary Findings
 
-- The identity service cannot tolerate data loss or downtime during the backfill phase.
-- A missed record would lock out enterprise customers immediately.
+- Severity: high
+	Location: `db/migrations/2026_v4_1_split.sql` backfill and cutover path
+	Rationale: The identity service cannot tolerate data loss or downtime during the backfill phase.
+	Recommended Change: Prove rollback and backfill timing before production acceptance.
+- Severity: high
+	Location: downstream enterprise login continuity
+	Rationale: A missed record would lock out enterprise customers immediately.
+	Recommended Change: Keep acceptance gated until the rehearsal evidence covers record completeness.
 
 ## Ownership Notes
 

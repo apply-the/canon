@@ -85,7 +85,7 @@ fn change_skill_mirror_matches_skill_source() {
 }
 
 #[test]
-fn change_mode_guide_and_roadmap_document_the_first_slice() {
+fn change_mode_guide_and_roadmap_document_the_delivered_shape_slice() {
     let guide = read(MODES_GUIDE);
     assert!(
         guide.contains("`## System Slice`") && guide.contains("`## Ownership`"),
@@ -99,14 +99,15 @@ fn change_mode_guide_and_roadmap_document_the_first_slice() {
 
     let roadmap = read(ROADMAP_PATH);
     assert!(
-        roadmap.contains("requirements, discovery, change")
-            && roadmap.contains("now ship the first slice"),
-        "roadmap must record the delivered first slice"
+        roadmap.contains("`requirements`, `architecture`, and `change` ship the first")
+            && roadmap.contains("ADR-style")
+            && roadmap.contains("bounded change"),
+        "roadmap must record the delivered change artifact-shape slice"
     );
     assert!(roadmap.contains("change"), "roadmap must keep change in the delivered scope");
     assert!(
-        roadmap.contains("change owner for bounded change decisions")
+        roadmap.contains("change-planning persona")
             && roadmap.contains("Keep personas guidance-only"),
-        "roadmap must document the first-slice change persona layer and its boundary"
+        "roadmap must document the change persona layer and its boundary"
     );
 }

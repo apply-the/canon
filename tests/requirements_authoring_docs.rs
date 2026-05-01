@@ -81,7 +81,7 @@ fn requirements_skill_mirror_matches_skill_source() {
 }
 
 #[test]
-fn requirements_mode_guide_and_roadmap_document_the_first_slice() {
+fn requirements_mode_guide_and_roadmap_document_the_delivered_shape_slice() {
     let guide = read(MODES_GUIDE);
     assert!(
         guide.contains("`## Problem`") && guide.contains("`## Scope Cuts`"),
@@ -96,18 +96,18 @@ fn requirements_mode_guide_and_roadmap_document_the_first_slice() {
 
     let roadmap = read(ROADMAP_PATH);
     assert!(
-        roadmap.contains("requirements, discovery, change")
-            && roadmap.contains("now ship the first slice"),
-        "roadmap must record the delivered first slice"
+        roadmap.contains("`requirements`, `architecture`, and `change` ship the first")
+            && roadmap.contains("PRD"),
+        "roadmap must record the delivered requirements artifact-shape slice"
     );
     assert!(
         roadmap.contains("requirements"),
         "roadmap must keep requirements in the delivered scope"
     );
     assert!(
-        roadmap.contains("product lead for PRD work")
+        roadmap.contains("product-facing persona")
             && roadmap.contains("Keep personas guidance-only"),
-        "roadmap must document the first-slice persona layer and its boundary"
+        "roadmap must document the requirements persona layer and its boundary"
     );
 }
 
@@ -127,8 +127,10 @@ fn readme_and_getting_started_use_canonical_requirements_examples() {
         );
         assert!(
             content.contains("product lead, architect, and change owner")
-                || content.contains("product lead,\narchitect, and change owner"),
-            "{path} must mention the first-slice persona layer"
+                || content.contains("product lead,\narchitect, and change owner")
+                || content.contains("product\nlead, architect, and change-owner")
+                || content.contains("product lead, architect, and change-owner"),
+            "{path} must mention the delivered requirements persona layer"
         );
     }
 }
