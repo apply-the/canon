@@ -55,6 +55,10 @@ Bound the packet around authored-body preservation, critique visibility, and dur
 
 - The packet stays reviewable when the contract is explicit.
 
+## Why Not The Others
+
+- A second renderer path would duplicate authored-body extraction rules and make future packet evolution harder to review.
+
 ## Capabilities
 
 - Preserve canonical headings.
@@ -158,6 +162,11 @@ fn system_shaping_renderer_preserves_authored_sections_verbatim() {
     assert!(
         architecture_outline.contains(
             "## Rationale\n\n- The packet stays reviewable when the contract is explicit."
+        )
+    );
+    assert!(
+        architecture_outline.contains(
+            "## Why Not The Others\n\n- A second renderer path would duplicate authored-body extraction rules and make future packet evolution harder to review."
         )
     );
 }

@@ -54,6 +54,10 @@ The billing packet should separate subscription lifecycle decisions, invoice obl
 ## Rationale
 - This keeps operational complexity low while still making the seams reviewable and ready for later extraction.
 
+## Why Not The Others
+- Splitting payment collection into a separate service immediately would add operational cost before the billing seams and webhook timing are proven.
+- Letting Stripe receipts stand in for invoice management would postpone a compliance requirement that the billing domain already knows it must own.
+
 ## Capabilities
 - Subscription state management.
 - Invoice generation and retention.

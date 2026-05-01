@@ -30,9 +30,17 @@ src/auth/session.rs and src/auth/repository.rs only.
 ## Executed Changes
 - Add the bounded repository helper and thread it through the revocation service without widening the public API.
 
+## Candidate Frameworks
+- Candidate 1 keeps the helper local to the auth session slice.
+- Candidate 2 introduces a shared auth abstraction before the bounded slice proves reusable.
+
 ## Options Matrix
 - Option 1 keeps the helper inside the auth session slice.
 - Option 2 introduces a shared auth abstraction before the bounded slice proves reusable.
+
+## Decision Evidence
+- Existing auth-session rollback posture already aligns with the local helper approach.
+- Focused implementation suites already guard the bounded packet contract.
 
 ## Recommendation
 - Start with the local helper and defer the broader abstraction until a later packet proves the reuse pressure.

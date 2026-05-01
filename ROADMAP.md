@@ -30,6 +30,9 @@ continuity.
   publishes readable packets under `docs/architecture/assessments/<RUN_ID>/`,
   and uses ISO 42010-style coverage with explicit observed findings, inferred
   findings, and assessment gaps.
+- `system-shaping`, `change`, `implementation`, and `migration` now preserve
+  explicit alternatives, decision evidence, and rejected-option rationale in
+  their decision-heavy packet surfaces.
 - `supply-chain-analysis` remains delivered and publishes readable packets
   under `docs/supply-chain/<RUN_ID>/`.
 - `Distribution Channels Beyond GitHub Releases` now ships Homebrew
@@ -143,17 +146,17 @@ slice remains explicitly limited to `requirements`, `architecture`, and
 - Provides the natural artifact homes for the option-analysis feature below,
   especially `Options Considered`, `Why Not`, and evaluation dossiers.
 
-## Next Feature: 022 Decision Alternatives, Pattern Choices, And Framework Evaluations
+## Delivered Feature: 028 Decision Alternatives, Pattern Choices, And Framework Evaluations
 
 ### Outcome
 
-Canon becomes a real engineering companion for decision-heavy work: instead of
+Canon now acts as a real engineering companion for decision-heavy work: instead of
 jumping straight to one recommendation, it presents 2 to 4 viable
 alternatives, compares them explicitly, and recommends one with clear
 rationale grounded in the user's constraints, the real source surface, and
 observable ecosystem signals.
 
-This next slice also closes the most obvious persona gap left by the first
+This delivered slice also closes the most obvious persona gap left by the first
 artifact-shapes rollout: the in-scope decision-heavy modes MUST declare a
 credible authored counterpart so option packets read like bounded engineering
 work rather than anonymous summaries.
@@ -233,20 +236,19 @@ authority, or override Canon's approval, risk, or missing-gap semantics.
   but OSS and commercial options must be labeled clearly and evaluated against
   the same declared constraints.
 
-### First Slice
+### Delivered Slice
 
 - `architecture` now ships the option-analysis shape: `Decision Drivers`,
   `Options Considered`, `Pros`, `Cons`, `Recommendation`, and
   `Why Not The Others`, alongside ADR-like `Consequences` in the decision
   artifact.
-- Add a pattern-selection shape to `system-shaping` and `change` for
-  pattern-heavy problems where structure is the real decision.
-- Add a framework/library evaluation shape to `implementation` and
-  `migration` when the bounded task includes selecting a concrete stack.
-- Add read-only evidence collectors for registry, GitHub, release, and
-  project-health signals so comparisons are backed by real evidence rather
-  than vibes.
-- Keep final selections recommendation-only in v0.x.
+- `system-shaping` and `change` now preserve pattern-selection and bounded
+  change alternatives directly in their authored artifacts, including explicit
+  rejected-option rationale.
+- `implementation` and `migration` now preserve framework or rollout
+  candidate comparison plus decision evidence directly in their execution and
+  migration packets.
+- Final selections remain recommendation-only in v0.x.
 
 ### Why This Feature
 
@@ -285,7 +287,7 @@ normal part of mode shaping rather than a one-off exception.
 
 ## Remaining Roadmap Candidates
 
-The roadmap beyond `022` should continue with the features below, ordered by
+The roadmap beyond `028` should continue with the features below, ordered by
 their fit with the already-delivered authoring and decision-support layers.
 
 ## Feature: Distribution Channels Beyond GitHub Releases

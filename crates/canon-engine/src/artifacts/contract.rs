@@ -103,7 +103,13 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "architecture-outline.md",
-                &["Summary", "Structural Options", "Selected Boundaries", "Rationale"],
+                &[
+                    "Summary",
+                    "Structural Options",
+                    "Selected Boundaries",
+                    "Rationale",
+                    "Why Not The Others",
+                ],
                 &[GateKind::Architecture, GateKind::Risk],
             ),
             requirement(
@@ -153,7 +159,12 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[
                     "Summary",
                     "Decision Record",
+                    "Decision Drivers",
+                    "Options Considered",
+                    "Decision Evidence",
                     "Boundary Tradeoffs",
+                    "Recommendation",
+                    "Why Not The Others",
                     "Consequences",
                     "Unresolved Questions",
                 ],
@@ -467,7 +478,9 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[
                     "Summary",
                     "Executed Changes",
+                    "Candidate Frameworks",
                     "Options Matrix",
+                    "Decision Evidence",
                     "Recommendation",
                     "Task Linkage",
                 ],
@@ -533,7 +546,9 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                     "Summary",
                     "Migration Decisions",
                     "Tradeoff Analysis",
+                    "Decision Evidence",
                     "Recommendation",
+                    "Why Not The Others",
                     "Ecosystem Health",
                     "Deferred Decisions",
                     "Approval Notes",

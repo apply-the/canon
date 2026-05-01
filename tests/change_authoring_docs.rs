@@ -20,6 +20,12 @@ const CANONICAL_HEADINGS: &[&str] = &[
     "## Validation Strategy",
     "## Independent Checks",
     "## Decision Record",
+    "## Decision Drivers",
+    "## Options Considered",
+    "## Decision Evidence",
+    "## Boundary Tradeoffs",
+    "## Recommendation",
+    "## Why Not The Others",
     "## Consequences",
     "## Unresolved Questions",
 ];
