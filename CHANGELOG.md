@@ -19,11 +19,30 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.26.0`
+- None recorded after `0.27.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.26.0`.
+- No additional released feature-spec delivery is recorded after `0.27.0`.
+
+## [0.27.0] - 2026-04-30
+
+Delivered specs:
+
+- `027` - System Assessment Mode
+
+Highlights:
+
+- Add a first-class `system-assessment` mode for governed as-is architecture
+  assessment with explicit coverage, dependencies, risks, and evidence gaps.
+- Keep `system-assessment` recommendation-only, require
+  `--system-context existing`, publish to
+  `docs/architecture/assessments/<RUN_ID>/`, and distinguish direct evidence
+  from inferred coverage and assessment gaps with explicit observed and
+  inferred findings.
+- Add the new method, skill, templates, examples, compatibility references,
+  and focused contract, renderer, run, bootstrap, and release-surface
+  validation for the `0.27.0` delivery.
 
 ## [0.26.0] - 2026-04-30
 
@@ -45,7 +64,7 @@ Highlights:
   surface.
 - Add optional dedicated Homebrew tap synchronization with artifact-only
   fallback, plus install, roadmap, and release-surface updates for the `0.26.0`
-  delivery.  
+  delivery.
 - Extend the release workflow, verification helpers, and install docs so
   macOS and Linux users can prefer Homebrew, Windows users can prefer
   `winget`, and maintainers still retain the archive fallback plus optional

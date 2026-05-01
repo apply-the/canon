@@ -35,6 +35,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "requirements",
             "system-shaping",
             "architecture",
+            "system-assessment",
             "change",
             "backlog",
             "pr-review",
@@ -61,10 +62,12 @@ fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
     assert!(text.contains("implementation"));
     assert!(text.contains("refactor"));
     assert!(text.contains("incident"));
+    assert!(text.contains("system-assessment"));
     assert!(text.contains("migration"));
     assert!(text.contains("security-assessment"));
     assert!(text.contains("supply-chain-analysis"));
     assert_eq!(text.matches("incident").count(), 1);
+    assert_eq!(text.matches("system-assessment").count(), 1);
     assert_eq!(text.matches("security-assessment").count(), 1);
     assert_eq!(text.matches("migration").count(), 1);
     assert_eq!(text.matches("supply-chain-analysis").count(), 1);

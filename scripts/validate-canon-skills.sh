@@ -128,20 +128,23 @@ pr_review_path="${SKILLS_DIR}/canon-pr-review/SKILL.md"
 clarity_path="${SKILLS_DIR}/canon-inspect-clarity/SKILL.md"
 incident_path="${SKILLS_DIR}/canon-incident/SKILL.md"
 migration_path="${SKILLS_DIR}/canon-migration/SKILL.md"
+system_assessment_path="${SKILLS_DIR}/canon-system-assessment/SKILL.md"
 defaults_runtime_sh="${ROOT}/defaults/embedded-skills/canon-shared/scripts/check-runtime.sh"
 defaults_runtime_ps1="${ROOT}/defaults/embedded-skills/canon-shared/scripts/check-runtime.ps1"
 agents_runtime_sh="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.sh"
 agents_runtime_ps1="${ROOT}/.agents/skills/canon-shared/scripts/check-runtime.ps1"
 
-require_text "$defaults_runtime_sh" 'implementation|refactor|incident|security-assessment|migration|supply-chain-analysis)' 'shared bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration/supply-chain-analysis canonical inputs'
-require_text "$agents_runtime_sh" 'implementation|refactor|incident|security-assessment|migration|supply-chain-analysis)' 'materialized bash runtime hints must recognize implementation/refactor/incident/security-assessment/migration/supply-chain-analysis canonical inputs'
+require_text "$defaults_runtime_sh" 'implementation|refactor|incident|security-assessment|system-assessment|migration|supply-chain-analysis)' 'shared bash runtime hints must recognize implementation/refactor/incident/security-assessment/system-assessment/migration/supply-chain-analysis canonical inputs'
+require_text "$agents_runtime_sh" 'implementation|refactor|incident|security-assessment|system-assessment|migration|supply-chain-analysis)' 'materialized bash runtime hints must recognize implementation/refactor/incident/security-assessment/system-assessment/migration/supply-chain-analysis canonical inputs'
 require_text "$defaults_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'shared PowerShell runtime hints must recognize implementation canonical inputs'
 require_text "$defaults_runtime_ps1" "'incident' { return 'canon-input/incident.md or canon-input/incident/' }" 'shared PowerShell runtime hints must recognize incident canonical inputs'
+require_text "$defaults_runtime_ps1" "'system-assessment' { return 'canon-input/system-assessment.md or canon-input/system-assessment/' }" 'shared PowerShell runtime hints must recognize system-assessment canonical inputs'
 require_text "$defaults_runtime_ps1" "'migration' { return 'canon-input/migration.md or canon-input/migration/' }" 'shared PowerShell runtime hints must recognize migration canonical inputs'
 require_text "$defaults_runtime_ps1" "'supply-chain-analysis' { return 'canon-input/supply-chain-analysis.md or canon-input/supply-chain-analysis/' }" 'shared PowerShell runtime hints must recognize supply-chain-analysis canonical inputs'
 require_text "$defaults_runtime_ps1" "'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }" 'shared PowerShell runtime hints must recognize refactor canonical inputs'
 require_text "$agents_runtime_ps1" "'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }" 'materialized PowerShell runtime hints must recognize implementation canonical inputs'
 require_text "$agents_runtime_ps1" "'incident' { return 'canon-input/incident.md or canon-input/incident/' }" 'materialized PowerShell runtime hints must recognize incident canonical inputs'
+require_text "$agents_runtime_ps1" "'system-assessment' { return 'canon-input/system-assessment.md or canon-input/system-assessment/' }" 'materialized PowerShell runtime hints must recognize system-assessment canonical inputs'
 require_text "$agents_runtime_ps1" "'migration' { return 'canon-input/migration.md or canon-input/migration/' }" 'materialized PowerShell runtime hints must recognize migration canonical inputs'
 require_text "$agents_runtime_ps1" "'supply-chain-analysis' { return 'canon-input/supply-chain-analysis.md or canon-input/supply-chain-analysis/' }" 'materialized PowerShell runtime hints must recognize supply-chain-analysis canonical inputs'
 require_text "$agents_runtime_ps1" "'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }" 'materialized PowerShell runtime hints must recognize refactor canonical inputs'
@@ -167,6 +170,12 @@ require_text "$incident_path" '--system-context existing' 'canon-incident: must 
 require_text "$migration_path" '--input <INPUT_PATH>' 'canon-migration: preflight must keep file-path input binding'
 require_text "$migration_path" '--input-text <INPUT_TEXT>' 'canon-migration: must document inline authored input binding'
 require_text "$migration_path" '--system-context existing' 'canon-migration: must bind existing system context explicitly'
+require_text "$system_assessment_path" '--input <INPUT_PATH>' 'canon-system-assessment: preflight must keep file-path input binding'
+require_text "$system_assessment_path" '--input-text <INPUT_TEXT>' 'canon-system-assessment: must document inline authored input binding'
+require_text "$system_assessment_path" '--system-context existing' 'canon-system-assessment: must bind existing system context explicitly'
+require_text "$system_assessment_path" '## Observed Findings' 'canon-system-assessment: must require observed findings in the authored body contract'
+require_text "$system_assessment_path" '## Inferred Findings' 'canon-system-assessment: must require inferred findings in the authored body contract'
+require_text "$system_assessment_path" '## Assessment Gaps' 'canon-system-assessment: must require assessment gaps in the authored body contract'
 require_text "$refactor_path" '--input <INPUT_PATH>' 'canon-refactor: preflight must keep file-path input binding'
 require_text "$refactor_path" '--input-text <INPUT_TEXT>' 'canon-refactor: must document inline authored input binding'
 require_text "$refactor_path" '--system-context existing' 'canon-refactor: must bind existing system context explicitly'

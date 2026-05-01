@@ -41,9 +41,11 @@ pub(crate) fn resolved_execution_posture_label_for_mode(
     approvals: &[ApprovalRecord],
 ) -> Option<String> {
     resolved_execution_posture_label(context, approvals).or_else(|| match mode {
-        Mode::Incident | Mode::Migration | Mode::SecurityAssessment | Mode::SupplyChainAnalysis => {
-            Some("recommendation-only".to_string())
-        }
+        Mode::Incident
+        | Mode::Migration
+        | Mode::SystemAssessment
+        | Mode::SecurityAssessment
+        | Mode::SupplyChainAnalysis => Some("recommendation-only".to_string()),
         _ => None,
     })
 }

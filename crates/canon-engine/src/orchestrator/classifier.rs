@@ -19,6 +19,7 @@ pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
         | Mode::Refactor
         | Mode::Migration
         | Mode::Incident
+        | Mode::SystemAssessment
         | Mode::SecurityAssessment
         | Mode::SupplyChainAnalysis => SystemContextRequirement::Required,
         Mode::Discovery
@@ -43,7 +44,11 @@ pub fn validate_system_context(
         (_, Some(SystemContext::New))
             if matches!(
                 mode,
-                Mode::Change | Mode::Backlog | Mode::SecurityAssessment | Mode::SupplyChainAnalysis
+                Mode::Change
+                    | Mode::Backlog
+                    | Mode::SystemAssessment
+                    | Mode::SecurityAssessment
+                    | Mode::SupplyChainAnalysis
             ) =>
         {
             Err(format!(
@@ -57,9 +62,11 @@ pub fn validate_system_context(
 
 fn supported_system_context_usage(mode: Mode) -> &'static str {
     match mode {
-        Mode::Change | Mode::Backlog | Mode::SecurityAssessment | Mode::SupplyChainAnalysis => {
-            "existing"
-        }
+        Mode::Change
+        | Mode::Backlog
+        | Mode::SystemAssessment
+        | Mode::SecurityAssessment
+        | Mode::SupplyChainAnalysis => "existing",
         _ => "new|existing",
     }
 }

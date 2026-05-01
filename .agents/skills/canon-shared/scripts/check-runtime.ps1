@@ -215,6 +215,7 @@ function Get-CanonicalModeInputHint([string]$CommandName) {
     'change' { return 'canon-input/change.md or canon-input/change/' }
     'implementation' { return 'canon-input/implementation.md or canon-input/implementation/' }
     'incident' { return 'canon-input/incident.md or canon-input/incident/' }
+    'system-assessment' { return 'canon-input/system-assessment.md or canon-input/system-assessment/' }
     'migration' { return 'canon-input/migration.md or canon-input/migration/' }
     'supply-chain-analysis' { return 'canon-input/supply-chain-analysis.md or canon-input/supply-chain-analysis/' }
     'refactor' { return 'canon-input/refactor.md or canon-input/refactor/' }
@@ -565,6 +566,7 @@ if ($RunStartCommand) {
     'system-shaping' { 'new|existing' }
     'architecture' { 'new|existing' }
     'change' { 'existing' }
+    'system-assessment' { 'existing' }
     default { '' }
   }
 
@@ -579,8 +581,8 @@ if ($RunStartCommand) {
     }
   }
 
-  if ($Command -eq 'change' -and $NormalizedSystemContext -and $NormalizedSystemContext -ne 'existing') {
-    Emit-Failure 'invalid-input' 17 'Mode change currently supports only --system-context existing in this release.' 'Retry with --system-context existing.' @{ FAILED_SLOT = 'system-context'; FAILED_KIND = 'SystemContextField' }
+  if (($Command -eq 'change' -or $Command -eq 'system-assessment') -and $NormalizedSystemContext -and $NormalizedSystemContext -ne 'existing') {
+    Emit-Failure 'invalid-input' 17 "Mode $Command currently supports only --system-context existing in this release." 'Retry with --system-context existing.' @{ FAILED_SLOT = 'system-context'; FAILED_KIND = 'SystemContextField' }
   }
 
   if (-not $NormalizedRisk -or -not $NormalizedZone) {
