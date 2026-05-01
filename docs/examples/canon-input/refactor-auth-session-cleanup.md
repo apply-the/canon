@@ -1,5 +1,9 @@
 # Refactor Brief: Auth Session Composition Cleanup
 
+Use this brief to author a preserved-behavior matrix plus
+structural-rationale packet that proves no new feature semantics are being
+introduced.
+
 Feature Slice: Auth session boundary and repository composition inside the existing login subsystem.
 Primary Upstream Mode: implementation
 Upstream Sources:

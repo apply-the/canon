@@ -19,11 +19,30 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.30.0`
+- None recorded after `0.31.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.30.0`.
+- No additional released feature-spec delivery is recorded after `0.31.0`.
+
+## [0.31.0] - 2026-05-01
+
+Delivered specs:
+
+- `031` - Remaining Industry-Standard Artifact Shapes
+
+Highlights:
+
+- Close the industry-standard artifact-shapes rollout for the remaining
+  modeled modes by shaping `implementation`, `refactor`, and `verification`
+  into task-mapped delivery, preserved-behavior, and claims-and-evidence
+  packets.
+- Keep canonical authored H2 contracts, explicit `## Missing Authored Body`
+  honesty, and guidance-only persona boundaries intact while extending the
+  reviewer-native packet framing across the final modeled-mode slice.
+- Align the `0.31.0` release surface across workspace manifests, lockfile,
+  shared runtime compatibility references, release-facing docs, focused docs
+  regressions, and final validation evidence.
 
 ## [0.30.0] - 2026-05-01
 

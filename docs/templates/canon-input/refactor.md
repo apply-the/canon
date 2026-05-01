@@ -1,5 +1,9 @@
 # Refactor Brief
 
+Use this brief to author a preserved-behavior matrix plus
+structural-rationale packet that proves no new feature semantics are being
+introduced.
+
 Feature Slice: The concrete feature or component this preservation packet covers.
 Primary Upstream Mode: change | implementation | direct
 Upstream Sources:

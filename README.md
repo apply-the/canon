@@ -1,5 +1,7 @@
 # Canon
 
+![Canon banner](docs/images/Canon-banner.jpg)
+
 [![CI](https://github.com/apply-the/canon/actions/workflows/ci.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/ci.yml)
 [![Lint](https://github.com/apply-the/canon/actions/workflows/lint.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/lint.yml)
 [![Vulnerabilities](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml)
@@ -7,15 +9,15 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.30.0`.
+The current delivery line in this repository targets Canon `0.31.0`.
 
-Canon `0.30.0` extends the industry-standard artifact-shapes rollout across
-three more high-leverage modes: `discovery` now reads like an Opportunity
-Solution Tree plus Jobs-To-Be-Done flavored exploratory brief,
-`system-shaping` now reads like a domain map plus structural-options packet,
-and `review` now reads like a findings-first review bundle. The existing
-canonical headings, explicit `## Missing Authored Body` honesty, and bounded
-persona posture remain unchanged.
+Canon `0.31.0` closes the remaining industry-standard artifact-shapes rollout
+for the current modeled modes: `implementation` now reads like a task-mapped
+delivery packet with option comparison and rollback posture, `refactor` now
+reads like a preserved-behavior plus structural-rationale packet, and
+`verification` now reads like a claims-and-evidence challenge packet. The
+existing canonical headings, explicit `## Missing Authored Body` honesty, and
+bounded persona posture remain unchanged.
 
 ## What Canon Does
 

@@ -997,7 +997,8 @@ The current-mode brief should use canonical authored H2 sections: `## Task Mappi
 
 ### What Canon Emits
 
-Implementation produces a governed execution packet with these artifacts:
+Implementation produces a governed task-mapped delivery packet with these
+artifacts:
 
 - `task-mapping.md`
 - `mutation-bounds.md`
@@ -1011,10 +1012,10 @@ current `recommendation-only` posture explicit.
 
 ### Intended Persona
 
-Author implementation as if it were written by an implementation lead making a
-bounded execution recommendation for maintainers and approvers.
+Author implementation as if it were written by an implementation lead
+comparing bounded execution options for maintainers and approvers.
 
-- Favor task linkage, candidate comparison, decision evidence, ecosystem
+- Favor task linkage, options matrix tradeoffs, decision evidence, ecosystem
   health, adoption implications, and rollback clarity over generic execution
   prose.
 - Boundary: the persona shapes framing only. It must not widen the declared
@@ -1138,7 +1139,8 @@ The current-mode brief should use canonical authored H2 sections: `## Preserved 
 
 ### What Canon Emits
 
-Refactor produces a governed preservation packet with these artifacts:
+Refactor produces a governed preserved-behavior matrix plus
+structural-rationale packet with these artifacts:
 
 - `preserved-behavior.md`
 - `refactor-scope.md`
@@ -1149,6 +1151,18 @@ Refactor produces a governed preservation packet with these artifacts:
 
 Run and status summaries surface `preserved-behavior.md` directly and make the
 current `recommendation-only` posture explicit.
+
+### Intended Persona
+
+Author refactor as if it were written by a preservation-focused maintainer
+proving the structural cleanup remains behavior-safe for reviewers and
+approvers.
+
+- Favor preserved behavior, structural rationale, untouched surface, feature
+  audit, and safety-net evidence over generic cleanup prose.
+- Boundary: the persona shapes framing only. It must not widen the declared
+  refactor scope, normalize feature growth, or replace missing authored
+  sections.
 
 ### Important Runtime Constraint
 
@@ -1329,7 +1343,8 @@ governed verification packet.
 
 ### Input Shape
 
-A file-backed verification packet or short verification brief.
+A file-backed verification packet or short verification brief under
+`canon-input/verification.md` or `canon-input/verification/`.
 
 Verification is strongest when the packet authors these canonical H2 sections
 directly: `## Claims Under Test`, `## Invariant Checks`,
@@ -1364,7 +1379,8 @@ status lines such as `Status: unsupported` and
 
 ### What Canon Emits
 
-Verification produces a governed challenge packet with these artifacts:
+Verification produces a governed claims, evidence, and independence challenge
+packet with these artifacts:
 
 - `invariants-checklist.md`
 - `contract-matrix.md`
@@ -1377,6 +1393,17 @@ rejected, and what remains unresolved in the current verification target.
 
 Run and status summaries also surface `verification-report.md` directly, so the
 supported or blocked posture is visible without a mandatory inspect step first.
+
+### Intended Persona
+
+Author verification as if it were written by an adversarial verifier
+challenging claims, evidence quality, and independence for reviewers and
+approvers.
+
+- Favor contradictions, rejected claims, unresolved findings, and required
+  follow-up over reassurance prose.
+- Boundary: the persona shapes framing only. It must not invent evidence,
+  imply supported closure, or replace missing authored sections.
 
 ### Typical Handoff After This Mode
 

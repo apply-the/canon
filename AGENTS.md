@@ -102,9 +102,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 031-remaining-artifact-shapes: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 - 030-artifact-shapes-follow-on: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 - 029-publish-destinations: Added Rust 1.95.0 workspace plus Markdown documentation and Spec Kit artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; Spec Kit scripts under `.specify/scripts/bash/`
-- 028-decision-alternatives: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
