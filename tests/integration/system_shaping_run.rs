@@ -66,6 +66,9 @@ Keep the review surface grounded in authored packet sections rather than synthes
 ## Rationale
 - Explicit authored sections make the packet reviewable without widening Canon's execution model.
 
+## Why Not The Others
+- A second renderer path would duplicate authored-body extraction rules and blur the contract boundary before the slice is stable.
+
 ## Capabilities
 - Bounded system-shape definition.
 - Context and invariant capture.
@@ -297,6 +300,10 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
         )
     );
     assert!(architecture_outline.contains("## Rationale"));
+    assert!(architecture_outline.contains("## Why Not The Others"));
+    assert!(architecture_outline.contains(
+        "A second renderer path would duplicate authored-body extraction rules and blur the contract boundary before the slice is stable."
+    ));
 
     let risk_hotspots =
         fs::read_to_string(artifact_root.join("risk-hotspots.md")).expect("risk hotspots");

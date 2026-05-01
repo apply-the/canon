@@ -93,9 +93,32 @@ Add bounded repository methods and preserve the public auth contract.
 
 Prefer additive change over normalization to preserve operator expectations.
 
+## Decision Drivers
+
+- Preserve operator expectations.
+- Keep the auth contract stable during the bounded repository change.
+
+## Options Considered
+
+- Option 1 keeps the additive repository helper inside the auth boundary.
+- Option 2 normalizes scheduling and cleanup behavior in the same slice.
+
+## Decision Evidence
+
+- Existing operator workflows still depend on the current auth cleanup ordering.
+- Contract tests already guard the preserved API surface.
+
 ## Boundary Tradeoffs
 
 - keep cleanup logic inside the auth boundary even if that duplicates some scheduling code
+
+## Recommendation
+
+- Start with the additive repository helper and defer normalization to a later slice.
+
+## Why Not The Others
+
+- Normalizing cleanup behavior now would widen the change surface beyond the bounded auth slice.
 
 ## Consequences
 
@@ -133,6 +156,21 @@ fn change_run_completes_with_authored_sections_and_no_missing_marker() {
     .expect("implementation plan");
     assert!(implementation_plan.contains("## Implementation Plan\n\nAdd bounded repository methods and preserve the public auth contract."));
     assert!(!implementation_plan.contains("## Missing Authored Body"));
+
+    let decision_record = fs::read_to_string(
+        workspace
+            .path()
+            .join(".canon")
+            .join("artifacts")
+            .join(&summary.run_id)
+            .join("change")
+            .join("decision-record.md"),
+    )
+    .expect("decision record");
+    assert!(decision_record.contains("## Decision Drivers"));
+    assert!(decision_record.contains("## Decision Evidence"));
+    assert!(decision_record.contains("## Recommendation"));
+    assert!(decision_record.contains("## Why Not The Others"));
 }
 
 #[test]

@@ -19,6 +19,7 @@ const CONTRACT_SECTIONS: &[&str] = &[
     "Ubiquitous Language",
     "Domain Invariants",
     "Boundary Risks And Open Questions",
+    "Why Not The Others",
 ];
 
 const CANONICAL_HEADINGS: &[&str] = &[
@@ -28,6 +29,7 @@ const CANONICAL_HEADINGS: &[&str] = &[
     "## Structural Options",
     "## Selected Boundaries",
     "## Rationale",
+    "## Why Not The Others",
     "## Capabilities",
     "## Dependencies",
     "## Gaps",

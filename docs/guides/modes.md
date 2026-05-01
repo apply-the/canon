@@ -501,7 +501,7 @@ emitted packet directly: `## System Shape`, `## Boundary Decisions`, `## Domain
 Responsibilities`, `## Candidate Bounded Contexts`, `## Core And Supporting
 Domain Hypotheses`, `## Ubiquitous Language`, `## Domain Invariants`,
 `## Boundary Risks And Open Questions`, `## Structural Options`,
-`## Selected Boundaries`, `## Rationale`, `## Capabilities`,
+`## Selected Boundaries`, `## Rationale`, `## Why Not The Others`, `## Capabilities`,
 `## Dependencies`, `## Gaps`, `## Delivery Phases`,
 `## Sequencing Rationale`, `## Risk per Phase`, `## Hotspots`,
 `## Mitigation Status`, and `## Unresolved Risks`. This mode also requires
@@ -525,7 +525,7 @@ This mode works best when the brief includes explicit markers like:
 - `Intent:` and `Constraint:` markers so the shaping evidence is actually bounded
 - `## System Shape`, `## Boundary Decisions`, and `## Domain Responsibilities` so the primary artifact is author-authored instead of synthesized
 - `## Candidate Bounded Contexts`, `## Core And Supporting Domain Hypotheses`, `## Ubiquitous Language`, and `## Domain Invariants` so the domain-model packet is reviewable
-- `## Structural Options`, `## Selected Boundaries`, and `## Rationale` so the architecture outline carries explicit tradeoffs
+- `## Structural Options`, `## Selected Boundaries`, `## Rationale`, and `## Why Not The Others` so the architecture outline carries explicit tradeoffs and rejected alternatives
 - `## Capabilities`, `## Dependencies`, and `## Gaps` so the capability map stays honest about seams and missing work
 - `## Delivery Phases`, `## Sequencing Rationale`, `## Risk per Phase`, `## Hotspots`, `## Mitigation Status`, and `## Unresolved Risks` so the downstream delivery and risk artifacts do not collapse into filler
 
@@ -551,7 +551,7 @@ artifacts:
 
 - `system-shape.md`
 - `domain-model.md`
-- `architecture-outline.md`
+- `architecture-outline.md` (preserving `Structural Options`, `Selected Boundaries`, `Rationale`, and `Why Not The Others`)
 - `capability-map.md`
 - `delivery-options.md`
 - `risk-hotspots.md`
@@ -822,7 +822,7 @@ behavior.
 
 ### Input Shape
 
-A change brief authored with canonical H2 sections. For this first slice, a credible brief includes `## System Slice`, `## Domain Slice`, `## Excluded Areas`, `## Intended Change`, `## Legacy Invariants`, `## Domain Invariants`, `## Forbidden Normalization`, `## Change Surface`, `## Ownership`, `## Cross-Context Risks`, `## Implementation Plan`, `## Sequencing`, `## Validation Strategy`, `## Independent Checks`, `## Decision Record`, `## Boundary Tradeoffs`, `## Consequences`, and `## Unresolved Questions`. This mode requires explicit `--system-context existing` when you start the run.
+A change brief authored with canonical H2 sections. For this first slice, a credible brief includes `## System Slice`, `## Domain Slice`, `## Excluded Areas`, `## Intended Change`, `## Legacy Invariants`, `## Domain Invariants`, `## Forbidden Normalization`, `## Change Surface`, `## Ownership`, `## Cross-Context Risks`, `## Implementation Plan`, `## Sequencing`, `## Validation Strategy`, `## Independent Checks`, `## Decision Record`, `## Decision Drivers`, `## Options Considered`, `## Decision Evidence`, `## Boundary Tradeoffs`, `## Recommendation`, `## Why Not The Others`, `## Consequences`, and `## Unresolved Questions`. This mode requires explicit `--system-context existing` when you start the run.
 
 A change without an existing system does not make sense in Canon's model.
 `change` is defined around preserved behavior, bounded modification, and
@@ -842,7 +842,7 @@ actual question.
 - `## Change Surface`, `## Ownership`, and `## Cross-Context Risks` so the allowed mutation boundary and responsible owners are explicit
 - `## Implementation Plan` and `## Sequencing` so the packet states the intended order of operations
 - `## Validation Strategy` and `## Independent Checks` so the validation contract is credible
-- `## Decision Record`, `## Boundary Tradeoffs`, `## Consequences`, and `## Unresolved Questions` so the decision posture is preserved honestly
+- `## Decision Record`, `## Decision Drivers`, `## Options Considered`, `## Decision Evidence`, `## Recommendation`, `## Why Not The Others`, `## Boundary Tradeoffs`, `## Consequences`, and `## Unresolved Questions` so the decision posture is preserved honestly
 - metadata lines such as `Owner:`, `Risk Level:`, and `Zone:` outside the authored-body extraction when you want to keep operator metadata in the brief
 
 ### Questions This Mode Answers
@@ -869,7 +869,7 @@ Change produces a bounded change packet with these artifacts:
 - `change-surface.md`
 - `implementation-plan.md`
 - `validation-strategy.md`
-- `decision-record.md`
+- `decision-record.md` (preserving `Decision Record`, `Decision Drivers`, `Options Considered`, `Decision Evidence`, `Recommendation`, `Why Not The Others`, `Boundary Tradeoffs`, `Consequences`, and `Unresolved Questions`)
 
 Use that bundle when you need explicit evidence about what is changing, what
 must stay stable, which domain slice is affected, where cross-context risk
@@ -948,7 +948,7 @@ with:
 
 The current-mode brief should use canonical authored H2 sections: `## Task Mapping`,
 `## Bounded Changes`, `## Mutation Bounds`, `## Allowed Paths`,
-`## Executed Changes`, `## Options Matrix`, `## Recommendation`,
+`## Executed Changes`, `## Candidate Frameworks`, `## Options Matrix`, `## Decision Evidence`, `## Recommendation`,
 `## Task Linkage`, `## Completion Evidence`, `## Adoption Implications`,
 `## Remaining Risks`, `## Ecosystem Health`, `## Safety-Net Evidence`,
 `## Independent Checks`, `## Rollback Triggers`, and `## Rollback Steps`.
@@ -957,7 +957,7 @@ The current-mode brief should use canonical authored H2 sections: `## Task Mappi
 
 - `## Task Mapping` and `## Bounded Changes` so the execution slice is explicit
 - `## Mutation Bounds` and `## Allowed Paths` so the allowed mutation surface is reviewable
-- `## Executed Changes`, `## Options Matrix`, `## Recommendation`, and `## Task Linkage` so the packet explains the concrete bounded choice and why it won
+- `## Executed Changes`, `## Candidate Frameworks`, `## Options Matrix`, `## Decision Evidence`, `## Recommendation`, and `## Task Linkage` so the packet explains the concrete bounded choice and why it won
 - `## Completion Evidence`, `## Adoption Implications`, and `## Remaining Risks` so the packet explains what is done, how far the choice should spread, and what still remains risky
 - `## Ecosystem Health`, `## Safety-Net Evidence`, and `## Independent Checks` so recommendation-only execution is challengeable against the surrounding platform reality
 - `## Rollback Triggers` and `## Rollback Steps` so the bounded rollback posture is explicit before approval
@@ -981,7 +981,7 @@ Implementation produces a governed execution packet with these artifacts:
 
 - `task-mapping.md`
 - `mutation-bounds.md`
-- `implementation-notes.md`
+- `implementation-notes.md` (preserving `Executed Changes`, `Candidate Frameworks`, `Options Matrix`, `Decision Evidence`, `Recommendation`, and `Task Linkage`)
 - `completion-evidence.md`
 - `validation-hooks.md`
 - `rollback-notes.md`
@@ -994,8 +994,9 @@ current `recommendation-only` posture explicit.
 Author implementation as if it were written by an implementation lead making a
 bounded execution recommendation for maintainers and approvers.
 
-- Favor task linkage, option tradeoffs, ecosystem health, adoption
-  implications, and rollback clarity over generic execution prose.
+- Favor task linkage, candidate comparison, decision evidence, ecosystem
+  health, adoption implications, and rollback clarity over generic execution
+  prose.
 - Boundary: the persona shapes framing only. It must not widen the declared
   mutation surface, invent authority, or replace missing authored sections.
 
@@ -1696,8 +1697,8 @@ directly: `## Current State`, `## Target State`, `## Transition Boundaries`,
 `## Parallelizable Work`, `## Cutover Criteria`, `## Rollback Triggers`,
 `## Fallback Paths`, `## Re-Entry Criteria`, `## Adoption Implications`,
 `## Verification Checks`, `## Residual Risks`, `## Release Readiness`,
-`## Migration Decisions`, `## Tradeoff Analysis`, `## Recommendation`,
-`## Ecosystem Health`, `## Deferred Decisions`, and `## Approval Notes`.
+`## Migration Decisions`, `## Tradeoff Analysis`, `## Decision Evidence`, `## Recommendation`,
+`## Why Not The Others`, `## Ecosystem Health`, `## Deferred Decisions`, and `## Approval Notes`.
 Missing canonical H2 sections emit
 `## Missing Authored Body` naming the missing heading, and fallback credibility
 stays explicitly blocked when rollback or re-entry content is missing.
@@ -1711,7 +1712,7 @@ stays explicitly blocked when rollback or re-entry content is missing.
 - ordered steps and cutover criteria
 - rollback triggers, fallback paths, re-entry criteria, and `## Adoption Implications`
 - verification checks and residual risks
-- release-readiness posture, migration decisions, tradeoff analysis, recommendation, and ecosystem health
+- release-readiness posture, migration decisions, tradeoff analysis, decision evidence, recommendation, rejected alternatives, and ecosystem health
 
 ### Questions This Mode Answers
 
@@ -1735,7 +1736,7 @@ Migration produces a governed operational packet with these artifacts:
 - `sequencing-plan.md`
 - `fallback-plan.md`
 - `migration-verification-report.md`
-- `decision-record.md`
+- `decision-record.md` (preserving `Migration Decisions`, `Tradeoff Analysis`, `Decision Evidence`, `Recommendation`, `Why Not The Others`, `Ecosystem Health`, `Deferred Decisions`, and `Approval Notes`)
 
 Run and status summaries surface `source-target-map.md` as the primary artifact
 and keep the packet's `recommendation-only` posture explicit.
@@ -1745,8 +1746,9 @@ and keep the packet's `recommendation-only` posture explicit.
 Author migration as if it were written by a migration lead comparing bounded
 rollout paths for operators, reviewers, and approvers.
 
-- Favor compatibility tradeoffs, option comparison, ecosystem health,
-  adoption implications, and rollback credibility over generic rollout prose.
+- Favor compatibility tradeoffs, option comparison, decision evidence,
+  ecosystem health, adoption implications, and rollback credibility over
+  generic rollout prose.
 - Boundary: the persona shapes framing only. It must not imply cutover
   approval, invent authority, or replace missing authored sections.
 

@@ -24,9 +24,17 @@ Files, modules, and interfaces this packet may touch.
 ## Executed Changes
 - Describe the bounded implementation change that will be applied or recommended.
 
+## Candidate Frameworks
+- Candidate 1 and why it remains viable.
+- Candidate 2 and why it remains viable or risky.
+
 ## Options Matrix
 - Option 1: The narrowest bounded implementation approach.
 - Option 2: A broader abstraction or rollout path that is intentionally deferred.
+
+## Decision Evidence
+- Evidence source 1 grounding the recommendation.
+- Evidence source 2 grounding the deferred option.
 
 ## Recommendation
 - State which implementation option should proceed and why.

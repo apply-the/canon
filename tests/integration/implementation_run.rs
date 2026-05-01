@@ -76,9 +76,17 @@ src/auth/session.rs and src/auth/repository.rs only.
 ## Executed Changes
 - Add the bounded repository helper and thread it through the revocation service without widening the public API.
 
+## Candidate Frameworks
+- Candidate 1 keeps the helper local to the auth-session slice.
+- Candidate 2 introduces a shared auth abstraction before the bounded slice is proven.
+
 ## Options Matrix
 - Option 1 keeps the helper inside the auth-session slice.
 - Option 2 introduces a shared auth abstraction before the bounded slice is proven.
+
+## Decision Evidence
+- Existing auth-session rollback posture already aligns with the local helper approach.
+- Focused implementation suites already guard the bounded packet contract.
 
 ## Recommendation
 - Start with the local helper and defer broader abstraction until a later change proves it necessary.
@@ -250,7 +258,9 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     let implementation_notes = fs::read_to_string(artifact_root.join("implementation-notes.md"))
         .expect("implementation notes artifact");
     assert!(implementation_notes.contains("## Executed Changes"));
+    assert!(implementation_notes.contains("## Candidate Frameworks"));
     assert!(implementation_notes.contains("## Options Matrix"));
+    assert!(implementation_notes.contains("## Decision Evidence"));
     assert!(implementation_notes.contains("## Recommendation"));
     assert!(
         implementation_notes

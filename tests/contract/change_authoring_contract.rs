@@ -32,7 +32,12 @@ fn change_contract_uses_decision_record_heading() {
         vec![
             "Summary",
             "Decision Record",
+            "Decision Drivers",
+            "Options Considered",
+            "Decision Evidence",
             "Boundary Tradeoffs",
+            "Recommendation",
+            "Why Not The Others",
             "Consequences",
             "Unresolved Questions",
         ]

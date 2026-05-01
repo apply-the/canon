@@ -49,6 +49,9 @@ Describe the bounded system shape this packet is proposing.
 ## Rationale
 - Why the selected boundaries are preferable in this slice
 
+## Why Not The Others
+- Why the other viable structural options lost in this slice
+
 ## Capabilities
 - Capability 1
 - Capability 2

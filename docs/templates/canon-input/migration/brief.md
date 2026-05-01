@@ -59,8 +59,14 @@
 ## Tradeoff Analysis
 [Explain the most important tradeoffs across compatibility, cutover speed, rollback safety, and operational burden.]
 
+## Decision Evidence
+[List the evidence sources that make the recommendation credible for this bounded migration surface.]
+
 ## Recommendation
 [State the recommended migration option and why it is preferred for this bounded surface.]
+
+## Why Not The Others
+[Explain why the rejected migration paths lost for this bounded surface.]
 
 ## Ecosystem Health
 [Summarize the readiness of dependent services, libraries, teams, or operational tooling that this migration relies on.]

@@ -125,7 +125,9 @@ Define the authored-body contract for the completion slice delivered in feature 
 - `decision-record.md`
   - `## Migration Decisions`
   - `## Tradeoff Analysis`
+  - `## Decision Evidence`
   - `## Recommendation`
+  - `## Why Not The Others`
   - `## Ecosystem Health`
   - `## Deferred Decisions`
   - `## Approval Notes`

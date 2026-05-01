@@ -85,7 +85,12 @@ Do this every time, even when the user starts from change intent rather than a f
   - `## Validation Strategy`
   - `## Independent Checks`
   - `## Decision Record`
+  - `## Decision Drivers`
+  - `## Options Considered`
+  - `## Decision Evidence`
   - `## Boundary Tradeoffs`
+  - `## Recommendation`
+  - `## Why Not The Others`
   - `## Consequences`
   - `## Unresolved Questions`
 3. Metadata such as `Owner:`, `Risk Level:`, and `Zone:` may remain in the brief, but they are outside authored-body extraction in this first slice.
@@ -99,7 +104,7 @@ Author the packet as a change owner writing an ADR-style bounded change plan
 for maintainers and reviewers of the live system.
 
 - Favor preserved invariants, the closed change surface, sequencing,
-  validation evidence, and explicit unresolved questions.
+  validation evidence, explicit decision drivers, and rejection rationale.
 - Keep the packet bounded to the declared system slice and excluded areas; do
   not widen scope with persona voice.
 - Persona guidance is presentation only. If authored sections are missing,

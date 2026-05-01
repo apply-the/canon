@@ -89,6 +89,7 @@ source you just read:
     - `## Structural Options`
     - `## Selected Boundaries`
     - `## Rationale`
+    - `## Why Not The Others`
   - `capability-map.md`
     - `## Capabilities`
     - `## Dependencies`
@@ -122,6 +123,8 @@ downstream architects and implementers.
 
 - Favor boundary decisions, structural options, tradeoff rationale, and
   delivery consequences over abstract vision statements.
+- Make rejection logic explicit when more than one structural option remains
+  viable; reviewers should be able to see why the losing options lost.
 - Keep recommendations bounded to the authored intent and constraint markers;
   do not imply organizational approval or operational certainty the source
   does not support.

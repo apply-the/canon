@@ -81,9 +81,18 @@ const FULL_BRIEF: &str = r#"# Migration Brief
 
 - dual-write raises temporary complexity but keeps rollback safer while the bounded surface proves stable
 
+## Decision Evidence
+
+- Compatibility checks already prove auth-v2 token validation on the bounded login surface.
+- Reporting integrations still lag behind, which keeps the broader rollout out of scope for this slice.
+
 ## Recommendation
 
 - keep dual-write for the bounded auth token path and defer broader reporting migration
+
+## Why Not The Others
+
+- A direct cutover would narrow the rollback window before compatibility evidence is strong enough.
 
 ## Ecosystem Health
 
@@ -167,6 +176,12 @@ fn migration_renderer_preserves_authored_sections_verbatim() {
 
     assert!(decision_record.contains(
         "## Tradeoff Analysis\n\n- dual-write raises temporary complexity but keeps rollback safer while the bounded surface proves stable"
+    ));
+    assert!(decision_record.contains(
+        "## Decision Evidence\n\n- Compatibility checks already prove auth-v2 token validation on the bounded login surface."
+    ));
+    assert!(decision_record.contains(
+        "## Why Not The Others\n\n- A direct cutover would narrow the rollback window before compatibility evidence is strong enough."
     ));
     assert!(decision_record.contains(
         "## Ecosystem Health\n\n- auth-v2 dependencies are healthy enough for bounded cutover, but reporting integrations still lag behind"
