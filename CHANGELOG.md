@@ -19,18 +19,32 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.37.0`
+- None recorded after `0.38.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.37.0`.
+- No additional released feature-spec delivery is recorded after `0.38.0`.
+
+## [0.38.0] - 2026-05-02
+
+Delivered specs:
+
+- `038` - Guided Run Operations And Review Experience
+
+Highlights:
+
+- Align `run`, `status`, and shared next-step guidance around one result-first
+  operator surface with ordered possible actions, explicit blocker handling,
+  and review-before-approval ergonomics for gated and resumed runs.
+- Align the `0.38.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, operator guidance, roadmap, changelog,
+  and focused validation evidence.
 
 ## [0.37.0] - 2026-05-02
 
 Delivered specs:
 
 - `037` - Architecture Clarification Readiness And Mode Reroute
-- `038` - Guided Run Operations And Review Experience
 
 Highlights:
 
@@ -40,9 +54,6 @@ Highlights:
 - Update `readiness-assessment.md` so architecture packets preserve working
   assumptions, unresolved questions, blockers, accepted risks, and the next
   recommended mode instead of generic readiness prose.
-- Align `run`, `status`, and shared next-step guidance around one result-first
-  operator surface with ordered possible actions, explicit blocker handling,
-  and review-before-approval ergonomics for gated and resumed runs.
 - Align the `0.37.0` release surface across workspace manifests, lockfile,
   runtime compatibility references, architecture guidance, operator guidance,
   roadmap, changelog, and focused validation evidence.

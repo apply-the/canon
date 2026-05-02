@@ -5,7 +5,7 @@ use std::process::Command as ProcessCommand;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
-const VERSION: &str = "0.37.0";
+const VERSION: &str = "0.38.0";
 
 #[test]
 fn distribution_metadata_includes_provenance_and_channel_contracts() {
@@ -387,13 +387,13 @@ fn canonical_release_contract_renders_and_verifies_all_channels() {
 }
 
 #[test]
-fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
+fn release_docs_and_version_surfaces_align_on_0_38_0_delivery() {
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
     let cargo_manifest = fs::read_to_string(repo_root.join("Cargo.toml")).expect("read Cargo.toml");
     assert!(
-        cargo_manifest.contains("version = \"0.37.0\""),
-        "workspace manifest should be bumped to 0.37.0"
+        cargo_manifest.contains("version = \"0.38.0\""),
+        "workspace manifest should be bumped to 0.38.0"
     );
 
     for compatibility_ref in [
@@ -404,8 +404,8 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
         let content =
             fs::read_to_string(&compatibility_ref).expect("read runtime compatibility reference");
         assert!(
-            content.contains("expected_workspace_version = \"0.37.0\""),
-            "runtime compatibility reference should point at 0.37.0: {}",
+            content.contains("expected_workspace_version = \"0.38.0\""),
+            "runtime compatibility reference should point at 0.38.0: {}",
             compatibility_ref.display()
         );
     }
@@ -413,8 +413,8 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
     let readme = fs::read_to_string(repo_root.join("README.md")).expect("read README");
     let readme_compact = readme.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
-        readme.contains("The current delivery line in this repository targets Canon `0.37.0`."),
-        "README should advertise Canon 0.37.0"
+        readme.contains("The current delivery line in this repository targets Canon `0.38.0`."),
+        "README should advertise Canon 0.38.0"
     );
     assert!(
         readme_compact.contains(
@@ -430,7 +430,7 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
         winget_guide_compact.contains("explicit `source_of_truth` and `channels` contracts"),
         "winget guide should describe the explicit provenance contract"
     );
-    assert!(winget_guide.contains("0.37.0"), "winget guide should use 0.37.0 examples");
+    assert!(winget_guide.contains("0.38.0"), "winget guide should use 0.38.0 examples");
 
     let scoop_guide = fs::read_to_string(repo_root.join("docs/guides/publishing-to-scoop.md"))
         .expect("read scoop guide");
@@ -439,7 +439,7 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
         scoop_guide_compact.contains("explicit `source_of_truth` and `channels` contracts"),
         "scoop guide should describe the explicit provenance contract"
     );
-    assert!(scoop_guide.contains("0.37.0"), "scoop guide should use 0.37.0 examples");
+    assert!(scoop_guide.contains("0.38.0"), "scoop guide should use 0.38.0 examples");
 
     let roadmap = fs::read_to_string(repo_root.join("ROADMAP.md")).expect("read roadmap");
     let roadmap_compact = roadmap.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -464,7 +464,7 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
     );
 
     let changelog = fs::read_to_string(repo_root.join("CHANGELOG.md")).expect("read changelog");
-    assert!(changelog.contains("## [0.37.0]"), "changelog should record the 0.37.0 release");
+    assert!(changelog.contains("## [0.38.0]"), "changelog should record the 0.38.0 release");
     assert!(
         changelog.contains("Architecture Clarification Readiness And Mode Reroute"),
         "changelog should name the 037 feature"
