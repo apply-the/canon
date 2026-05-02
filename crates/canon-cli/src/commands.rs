@@ -1,4 +1,5 @@
 pub mod approve;
+pub mod governance;
 pub mod init;
 pub mod inspect;
 pub mod list;

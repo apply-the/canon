@@ -9,7 +9,7 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.34.0`.
+The current delivery line in this repository targets Canon `0.35.0`.
 
 
 ## What Canon Does
@@ -24,6 +24,24 @@ Use it when you want AI-assisted work to stay inspectable and bounded:
 - Work with an AI assistant through repo-local skills without hiding the CLI contract.
 
 Canon is not a generic agent framework and it is not an opaque agent loop. It is a local-first method engine that keeps the control surface on disk.
+
+## Machine-Facing Governance Adapter
+
+Canon now also exposes a machine-facing governance adapter for external
+orchestrators that need stable JSON control flow instead of human-oriented CLI
+summaries:
+
+```bash
+canon governance capabilities --json
+canon governance start --json < request.json
+canon governance refresh --json < request.json
+```
+
+The `v1` adapter surface returns flat JSON with lifecycle `status`,
+`approval_state`, machine-readable `reason_code`, and canonical
+workspace-relative packet or document refs. Use `canon run` and `canon status`
+when a human is driving the repository directly; use `canon governance` when a
+tool needs a stable integration boundary.
 
 ## Install
 

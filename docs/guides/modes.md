@@ -54,6 +54,27 @@ This split keeps governance and persistence in one durable place while letting
 the AI surface bring real domain reasoning. Canon does not depend on a
 specific LLM provider; the assistant in the chat is the model.
 
+## Machine-Facing Governance Adapter
+
+When a human is driving Canon directly, use the existing `canon run`,
+`status`, `inspect`, `approve`, `resume`, and `publish` commands described in
+this guide.
+
+When an external orchestrator needs machine-stable control flow, use the
+adapter surface instead:
+
+```bash
+canon governance capabilities --json
+canon governance start --json < request.json
+canon governance refresh --json < request.json
+```
+
+That adapter reuses the same governed modes, approval semantics, and packet
+state described below, but returns a flat `v1` JSON contract with exact
+`status`, `approval_state`, `packet_readiness`, `reason_code`, and canonical
+workspace-relative packet or document refs. It is the machine-facing boundary
+around the same runtime, not a separate orchestration system.
+
 ## Quick Decision Rule
 
 - use `system-shaping` when the structure of a capability is not yet defined
