@@ -128,6 +128,7 @@ fn render_run_summary_markdown(summary: &RunSummary) -> String {
     render_mode_result(&mut lines, summary.mode_result.as_ref());
     render_runtime_blockers(&mut lines, &summary.blocked_gates);
     render_recommended_next_step(&mut lines, summary.recommended_next_action.as_ref());
+    render_possible_actions(&mut lines, &summary.possible_actions);
 
     lines.join("\n")
 }
@@ -143,6 +144,7 @@ fn render_status_summary_markdown(summary: &StatusSummary) -> String {
     render_mode_result(&mut lines, summary.mode_result.as_ref());
     render_runtime_blockers(&mut lines, &summary.blocked_gates);
     render_recommended_next_step(&mut lines, summary.recommended_next_action.as_ref());
+    render_possible_actions(&mut lines, &summary.possible_actions);
 
     lines.join("\n")
 }
@@ -217,6 +219,22 @@ fn render_recommended_next_step(
     lines.push(format!("Why: {}", action.rationale));
     if let Some(target) = &action.target {
         lines.push(format!("Target: {target}"));
+    }
+}
+
+fn render_possible_actions(
+    lines: &mut Vec<String>,
+    actions: &[canon_engine::PossibleActionSummary],
+) {
+    if actions.is_empty() {
+        return;
+    }
+
+    lines.push(String::new());
+    lines.push("## Possible Actions".to_string());
+    lines.push(String::new());
+    for action in actions {
+        lines.push(format!("- {}", action.text));
     }
 }
 
@@ -915,6 +933,12 @@ mod tests {
             decomposition_scope: None,
             closure_findings: Vec::new(),
             closure_notes: None,
+            possible_actions: vec![canon_engine::PossibleActionSummary {
+                action: "inspect-artifacts".to_string(),
+                text: "Use $canon-inspect-artifacts for the full emitted packet on run run-123."
+                    .to_string(),
+                target: None,
+            }],
             mode_result: Some(ModeResultSummary {
                 headline: "Requirements packet ready for downstream review.".to_string(),
                 artifact_packet_summary: "Primary artifact is ready.".to_string(),
@@ -947,6 +971,12 @@ mod tests {
         ));
         assert!(markdown.contains("Primary Artifact Action: Open primary artifact (.canon/artifacts/run-123/requirements/problem-statement.md)"));
         assert!(!markdown.contains("## Recommended Next Step"));
+        assert!(markdown.contains("## Possible Actions"));
+        assert!(
+            markdown.contains(
+                "Use $canon-inspect-artifacts for the full emitted packet on run run-123."
+            )
+        );
         assert!(markdown.contains("## Blockers"));
     }
 
@@ -973,6 +1003,7 @@ mod tests {
             decomposition_scope: None,
             closure_findings: Vec::new(),
             closure_notes: None,
+            possible_actions: Vec::new(),
             mode_result: Some(ModeResultSummary {
                 headline: "Incident packet ready for governed containment review.".to_string(),
                 artifact_packet_summary:
@@ -1048,6 +1079,7 @@ mod tests {
             decomposition_scope: None,
             closure_findings: Vec::new(),
             closure_notes: None,
+            possible_actions: Vec::new(),
             mode_result: Some(ModeResultSummary {
                 headline: "System assessment packet ready for governed architecture review."
                     .to_string(),
@@ -1114,6 +1146,12 @@ mod tests {
             decomposition_scope: None,
             closure_findings: Vec::new(),
             closure_notes: None,
+            possible_actions: vec![canon_engine::PossibleActionSummary {
+                action: "approve".to_string(),
+                text: "Use $canon-approve for target invocation:req-1 on run run-456 after review."
+                    .to_string(),
+                target: Some("invocation:req-1".to_string()),
+            }],
             mode_result: None,
             recommended_next_action: Some(RecommendedActionSummary {
                 action: "inspect-evidence".to_string(),
@@ -1127,5 +1165,9 @@ mod tests {
 
         assert!(markdown.contains("## Recommended Next Step"));
         assert!(markdown.contains("Action: inspect-evidence"));
+        assert!(markdown.contains("## Possible Actions"));
+        assert!(markdown.contains(
+            "Use $canon-approve for target invocation:req-1 on run run-456 after review."
+        ));
     }
 }

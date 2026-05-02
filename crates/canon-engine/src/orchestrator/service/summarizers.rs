@@ -51,6 +51,9 @@ pub(crate) fn build_action_chips_for(
     run_id: &str,
 ) -> Vec<ActionChip> {
     let mut chips: Vec<ActionChip> = Vec::new();
+    let open_primary_artifact_is_recommended = !primary_artifact_path.is_empty()
+        && (matches!(state, RunState::Blocked)
+            || (matches!(state, RunState::AwaitingApproval) && !approval_targets.is_empty()));
 
     if !primary_artifact_path.is_empty() {
         let mut args = BTreeMap::new();
@@ -63,7 +66,7 @@ pub(crate) fn build_action_chips_for(
             prefilled_args: args,
             required_user_inputs: Vec::new(),
             visibility_condition: "primary_artifact_path is non-empty".to_string(),
-            recommended: false,
+            recommended: open_primary_artifact_is_recommended,
             text_fallback: format!("Open the primary artifact at {primary_artifact_path}."),
         });
     }
@@ -80,7 +83,8 @@ pub(crate) fn build_action_chips_for(
             required_user_inputs: Vec::new(),
             visibility_condition: "state is AwaitingApproval or Completed".to_string(),
             recommended: matches!(state, RunState::AwaitingApproval)
-                && !approval_targets.is_empty(),
+                && !approval_targets.is_empty()
+                && primary_artifact_path.is_empty(),
             text_fallback: format!(
                 "Inspect evidence for run {run_id}: `canon inspect evidence --run {run_id}`."
             ),

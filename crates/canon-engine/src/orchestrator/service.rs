@@ -374,6 +374,8 @@ pub struct RunSummary {
     pub closure_findings: Vec<ClosureFindingInspectSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure_notes: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub possible_actions: Vec<PossibleActionSummary>,
     pub mode_result: Option<ModeResultSummary>,
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
@@ -399,6 +401,8 @@ pub struct StatusSummary {
     pub closure_findings: Vec<ClosureFindingInspectSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure_notes: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub possible_actions: Vec<PossibleActionSummary>,
     pub mode_result: Option<ModeResultSummary>,
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
@@ -414,6 +418,14 @@ pub struct GateInspectSummary {
 pub struct RecommendedActionSummary {
     pub action: String,
     pub rationale: String,
+    pub target: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PossibleActionSummary {
+    pub action: String,
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub target: Option<String>,
 }
 
@@ -478,6 +490,7 @@ pub(super) struct RunRuntimeDetails {
     decomposition_scope: Option<String>,
     closure_findings: Vec<ClosureFindingInspectSummary>,
     closure_notes: Option<String>,
+    possible_actions: Vec<PossibleActionSummary>,
     mode_result: Option<ModeResultSummary>,
     recommended_next_action: Option<RecommendedActionSummary>,
 }
@@ -1121,6 +1134,7 @@ impl EngineService {
             decomposition_scope: details.decomposition_scope,
             closure_findings: details.closure_findings,
             closure_notes: details.closure_notes,
+            possible_actions: details.possible_actions,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
@@ -1768,6 +1782,7 @@ impl EngineService {
             decomposition_scope: details.decomposition_scope,
             closure_findings: details.closure_findings,
             closure_notes: details.closure_notes,
+            possible_actions: details.possible_actions,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
@@ -1895,6 +1910,15 @@ impl EngineService {
             &blocked_gates,
             &approval_targets,
         );
+        let possible_actions = build_possible_actions(
+            state,
+            mode_result.as_ref(),
+            &artifact_paths,
+            evidence_bundle.is_some(),
+            &blocked_gates,
+            &approval_targets,
+            run_id,
+        );
 
         Ok(RunRuntimeDetails {
             system_context,
@@ -1916,6 +1940,7 @@ impl EngineService {
             decomposition_scope,
             closure_findings,
             closure_notes,
+            possible_actions,
             mode_result,
             recommended_next_action,
         })

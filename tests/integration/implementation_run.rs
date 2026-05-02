@@ -216,11 +216,22 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     assert_eq!(json["state"], "AwaitingApproval");
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Task Mapping"));
+    assert_eq!(json["recommended_next_action"]["action"].as_str(), Some("inspect-artifacts"));
     let approval_targets = json["approval_targets"].as_array().expect("approval targets array");
     assert!(
         approval_targets.iter().any(|target| target.as_str() == Some("gate:execution")),
         "approval_targets should contain gate:execution, got: {approval_targets:?}"
     );
+    let possible_action_ids: Vec<&str> = json["possible_actions"]
+        .as_array()
+        .expect("possible actions array")
+        .iter()
+        .filter_map(|action| action["action"].as_str())
+        .collect();
+    assert!(possible_action_ids.contains(&"open-primary-artifact"));
+    assert!(possible_action_ids.contains(&"inspect-artifacts"));
+    assert!(possible_action_ids.contains(&"inspect-evidence"));
+    assert!(possible_action_ids.contains(&"approve"));
 
     let chips = json["mode_result"]["action_chips"].as_array().expect("chips array");
     let chip_ids: Vec<&str> = chips.iter().filter_map(|chip| chip["id"].as_str()).collect();
@@ -323,6 +334,15 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
             .is_some_and(|targets| targets.is_empty())
     );
     assert_eq!(approved_status_json["recommended_next_action"]["action"].as_str(), Some("resume"));
+    let approved_possible_action_ids: Vec<&str> = approved_status_json["possible_actions"]
+        .as_array()
+        .expect("approved possible actions array")
+        .iter()
+        .filter_map(|action| action["action"].as_str())
+        .collect();
+    assert!(approved_possible_action_ids.contains(&"resume"));
+    assert!(approved_possible_action_ids.contains(&"status"));
+    assert!(!approved_possible_action_ids.contains(&"approve"));
     let approved_chip_ids: Vec<&str> = approved_status_json["mode_result"]["action_chips"]
         .as_array()
         .expect("approved chips array")
@@ -349,6 +369,17 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
         resumed_json["mode_result"]["execution_posture"].as_str(),
         Some("approved-recommendation")
     );
+    let resumed_possible_action_ids: Vec<&str> = resumed_json["possible_actions"]
+        .as_array()
+        .expect("resumed possible actions array")
+        .iter()
+        .filter_map(|action| action["action"].as_str())
+        .collect();
+    assert!(resumed_possible_action_ids.contains(&"open-primary-artifact"));
+    assert!(resumed_possible_action_ids.contains(&"inspect-artifacts"));
+    assert!(resumed_possible_action_ids.contains(&"inspect-evidence"));
+    assert!(!resumed_possible_action_ids.contains(&"approve"));
+    assert!(!resumed_possible_action_ids.contains(&"resume"));
 
     let resumed_chip_ids: Vec<&str> = resumed_json["mode_result"]["action_chips"]
         .as_array()

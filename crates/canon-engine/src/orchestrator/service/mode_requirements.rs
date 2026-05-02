@@ -197,6 +197,7 @@ impl EngineService {
                 decomposition_scope: details.decomposition_scope,
                 closure_findings: details.closure_findings,
                 closure_notes: details.closure_notes,
+                possible_actions: details.possible_actions,
                 mode_result: details.mode_result,
                 recommended_next_action: details.recommended_next_action,
             });
@@ -482,6 +483,7 @@ impl EngineService {
             decomposition_scope: details.decomposition_scope,
             closure_findings: details.closure_findings,
             closure_notes: details.closure_notes,
+            possible_actions: details.possible_actions,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })

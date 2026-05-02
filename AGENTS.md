@@ -51,6 +51,7 @@ Auto-generated from all feature plans. Last updated: 2026-05-02
 - Rust 1.95.0 workspace plus Bash and PowerShell release helpers, JSON metadata, and Markdown documentation artifacts + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, existing packaging templates, and GitHub Actions release automation (036-release-provenance-integrity)
 - Rust 1.95.0 workspace plus Markdown skill sources, templates, and documentation artifacts + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), existing `serde`/`serde_json` surfaces, shared architecture skill documents, and existing Spec Kit scripts (037-architecture-clarification-readiness)
 - repository files plus the existing `.canon/` runtime artifact layout only; no new persistence family (037-architecture-clarification-readiness)
+- Rust 1.95.0 workspace plus Bash, PowerShell, and Markdown documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `serde`/`serde_json` output contracts; shared skill helper scripts under `.agents/skills` and `defaults/embedded-skills` (038-guided-run-operations)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -109,9 +110,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 038-guided-run-operations: Added Rust 1.95.0 workspace plus Bash, PowerShell, and Markdown documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `serde`/`serde_json` output contracts; shared skill helper scripts under `.agents/skills` and `defaults/embedded-skills`
 - 037-architecture-clarification-readiness: Added Rust 1.95.0 workspace plus Markdown skill sources, templates, and documentation artifacts + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), existing `serde`/`serde_json` surfaces, shared architecture skill documents, and existing Spec Kit scripts
 - 036-release-provenance-integrity: Added Rust 1.95.0 workspace plus Bash and PowerShell release helpers, JSON metadata, and Markdown documentation artifacts + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, existing packaging templates, and GitHub Actions release automation
-- 035-governance-adapter-surface: Added Rust 1.95.0 workspace plus Markdown and JSON-facing contract artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
