@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.34.0`
+- None recorded after `0.35.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.34.0`.
+- No additional released feature-spec delivery is recorded after `0.35.0`.
+
+## [0.35.0] - 2026-05-02
+
+Delivered specs:
+
+- `035` - Governance Adapter Surface
+
+Highlights:
+
+- Add the first-class machine-facing `canon governance start|refresh|capabilities --json`
+  surface so external orchestrators can start or refresh governed work without
+  scraping human CLI prose.
+- Publish a flat `v1` adapter contract with strict `governed_ready` semantics,
+  explicit approval posture, machine-readable reason codes, and canonical
+  workspace-relative packet or document refs.
+- Align the `0.35.0` release surface across workspace manifests, lockfile,
+  shared runtime compatibility references, README, mode guidance, roadmap
+  continuity, publication guides, changelog, and feature validation closeout.
 
 ## [0.34.0] - 2026-05-01
 

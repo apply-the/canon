@@ -53,9 +53,46 @@ continuity.
   the source of truth.
 
 There are no active remaining candidate feature blocks recorded immediately
-after the delivered 034 slice. Future roadmap work should continue to focus on
+after the delivered 035 slice. Future roadmap work should continue to focus on
 durability and distribution polish without reopening the now-delivered
-output-quality or reasoning-evidence contracts.
+governance-adapter, output-quality, or reasoning-evidence contracts.
+
+## Delivered Feature: 035 Governance Adapter Surface
+
+### Outcome
+
+Canon now exposes a first-class machine-facing governance adapter so external
+orchestrators can start governed work, refresh packet state, and discover the
+supported contract without scraping human CLI output.
+
+### Problem We Solved
+
+- Canon already had governed runtime, approval, and packet semantics, but it
+  lacked a public machine-stable surface for external orchestration.
+- Downstream consumers needed flat JSON, exact status and approval
+  vocabularies, machine-readable reason codes, and canonical
+  workspace-relative refs instead of prose-oriented `run` or `status` output.
+- The product boundary needed to stay in Canon's governance domain instead of
+  turning Canon into a broader session or workflow engine.
+
+### Delivered Surface
+
+- Add `canon governance start --json`, `canon governance refresh --json`, and
+  `canon governance capabilities --json` as a public adapter namespace.
+- Publish a flat `v1` contract with exact `status`, `approval_state`, and
+  `packet_readiness` vocabularies plus canonical packet or document refs.
+- Enforce strict `governed_ready` semantics so reusable packets are the only
+  packets that surface as governed-ready, while approval-gated, blocked,
+  incomplete, rejected, and failed outcomes remain explicit.
+
+### Invariants Preserved
+
+- Canon still reuses the existing run, artifact, approval, and publish
+  semantics instead of introducing a parallel lifecycle store.
+- `.canon/` persistence layout, approval targets, recommendation-only posture,
+  and human-oriented `canon run` or `status` flows remain intact.
+- The adapter remains a local CLI boundary, not an HTTP service, planner, or
+  orchestration engine.
 
 ## Delivered Feature: 034 Output Quality Gates
 
