@@ -53,9 +53,44 @@ continuity.
   the source of truth.
 
 There are no active remaining candidate feature blocks recorded immediately
-after the delivered 035 slice. Future roadmap work should continue to focus on
+after the delivered 036 slice. Future roadmap work should continue to focus on
 durability and distribution polish without reopening the now-delivered
 governance-adapter, output-quality, or reasoning-evidence contracts.
+
+## Delivered Feature: 036 Release Provenance And Channel Integrity
+
+### Outcome
+
+Canon now emits an explicit release provenance contract so Homebrew, `winget`,
+and Scoop all derive from one canonical GitHub Release bundle and fail closed
+when package-channel assumptions drift.
+
+### Problem We Solved
+
+- Canon already shipped distribution metadata plus three package-manager
+  surfaces, but provenance and per-channel expectations still lived partly in
+  separate scripts instead of one auditable contract.
+- Maintainers needed one machine-readable source of truth that could block
+  publication when channel inputs, generated artifacts, or documented release
+  behavior drifted from the canonical release bundle.
+
+### Delivered Surface
+
+- Extend `canon-<VERSION>-distribution-metadata.json` with explicit
+  `source_of_truth` and per-channel `channels` contracts.
+- Make the Homebrew, `winget`, and Scoop renderers require those explicit
+  channel contracts instead of inferring them from hidden script knowledge.
+- Tighten release-surface verification so provenance and channel drift fail
+  before publication.
+
+### Invariants Preserved
+
+- GitHub Releases remains the canonical source of binaries, filenames,
+  checksums, and release notes.
+- Package-manager outputs still derive from the existing archive set rather
+  than a parallel packaging pipeline.
+- Canon runtime behavior, `.canon/` state, publish semantics, and approvals
+  remain unchanged.
 
 ## Delivered Feature: 035 Governance Adapter Surface
 

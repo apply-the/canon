@@ -177,6 +177,32 @@ done
 
 mkdir -p "$(dirname "$output")"
 
+channel_contracts="$({
+  jq -cn \
+    --argjson assets "$assets_json" \
+    '[
+      {
+        channel: "homebrew",
+        asset_ids: [$assets[] | select(.channels | index("homebrew")) | .asset_id],
+        generated_artifacts: ["canon.rb"]
+      },
+      {
+        channel: "winget",
+        asset_ids: [$assets[] | select(.channels | index("winget")) | .asset_id],
+        generated_artifacts: [
+          "ApplyThe.Canon.yaml",
+          "ApplyThe.Canon.locale.en-US.yaml",
+          "ApplyThe.Canon.installer.yaml"
+        ]
+      },
+      {
+        channel: "scoop",
+        asset_ids: [$assets[] | select(.channels | index("scoop")) | .asset_id],
+        generated_artifacts: ["canon.json"]
+      }
+    ]'
+})"
+
 jq -n \
   --arg version "$version" \
   --arg tag "$tag" \
@@ -185,6 +211,7 @@ jq -n \
   --arg checksum_manifest "$checksum_manifest" \
   --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   --argjson assets "$assets_json" \
+  --argjson channel_contracts "$channel_contracts" \
   '{
     version: $version,
     tag: $tag,
@@ -192,7 +219,14 @@ jq -n \
     release_notes: $release_notes,
     checksum_manifest: $checksum_manifest,
     generated_at: $generated_at,
-    assets: $assets
+    source_of_truth: {
+      kind: "github-releases",
+      artifact_inventory: "assets",
+      checksum_source: $checksum_manifest,
+      release_notes_source: $release_notes
+    },
+    assets: $assets,
+    channels: $channel_contracts
   }' > "$output"
 
 printf '%s\n' "$output"

@@ -67,6 +67,43 @@ asset_field() {
   ' "$metadata"
 }
 
+require_channel_contract() {
+  local channel="$1"
+  if ! jq -e --arg channel "$channel" 'any(.channels[]?; .channel == $channel)' "$metadata" >/dev/null; then
+    echo "Missing required channel contract: ${channel}" >&2
+    exit 69
+  fi
+}
+
+require_channel_asset() {
+  local channel="$1"
+  local asset_id="$2"
+  if ! jq -e --arg channel "$channel" --arg asset_id "$asset_id" \
+    'any(.channels[]?; .channel == $channel and (.asset_ids | index($asset_id)))' \
+    "$metadata" >/dev/null; then
+    echo "Channel contract ${channel} missing asset id: ${asset_id}" >&2
+    exit 70
+  fi
+
+  if ! jq -e --arg channel "$channel" --arg asset_id "$asset_id" \
+    'any(.assets[]?; .asset_id == $asset_id and (.channels | index($channel)))' \
+    "$metadata" >/dev/null; then
+    echo "Asset ${asset_id} does not advertise channel ${channel}" >&2
+    exit 71
+  fi
+}
+
+require_generated_artifact() {
+  local channel="$1"
+  local artifact="$2"
+  if ! jq -e --arg channel "$channel" --arg artifact "$artifact" \
+    'any(.channels[]?; .channel == $channel and (.generated_artifacts | index($artifact)))' \
+    "$metadata" >/dev/null; then
+    echo "Channel contract ${channel} missing generated artifact: ${artifact}" >&2
+    exit 72
+  fi
+}
+
 require_field() {
   local value="$1"
   local label="$2"
@@ -94,6 +131,12 @@ version="$(jq -r '.version' "$metadata")"
 release_url="$(jq -r '.release_url' "$metadata")"
 installer_url="$(asset_field "windows-x86_64" "download_url")"
 installer_sha256="$(asset_field "windows-x86_64" "sha256")"
+
+require_channel_contract "winget"
+require_generated_artifact "winget" "ApplyThe.Canon.yaml"
+require_generated_artifact "winget" "ApplyThe.Canon.locale.en-US.yaml"
+require_generated_artifact "winget" "ApplyThe.Canon.installer.yaml"
+require_channel_asset "winget" "windows-x86_64"
 
 for pair in \
   "$version:version" \
