@@ -19,11 +19,47 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.35.0`
+- None recorded after `0.37.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.35.0`.
+- No additional released feature-spec delivery is recorded after `0.37.0`.
+
+## [0.37.0] - 2026-05-02
+
+Delivered specs:
+
+- `037` - Architecture Clarification Readiness And Mode Reroute
+
+Highlights:
+
+- Extend `inspect clarity --mode architecture` with structured clarification
+  question metadata, explicit default-if-skipped behavior, and honest reroute
+  guidance when a brief is not architecture-ready.
+- Update `readiness-assessment.md` so architecture packets preserve working
+  assumptions, unresolved questions, blockers, accepted risks, and the next
+  recommended mode instead of generic readiness prose.
+- Align the `0.37.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, architecture guidance, roadmap,
+  changelog, and focused validation evidence.
+
+## [0.36.0] - 2026-05-02
+
+Delivered specs:
+
+- `036` - Release Provenance And Channel Integrity
+
+Highlights:
+
+- Extend `canon-<VERSION>-distribution-metadata.json` with explicit
+  `source_of_truth` and per-channel `channels` contracts so GitHub Releases
+  stays the single source of truth for binaries, checksums, and release notes.
+- Make the Homebrew, `winget`, and Scoop renderers plus the release verifier
+  fail closed when provenance or channel-contract expectations drift from the
+  canonical release bundle.
+- Align the `0.36.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, install or maintainer docs, roadmap
+  cleanup, changelog, and focused release-validation evidence.
 
 ## [0.35.0] - 2026-05-02
 

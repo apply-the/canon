@@ -62,6 +62,14 @@ Choose **PostgreSQL + Dedicated Worker Table** as the first durable workflow sta
 - Schema design, index strategy, and lock observability become part of the runtime ownership boundary for the platform team.
 - A later migration to a dedicated workflow engine stays possible, but the initial API and audit model should be designed to keep that door open.
 
+## Working Assumptions
+- Initial workflow volume stays low enough that PostgreSQL row locks remain understandable to the current team without a dedicated orchestration platform.
+- Finance operations can tolerate business-hours recovery for stuck workflows during the first release.
+
+## Unresolved Questions
+- Do regulated or enterprise tenants require a 24x7 recovery objective that would materially change the orchestration choice?
+- At what sustained concurrency threshold would the PostgreSQL worker-table approach become operationally riskier than adopting a dedicated workflow engine?
+
 ## Bounded Contexts
 - Workflow Orchestration: owns long-running job state, retries, timers, and progression rules.
 - Billing Policy: owns invoice lifecycle rules, billing-state semantics, and the invariants that protect customer entitlement.

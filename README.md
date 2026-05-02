@@ -9,7 +9,7 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.35.0`.
+The current delivery line in this repository targets Canon `0.37.0`.
 
 
 ## What Canon Does
@@ -46,6 +46,9 @@ tool needs a stable integration boundary.
 ## Install
 
 Canon ships as a single binary named `canon`.
+
+GitHub Releases remain the canonical source of truth for the Homebrew formula,
+`winget` bundle, and Scoop manifest.
 
 ### Homebrew
 
@@ -193,11 +196,14 @@ canon inspect clarity --mode change --input canon-input/change.md
 
 That pre-run surface now works across the file-backed governed modes and
 returns missing-context findings, explicit output-quality posture,
-evidence or downgrade reasons, targeted clarification questions, and
-reasoning signals that can say the packet is still only
+evidence or downgrade reasons, targeted clarification questions with affected
+outputs and explicit default-if-skipped behavior, and reasoning signals that
+can say the packet is still only
 `structurally-complete`, already `materially-useful`, fully `publishable`, or
-already materially closes the decision. `pr-review` stays excluded because it
-is diff-backed.
+already materially closes the decision. For architecture packets it can also
+say directly when the brief should reroute to `discovery`, `requirements`, or
+`system-shaping` instead of pretending the decision is ready. `pr-review`
+stays excluded because it is diff-backed.
 
 ### 3. Start A Run
 

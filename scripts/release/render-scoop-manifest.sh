@@ -65,6 +65,43 @@ asset_field() {
   ' "$metadata"
 }
 
+require_channel_contract() {
+  local channel="$1"
+  if ! jq -e --arg channel "$channel" 'any(.channels[]?; .channel == $channel)' "$metadata" >/dev/null; then
+    echo "Missing required channel contract: ${channel}" >&2
+    exit 69
+  fi
+}
+
+require_channel_asset() {
+  local channel="$1"
+  local asset_id="$2"
+  if ! jq -e --arg channel "$channel" --arg asset_id "$asset_id" \
+    'any(.channels[]?; .channel == $channel and (.asset_ids | index($asset_id)))' \
+    "$metadata" >/dev/null; then
+    echo "Channel contract ${channel} missing asset id: ${asset_id}" >&2
+    exit 70
+  fi
+
+  if ! jq -e --arg channel "$channel" --arg asset_id "$asset_id" \
+    'any(.assets[]?; .asset_id == $asset_id and (.channels | index($channel)))' \
+    "$metadata" >/dev/null; then
+    echo "Asset ${asset_id} does not advertise channel ${channel}" >&2
+    exit 71
+  fi
+}
+
+require_generated_artifact() {
+  local channel="$1"
+  local artifact="$2"
+  if ! jq -e --arg channel "$channel" --arg artifact "$artifact" \
+    'any(.channels[]?; .channel == $channel and (.generated_artifacts | index($artifact)))' \
+    "$metadata" >/dev/null; then
+    echo "Channel contract ${channel} missing generated artifact: ${artifact}" >&2
+    exit 72
+  fi
+}
+
 require_field() {
   local value="$1"
   local label="$2"
@@ -81,7 +118,10 @@ escape_replacement() {
 version="$(jq -r '.version' "$metadata")"
 installer_url="$(asset_field "windows-x86_64" "download_url")"
 installer_sha256="$(asset_field "windows-x86_64" "sha256")"
-supports_scoop="$(jq -r 'any(.assets[]; .asset_id == "windows-x86_64" and (.channels | index("scoop")))' "$metadata")"
+
+require_channel_contract "scoop"
+require_generated_artifact "scoop" "canon.json"
+require_channel_asset "scoop" "windows-x86_64"
 
 for pair in \
   "$version:version" \
@@ -90,11 +130,6 @@ for pair in \
 do
   require_field "${pair%%:*}" "${pair#*:}"
 done
-
-if [[ "$supports_scoop" != "true" ]]; then
-  echo "Distribution metadata does not mark windows-x86_64 as a Scoop channel" >&2
-  exit 69
-fi
 
 description="Governed local-first method engine for AI-assisted software engineering"
 homepage="https://github.com/apply-the/canon"

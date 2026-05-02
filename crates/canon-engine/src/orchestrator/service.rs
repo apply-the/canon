@@ -285,6 +285,9 @@ pub struct ClarificationQuestionSummary {
     pub prompt: String,
     pub rationale: String,
     pub evidence: String,
+    pub affects: String,
+    pub default_if_skipped: String,
+    pub status: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

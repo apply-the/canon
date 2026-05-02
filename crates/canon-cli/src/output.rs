@@ -582,6 +582,15 @@ fn render_clarity_markdown(entries: &[Value]) -> String {
             if let Some(evidence) = scalar_value(question.get("evidence")) {
                 lines.push(format!("Evidence: {evidence}"));
             }
+            if let Some(affects) = scalar_value(question.get("affects")) {
+                lines.push(format!("Affects: {affects}"));
+            }
+            if let Some(default_if_skipped) = scalar_value(question.get("default_if_skipped")) {
+                lines.push(format!("Default if skipped: {default_if_skipped}"));
+            }
+            if let Some(status) = scalar_value(question.get("status")) {
+                lines.push(format!("Status: {status}"));
+            }
             if index + 1 < clarification_questions.len() {
                 lines.push(String::new());
             }
@@ -684,7 +693,10 @@ mod tests {
                     "id": "clarify-constraints",
                     "prompt": "Which constraints are non-negotiable for this work?",
                     "rationale": "Constraints determine whether downstream shaping stays repo-specific instead of becoming generic planning advice.",
-                    "evidence": "No authored `## Constraints`, `## Constraint`, or `## Non-Negotiables` section was detected in the supplied inputs."
+                    "evidence": "No authored `## Constraints`, `## Constraint`, or `## Non-Negotiables` section was detected in the supplied inputs.",
+                    "affects": "options.md",
+                    "default_if_skipped": "Keep the packet conditional until the non-negotiables are explicit.",
+                    "status": "required"
                 }],
                 "reasoning_signals": [
                     "Detected 1 authored input surface(s): idea.md."
@@ -712,6 +724,9 @@ mod tests {
         assert!(markdown.contains("## Output Quality"));
         assert!(markdown.contains("Posture: structurally-complete"));
         assert!(markdown.contains("1. Which constraints are non-negotiable for this work?"));
+        assert!(markdown.contains("Affects: options.md"));
+        assert!(markdown.contains("Default if skipped: Keep the packet conditional until the non-negotiables are explicit."));
+        assert!(markdown.contains("Status: required"));
         assert!(markdown.contains("## Recommended Focus"));
     }
 

@@ -65,6 +65,43 @@ asset_field() {
   ' "$metadata"
 }
 
+require_channel_contract() {
+  local channel="$1"
+  if ! jq -e --arg channel "$channel" 'any(.channels[]?; .channel == $channel)' "$metadata" >/dev/null; then
+    echo "Missing required channel contract: ${channel}" >&2
+    exit 69
+  fi
+}
+
+require_channel_asset() {
+  local channel="$1"
+  local asset_id="$2"
+  if ! jq -e --arg channel "$channel" --arg asset_id "$asset_id" \
+    'any(.channels[]?; .channel == $channel and (.asset_ids | index($asset_id)))' \
+    "$metadata" >/dev/null; then
+    echo "Channel contract ${channel} missing asset id: ${asset_id}" >&2
+    exit 70
+  fi
+
+  if ! jq -e --arg channel "$channel" --arg asset_id "$asset_id" \
+    'any(.assets[]?; .asset_id == $asset_id and (.channels | index($channel)))' \
+    "$metadata" >/dev/null; then
+    echo "Asset ${asset_id} does not advertise channel ${channel}" >&2
+    exit 71
+  fi
+}
+
+require_generated_artifact() {
+  local channel="$1"
+  local artifact="$2"
+  if ! jq -e --arg channel "$channel" --arg artifact "$artifact" \
+    'any(.channels[]?; .channel == $channel and (.generated_artifacts | index($artifact)))' \
+    "$metadata" >/dev/null; then
+    echo "Channel contract ${channel} missing generated artifact: ${artifact}" >&2
+    exit 72
+  fi
+}
+
 require_field() {
   local value="$1"
   local label="$2"
@@ -80,6 +117,13 @@ escape_replacement() {
 
 version="$(jq -r '.version' "$metadata")"
 require_field "$version" "version"
+
+require_channel_contract "homebrew"
+require_generated_artifact "homebrew" "canon.rb"
+require_channel_asset "homebrew" "macos-arm64"
+require_channel_asset "homebrew" "macos-x86_64"
+require_channel_asset "homebrew" "linux-arm64"
+require_channel_asset "homebrew" "linux-x86_64"
 
 desc="Governed local-first method engine for AI-assisted software engineering"
 homepage="https://github.com/apply-the/canon"

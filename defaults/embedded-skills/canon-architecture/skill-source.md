@@ -76,6 +76,11 @@ Optional:
   New briefs should author `## Consequences` directly. Canon still accepts the
   legacy `## Risks` heading as a backward-compatible input alias and renders it
   as `## Consequences` in the emitted decision artifact.
+- When the brief already knows the assumptions or open questions that could
+  still change the architectural recommendation, author them as
+  `## Working Assumptions` and `## Unresolved Questions`. Canon carries those
+  sections into `readiness-assessment.md` and uses them to say directly when
+  architecture is still conditional or should reroute to an earlier mode.
 - The architecture brief MUST author the domain-boundary sections `## Bounded Contexts`,
   `## Context Relationships`, `## Integration Seams`,
   `## Anti-Corruption Candidates`, `## Ownership Boundaries`, and
@@ -138,6 +143,10 @@ grounded, reviewable artifact set.
 When the authored input is structurally present but materially ambiguous on
 points that would force the assistant to invent content, ask targeted
 clarification questions before generation rather than papering over the gap.
+Ask only when the ambiguity could change the structural decision, the tradeoff
+analysis, or the correct earlier mode. Do not interrogate generic load,
+traffic, or user-count details unless they would materially change the
+architecture recommendation or reroute.
 
 #### Question Granularity Rules
 
@@ -179,6 +188,9 @@ Each question must follow this shape:
 - Ask the batch.
 - Wait for user answers.
 - Apply answers, regenerate the affected sections, and surface any remaining open questions still required to finish the packet.
+- If the user skips a Required question, apply the explicit default, keep it
+  visible in `readiness-assessment.md`, and record that carry-forward in
+  provenance.
 - Stop the loop when no Required question is unanswered.
 
 #### Provenance Sidecar
@@ -188,6 +200,8 @@ the packet was produced. It must include:
 
 - The authored input files that were read.
 - The clarification questions that were asked, the user answers received, and any defaults that were applied because the user skipped or deferred a question.
+- Any working assumptions or unresolved questions that were carried forward
+  into `readiness-assessment.md`.
 - A `Clarification Loop` section with: number of questions presented, number of Required questions answered, number of Required questions left unresolved, number of Optional questions answered or deferred, and the number of substantive clarifications that drove material changes per artifact section.
 - The critique findings that were addressed and any that were intentionally deferred.
 - The generation model or assistant identity that produced the artifact set.

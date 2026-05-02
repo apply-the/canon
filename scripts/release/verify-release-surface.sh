@@ -135,6 +135,25 @@ distribution_expectations() {
   esac
 }
 
+channel_contract_expectations() {
+  local channel="$1"
+  case "$channel" in
+    homebrew)
+      printf '%s\n' '["macos-arm64","macos-x86_64","linux-arm64","linux-x86_64"]|["canon.rb"]'
+      ;;
+    winget)
+      printf '%s\n' '["windows-x86_64"]|["ApplyThe.Canon.yaml","ApplyThe.Canon.locale.en-US.yaml","ApplyThe.Canon.installer.yaml"]'
+      ;;
+    scoop)
+      printf '%s\n' '["windows-x86_64"]|["canon.json"]'
+      ;;
+    *)
+      echo "Unsupported channel contract for distribution validation: ${channel}" >&2
+      exit 73
+      ;;
+  esac
+}
+
 verify_distribution_metadata() {
   local path="$1"
 
@@ -153,11 +172,30 @@ verify_distribution_metadata() {
     --arg version "$version" \
     --arg tag "$tag" \
     --arg release_url "$release_url" \
+    --arg release_notes "release-notes.md" \
     --arg checksum_manifest "$checksum_manifest" \
-    '.version == $version and .tag == $tag and .release_url == $release_url and .checksum_manifest == $checksum_manifest and (.assets | type == "array")' \
+    '.version == $version
+      and .tag == $tag
+      and .release_url == $release_url
+      and .release_notes == $release_notes
+      and .checksum_manifest == $checksum_manifest
+      and (.assets | type == "array")
+      and (.channels | type == "array")' \
     "$path" >/dev/null || {
       echo "Distribution metadata top-level fields are invalid: $path" >&2
       exit 74
+    }
+
+  jq -e \
+    --arg checksum_manifest "$checksum_manifest" \
+    --arg release_notes "release-notes.md" \
+    '.source_of_truth.kind == "github-releases"
+      and .source_of_truth.artifact_inventory == "assets"
+      and .source_of_truth.checksum_source == $checksum_manifest
+      and .source_of_truth.release_notes_source == $release_notes' \
+    "$path" >/dev/null || {
+      echo "Distribution metadata source_of_truth is invalid: $path" >&2
+      exit 75
     }
 
   for artifact in "${expected_archives[@]}"; do
@@ -165,7 +203,7 @@ verify_distribution_metadata() {
     sha="$(lookup_sha "$artifact")"
     if [[ -z "$sha" ]]; then
       echo "Missing checksum for ${artifact} while verifying distribution metadata" >&2
-      exit 75
+      exit 76
     fi
 
     IFS='|' read -r asset_id os arch archive_format binary_name channels <<< "$(distribution_expectations "$artifact")"
@@ -180,10 +218,24 @@ verify_distribution_metadata() {
       --arg sha "$sha" \
       --arg download_url "${download_base}/${artifact}" \
       --argjson channels "$channels" \
-      'any(.assets[]; .filename == $artifact and .asset_id == $asset_id and .os == $os and .arch == $arch and .archive_format == $archive_format and .binary_name == $binary_name and .sha256 == $sha and .download_url == $download_url and .channels == $channels)' \
+      'any(.assets[]?; .filename == $artifact and .asset_id == $asset_id and .os == $os and .arch == $arch and .archive_format == $archive_format and .binary_name == $binary_name and .sha256 == $sha and .download_url == $download_url and .channels == $channels)' \
       "$path" >/dev/null || {
         echo "Distribution metadata entry mismatch for ${artifact}" >&2
-        exit 76
+        exit 77
+      }
+  done
+
+  for channel in homebrew winget scoop; do
+    IFS='|' read -r asset_ids generated_artifacts <<< "$(channel_contract_expectations "$channel")"
+
+    jq -e \
+      --arg channel "$channel" \
+      --argjson asset_ids "$asset_ids" \
+      --argjson generated_artifacts "$generated_artifacts" \
+      'any(.channels[]?; .channel == $channel and .asset_ids == $asset_ids and .generated_artifacts == $generated_artifacts)' \
+      "$path" >/dev/null || {
+        echo "Distribution metadata channel contract mismatch for ${channel}" >&2
+        exit 78
       }
   done
 }
