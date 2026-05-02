@@ -53,9 +53,51 @@ continuity.
   the source of truth.
 
 There are no active remaining candidate feature blocks recorded immediately
-after the delivered 033 slice. Future roadmap work should continue to focus on
-output quality and authoring durability without reopening the now-delivered
-reasoning-evidence contract.
+after the delivered 034 slice. Future roadmap work should continue to focus on
+durability and distribution polish without reopening the now-delivered
+output-quality or reasoning-evidence contracts.
+
+## Delivered Feature: 034 Output Quality Gates
+
+### Outcome
+
+Canon now says directly whether a packet is only structurally complete,
+materially useful, or publishable instead of letting strong-looking packet
+shapes imply strong output quality.
+
+### Problem We Solved
+
+- `inspect clarity` could expose missing-context and reasoning signals, but it
+  still lacked an explicit quality posture telling maintainers whether a packet
+  was merely complete, actually useful, or ready to read as publishable.
+- Many mode-result summaries still collapsed quality into generic `ready`
+  language whenever missing markers were absent, even when caveats or weak
+  evidence still remained.
+- Backlog planning-risk fallbacks could still synthesize risk bullets from weak
+  evidence instead of preserving explicit authored-body absence.
+
+### Delivered Surface
+
+- Add a shared inspect-facing output-quality posture that distinguishes
+  `structurally-complete`, `materially-useful`, and `publishable` packets.
+- Surface quality-aware posture language across run summaries instead of
+  generic `ready` phrasing for governed packet families.
+- Tighten the remaining backlog planning-risk fallback so Canon preserves
+  explicit missing-body language and cited evidence boundaries rather than
+  invented risk bullets.
+- Synchronize shared skill guidance, output-shape references, README, mode
+  guidance, release docs, roadmap continuity, and changelog references for the
+  `0.34.0` delivery.
+
+### Invariants Preserved
+
+- Canon still preserves explicit `## Missing Authored Body`, `## Missing
+  Evidence`, blocked posture, unsupported posture, unresolved findings, and
+  recommendation-only operational semantics.
+- Canon does not change `.canon/` persistence, publish destinations, approval
+  targets, or diff-backed `pr-review` behavior.
+- Materially closed decisions remain valid and do not force synthetic
+  alternatives merely to satisfy quality heuristics.
 
 ## Delivered Feature: 033 Cross-Mode Reasoning Evidence And Clarity Expansion
 

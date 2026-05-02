@@ -1,6 +1,6 @@
 ---
 name: canon-inspect-clarity
-description: Use when you need Canon-backed missing-context findings, materially-closed decision signals, and targeted clarification questions from authored file-backed mode inputs before starting a run.
+description: Use when you need Canon-backed missing-context findings, explicit output-quality posture, materially-closed decision signals, and targeted clarification questions from authored file-backed mode inputs before starting a run.
 ---
 
 # Canon Inspect Clarity
@@ -13,7 +13,8 @@ description: Use when you need Canon-backed missing-context findings, materially
 ## Purpose
 
 Inspect authored file-backed mode inputs for missing context, weak reasoning,
-or materially-closed decisions before starting a governed run.
+explicit output-quality posture, or materially-closed decisions before
+starting a governed run.
 
 ## When To Trigger
 
@@ -82,6 +83,9 @@ or materially-closed decisions before starting a governed run.
 - analyzed mode
 - source input paths
 - Canon-backed missing-context findings grounded in the authored inputs
+- explicit output-quality posture stating whether the packet is only
+  `structurally-complete`, already `materially-useful`, or `publishable`
+- evidence signals or downgrade reasons explaining that posture
 - reasoning signals that explain why Canon is asking follow-up questions,
   why the packet is still weak, or why the decision is already materially
   closed
@@ -111,6 +115,11 @@ or materially-closed decisions before starting a governed run.
 
 - If Canon reports that clarification is still required, surface the top
   questions directly and keep the next step on answering them.
+- If Canon reports a packet as only `structurally-complete`, say that directly
+  and keep the next step on resolving the named downgrade reasons before run
+  start.
+- If Canon reports a packet as `materially-useful`, say what still prevents it
+  from reading as fully publishable.
 - If Canon reports that the authored packet already materially closes the
   decision, say so directly and keep the next step on preserving that closure
   in the matching governed run rather than inventing more balance.

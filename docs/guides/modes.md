@@ -89,8 +89,10 @@ Supported today for file-backed modes:
 - `supply-chain-analysis`
 
 The clarity result surfaces a bounded summary, missing-context findings when
-present, targeted clarification questions when present, and reasoning signals
-that can call out weak support or a materially closed choice. `pr-review`
+present, explicit output-quality posture, evidence or downgrade reasons,
+targeted clarification questions when present, and reasoning signals that can
+call out a packet as only `structurally-complete`, already
+`materially-useful`, fully `publishable`, or materially closed. `pr-review`
 remains excluded because it inspects diffs rather than authored packet files.
 
 ## Supported Today

@@ -19,11 +19,31 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.33.0`
+- None recorded after `0.34.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.33.0`.
+- No additional released feature-spec delivery is recorded after `0.34.0`.
+
+## [0.34.0] - 2026-05-01
+
+Delivered specs:
+
+- `034` - Output Quality Gates
+
+Highlights:
+
+- Add an explicit output-quality posture to `inspect clarity` so Canon can say
+  directly whether a packet is only `structurally-complete`, already
+  `materially-useful`, fully `publishable`, or materially closed.
+- Replace generic `ready` summary language across governed packet families with
+  quality-aware posture wording and tighten the remaining backlog
+  `planning-risks.md` fallback so it no longer invents risk bullets from weak
+  evidence.
+- Align the `0.34.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, shared skill guidance, README, mode
+  guidance, publication guides, roadmap continuity, and final validation
+  closeout.
 
 ## [0.33.0] - 2026-05-01
 

@@ -3,12 +3,12 @@
 //! Owns mode-specific brief parsers plus the shared clarity-inspection
 //! functions (missing context, clarification questions, reasoning signals).
 
-use super::ClarificationQuestionSummary;
 use super::context_parse::{
     condense_context_block, count_markdown_entries, extract_context_list, extract_context_marker,
     first_meaningful_line, infer_discovery_next_phase, render_repo_surface_block,
     split_context_items, truncate_context_excerpt,
 };
+use super::{ClarificationQuestionSummary, OutputQualitySummary};
 use crate::domain::mode::Mode;
 
 // ── Simple list utilities (used by RequirementsBrief and clarity functions) ───
@@ -1110,6 +1110,67 @@ pub(crate) fn authored_mode_reasoning_signals(
     signals
 }
 
+pub(crate) fn clarity_output_quality(
+    materially_closed: bool,
+    missing_context: &[String],
+    clarification_questions: &[ClarificationQuestionSummary],
+    reasoning_signals: &[String],
+) -> OutputQualitySummary {
+    let posture = if !missing_context.is_empty() {
+        "structurally-complete"
+    } else if clarification_questions.is_empty() {
+        "publishable"
+    } else {
+        "materially-useful"
+    };
+
+    let mut evidence_signals = reasoning_signals.iter().take(2).cloned().collect::<Vec<_>>();
+    if materially_closed {
+        evidence_signals.push(
+            "The authored packet is materially closed around one viable direction and keeps that closure explicit.".to_string(),
+        );
+    } else if missing_context.is_empty() {
+        evidence_signals.push(
+            "No explicit missing-context markers remain in the inspected packet.".to_string(),
+        );
+    }
+    if evidence_signals.is_empty() {
+        evidence_signals.push(
+            "The inspect surface computed a bounded output-quality posture from the authored packet."
+                .to_string(),
+        );
+    }
+
+    let mut downgrade_reasons = missing_context.to_vec();
+    if !clarification_questions.is_empty() {
+        downgrade_reasons.push(format!(
+            "{} clarification question(s) remain before Canon should treat this packet as unambiguously publishable.",
+            clarification_questions.len()
+        ));
+    }
+
+    OutputQualitySummary {
+        posture: posture.to_string(),
+        materially_closed,
+        evidence_signals,
+        downgrade_reasons,
+    }
+}
+
+pub(crate) fn authored_mode_output_quality(
+    brief: &AuthoredModeBrief,
+    missing_context: &[String],
+    clarification_questions: &[ClarificationQuestionSummary],
+    reasoning_signals: &[String],
+) -> OutputQualitySummary {
+    clarity_output_quality(
+        brief.materially_closed(),
+        missing_context,
+        clarification_questions,
+        reasoning_signals,
+    )
+}
+
 pub(crate) fn authored_mode_recommended_focus(
     brief: &AuthoredModeBrief,
     missing_context: &[String],
@@ -1752,6 +1813,28 @@ mod tests {
 
         let signals = authored_mode_reasoning_signals(&brief.source_refs, &brief);
         assert!(signals.iter().any(|signal| signal.contains("materially closes the decision")));
+    }
+
+    #[test]
+    fn clarity_output_quality_distinguishes_structural_and_publishable_posture() {
+        let weak = clarity_output_quality(
+            false,
+            &["Planning support is missing.".to_string()],
+            &[],
+            &["Detected 1 authored input surface(s): canon-input/change.md.".to_string()],
+        );
+        assert_eq!(weak.posture, "structurally-complete");
+        assert!(!weak.downgrade_reasons.is_empty());
+
+        let publishable = clarity_output_quality(
+            true,
+            &[],
+            &[],
+            &["Detected 1 authored input surface(s): architecture.md.".to_string()],
+        );
+        assert_eq!(publishable.posture, "publishable");
+        assert!(publishable.materially_closed);
+        assert!(!publishable.evidence_signals.is_empty());
     }
 
     #[test]

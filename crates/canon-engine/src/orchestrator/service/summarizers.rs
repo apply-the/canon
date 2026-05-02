@@ -148,6 +148,44 @@ pub(crate) fn primary_artifact_action_for(path: &str) -> ResultActionSummary {
     }
 }
 
+fn packet_output_quality_headline(
+    packet_name: &str,
+    missing_context_markers: usize,
+    caution_count: usize,
+    caution_label: &str,
+    publishable_target: &str,
+) -> String {
+    if missing_context_markers > 0 {
+        format!(
+            "{packet_name} packet is structurally complete only and still carries {missing_context_markers} explicit missing-context marker(s)."
+        )
+    } else if caution_count > 0 {
+        format!(
+            "{packet_name} packet is materially useful but still carries {caution_count} {caution_label} before {publishable_target}."
+        )
+    } else {
+        format!("{packet_name} packet is publishable for {publishable_target}.")
+    }
+}
+
+fn packet_output_quality_artifact_prefix(
+    missing_context_markers: usize,
+    caution_count: usize,
+    caution_label: &str,
+) -> String {
+    if missing_context_markers > 0 {
+        format!(
+            "Primary artifact is structurally complete only and still carries {missing_context_markers} missing-context marker(s)."
+        )
+    } else if caution_count > 0 {
+        format!(
+            "Primary artifact is materially useful but still carries {caution_count} {caution_label}."
+        )
+    } else {
+        "Primary artifact is publishable.".to_string()
+    }
+}
+
 // ── Mode summarizers ──────────────────────────────────────────────────────────
 
 fn summarize_requirements_mode_result(
@@ -183,22 +221,21 @@ fn summarize_requirements_mode_result(
     let scope_cut_count = count_markdown_entries(&scope_cuts);
     let open_question_count = count_markdown_entries(&open_questions);
 
-    let headline = if missing_context_markers == 0 {
-        "Requirements packet ready for downstream review.".to_string()
-    } else {
-        format!(
-            "Requirements packet completed with {missing_context_markers} explicit missing-context marker(s)."
+    let headline = packet_output_quality_headline(
+        "Requirements",
+        missing_context_markers,
+        open_question_count,
+        "open question set(s)",
+        "downstream review",
+    );
+    let artifact_packet_summary = format!(
+        "{} Packet captures {constraint_count} constraint point(s), {scope_cut_count} scope cut(s), and {open_question_count} open question(s).",
+        packet_output_quality_artifact_prefix(
+            missing_context_markers,
+            open_question_count,
+            "open question set(s)"
         )
-    };
-    let artifact_packet_summary = if missing_context_markers == 0 {
-        format!(
-            "Primary artifact is ready. Packet captures {constraint_count} constraint point(s), {scope_cut_count} scope cut(s), and {open_question_count} open question(s)."
-        )
-    } else {
-        format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Constraints: {constraint_count}; scope cuts: {scope_cut_count}; open questions: {open_question_count}."
-        )
-    };
+    );
 
     Some(ModeResultSummary {
         headline,
@@ -245,15 +282,20 @@ fn summarize_discovery_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
     let repo_signal_count = count_markdown_entries(&repo_signals);
     let unknown_count = count_markdown_entries(&unknowns);
 
-    let headline = if missing_context_markers == 0 {
-        "Discovery packet ready for downstream translation.".to_string()
-    } else {
-        format!(
-            "Discovery packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Discovery",
+        missing_context_markers,
+        unknown_count,
+        "unknown or assumption set(s)",
+        "downstream translation",
+    );
     let artifact_packet_summary = format!(
-        "Primary artifact maps {repo_signal_count} repository signal(s) and {unknown_count} unknown or assumption set(s). Next phase: {}.",
+        "{} Packet maps {repo_signal_count} repository signal(s) and {unknown_count} unknown or assumption set(s). Next phase: {}.",
+        packet_output_quality_artifact_prefix(
+            missing_context_markers,
+            unknown_count,
+            "unknown or assumption set(s)"
+        ),
         truncate_context_excerpt(&next_phase, 120)
     );
 
@@ -324,15 +366,16 @@ fn summarize_system_shaping_mode_result(
     let delivery_count = count_markdown_entries(&delivery_phases);
     let hotspot_count = count_markdown_entries(&hotspots);
 
-    let headline = if missing_context_markers == 0 {
-        "System-shaping packet ready for downstream architecture or delivery planning.".to_string()
-    } else {
-        format!(
-            "System-shaping packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "System-shaping",
+        missing_context_markers,
+        0,
+        "",
+        "downstream architecture or delivery planning",
+    );
     let artifact_packet_summary = format!(
-        "Primary artifact names {capability_count} capability slice(s), {bounded_context_count} bounded context candidate(s), {domain_invariant_count} domain invariant set(s), {delivery_count} delivery phase set(s), and {hotspot_count} risk hotspot set(s)."
+        "{} Packet names {capability_count} capability slice(s), {bounded_context_count} bounded context candidate(s), {domain_invariant_count} domain invariant set(s), {delivery_count} delivery phase set(s), and {hotspot_count} risk hotspot set(s).",
+        packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
     );
 
     Some(ModeResultSummary {
@@ -408,15 +451,16 @@ fn summarize_architecture_mode_result(
     let bounded_context_count = count_markdown_entries(&bounded_contexts);
     let shared_invariant_count = count_markdown_entries(&shared_invariants);
 
-    let headline = if missing_context_markers == 0 {
-        "Architecture packet ready for downstream implementation or review.".to_string()
-    } else {
-        format!(
-            "Architecture packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Architecture",
+        missing_context_markers,
+        0,
+        "",
+        "downstream implementation or review",
+    );
     let artifact_packet_summary = format!(
-        "Primary artifact records {decision_count} decision set(s), {tradeoff_count} tradeoff set(s), {invariant_count} invariant set(s), {boundary_count} boundary set(s), {bounded_context_count} bounded context set(s), and {shared_invariant_count} shared invariant set(s)."
+        "{} Packet records {decision_count} decision set(s), {tradeoff_count} tradeoff set(s), {invariant_count} invariant set(s), {boundary_count} boundary set(s), {bounded_context_count} bounded context set(s), and {shared_invariant_count} shared invariant set(s).",
+        packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
     );
 
     Some(ModeResultSummary {
@@ -537,22 +581,24 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
     let cross_context_risk_count = count_markdown_entries(&cross_context_risks);
     let validation_count = count_markdown_entries(&validation_strategy);
 
-    let headline = if missing_context_markers == 0 {
-        "Change packet ready for bounded change review.".to_string()
-    } else {
-        format!(
-            "Change packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Change",
+        missing_context_markers,
+        0,
+        "",
+        "bounded change review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact names {change_surface_count} change-surface point(s). Packet also captures {legacy_invariant_count} legacy invariant(s), {domain_invariant_count} domain invariant set(s), {cross_context_risk_count} cross-context risk set(s), and {validation_count} validation check set(s) for the bounded slice {} / {}.",
+            "{} Packet names {change_surface_count} change-surface point(s). Packet also captures {legacy_invariant_count} legacy invariant(s), {domain_invariant_count} domain invariant set(s), {cross_context_risk_count} cross-context risk set(s), and {validation_count} validation check set(s) for the bounded slice {} / {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&system_slice, 90),
             truncate_context_excerpt(&domain_slice, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Change surface: {change_surface_count}; legacy invariants: {legacy_invariant_count}; domain invariants: {domain_invariant_count}; cross-context risks: {cross_context_risk_count}; validation checks: {validation_count}."
+            "{} Change surface: {change_surface_count}; legacy invariants: {legacy_invariant_count}; domain invariants: {domain_invariant_count}; cross-context risks: {cross_context_risk_count}; validation checks: {validation_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -602,23 +648,26 @@ fn summarize_backlog_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mode
         &closure_findings,
     ]);
 
-    let headline = if full_packet && missing_context_markers == 0 {
-        "Backlog packet ready for downstream execution planning.".to_string()
-    } else if full_packet {
-        format!(
-            "Backlog packet completed with {missing_context_markers} explicit missing-context marker(s)."
+    let headline = if full_packet {
+        packet_output_quality_headline(
+            "Backlog",
+            missing_context_markers,
+            0,
+            "",
+            "downstream execution planning",
         )
     } else {
-        "Backlog packet is closure-limited and surfaces planning risks explicitly.".to_string()
+        "Backlog packet is structurally complete only and remains closure-limited with planning risks explicit.".to_string()
     };
     let artifact_packet_summary = if full_packet {
         format!(
-            "Primary artifact stays planning-level and the packet records {slice_count} delivery slice set(s). Planning horizon: {}.",
+            "{} Packet stays planning-level and records {slice_count} delivery slice set(s). Planning horizon: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&planning_horizon, 120)
         )
     } else {
         format!(
-            "Primary artifact is readable, but decomposition stayed risk-only. Closure findings: {}.",
+            "Primary artifact is structurally complete only and decomposition stayed risk-only. Closure findings: {}.",
             truncate_context_excerpt(&closure_findings, 140)
         )
     };
@@ -668,21 +717,23 @@ fn summarize_incident_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mod
     let impacted_surface_count = count_markdown_entries(&impacted_surfaces);
     let immediate_action_count = count_markdown_entries(&immediate_actions);
 
-    let headline = if missing_context_markers == 0 {
-        "Incident packet ready for governed containment review.".to_string()
-    } else {
-        format!(
-            "Incident packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Incident",
+        missing_context_markers,
+        0,
+        "",
+        "governed containment review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds {impacted_surface_count} impacted surface(s) with {immediate_action_count} immediate action set(s). Current state: {}.",
+            "{} Packet bounds {impacted_surface_count} impacted surface(s) with {immediate_action_count} immediate action set(s). Current state: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&current_state, 120)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Impacted surfaces: {impacted_surface_count}; immediate actions: {immediate_action_count}."
+            "{} Impacted surfaces: {impacted_surface_count}; immediate actions: {immediate_action_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -735,21 +786,23 @@ fn summarize_security_assessment_mode_result(
     let threat_count = count_markdown_entries(&threat_inventory);
     let risk_count = count_markdown_entries(&risk_findings);
 
-    let headline = if missing_context_markers == 0 {
-        "Security-assessment packet ready for governed review.".to_string()
-    } else {
-        format!(
-            "Security-assessment packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Security-assessment",
+        missing_context_markers,
+        0,
+        "",
+        "governed review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds {asset_count} in-scope asset set(s), {threat_count} threat set(s), and {risk_count} rated risk set(s). Trust boundaries: {}.",
+            "{} Packet bounds {asset_count} in-scope asset set(s), {threat_count} threat set(s), and {risk_count} rated risk set(s). Trust boundaries: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&trust_boundaries, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). In-scope assets: {asset_count}; threats: {threat_count}; rated risks: {risk_count}."
+            "{} In-scope assets: {asset_count}; threats: {threat_count}; rated risks: {risk_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -802,21 +855,23 @@ fn summarize_system_assessment_mode_result(
     let asset_count = count_markdown_entries(&assessed_assets);
     let risk_count = count_markdown_entries(&observed_risks);
 
-    let headline = if missing_context_markers == 0 {
-        "System-assessment packet ready for governed review.".to_string()
-    } else {
-        format!(
-            "System-assessment packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "System-assessment",
+        missing_context_markers,
+        0,
+        "",
+        "governed review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact records {view_count} assessed view set(s), {asset_count} assessed asset set(s), and {risk_count} observed risk set(s). Objective: {}.",
+            "{} Packet records {view_count} assessed view set(s), {asset_count} assessed asset set(s), and {risk_count} observed risk set(s). Objective: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&assessment_objective, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Assessed views: {view_count}; assessed assets: {asset_count}; observed risks: {risk_count}."
+            "{} Assessed views: {view_count}; assessed assets: {asset_count}; observed risks: {risk_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -869,21 +924,23 @@ fn summarize_supply_chain_analysis_mode_result(
     let finding_count = count_markdown_entries(&findings_by_severity);
     let modernization_count = count_markdown_entries(&modernization_slices);
 
-    let headline = if missing_context_markers == 0 {
-        "Supply-chain-analysis packet ready for governed review.".to_string()
-    } else {
-        format!(
-            "Supply-chain-analysis packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Supply-chain-analysis",
+        missing_context_markers,
+        0,
+        "",
+        "governed review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds {ecosystem_count} ecosystem set(s), {finding_count} finding set(s), and {modernization_count} modernization slice set(s). Distribution model: {}.",
+            "{} Packet bounds {ecosystem_count} ecosystem set(s), {finding_count} finding set(s), and {modernization_count} modernization slice set(s). Distribution model: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&distribution_model, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Ecosystems: {ecosystem_count}; findings: {finding_count}; modernization slices: {modernization_count}."
+            "{} Ecosystems: {ecosystem_count}; findings: {finding_count}; modernization slices: {modernization_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -958,21 +1015,23 @@ fn summarize_implementation_mode_result(
     let allowed_path_count = count_markdown_entries(&allowed_paths);
     let safety_net_count = count_markdown_entries(&safety_net_evidence);
 
-    let headline = if missing_context_markers == 0 {
-        "Implementation packet ready for bounded execution review.".to_string()
-    } else {
-        format!(
-            "Implementation packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Implementation",
+        missing_context_markers,
+        0,
+        "",
+        "bounded execution review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact maps {task_count} task set(s) across {allowed_path_count} allowed path set(s) with {safety_net_count} safety-net evidence set(s). Bounded changes: {}.",
+            "{} Packet maps {task_count} task set(s) across {allowed_path_count} allowed path set(s) with {safety_net_count} safety-net evidence set(s). Bounded changes: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&bounded_changes, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Tasks: {task_count}; allowed paths: {allowed_path_count}; safety-net evidence: {safety_net_count}."
+            "{} Tasks: {task_count}; allowed paths: {allowed_path_count}; safety-net evidence: {safety_net_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -1070,21 +1129,23 @@ fn summarize_refactor_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mod
     let allowed_path_count = count_markdown_entries(&allowed_paths);
     let feature_audit_count = count_markdown_entries(&feature_audit);
 
-    let headline = if missing_context_markers == 0 {
-        "Refactor packet ready for preservation review.".to_string()
-    } else {
-        format!(
-            "Refactor packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Refactor",
+        missing_context_markers,
+        0,
+        "",
+        "preservation review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact names {preserved_count} preserved-behavior set(s) across {allowed_path_count} allowed path set(s). Contract drift note: {}. Feature audit sets: {feature_audit_count}.",
+            "{} Packet names {preserved_count} preserved-behavior set(s) across {allowed_path_count} allowed path set(s). Contract drift note: {}. Feature audit sets: {feature_audit_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&contract_drift, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Preserved behavior: {preserved_count}; allowed paths: {allowed_path_count}; feature audit: {feature_audit_count}."
+            "{} Preserved behavior: {preserved_count}; allowed paths: {allowed_path_count}; feature audit: {feature_audit_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -1138,22 +1199,24 @@ fn summarize_migration_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
     let compatibility_count = count_markdown_entries(&guaranteed_compatibility);
     let rollback_trigger_count = count_markdown_entries(&rollback_triggers);
 
-    let headline = if missing_context_markers == 0 {
-        "Migration packet ready for governed transition review.".to_string()
-    } else {
-        format!(
-            "Migration packet completed with {missing_context_markers} explicit missing-context marker(s)."
-        )
-    };
+    let headline = packet_output_quality_headline(
+        "Migration",
+        missing_context_markers,
+        0,
+        "",
+        "governed transition review",
+    );
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact bounds the transition from {} to {} with {compatibility_count} compatibility guarantee set(s) and {rollback_trigger_count} rollback trigger set(s).",
+            "{} Packet bounds the transition from {} to {} with {compatibility_count} compatibility guarantee set(s) and {rollback_trigger_count} rollback trigger set(s).",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&current_state, 90),
             truncate_context_excerpt(&target_state, 90)
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Compatibility guarantees: {compatibility_count}; rollback triggers: {rollback_trigger_count}."
+            "{} Compatibility guarantees: {compatibility_count}; rollback triggers: {rollback_trigger_count}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
         )
     };
 
@@ -1585,6 +1648,34 @@ mod tests {
         let s = summary.unwrap();
         assert!(s.headline.contains("Requirements packet"));
         assert!(s.primary_artifact_title == "Problem Statement");
+    }
+
+    #[test]
+    fn packet_output_quality_headline_marks_materially_useful_when_caveats_remain() {
+        let headline = packet_output_quality_headline(
+            "Requirements",
+            0,
+            2,
+            "open question set(s)",
+            "downstream review",
+        );
+
+        assert!(headline.contains("materially useful"));
+        assert!(headline.contains("2 open question set(s)"));
+    }
+
+    #[test]
+    fn packet_output_quality_headline_marks_publishable_when_complete() {
+        let headline = packet_output_quality_headline(
+            "Architecture",
+            0,
+            0,
+            "",
+            "downstream implementation or review",
+        );
+
+        assert!(headline.contains("publishable"));
+        assert!(headline.contains("downstream implementation or review"));
     }
 
     #[test]

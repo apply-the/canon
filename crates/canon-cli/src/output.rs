@@ -520,6 +520,37 @@ fn render_clarity_markdown(entries: &[Value]) -> String {
         }
     }
 
+    if let Some(output_quality) = entry.get("output_quality").and_then(Value::as_object) {
+        lines.push(String::new());
+        lines.push("## Output Quality".to_string());
+        lines.push(String::new());
+
+        if let Some(posture) = scalar_value(output_quality.get("posture")) {
+            lines.push(format!("Posture: {posture}"));
+        }
+        if let Some(materially_closed) = scalar_value(output_quality.get("materially_closed")) {
+            lines.push(format!("Materially Closed: {materially_closed}"));
+        }
+
+        let evidence_signals = string_list(output_quality.get("evidence_signals"));
+        if !evidence_signals.is_empty() {
+            lines.push(String::new());
+            lines.push("Evidence Signals:".to_string());
+            for signal in evidence_signals {
+                lines.push(format!("- {signal}"));
+            }
+        }
+
+        let downgrade_reasons = string_list(output_quality.get("downgrade_reasons"));
+        if !downgrade_reasons.is_empty() {
+            lines.push(String::new());
+            lines.push("Downgrade Reasons:".to_string());
+            for reason in downgrade_reasons {
+                lines.push(format!("- {reason}"));
+            }
+        }
+    }
+
     let missing_context = string_list(entry.get("missing_context"));
     if !missing_context.is_empty() {
         lines.push(String::new());
@@ -658,6 +689,16 @@ mod tests {
                 "reasoning_signals": [
                     "Detected 1 authored input surface(s): idea.md."
                 ],
+                "output_quality": {
+                    "posture": "structurally-complete",
+                    "materially_closed": false,
+                    "evidence_signals": [
+                        "Detected 1 authored input surface(s): idea.md."
+                    ],
+                    "downgrade_reasons": [
+                        "Constraints are incomplete; downstream shaping would lack explicit non-negotiables."
+                    ]
+                },
                 "recommended_focus": "Resolve the missing context items before starting a requirements run or handing the packet to downstream design work."
             }]
         });
@@ -668,6 +709,8 @@ mod tests {
         assert!(markdown.contains("Mode: requirements"));
         assert!(markdown.contains("Requires Clarification: yes"));
         assert!(markdown.contains("## Clarification Questions"));
+        assert!(markdown.contains("## Output Quality"));
+        assert!(markdown.contains("Posture: structurally-complete"));
         assert!(markdown.contains("1. Which constraints are non-negotiable for this work?"));
         assert!(markdown.contains("## Recommended Focus"));
     }
