@@ -48,6 +48,7 @@ Auto-generated from all feature plans. Last updated: 2026-05-02
 - repository files plus ephemeral `dist/` release artifacts and generated `lcov.info` during validation (032-scoop-distribution)
 - Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` (033-reasoning-evidence-clarity)
 - Rust 1.95.0 workspace plus Markdown and JSON-facing contract artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` (035-governance-adapter-surface)
+- Rust 1.95.0 workspace plus Bash and PowerShell release helpers, JSON metadata, and Markdown documentation artifacts + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, existing packaging templates, and GitHub Actions release automation (036-release-provenance-integrity)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -106,9 +107,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 036-release-provenance-integrity: Added Rust 1.95.0 workspace plus Bash and PowerShell release helpers, JSON metadata, and Markdown documentation artifacts + existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, existing packaging templates, and GitHub Actions release automation
 - 035-governance-adapter-surface: Added Rust 1.95.0 workspace plus Markdown and JSON-facing contract artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`
 - 034-output-quality-gates: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`
-- 033-reasoning-evidence-clarity: Added Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

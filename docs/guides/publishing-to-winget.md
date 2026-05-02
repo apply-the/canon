@@ -7,6 +7,10 @@ GitHub Releases remains the canonical distribution surface. The `winget`
 manifests are derived from the release bundle, validated locally, and then
 submitted manually to `winget-pkgs`.
 
+The generated distribution metadata now carries explicit `source_of_truth` and
+`channels` contracts so the renderer and verifier fail closed before
+publication.
+
 The preferred path is to let CI generate the `winget` bundle from a release
 tag. Local script execution is mainly for dry runs, troubleshooting, or
 reproducing the CI output before opening the `winget-pkgs` pull request.
@@ -41,13 +45,13 @@ workflow manually with `workflow_dispatch` and leave `publish=false`.
 
 ## What This Guide Assumes
 
-- You already have a release version such as `0.35.0`.
-- The GitHub release tag will be `v0.35.0`.
+- You already have a release version such as `0.36.0`.
+- The GitHub release tag will be `v0.36.0`.
 - A local `dist/` directory exists with the release archives, checksum file,
   and release notes.
 - `jq`, `tar`, `zip`, `unzip`, and `shasum` are available in your shell.
 
-The scripts in this repository expect the raw semantic version like `0.35.0`,
+The scripts in this repository expect the raw semantic version like `0.36.0`,
 not the Git tag form with the `v` prefix.
 
 ## Required Release Files
@@ -76,7 +80,7 @@ If you want to check that the expected files are present before generating
 metadata:
 
 ```bash
-VERSION=0.35.0
+VERSION=0.36.0
 DIST_DIR=dist
 
 ls "$DIST_DIR"/canon-"$VERSION"-*.tar.gz
@@ -91,7 +95,7 @@ Generate the machine-readable release description from the canonical release
 bundle:
 
 ```bash
-VERSION=0.35.0
+VERSION=0.36.0
 DIST_DIR=dist
 
 bash scripts/release/write-distribution-metadata.sh \
@@ -105,7 +109,8 @@ Expected output:
 - `dist/canon-<VERSION>-distribution-metadata.json`
 
 This file binds the Windows artifact URL and checksum directly from the release
-bundle so they do not need to be hand-copied into the manifest files.
+bundle and records the canonical `source_of_truth` plus per-channel contracts,
+so they do not need to be hand-copied into the manifest files.
 
 ## 3. Render the winget Manifest Bundle
 
@@ -192,7 +197,7 @@ manifests/a/ApplyThe/Canon/<VERSION>/
 Example:
 
 ```bash
-VERSION=0.35.0
+VERSION=0.36.0
 WINGET_PKGS="$HOME/src/winget-pkgs"
 
 mkdir -p "$WINGET_PKGS/manifests/a/ApplyThe/Canon/$VERSION"
@@ -223,7 +228,7 @@ reopening the release bundle.
 
 ## Common Failure Modes
 
-- Passing `v0.35.0` to the scripts instead of `0.35.0`
+- Passing `v0.36.0` to the scripts instead of `0.36.0`
 - Missing `release-notes.md` or `canon-<VERSION>-SHA256SUMS.txt`
 - A Windows zip that contains nested directories instead of a root `canon.exe`
 - Hand-editing the generated YAML after verification instead of regenerating it

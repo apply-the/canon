@@ -9,7 +9,7 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.35.0`.
+The current delivery line in this repository targets Canon `0.36.0`.
 
 
 ## What Canon Does
@@ -46,6 +46,9 @@ tool needs a stable integration boundary.
 ## Install
 
 Canon ships as a single binary named `canon`.
+
+GitHub Releases remain the canonical source of truth for the Homebrew formula,
+`winget` bundle, and Scoop manifest.
 
 ### Homebrew
 

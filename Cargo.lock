@@ -122,7 +122,7 @@ checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 
 [[package]]
 name = "canon-adapters"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "canon-cli"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "canon-engine",
  "clap",
@@ -151,7 +151,7 @@ dependencies = [
 
 [[package]]
 name = "canon-engine"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "canon-adapters",
  "serde",
@@ -170,7 +170,7 @@ dependencies = [
 
 [[package]]
 name = "canon-workspace"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "assert_cmd",
  "canon-adapters",
