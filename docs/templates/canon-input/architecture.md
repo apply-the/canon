@@ -48,6 +48,14 @@ State the recommended option plainly.
 - Downstream impact 1
 - Downstream impact 2
 
+## Working Assumptions
+- Assumption 1 that keeps the current recommendation valid
+- Assumption 2 that would need revisiting if it changes
+
+## Unresolved Questions
+- Question 1 that could still change the decision or next mode
+- Question 2 that should stay explicit until answered
+
 ## Bounded Contexts
 - Context 1 and its primary responsibility
 - Context 2 and its primary responsibility

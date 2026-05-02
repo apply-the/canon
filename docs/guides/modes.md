@@ -115,6 +115,10 @@ targeted clarification questions when present, and reasoning signals that can
 call out a packet as only `structurally-complete`, already
 `materially-useful`, fully `publishable`, or materially closed. `pr-review`
 remains excluded because it inspects diffs rather than authored packet files.
+For `architecture`, those clarification questions also carry `Affects`,
+`Default if skipped`, and `Status` metadata, and the recommended focus can
+explicitly reroute the packet to `discovery`, `requirements`, or
+`system-shaping` when the brief is not truly architecture-ready.
 
 ## Supported Today
 
@@ -686,7 +690,9 @@ decision sections `## Decision`, `## Constraints`, `## Evaluation Criteria`,
 the existing C4 sections; plus `## Bounded Contexts`,
 `## Context Relationships`, `## Integration Seams`,
 `## Anti-Corruption Candidates`, `## Ownership Boundaries`, and
-`## Shared Invariants`.
+`## Shared Invariants`. When known, include `## Working Assumptions` and
+`## Unresolved Questions` so readiness stays honest about what could still
+change the decision or next mode.
 
 ### Good Input Should Include
 
@@ -696,6 +702,8 @@ the existing C4 sections; plus `## Bounded Contexts`,
 - candidate boundaries
 - invariants that must hold
 - decision drivers, recommendation, consequences, and tradeoffs that matter
+- working assumptions and unresolved questions that could still change the
+  decision or next mode
 - risks of the decision when you are still authoring an older brief that has
   not been migrated to `## Consequences`
 - bounded contexts, their relationships, and shared invariants
@@ -707,6 +715,7 @@ the existing C4 sections; plus `## Bounded Contexts`,
 - what tradeoffs separate the options
 - which option is strongest under explicit criteria
 - what blockers or accepted risks remain
+- whether the packet is ready for architecture or should reroute earlier
 
 ### Questions This Mode Does Not Answer Well
 
@@ -724,7 +733,7 @@ Architecture produces a structural decision packet with these artifacts:
 - `tradeoff-matrix.md` (alternatives and tradeoff analysis preserving `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`)
 - `boundary-map.md` (system boundaries and ownership)
 - `context-map.md` (bounded contexts, relationships, seams, ownership, and shared invariants)
-- `readiness-assessment.md` (decision readiness and blockers)
+- `readiness-assessment.md` (decision readiness, working assumptions, unresolved questions, blockers, accepted risks, and recommended next mode)
 - `system-context.md` (C4 Level 1: system and external actors; requires authored `## System Context` in brief)
 - `container-view.md` (C4 Level 2: deployable containers; requires authored `## Containers` in brief)
 - `component-view.md` (C4 Level 3: component decomposition; requires authored `## Components` in brief)
@@ -765,7 +774,9 @@ not a failure in the mode itself.
 - publish the approved architecture packet with `canon publish <RUN_ID>` to `docs/architecture/decisions/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
 - move to `change` when the structural decision now needs a bounded change plan in an existing system
 - move to later implementation work once the boundaries and invariants are accepted
-- return to `discovery` or `requirements` only if the decision surface itself was not actually bounded
+- return to `discovery` when the problem and decision surface are still blurry
+- return to `requirements` when scope, constraints, or rationale are still under-bounded
+- return to `system-shaping` when the capability structure is not yet explicit enough for architecture tradeoffs
 
 ### Common Mistakes
 

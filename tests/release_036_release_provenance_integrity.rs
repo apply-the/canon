@@ -5,7 +5,7 @@ use std::process::Command as ProcessCommand;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
-const VERSION: &str = "0.36.0";
+const VERSION: &str = "0.37.0";
 
 #[test]
 fn distribution_metadata_includes_provenance_and_channel_contracts() {
@@ -387,13 +387,13 @@ fn canonical_release_contract_renders_and_verifies_all_channels() {
 }
 
 #[test]
-fn release_docs_and_version_surfaces_align_on_0_36_0_provenance() {
+fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
     let cargo_manifest = fs::read_to_string(repo_root.join("Cargo.toml")).expect("read Cargo.toml");
     assert!(
-        cargo_manifest.contains("version = \"0.36.0\""),
-        "workspace manifest should be bumped to 0.36.0"
+        cargo_manifest.contains("version = \"0.37.0\""),
+        "workspace manifest should be bumped to 0.37.0"
     );
 
     for compatibility_ref in [
@@ -404,8 +404,8 @@ fn release_docs_and_version_surfaces_align_on_0_36_0_provenance() {
         let content =
             fs::read_to_string(&compatibility_ref).expect("read runtime compatibility reference");
         assert!(
-            content.contains("expected_workspace_version = \"0.36.0\""),
-            "runtime compatibility reference should point at 0.36.0: {}",
+            content.contains("expected_workspace_version = \"0.37.0\""),
+            "runtime compatibility reference should point at 0.37.0: {}",
             compatibility_ref.display()
         );
     }
@@ -413,8 +413,8 @@ fn release_docs_and_version_surfaces_align_on_0_36_0_provenance() {
     let readme = fs::read_to_string(repo_root.join("README.md")).expect("read README");
     let readme_compact = readme.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
-        readme.contains("The current delivery line in this repository targets Canon `0.36.0`."),
-        "README should advertise Canon 0.36.0"
+        readme.contains("The current delivery line in this repository targets Canon `0.37.0`."),
+        "README should advertise Canon 0.37.0"
     );
     assert!(
         readme_compact.contains(
@@ -430,7 +430,7 @@ fn release_docs_and_version_surfaces_align_on_0_36_0_provenance() {
         winget_guide_compact.contains("explicit `source_of_truth` and `channels` contracts"),
         "winget guide should describe the explicit provenance contract"
     );
-    assert!(winget_guide.contains("0.36.0"), "winget guide should use 0.36.0 examples");
+    assert!(winget_guide.contains("0.37.0"), "winget guide should use 0.37.0 examples");
 
     let scoop_guide = fs::read_to_string(repo_root.join("docs/guides/publishing-to-scoop.md"))
         .expect("read scoop guide");
@@ -439,26 +439,40 @@ fn release_docs_and_version_surfaces_align_on_0_36_0_provenance() {
         scoop_guide_compact.contains("explicit `source_of_truth` and `channels` contracts"),
         "scoop guide should describe the explicit provenance contract"
     );
-    assert!(scoop_guide.contains("0.36.0"), "scoop guide should use 0.36.0 examples");
+    assert!(scoop_guide.contains("0.37.0"), "scoop guide should use 0.37.0 examples");
 
     let roadmap = fs::read_to_string(repo_root.join("ROADMAP.md")).expect("read roadmap");
     let roadmap_compact = roadmap.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
-        roadmap.contains("## Delivered Feature: 036 Release Provenance And Channel Integrity"),
-        "roadmap should record the delivered 036 slice"
+        roadmap.contains("## Feature 038: Operator Workflow And Run Control Surface"),
+        "roadmap should start the remaining work at feature 038"
+    );
+    assert!(
+        roadmap.contains("## Feature 039: Authoring System And Packet Maturation"),
+        "roadmap should keep the second remaining macrofeature at 039"
+    );
+    assert_eq!(
+        roadmap.matches("## Feature ").count(),
+        2,
+        "roadmap should list exactly two remaining macrofeatures"
     );
     assert!(
         roadmap_compact.contains(
-            "There are no active remaining candidate feature blocks recorded immediately after the delivered 036 slice."
+            "The roadmap is intentionally capped at two macrofeatures, to be delivered whole and not as slices."
         ),
-        "roadmap should be cleaned after 036"
+        "roadmap should state the two-macrofeature, no-slices constraint"
+    );
+    assert!(
+        roadmap_compact
+            .contains("There are no other active roadmap entries beyond Features 038 and 039."),
+        "roadmap should make the remaining scope explicit"
     );
 
     let changelog = fs::read_to_string(repo_root.join("CHANGELOG.md")).expect("read changelog");
-    assert!(changelog.contains("## [0.36.0]"), "changelog should record the 0.36.0 release");
+    assert!(changelog.contains("## [0.37.0]"), "changelog should record the 0.37.0 release");
     assert!(
-        changelog.contains("Release Provenance And Channel Integrity"),
-        "changelog should name the 036 feature"
+        changelog.contains("Architecture Clarification Readiness And Mode Reroute"),
+        "changelog should name the 037 feature"
     );
 }
 

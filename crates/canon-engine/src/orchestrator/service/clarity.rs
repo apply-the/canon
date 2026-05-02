@@ -979,12 +979,35 @@ pub(crate) fn prioritized_authored_mode_clarification_questions(
             if count_captured_list_items(&brief.options) == 0
                 && !has_authored_value(&brief.decision_state)
             {
-                push_clarification_question(
+                if matches!(brief.mode, Mode::Architecture) {
+                    push_architecture_clarification_question(
+                        &mut questions,
+                        "clarify-authored-decision-posture",
+                        "Which options were considered, or is the decision already materially closed?",
+                        "Architecture packets should either preserve viable alternatives or say directly that the decision is already closed.",
+                        authored_decision_fallback(brief.family),
+                    );
+                } else {
+                    push_clarification_question(
+                        &mut questions,
+                        "clarify-authored-decision-posture",
+                        "Which options were considered, or is the decision already materially closed?",
+                        "Planning packets should either preserve viable alternatives or say directly that the decision is already closed.",
+                        authored_decision_fallback(brief.family),
+                    );
+                }
+            }
+
+            if matches!(brief.mode, Mode::Architecture)
+                && count_captured_list_items(&brief.tradeoffs) == 0
+                && !brief.materially_closed()
+            {
+                push_architecture_clarification_question(
                     &mut questions,
-                    "clarify-authored-decision-posture",
-                    "Which options were considered, or is the decision already materially closed?",
-                    "Planning packets should either preserve viable alternatives or say directly that the decision is already closed.",
-                    authored_decision_fallback(brief.family),
+                    "clarify-authored-tradeoffs",
+                    "Which tradeoffs would actually change the architectural choice?",
+                    "Architecture clarification should stay limited to tradeoffs that could change the structural decision or next-mode routing.",
+                    "No authored `## Pros`, `## Cons`, `## Tradeoffs`, or equivalent tradeoff section was detected in the supplied architecture brief.",
                 );
             }
         }
@@ -1020,13 +1043,23 @@ pub(crate) fn prioritized_authored_mode_clarification_questions(
         }
 
         let prompt = question_prompt(gap);
-        push_clarification_question(
-            &mut questions,
-            &format!("authored-gap-question-{}", index + 1),
-            &prompt,
-            "This unresolved question is already authored in the packet and should stay visible before a governed run starts.",
-            "Captured from the authored gaps, open questions, or evidence-gap section.",
-        );
+        if matches!(brief.mode, Mode::Architecture) {
+            push_architecture_clarification_question(
+                &mut questions,
+                &format!("authored-gap-question-{}", index + 1),
+                &prompt,
+                "This unresolved architecture question is already authored in the packet and should stay visible before a governed run starts.",
+                "Captured from the authored gaps, open questions, or evidence-gap section.",
+            );
+        } else {
+            push_clarification_question(
+                &mut questions,
+                &format!("authored-gap-question-{}", index + 1),
+                &prompt,
+                "This unresolved question is already authored in the packet and should stay visible before a governed run starts.",
+                "Captured from the authored gaps, open questions, or evidence-gap section.",
+            );
+        }
     }
 
     questions.truncate(5);
@@ -1177,6 +1210,12 @@ pub(crate) fn authored_mode_recommended_focus(
     clarification_questions: &[ClarificationQuestionSummary],
 ) -> String {
     if !missing_context.is_empty() {
+        if matches!(brief.mode, Mode::Architecture)
+            && let Some(reroute) = architecture_reroute_guidance(brief)
+        {
+            return reroute;
+        }
+
         return match brief.family {
             AuthoredClarityFamily::Planning => {
                 "Resolve the missing planning boundaries and evidence before treating this packet as reasoning-ready downstream input.".to_string()
@@ -1195,6 +1234,10 @@ pub(crate) fn authored_mode_recommended_focus(
     }
 
     if !clarification_questions.is_empty() {
+        if matches!(brief.mode, Mode::Architecture) {
+            return "Answer the remaining decision-changing architecture questions, or let their documented defaults carry forward into `readiness-assessment.md`, before starting architecture mode.".to_string();
+        }
+
         return format!(
             "Review the remaining authored {} questions before starting {} mode.",
             brief.family.label(),
@@ -1217,6 +1260,45 @@ pub(crate) fn push_clarification_question(
     rationale: &str,
     evidence: &str,
 ) {
+    push_clarification_question_with_metadata(
+        questions,
+        id,
+        prompt,
+        rationale,
+        evidence,
+        ClarificationQuestionMetadata {
+            affects: "packet readiness",
+            default_if_skipped: "Keep the item visible as unresolved authored context before downstream reasoning.",
+            status: "required",
+        },
+    );
+}
+
+fn push_architecture_clarification_question(
+    questions: &mut Vec<ClarificationQuestionSummary>,
+    id: &str,
+    prompt: &str,
+    rationale: &str,
+    evidence: &str,
+) {
+    let metadata = architecture_question_metadata(id);
+    push_clarification_question_with_metadata(questions, id, prompt, rationale, evidence, metadata);
+}
+
+struct ClarificationQuestionMetadata<'a> {
+    affects: &'a str,
+    default_if_skipped: &'a str,
+    status: &'a str,
+}
+
+fn push_clarification_question_with_metadata(
+    questions: &mut Vec<ClarificationQuestionSummary>,
+    id: &str,
+    prompt: &str,
+    rationale: &str,
+    evidence: &str,
+    metadata: ClarificationQuestionMetadata<'_>,
+) {
     if questions.iter().any(|question| question.prompt.eq_ignore_ascii_case(prompt)) {
         return;
     }
@@ -1226,7 +1308,72 @@ pub(crate) fn push_clarification_question(
         prompt: prompt.to_string(),
         rationale: rationale.to_string(),
         evidence: evidence.to_string(),
+        affects: metadata.affects.to_string(),
+        default_if_skipped: metadata.default_if_skipped.to_string(),
+        status: metadata.status.to_string(),
     });
+}
+
+fn architecture_question_metadata(id: &str) -> ClarificationQuestionMetadata<'static> {
+    match id {
+        "clarify-authored-target" => ClarificationQuestionMetadata {
+            affects: "recommended next mode",
+            default_if_skipped: "Reroute to discovery until the problem and decision surface are bounded enough for architecture tradeoffs.",
+            status: "required",
+        },
+        "clarify-authored-boundary" => ClarificationQuestionMetadata {
+            affects: "architecture-decisions.md and context-map.md",
+            default_if_skipped: "Reroute to requirements until the architecture boundary and scope limits are explicit.",
+            status: "required",
+        },
+        "clarify-authored-support" => ClarificationQuestionMetadata {
+            affects: "readiness-assessment.md",
+            default_if_skipped: "Keep the packet conditional in readiness-assessment.md instead of treating the decision as fully grounded.",
+            status: "required",
+        },
+        "clarify-authored-decision-posture" | "clarify-authored-tradeoffs" => {
+            ClarificationQuestionMetadata {
+                affects: "tradeoff-matrix.md",
+                default_if_skipped: "Keep the structural options unresolved and record the missing tradeoff as a readiness blocker.",
+                status: "required",
+            }
+        }
+        _ if id.starts_with("authored-gap-question-") => ClarificationQuestionMetadata {
+            affects: "readiness-assessment.md",
+            default_if_skipped: "Carry the unanswered item forward into readiness-assessment.md as an unresolved question.",
+            status: "required",
+        },
+        _ => ClarificationQuestionMetadata {
+            affects: "architecture readiness",
+            default_if_skipped: "Keep the gap visible as unresolved authored context before downstream reasoning.",
+            status: "required",
+        },
+    }
+}
+
+fn architecture_reroute_guidance(brief: &AuthoredModeBrief) -> Option<String> {
+    if !has_authored_value(&brief.primary_subject) {
+        return Some(
+            "Architecture mode is not ready yet; reroute to discovery until the problem and decision surface are bounded enough to compare structural options.".to_string(),
+        );
+    }
+
+    if !has_authored_value(&brief.boundary) || !has_authored_value(&brief.support_evidence) {
+        return Some(
+            "Architecture mode is not ready yet; reroute to requirements until the scope, constraints, and supporting rationale are explicit.".to_string(),
+        );
+    }
+
+    if count_captured_list_items(&brief.options) == 0
+        && count_captured_list_items(&brief.tradeoffs) == 0
+        && !has_authored_value(&brief.decision_state)
+    {
+        return Some(
+            "Architecture mode is not ready yet; reroute to system-shaping until the candidate boundaries and structural options are explicit enough to compare.".to_string(),
+        );
+    }
+
+    None
 }
 
 pub(crate) fn is_default_requirements_open_question(question: &str) -> bool {
@@ -1721,6 +1868,7 @@ mod tests {
         push_clarification_question(&mut questions, "id-1", "What is the problem?", "r", "e");
         push_clarification_question(&mut questions, "id-2", "What is the problem?", "r2", "e2");
         assert_eq!(questions.len(), 1);
+        assert_eq!(questions[0].status, "required");
     }
 
     #[test]
@@ -1855,5 +2003,26 @@ mod tests {
 
         let missing = authored_mode_missing_context(&brief);
         assert!(missing.iter().any(|item| item.contains("Preserved behavior")));
+    }
+
+    #[test]
+    fn architecture_reroute_guidance_prefers_discovery_for_unbounded_briefs() {
+        let brief = AuthoredModeBrief {
+            mode: Mode::Architecture,
+            family: AuthoredClarityFamily::Planning,
+            primary_subject: authored_primary_fallback(AuthoredClarityFamily::Planning).to_string(),
+            boundary: authored_boundary_fallback(AuthoredClarityFamily::Planning).to_string(),
+            support_evidence: authored_support_fallback(AuthoredClarityFamily::Planning)
+                .to_string(),
+            decision_state: authored_decision_fallback(AuthoredClarityFamily::Planning).to_string(),
+            preserved_boundary: "NOT APPLICABLE".to_string(),
+            options: Vec::new(),
+            tradeoffs: Vec::new(),
+            questions_or_gaps: Vec::new(),
+            source_refs: vec!["architecture.md".to_string()],
+        };
+
+        let guidance = architecture_reroute_guidance(&brief).expect("reroute guidance");
+        assert!(guidance.contains("discovery"));
     }
 }

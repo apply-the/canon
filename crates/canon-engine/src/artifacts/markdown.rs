@@ -353,8 +353,10 @@ pub fn render_architecture_artifact(
                 AuthoredSectionSpec { canonical_heading: "Shared Invariants", aliases: &[] },
             ],
         ),
-        "readiness-assessment.md" => format!(
-            "# Readiness Assessment\n\n## Summary\n\n{context_summary}\n\n## Readiness Status\n\nArchitecture analysis is ready for downstream consumption once approvals and unresolved questions are addressed.\n\n## Blockers\n\n{critique_summary}\n\n## Accepted Risks\n\n{generation_summary}\n"
+        "readiness-assessment.md" => render_architecture_readiness_assessment(
+            context_summary,
+            generation_summary,
+            critique_summary,
         ),
         "system-context.md" => {
             render_c4_artifact("System Context", "system context", context_summary)
@@ -417,6 +419,63 @@ fn render_missing_authored_decision_block(canonical_heading: &str, guidance: &st
     format!(
         "{MISSING_AUTHORED_DECISION_MARKER}\n\nDecision required - No `## {canonical_heading}` section was authored in the supplied brief.\n{guidance}\n\n## {canonical_heading}\n\nDecision required - maintainer confirmation is still missing for this section."
     )
+}
+
+fn render_architecture_readiness_assessment(
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+) -> String {
+    let normalized = context_summary.to_lowercase();
+    let working_assumptions = extract_authored_h2_section(
+        context_summary,
+        "Working Assumptions",
+        &["Assumptions"],
+    )
+    .unwrap_or_else(|| {
+        "No explicit working assumptions were authored. Treat the unresolved questions and blockers below as the remaining readiness constraints.".to_string()
+    });
+    let unresolved_questions = extract_authored_h2_section(
+        context_summary,
+        "Unresolved Questions",
+        &["Open Questions", "Boundary Risks And Open Questions"],
+    )
+    .unwrap_or_else(|| "No explicit unresolved questions were authored.".to_string());
+    let readiness_status = if unresolved_questions.starts_with("No explicit unresolved questions") {
+        "Architecture analysis is bounded enough for downstream planning; the packet can move forward once the accepted risks and approvals stay acceptable.".to_string()
+    } else {
+        "Architecture analysis is materially useful, but downstream planning remains conditional on the working assumptions and unresolved questions below.".to_string()
+    };
+    let recommended_next_mode = architecture_recommended_next_mode(context_summary, &normalized);
+
+    format!(
+        "# Readiness Assessment\n\n## Summary\n\n{context_summary}\n\n## Readiness Status\n\n{readiness_status}\n\n## Working Assumptions\n\n{working_assumptions}\n\n## Unresolved Questions\n\n{unresolved_questions}\n\n## Blockers\n\n{critique_summary}\n\n## Accepted Risks\n\n{generation_summary}\n\n## Recommended Next Mode\n\n{recommended_next_mode}\n"
+    )
+}
+
+fn architecture_recommended_next_mode(context_summary: &str, normalized: &str) -> String {
+    let missing_decision_focus = extract_marker(context_summary, normalized, "decision focus")
+        .or_else(|| extract_authored_h2_section(context_summary, "Decision", &[]))
+        .is_none();
+    if missing_decision_focus {
+        return "discovery: the problem and decision surface are still too blurry to compare architecture tradeoffs honestly.".to_string();
+    }
+
+    let missing_boundary = extract_authored_h2_section(context_summary, "Bounded Contexts", &[])
+        .or_else(|| extract_authored_h2_section(context_summary, "Candidate Boundaries", &[]))
+        .is_none();
+    if missing_boundary {
+        return "requirements: bound the scope, constraints, and decision surface more explicitly before rerunning architecture.".to_string();
+    }
+
+    let missing_structure = extract_authored_h2_section(context_summary, "Options Considered", &[])
+        .or_else(|| extract_authored_h2_section(context_summary, "Containers", &[]))
+        .is_none();
+    if missing_structure {
+        return "system-shaping: shape the capability boundaries and candidate structure before asking architecture mode to compare tradeoffs.".to_string();
+    }
+
+    "change: carry the selected structure into a bounded change plan once approvals land and the assumptions stay acceptable.".to_string()
 }
 
 fn render_authored_decision_section(

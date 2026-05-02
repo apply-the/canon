@@ -532,7 +532,15 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
             ),
             requirement(
                 "readiness-assessment.md",
-                &["Summary", "Readiness Status", "Blockers", "Accepted Risks"],
+                &[
+                    "Summary",
+                    "Readiness Status",
+                    "Working Assumptions",
+                    "Unresolved Questions",
+                    "Blockers",
+                    "Accepted Risks",
+                    "Recommended Next Mode",
+                ],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
             requirement(
