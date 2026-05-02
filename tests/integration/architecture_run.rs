@@ -64,7 +64,7 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     assert_eq!(json["invocations_pending_approval"], 0);
     assert_eq!(
         json["mode_result"]["headline"],
-        "Architecture packet ready for downstream implementation or review."
+        "Architecture packet is publishable for downstream implementation or review."
     );
     assert_eq!(
         json["mode_result"]["result_excerpt"],

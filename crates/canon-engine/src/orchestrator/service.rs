@@ -296,7 +296,16 @@ pub struct ClarityInspectSummary {
     pub missing_context: Vec<String>,
     pub clarification_questions: Vec<ClarificationQuestionSummary>,
     pub reasoning_signals: Vec<String>,
+    pub output_quality: OutputQualitySummary,
     pub recommended_focus: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct OutputQualitySummary {
+    pub posture: String,
+    pub materially_closed: bool,
+    pub evidence_signals: Vec<String>,
+    pub downgrade_reasons: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

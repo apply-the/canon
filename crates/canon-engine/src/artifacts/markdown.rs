@@ -1381,7 +1381,7 @@ pub fn render_backlog_artifact(
                 delivery_intent, closure_findings, body,
             ),
             None => format!(
-                "# Planning Risks\n\n## Summary\n\n{}\n\n## Closure Findings\n\n{}\n\n## Planning Risks\n\n- Sequencing uncertainty: {}\n- Hidden dependency risk: {}\n- Granularity drift risk: backlog output must stay above task level.\n\n## Follow-Up Triggers\n\n- Return to architecture or change when closure findings stay blocking.\n- Strengthen the authored backlog brief when exclusions or priorities remain vague.\n- Re-run backlog only after the bounded upstream packet becomes more credible.\n",
+                "# Planning Risks\n\n## Summary\n\n{}\n\n## Closure Findings\n\n{}\n\n## Planning Risks\n\nNo authored planning risks were recorded for this packet.\n\n## Evidence Boundaries\n\n- Critique evidence remains: {}\n- Validation evidence remains: {}\n- Granularity drift risk remains explicit: backlog output must stay above task level.\n\n## Missing Authored Body\n\nNo `## Planning Risks` section was authored in the backlog input. Canon preserved closure findings and cited evidence boundaries instead of inventing risk bullets.\n\n## Follow-Up Triggers\n\n- Return to architecture or change when closure findings stay blocking.\n- Strengthen the authored backlog brief when exclusions or priorities remain vague.\n- Re-run backlog only after the bounded upstream packet becomes more credible.\n",
                 delivery_intent,
                 closure_findings,
                 truncate_context_excerpt(&critique_evidence, 220),
@@ -2822,6 +2822,7 @@ mod tests {
         let slices = render_backlog_artifact("delivery-slices.md", brief, &planning_context);
         let sequencing = render_backlog_artifact("sequencing-plan.md", brief, &planning_context);
         let anchors = render_backlog_artifact("acceptance-anchors.md", brief, &planning_context);
+        let planning_risks = render_backlog_artifact("planning-risks.md", brief, &planning_context);
 
         assert!(epic_tree.contains(MISSING_AUTHORED_BODY_MARKER));
         assert!(epic_tree.contains("did not synthesize placeholder epics"));
@@ -2835,5 +2836,8 @@ mod tests {
         assert!(anchors.contains(MISSING_AUTHORED_BODY_MARKER));
         assert!(anchors.contains("did not fabricate acceptance anchors"));
         assert!(!anchors.contains("Anchor A:"));
+        assert!(planning_risks.contains(MISSING_AUTHORED_BODY_MARKER));
+        assert!(planning_risks.contains("instead of inventing risk bullets"));
+        assert!(!planning_risks.contains("Sequencing uncertainty:"));
     }
 }

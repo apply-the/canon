@@ -99,7 +99,10 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
     let mode_result = summary.mode_result.as_ref().expect("mode result");
     assert_eq!(mode_result.execution_posture.as_deref(), Some("recommendation-only"));
     assert_eq!(mode_result.primary_artifact_title, "Assessment Overview");
-    assert_eq!(mode_result.headline, "Security-assessment packet ready for governed review.");
+    assert_eq!(
+        mode_result.headline,
+        "Security-assessment packet is publishable for governed review."
+    );
     assert!(
         mode_result
             .artifact_packet_summary

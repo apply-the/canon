@@ -207,7 +207,7 @@ fn run_backlog_markdown_surfaces_primary_result_without_task_level_sections() {
         .success()
         .stdout(contains("# run"))
         .stdout(contains("Primary Artifact: .canon/artifacts/"))
-        .stdout(contains("Backlog packet ready for downstream execution planning."))
+        .stdout(contains("Backlog packet is publishable for downstream execution planning."))
         .stdout(contains("## Task Mapping").not())
         .stdout(contains("task-mapping.md").not());
 }

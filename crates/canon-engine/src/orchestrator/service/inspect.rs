@@ -304,6 +304,12 @@ impl EngineService {
         let missing_context = authored_mode_missing_context(&brief);
         let clarification_questions = prioritized_authored_mode_clarification_questions(&brief);
         let reasoning_signals = authored_mode_reasoning_signals(&source_inputs, &brief);
+        let output_quality = authored_mode_output_quality(
+            &brief,
+            &missing_context,
+            &clarification_questions,
+            &reasoning_signals,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus =
@@ -317,6 +323,7 @@ impl EngineService {
             missing_context,
             clarification_questions,
             reasoning_signals,
+            output_quality,
             recommended_focus,
         })
     }
@@ -343,6 +350,12 @@ impl EngineService {
         let clarification_questions =
             prioritized_requirements_clarification_questions(&brief, &context_summary);
         let reasoning_signals = requirements_reasoning_signals(&source_inputs, &brief);
+        let output_quality = clarity_output_quality(
+            false,
+            &missing_context,
+            &clarification_questions,
+            &reasoning_signals,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
@@ -361,6 +374,7 @@ impl EngineService {
             missing_context,
             clarification_questions,
             reasoning_signals,
+            output_quality,
             recommended_focus,
         })
     }
@@ -387,6 +401,12 @@ impl EngineService {
         let missing_context = discovery_missing_context(&brief);
         let clarification_questions = prioritized_discovery_clarification_questions(&brief);
         let reasoning_signals = discovery_reasoning_signals(&source_inputs, &repo_surfaces, &brief);
+        let output_quality = clarity_output_quality(
+            false,
+            &missing_context,
+            &clarification_questions,
+            &reasoning_signals,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
@@ -405,6 +425,7 @@ impl EngineService {
             missing_context,
             clarification_questions,
             reasoning_signals,
+            output_quality,
             recommended_focus,
         })
     }
@@ -431,6 +452,12 @@ impl EngineService {
         let clarification_questions =
             prioritized_supply_chain_analysis_clarification_questions(&brief);
         let reasoning_signals = supply_chain_analysis_reasoning_signals(&source_inputs, &brief);
+        let output_quality = clarity_output_quality(
+            false,
+            &missing_context,
+            &clarification_questions,
+            &reasoning_signals,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
@@ -449,6 +476,7 @@ impl EngineService {
             missing_context,
             clarification_questions,
             reasoning_signals,
+            output_quality,
             recommended_focus,
         })
     }

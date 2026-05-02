@@ -40,15 +40,18 @@ Use these shapes as the canonical response contract for Canon skills in Codex.
 
 ## Runnable Skill: Clarity Inspection
 
-- `Summary:` one sentence stating whether the authored inputs still require clarification, remain structurally shallow, or already materially close the decision.
+- `Summary:` one sentence stating whether the authored inputs still require clarification, are only `structurally-complete`, are already `materially-useful`, are `publishable`, or already materially close the decision.
 - `Mode:` the analyzed Canon mode.
 - `Source Inputs:` the exact authored paths Canon inspected.
 - `Missing Context:` the highest-priority authored gaps Canon found.
+- `Output Quality:` the explicit Canon-backed posture (`structurally-complete`, `materially-useful`, or `publishable`).
+- `Evidence Signals:` the strongest Canon-backed reasons the packet earned its current posture.
+- `Downgrade Reasons:` the named reasons the packet did not earn a stronger posture.
 - `Reasoning Signals:` the strongest Canon-backed signals behind those gaps, the weak-support posture, or the materially-closed decision posture.
 - `Clarification Questions:` the prioritized follow-up questions Canon wants answered.
 - `Recommended Focus:` optional. Surface Canon's top follow-up area when one exists.
 - `Possible Actions:` answer the top clarification questions, strengthen missing evidence, or continue into the relevant run-start skill when the packet is already bounded enough.
-- `Recommended Next Step:` one action only, usually answer the top question first or continue into the matching governed run when the packet is already materially closed.
+- `Recommended Next Step:` one action only, usually answer the top downgrade reason or clarification question first, or continue into the matching governed run when the packet is already materially closed or publishable.
 - Never emit a run id, approval target, or evidence bundle from this pre-run inspection shape.
 
 ## Runnable Skill: Run Started
