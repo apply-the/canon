@@ -1,7 +1,7 @@
 # Next Features
 
 This file captures only the remaining product work after the delivered
-`037-architecture-clarification-readiness` slice.
+`038-guided-run-operations` slice.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
@@ -14,44 +14,14 @@ publishable packet families, clarity and readiness honesty, the governance
 adapter, structured publish destinations, and release provenance across
 distribution channels.
 
-The roadmap is intentionally capped at two macrofeatures, to be delivered whole
-and not as slices.
+Delivered work through `038` now also covers the operator-facing run and status
+control story, ordered next-step guidance, and coherent review-first ergonomics
+across completed, blocked, approval-gated, and resumed runs.
 
-## Feature 038: Operator Workflow And Run Control Surface
+The roadmap is intentionally capped at the single remaining macrofeature, to be
+delivered whole and not as slices.
 
-### Desired Outcome
-
-Canon should expose one coherent operator surface for understanding, steering,
-approving, resuming, reviewing, and publishing a run end-to-end.
-
-### Why This Is Next
-
-- The governed runtime and packet contracts are now broad enough that the main
-  friction is operator navigation rather than missing mode coverage.
-- Maintainers still reconstruct state across `status`, `inspect`, `approve`,
-  `resume`, and `publish` instead of working from one coherent control story.
-- Approval-gated, blocked, and conditionally useful packets need stronger
-  review and handoff ergonomics.
-
-### Macrofeature Scope
-
-- Unify run state, packet readiness, blocker explanation, approval targets,
-  artifact availability, publish readiness, and next-step guidance across CLI
-  and skill-facing outputs.
-- Make review and remediation flows readable without weakening the underlying
-  governance contract.
-- Strengthen operator ergonomics for approval-gated, blocked, partially
-  publishable, and resumed runs.
-- Keep artifacts, evidence, approvals, and publish surfaces cross-linked and
-  lossless.
-
-### Invariants
-
-- Canon must not become a hidden planner or opaque agent loop.
-- Approval, evidence, and recommendation-only semantics must remain explicit.
-- The CLI and governance adapter remain the canonical control surface.
-
-## Feature 039: Authoring System And Packet Maturation
+## Feature 039: Authoring Experience And Packet Readiness
 
 ### Desired Outcome
 
@@ -85,4 +55,4 @@ explicit, consistent, and durable across all file-backed modes.
 - Canon must not rewrite `canon-input/` automatically or introduce a new mode
   family.
 
-There are no other active roadmap entries beyond Features 038 and 039.
+There are no other active roadmap entries beyond Feature 039.

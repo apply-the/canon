@@ -3,7 +3,9 @@
 use crate::domain::gate::{GateEvaluation, GateStatus};
 use crate::domain::run::RunState;
 
-use super::{GateInspectSummary, ModeResultSummary, RecommendedActionSummary};
+use super::{
+    GateInspectSummary, ModeResultSummary, PossibleActionSummary, RecommendedActionSummary,
+};
 
 // ── Gate → RunState ───────────────────────────────────────────────────────────
 
@@ -106,6 +108,97 @@ pub(crate) fn recommend_next_action(
     }
 
     None
+}
+
+pub(crate) fn build_possible_actions(
+    state: RunState,
+    mode_result: Option<&ModeResultSummary>,
+    artifact_paths: &[String],
+    has_evidence_bundle: bool,
+    blocked_gates: &[GateInspectSummary],
+    approval_targets: &[String],
+    run_id: &str,
+) -> Vec<PossibleActionSummary> {
+    let mut actions = Vec::new();
+
+    if let Some(mode_result) = mode_result
+        && !mode_result.primary_artifact_path.is_empty()
+    {
+        actions.push(PossibleActionSummary {
+            action: "open-primary-artifact".to_string(),
+            text: mode_result.primary_artifact_action.text_fallback.clone(),
+            target: Some(mode_result.primary_artifact_path.clone()),
+        });
+    }
+
+    if !artifact_paths.is_empty() && !run_id.is_empty() {
+        actions.push(PossibleActionSummary {
+            action: "inspect-artifacts".to_string(),
+            text: format!(
+                "Use $canon-inspect-artifacts for the full emitted packet on run {run_id}."
+            ),
+            target: None,
+        });
+    }
+
+    if has_evidence_bundle && !run_id.is_empty() {
+        actions.push(PossibleActionSummary {
+            action: "inspect-evidence".to_string(),
+            text: format!(
+                "Use $canon-inspect-evidence only if you need lineage or policy rationale for run {run_id}."
+            ),
+            target: None,
+        });
+    }
+
+    if !run_id.is_empty() {
+        for target in approval_targets {
+            actions.push(PossibleActionSummary {
+                action: "approve".to_string(),
+                text: format!(
+                    "Use $canon-approve for target {target} on run {run_id} after review."
+                ),
+                target: Some(target.clone()),
+            });
+        }
+    }
+
+    if matches!(state, RunState::AwaitingApproval)
+        && approval_targets.is_empty()
+        && !run_id.is_empty()
+    {
+        actions.push(PossibleActionSummary {
+            action: "resume".to_string(),
+            text: format!(
+                "Use $canon-resume for run {run_id} only if Canon still requires continuation."
+            ),
+            target: None,
+        });
+        actions.push(PossibleActionSummary {
+            action: "status".to_string(),
+            text: format!(
+                "Use $canon-status to confirm the post-approval run state for run {run_id}."
+            ),
+            target: None,
+        });
+    }
+
+    if (!blocked_gates.is_empty() || matches!(state, RunState::Blocked))
+        && artifact_paths.is_empty()
+        && has_evidence_bundle
+        && !run_id.is_empty()
+        && !actions.iter().any(|action| action.action == "inspect-evidence")
+    {
+        actions.push(PossibleActionSummary {
+            action: "inspect-evidence".to_string(),
+            text: format!(
+                "Use $canon-inspect-evidence only if you need lineage or policy rationale for run {run_id}."
+            ),
+            target: None,
+        });
+    }
+
+    actions
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -225,5 +318,50 @@ mod tests {
         let action = action.unwrap();
         assert_eq!(action.action, "approve");
         assert_eq!(action.target, Some("gate:execution".to_string()));
+    }
+
+    #[test]
+    fn build_possible_actions_completed_result_prefers_open_then_packet_review() {
+        use super::super::ResultActionSummary;
+
+        let mode_result = ModeResultSummary {
+            headline: "done".to_string(),
+            artifact_packet_summary: "packet".to_string(),
+            execution_posture: None,
+            primary_artifact_title: "Task Mapping".to_string(),
+            primary_artifact_path: ".canon/artifacts/task-mapping.md".to_string(),
+            primary_artifact_action: ResultActionSummary {
+                id: "open-primary-artifact".to_string(),
+                label: "Open".to_string(),
+                host_action: "open-file".to_string(),
+                target: ".canon/artifacts/task-mapping.md".to_string(),
+                text_fallback: "Open the primary artifact at .canon/artifacts/task-mapping.md."
+                    .to_string(),
+            },
+            result_excerpt: "excerpt".to_string(),
+            action_chips: Vec::new(),
+        };
+
+        let actions = build_possible_actions(
+            RunState::Completed,
+            Some(&mode_result),
+            &[".canon/artifacts/task-mapping.md".to_string()],
+            true,
+            &[],
+            &[],
+            "run-1",
+        );
+
+        let ids: Vec<&str> = actions.iter().map(|action| action.action.as_str()).collect();
+        assert_eq!(ids, vec!["open-primary-artifact", "inspect-artifacts", "inspect-evidence"]);
+    }
+
+    #[test]
+    fn build_possible_actions_resumable_state_prefers_resume_then_status() {
+        let actions =
+            build_possible_actions(RunState::AwaitingApproval, None, &[], false, &[], &[], "run-2");
+
+        let ids: Vec<&str> = actions.iter().map(|action| action.action.as_str()).collect();
+        assert_eq!(ids, vec!["resume", "status"]);
     }
 }

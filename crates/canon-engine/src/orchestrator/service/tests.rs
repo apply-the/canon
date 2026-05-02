@@ -148,6 +148,7 @@ fn build_action_chips_for_emits_full_frontend_contract_fields() {
     let open_chip = &chips[0];
     assert_eq!(open_chip.id, "open-primary-artifact");
     assert_eq!(open_chip.intent, "Inspect");
+    assert!(open_chip.recommended);
     assert_eq!(
         open_chip.text_fallback,
         "Open the primary artifact at .canon/artifacts/run-123/refactor/preserved-behavior.md."
@@ -156,7 +157,7 @@ fn build_action_chips_for_emits_full_frontend_contract_fields() {
     let inspect_chip = &chips[1];
     assert_eq!(inspect_chip.id, "inspect-evidence");
     assert_eq!(inspect_chip.intent, "Inspect");
-    assert!(inspect_chip.recommended);
+    assert!(!inspect_chip.recommended);
     assert_eq!(
         inspect_chip.text_fallback,
         "Inspect evidence for run run-123: `canon inspect evidence --run run-123`."

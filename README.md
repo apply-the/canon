@@ -234,6 +234,14 @@ canon resume --run <RUN_ID>
 canon publish <RUN_ID>
 ```
 
+`canon run` and `canon status` now return one coherent operator story instead
+of leaving you to reconstruct the flow manually: a readable result packet when
+one exists, explicit blockers when the run is blocked, one recommended next
+step that preserves the active run context, and ordered possible actions for
+review, approval, resume, evidence, or artifact inspection. When Canon already
+emitted a readable packet for a gated or blocked run, the control surface stays
+review-first instead of jumping straight to approval.
+
 ## Common Workflow
 
 - Use `canon init` once per repository.

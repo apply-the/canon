@@ -444,27 +444,22 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
     let roadmap = fs::read_to_string(repo_root.join("ROADMAP.md")).expect("read roadmap");
     let roadmap_compact = roadmap.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
-        roadmap.contains("## Feature 038: Operator Workflow And Run Control Surface"),
-        "roadmap should start the remaining work at feature 038"
-    );
-    assert!(
-        roadmap.contains("## Feature 039: Authoring System And Packet Maturation"),
-        "roadmap should keep the second remaining macrofeature at 039"
+        roadmap.contains("## Feature 039: Authoring Experience And Packet Readiness"),
+        "roadmap should retain the remaining macrofeature at 039"
     );
     assert_eq!(
         roadmap.matches("## Feature ").count(),
-        2,
-        "roadmap should list exactly two remaining macrofeatures"
+        1,
+        "roadmap should list exactly one remaining macrofeature"
     );
     assert!(
         roadmap_compact.contains(
-            "The roadmap is intentionally capped at two macrofeatures, to be delivered whole and not as slices."
+            "The roadmap is intentionally capped at the single remaining macrofeature, to be delivered whole and not as slices."
         ),
-        "roadmap should state the two-macrofeature, no-slices constraint"
+        "roadmap should state the single-macrofeature, no-slices constraint"
     );
     assert!(
-        roadmap_compact
-            .contains("There are no other active roadmap entries beyond Features 038 and 039."),
+        roadmap_compact.contains("There are no other active roadmap entries beyond Feature 039."),
         "roadmap should make the remaining scope explicit"
     );
 
@@ -473,6 +468,10 @@ fn release_docs_and_version_surfaces_align_on_0_37_0_delivery() {
     assert!(
         changelog.contains("Architecture Clarification Readiness And Mode Reroute"),
         "changelog should name the 037 feature"
+    );
+    assert!(
+        changelog.contains("Guided Run Operations And Review Experience"),
+        "changelog should name the 038 feature"
     );
 }
 
