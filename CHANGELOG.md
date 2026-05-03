@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.39.0`
+- None recorded after `0.40.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.39.0`.
+- No additional released feature-spec delivery is recorded after `0.40.0`.
+
+## [0.40.0] - 2026-05-03
+
+Delivered specs:
+
+- `040` - Governance Runtime Framing
+
+Highlights:
+
+- Reframe Canon's public identity around one explicit promise: it is the
+  governed packet runtime for AI-assisted engineering, not a generic agent
+  framework or opaque orchestration loop.
+- Add a dedicated governance adapter integration guide that explains the
+  machine-facing boundary, stable `v1` response fields, and external-orchestrator
+  usage rules without splitting Canon into a separate runtime.
+- Align the `0.40.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, README, integration docs, roadmap,
+  changelog, and focused validation evidence.
 
 ## [0.39.0] - 2026-05-02
 

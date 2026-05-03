@@ -68,6 +68,13 @@ fn governance_capabilities_reports_v1_machine_contract() {
         json["packet_readiness_values"],
         serde_json::json!(["pending", "incomplete", "reusable", "rejected"])
     );
+    assert_eq!(
+        json["compatibility_notes"],
+        serde_json::json!([
+            "The governance adapter is the machine-facing boundary around the same Canon runtime used by the human CLI.",
+            "Canon is not the higher-level orchestrator; requests that omit adapter_schema_version are interpreted as v1 and unknown additive fields are ignored within supported schema versions."
+        ])
+    );
     assert!(json["canon_version"].as_str().is_some_and(|value| !value.is_empty()));
 }
 

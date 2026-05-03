@@ -73,7 +73,10 @@ That adapter reuses the same governed modes, approval semantics, and packet
 state described below, but returns a flat `v1` JSON contract with exact
 `status`, `approval_state`, `packet_readiness`, `reason_code`, and canonical
 workspace-relative packet or document refs. It is the machine-facing boundary
-around the same runtime, not a separate orchestration system.
+around the same runtime, not a separate orchestration system. See
+`docs/integration/governance-adapter.md` for request or response examples, the
+human-vs-machine decision rule, and integration notes for external
+orchestrators.
 
 ## Quick Decision Rule
 

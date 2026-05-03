@@ -7,9 +7,13 @@
 [![Vulnerabilities](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml)
 [![Coverage](https://codecov.io/gh/apply-the/canon/graph/badge.svg?token=JZ4IPF51DH)](https://codecov.io/gh/apply-the/canon)
 
-**Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
+**Canon is the governed packet runtime for AI-assisted engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.39.0`.
+The current delivery line in this repository targets Canon `0.40.0`.
+
+When a human is driving the repository directly, the shipped `canon` CLI is the
+local control surface. When an external orchestrator needs machine-stable JSON
+control flow, use the governance adapter documented in `docs/integration/governance-adapter.md`.
 
 For file-backed modes, the shared authored lifecycle is explicit: author the
 packet, run `inspect clarity`, start the governed run, critique the emitted
@@ -18,7 +22,7 @@ packet, and publish only when the packet is truly ready.
 
 ## What Canon Does
 
-Canon is the product entrypoint. The shipped binary is `canon`.
+Canon is the governed runtime. The shipped binary is `canon`.
 
 Use it when you want AI-assisted work to stay inspectable and bounded:
 
@@ -27,7 +31,9 @@ Use it when you want AI-assisted work to stay inspectable and bounded:
 - Inspect what happened with `status`, `inspect`, `approve`, `resume`, and `publish`.
 - Work with an AI assistant through repo-local skills without hiding the CLI contract.
 
-Canon is not a generic agent framework and it is not an opaque agent loop. It is a local-first method engine that keeps the control surface on disk.
+Canon is not a generic agent framework, it is not an opaque agent loop, and it
+is not the higher-level orchestrator. It is the local-first runtime that keeps
+the control surface on disk.
 
 ## Machine-Facing Governance Adapter
 
@@ -45,7 +51,9 @@ The `v1` adapter surface returns flat JSON with lifecycle `status`,
 `approval_state`, machine-readable `reason_code`, and canonical
 workspace-relative packet or document refs. Use `canon run` and `canon status`
 when a human is driving the repository directly; use `canon governance` when a
-tool needs a stable integration boundary.
+tool needs a stable integration boundary. See
+`docs/integration/governance-adapter.md` for request or response examples,
+stable field expectations, and boundary rules for external orchestrators.
 
 ## Install
 
