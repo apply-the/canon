@@ -1074,3 +1074,208 @@ fn refactor_direct_run_completes_via_approve_and_resume() {
         Some("approved-recommendation")
     );
 }
+
+#[test]
+fn change_direct_run_is_approval_gated_before_generation_for_systemic_risk() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(
+        workspace.path().join("change.md"),
+        "# Change Brief\n\n## System Slice\n\nAuth session boundary only.\n\n## Domain Slice\n\nSession revocation behavior inside the existing auth subsystem.\n\n## Intended Change\n\nAdd a bounded repository helper without widening the public auth contract.\n\n## Change Surface\n\n- session repository\n- auth service\n\n## Validation Strategy\n\n- contract tests\n",
+    )
+    .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Change,
+            RiskClass::SystemicImpact,
+            UsageZone::Yellow,
+            "architect",
+            vec!["change.md"],
+        ))
+        .expect("change run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+    assert_eq!(summary.blocking_classification.as_deref(), Some("approval-gated"));
+    assert_eq!(summary.artifact_count, 0);
+    assert!(summary.artifact_paths.is_empty());
+    assert_eq!(
+        summary.recommended_next_action.as_ref().map(|action| action.action.as_str()),
+        Some("inspect-evidence")
+    );
+
+    let invocations = service
+        .inspect(InspectTarget::Invocations { run_id: summary.run_id.clone() })
+        .expect("inspect invocations");
+    assert!(invocations.entries.iter().any(|entry| match entry {
+        InspectEntry::Invocation(invocation) => invocation.approval_state == "pending",
+        _ => false,
+    }));
+
+    let artifacts = service
+        .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
+        .expect("inspect artifacts");
+    assert!(artifacts.entries.is_empty());
+}
+
+#[test]
+fn implementation_folder_packet_evidence_surfaces_upstream_context() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    let packet_root = workspace.path().join("implementation");
+    fs::create_dir_all(&packet_root).expect("packet root");
+    fs::write(packet_root.join("brief.md"), complete_implementation_brief()).expect("brief");
+    fs::write(
+        packet_root.join("source-map.md"),
+        "# Source Map\n\n## Upstream Sources\n\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
+    )
+    .expect("source map");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(request(
+            Mode::Implementation,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+            "maintainer",
+            vec!["implementation"],
+        ))
+        .expect("implementation run");
+
+    assert_eq!(summary.state, "AwaitingApproval");
+
+    let evidence = service
+        .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
+        .expect("inspect evidence");
+    let evidence_entry = match evidence.entries.first().expect("evidence entry") {
+        InspectEntry::Evidence(entry) => entry,
+        other => panic!("expected evidence entry, got {other:?}"),
+    };
+    assert_eq!(evidence_entry.execution_posture.as_deref(), Some("recommendation-only"));
+    assert_eq!(
+        evidence_entry.upstream_feature_slice.as_deref(),
+        Some("Auth session revocation repository wiring inside the existing login subsystem.")
+    );
+    assert_eq!(evidence_entry.primary_upstream_mode.as_deref(), Some("change"));
+    assert_eq!(
+        evidence_entry.upstream_source_refs,
+        vec![
+            "docs/changes/auth-session.md".to_string(),
+            "docs/architecture/auth-boundary.md".to_string(),
+        ]
+    );
+    assert_eq!(
+        evidence_entry.carried_forward_items,
+        vec![
+            "Revocation output formatting stays stable.".to_string(),
+            "Contract coverage must pass before and after mutation.".to_string(),
+        ]
+    );
+    assert_eq!(
+        evidence_entry.excluded_upstream_scope.as_deref(),
+        Some("Login UI flow and token issuance remain out of scope.")
+    );
+}
+
+#[test]
+fn system_assessment_direct_run_completes_and_surfaces_evidence() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(
+        workspace.path().join("system-assessment.md"),
+        "# System Assessment Brief\n\n## Assessment Objective\n\n- capture an as-is architecture packet for the auth session subsystem\n\n## Stakeholders\n\n- architecture lead\n- platform maintainer\n\n## Primary Concerns\n\n- current component ownership\n- deployment boundaries\n- integration choke points\n\n## Assessment Posture\n\n- read-only and evidence-first\n\n## Stakeholder Concerns\n\n- boundary clarity for downstream architecture work\n\n## Assessed Views\n\n- functional\n- component\n- deployment\n- technology\n- integration\n\n## Partial Or Skipped Coverage\n\n- runtime deployment topology remains partially assessed\n\n## Confidence By Surface\n\n- component view: high\n- deployment view: medium\n\n## Assessed Assets\n\n- auth service\n- session repository\n- session contract checks\n\n## Critical Dependencies\n\n- session data store\n- cargo test\n\n## Boundary Notes\n\n- auth service crosses the repository boundary to reach persistence\n\n## Ownership Signals\n\n- platform team owns deployment posture\n\n## Responsibilities\n\n- auth service revokes sessions and writes audit signals\n\n## Primary Flows\n\n- revoke-session data enters the service and persists through the repository\n\n## Observed Boundaries\n\n- source and test files keep the auth boundary explicit\n\n## Components\n\n- auth service\n- repository\n- session checks\n\n## Interfaces\n\n- service calls the repository through a narrow helper boundary\n\n## Confidence Notes\n\n- component boundaries are explicit in source and tests\n\n## Execution Environments\n\n- local repo and CI runners\n\n## Network And Runtime Boundaries\n\n- service to repository\n- CI to test artifacts\n\n## Deployment Signals\n\n- repository tests describe stable auth behavior\n\n## Coverage Gaps\n\n- runtime infrastructure topology is not fully represented\n\n## Technology Stack\n\n- rust\n- markdown tests\n\n## Platform Dependencies\n\n- git\n- cargo\n\n## Version Or Lifecycle Signals\n\n- repo-local lifecycle is explicit but deployment lifecycle is inferred\n\n## Evidence Gaps\n\n- no live deployment manifests confirm production topology\n\n## Integrations\n\n- audit logging\n- session persistence\n\n## Data Exchanges\n\n- revoke-session data flows from service logic to persistence helpers\n\n## Trust And Failure Boundaries\n\n- trust ends at the service boundary before persistence writes\n\n## Inference Notes\n\n- deployment topology is inferred from repo layout rather than runtime manifests\n\n## Observed Risks\n\n- persistence helper drift could widen the auth boundary\n\n## Risk Triggers\n\n- new callers bypass the repository helper\n\n## Impact Notes\n\n- boundary drift could break audit ordering assumptions\n\n## Likely Follow-On Modes\n\n- architecture\n- change\n\n## Observed Findings\n\n- source and test files capture the bounded auth slice\n\n## Inferred Findings\n\n- one auth session boundary appears to own revocation behavior\n\n## Assessment Gaps\n\n- no repository evidence confirms production namespace layout\n\n## Evidence Sources\n\n- src/auth/session.rs\n- tests/session.md\n",
+    )
+    .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(RunRequest {
+            mode: Mode::SystemAssessment,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: Some(SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "architecture-lead".to_string(),
+            inputs: vec!["system-assessment.md".to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        })
+        .expect("system assessment run");
+
+    assert_eq!(summary.state, "Completed");
+    assert!(summary.approval_targets.is_empty());
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("assessment-overview.md")));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("assessment-evidence.md")));
+
+    let artifacts = service
+        .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
+        .expect("inspect artifacts");
+    assert_eq!(artifacts.system_context.as_deref(), Some("existing"));
+    assert!(artifacts.entries.iter().any(|entry| match entry {
+        InspectEntry::Name(path) => path.ends_with("assessment-overview.md"),
+        _ => false,
+    }));
+
+    let evidence = service
+        .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
+        .expect("inspect evidence");
+    let evidence_entry = match evidence.entries.first().expect("evidence entry") {
+        InspectEntry::Evidence(entry) => entry,
+        other => panic!("expected evidence entry, got {other:?}"),
+    };
+    assert!(!evidence_entry.generation_paths.is_empty());
+    assert!(!evidence_entry.validation_paths.is_empty());
+    assert_eq!(evidence_entry.denied_invocations, Vec::<String>::new());
+    assert!(
+        evidence_entry
+            .artifact_provenance_links
+            .iter()
+            .any(|path| { path.ends_with("assessment-overview.md") })
+    );
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Completed");
+    assert_eq!(
+        status.mode_result.as_ref().map(|result| result.primary_artifact_title.as_str()),
+        Some("Assessment Overview")
+    );
+}
+
+#[test]
+fn system_assessment_direct_run_blocks_when_required_sections_are_missing() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
+    fs::write(
+        workspace.path().join("system-assessment.md"),
+        "# System Assessment Brief\n\n## Assessment Objective\n\n- capture integration posture only\n\n## Integrations\n\n- session persistence\n\n## Data Exchanges\n\n- revoke-session data enters via the auth service\n",
+    )
+    .expect("brief file");
+
+    let service = EngineService::new(workspace.path());
+    let summary = service
+        .run(RunRequest {
+            mode: Mode::SystemAssessment,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: Some(SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "architecture-lead".to_string(),
+            inputs: vec!["system-assessment.md".to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        })
+        .expect("system assessment run");
+
+    assert_eq!(summary.state, "Blocked");
+    assert_eq!(summary.blocking_classification.as_deref(), Some("artifact-blocked"));
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("integration-view.md")));
+
+    let status = service.status(&summary.run_id).expect("status");
+    assert_eq!(status.state, "Blocked");
+    assert!(status.blocked_gates.iter().any(|gate| !gate.blockers.is_empty()));
+}

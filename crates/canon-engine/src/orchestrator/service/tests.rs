@@ -1157,3 +1157,98 @@ fn build_authoring_lifecycle_summary_derived_authoritative_input_from_single_non
     // 2 source inputs, no brief.md → ambiguous
     assert_eq!(summary.authority_status, "ambiguous-current-brief");
 }
+
+#[test]
+fn inspect_clarity_rejects_empty_inputs_directly() {
+    let service = EngineService::new("/tmp/canon-root");
+
+    let error = service
+        .inspect_clarity(Mode::Requirements, &[])
+        .expect_err("empty clarity inputs should fail");
+
+    assert!(error.to_string().contains("clarity inspection requires at least one input"));
+}
+
+#[test]
+fn inspect_clarity_rejects_pr_review_directly() {
+    let service = EngineService::new("/tmp/canon-root");
+
+    let error = service
+        .inspect_clarity(Mode::PrReview, &["HEAD~1".to_string(), "HEAD".to_string()])
+        .expect_err("pr-review clarity should be unsupported");
+
+    assert!(error.to_string().contains("clarity inspection is not available for pr-review"));
+}
+
+#[test]
+fn inspect_authored_mode_clarity_rejects_missing_input_path_directly() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    let error = service
+        .inspect_authored_mode_clarity(Mode::Architecture, &["missing-architecture.md".to_string()])
+        .expect_err("missing authored input should fail");
+
+    assert!(error.to_string().contains("was not found"));
+}
+
+#[test]
+fn inspect_requirements_and_discovery_clarity_reject_missing_input_paths_directly() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    let requirements_error = service
+        .inspect_requirements_clarity(&["missing-requirements.md".to_string()])
+        .expect_err("missing requirements input should fail");
+    assert!(requirements_error.to_string().contains("was not found"));
+
+    let discovery_error = service
+        .inspect_discovery_clarity(&["missing-discovery.md".to_string()])
+        .expect_err("missing discovery input should fail");
+    assert!(discovery_error.to_string().contains("was not found"));
+}
+
+#[test]
+fn inspect_supply_chain_clarity_rejects_missing_input_path_directly() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    let error = service
+        .inspect_supply_chain_analysis_clarity(&["missing-supply-chain.md".to_string()])
+        .expect_err("missing supply-chain input should fail");
+
+    assert!(error.to_string().contains("was not found"));
+}
+
+#[test]
+fn inspect_risk_zone_rejects_missing_inputs_directly() {
+    let service = EngineService::new("/tmp/canon-root");
+
+    let error = service
+        .inspect_risk_zone(Mode::Requirements, None, None, &[], &[])
+        .expect_err("missing risk-zone inputs should fail");
+
+    assert!(error.to_string().contains("risk-zone inspection requires at least one input"));
+}
+
+#[test]
+fn inspect_risk_zone_rejects_pr_review_inline_inputs_directly() {
+    let service = EngineService::new("/tmp/canon-root");
+
+    let error = service
+        .inspect_risk_zone(Mode::PrReview, None, None, &[], &["diff text".to_string()])
+        .expect_err("pr-review risk-zone should reject inline text");
+
+    assert!(error.to_string().contains("does not support --input-text"));
+}
+
+#[test]
+fn inspect_risk_zone_rejects_pr_review_without_two_refs_directly() {
+    let service = EngineService::new("/tmp/canon-root");
+
+    let error = service
+        .inspect_risk_zone(Mode::PrReview, None, None, &["HEAD~1".to_string()], &[])
+        .expect_err("pr-review risk-zone should require two refs");
+
+    assert!(error.to_string().contains("requires two refs or inputs"));
+}
