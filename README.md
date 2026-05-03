@@ -1,13 +1,13 @@
 # Canon
 
-![Canon banner](docs/images/Canon-banner.jpg)
+![Canon banner](docs/images/canon-banner.jpg)
 
 [![CI](https://github.com/apply-the/canon/actions/workflows/ci.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/ci.yml)
 [![Lint](https://github.com/apply-the/canon/actions/workflows/lint.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/lint.yml)
 [![Vulnerabilities](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml)
 [![Coverage](https://codecov.io/gh/apply-the/canon/graph/badge.svg?token=JZ4IPF51DH)](https://codecov.io/gh/apply-the/canon)
 
-**Canon is the governed packet runtime for AI-assisted engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
+**Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
 The current delivery line in this repository targets Canon `0.40.0`.
 
@@ -22,7 +22,7 @@ packet, and publish only when the packet is truly ready.
 
 ## What Canon Does
 
-Canon is the governed runtime. The shipped binary is `canon`.
+Canon is the governance runtime. The shipped binary is `canon`.
 
 Use it when you want AI-assisted work to stay inspectable and bounded:
 
