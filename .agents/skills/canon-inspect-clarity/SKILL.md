@@ -56,6 +56,10 @@ starting a governed run.
   `.canon/` artifacts, or any other path under `.canon/`.
 - If the selected canonical location or explicit input is a folder, inspect the
   whole directory recursively, including authored files under subfolders.
+- If a folder-backed packet contains `brief.md`, treat it as the authoritative
+  current-mode brief for readiness and treat sibling files such as
+  `source-map.md` or `selected-context.md` as supporting context, not as
+  substitutes for the brief.
 - If the user provided multiple explicit files or folders, inspect all of them
   together in a single clarity result.
 - Never narrow a canonical directory such as `canon-input/change/` to a single
@@ -82,6 +86,8 @@ starting a governed run.
 - concise clarity summary
 - analyzed mode
 - source input paths
+- packet shape, authoritative inputs, supporting inputs, and readiness delta
+  when Canon can derive them safely from the supplied file-backed inputs
 - Canon-backed missing-context findings grounded in the authored inputs
 - explicit output-quality posture stating whether the packet is only
   `structurally-complete`, already `materially-useful`, or `publishable`
@@ -115,6 +121,9 @@ starting a governed run.
 
 - If Canon reports that clarification is still required, surface the top
   questions directly and keep the next step on answering them.
+- If Canon reports that the packet authority is ambiguous, say that directly
+  and keep the next step on tightening the current-mode brief instead of
+  treating supporting files as ready-to-run authority.
 - If Canon reports a packet as only `structurally-complete`, say that directly
   and keep the next step on resolving the named downgrade reasons before run
   start.
@@ -125,6 +134,9 @@ starting a governed run.
   in the matching governed run rather than inventing more balance.
 - Once the top gaps are answered, recommend the matching governed mode skill
   for the analyzed file-backed mode.
+- Keep the lifecycle explicit: author or tighten the packet, inspect clarity,
+  start the governed run, critique the emitted packet, then publish only when
+  the packet is truly ready.
 - Use `$canon-inspect-evidence` or other run-scoped skills only after a real
   run exists.
 - Do not fabricate a started run, pending approval, or emitted artifact set

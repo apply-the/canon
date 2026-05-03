@@ -1,6 +1,6 @@
 use super::{
-    EngineService, GateInspectSummary, ModeResultSummary, RecommendedActionSummary,
-    ResultActionSummary, RunRequest, apply_execution_posture_summary,
+    ClarificationQuestionSummary, EngineService, GateInspectSummary, ModeResultSummary,
+    RecommendedActionSummary, ResultActionSummary, RunRequest, apply_execution_posture_summary,
     approved_execution_mutation_rationale, build_action_chips_for, canonical_mode_input_binding,
     capability_tag, execution_continuation_pending, extract_change_surface_entries,
     preserve_multiline_summary, recommend_next_action, resolved_execution_posture_label,
@@ -324,6 +324,86 @@ fn auto_bind_canonical_mode_inputs_prefers_directory_over_single_file() {
     assert_eq!(
         service.auto_bind_canonical_mode_inputs(Mode::Implementation, &[], &[]),
         vec!["canon-input/implementation".to_string()]
+    );
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_prefers_brief_for_directory_packets() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("implementation");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    std::fs::write(
+        packet_root.join("brief.md"),
+        "# Implementation Brief\n\n## Task Mapping\n\n- wire auth session revocation\n",
+    )
+    .expect("brief");
+    std::fs::write(packet_root.join("source-map.md"), "# Source Map\n\n- docs/changes/auth.md\n")
+        .expect("source map");
+    std::fs::write(
+        packet_root.join("selected-context.md"),
+        "# Selected Context\n\n- auth/session.rs\n",
+    )
+    .expect("selected context");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["canon-input/implementation".to_string()];
+    let source_inputs = service.clarity_source_inputs(&inputs).expect("source inputs");
+
+    let summary = service.build_authoring_lifecycle_summary(
+        &inputs,
+        &source_inputs,
+        &[],
+        &[ClarificationQuestionSummary {
+            id: "q1".to_string(),
+            prompt: "What remains open?".to_string(),
+            rationale: "Need explicit open question.".to_string(),
+            evidence: "No explicit unresolved question.".to_string(),
+            affects: "brief.md".to_string(),
+            default_if_skipped: "Keep packet conditional.".to_string(),
+            status: "required".to_string(),
+        }],
+        false,
+    );
+
+    assert_eq!(summary.packet_shape, "directory-backed");
+    assert_eq!(summary.authority_status, "explicit-authoritative-brief");
+    assert_eq!(summary.authoritative_inputs, vec!["canon-input/implementation/brief.md"]);
+    assert!(
+        summary.supporting_inputs.contains(&"canon-input/implementation/source-map.md".to_string())
+    );
+    assert!(
+        summary
+            .supporting_inputs
+            .contains(&"canon-input/implementation/selected-context.md".to_string())
+    );
+    assert!(summary.readiness_delta.iter().any(|item| item.contains("clarification question")));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_keeps_ambiguous_directory_packets_explicit() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("implementation");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    std::fs::write(packet_root.join("source-map.md"), "# Source Map\n\n- docs/changes/auth.md\n")
+        .expect("source map");
+    std::fs::write(packet_root.join("notes.md"), "# Notes\n\n- auth/session.rs\n").expect("notes");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["canon-input/implementation".to_string()];
+    let source_inputs = service.clarity_source_inputs(&inputs).expect("source inputs");
+
+    let summary =
+        service.build_authoring_lifecycle_summary(&inputs, &source_inputs, &[], &[], false);
+
+    assert_eq!(summary.packet_shape, "directory-backed");
+    assert_eq!(summary.authority_status, "ambiguous-current-brief");
+    assert!(summary.authoritative_inputs.is_empty());
+    assert_eq!(summary.supporting_inputs.len(), 2);
+    assert!(
+        summary
+            .readiness_delta
+            .iter()
+            .any(|item| item.contains("add `brief.md` or reduce the packet"))
     );
 }
 

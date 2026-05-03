@@ -24,6 +24,24 @@ Canon still auto-binds only from `canon-input/implementation.md`,
 `canon-input/refactor/`. Do not expect Canon to infer current inputs from
 `.canon/`, published `docs/` packets, or `@last`.
 
+## Lifecycle Path
+
+Treat carry-forward authoring as one explicit path:
+
+1. Tighten the current-mode `brief.md` until it restates the bounded work
+  clearly.
+2. Run `canon inspect clarity` on the folder-backed packet to confirm Canon can
+  see the authoritative brief, the supporting context, and any remaining
+  readiness delta.
+3. Start the matching governed run only after the packet authority is explicit.
+4. Critique the emitted packet or artifacts instead of assuming the first pass
+  is publishable.
+5. Publish only when the governed packet is actually ready for broader readers.
+
+If the folder has `source-map.md` or `selected-context.md` but no clear
+`brief.md`, Canon should keep that ambiguity explicit instead of pretending the
+supporting context is good enough to drive readiness.
+
 ## Recommended Packet Layout
 
 ```text
@@ -86,3 +104,11 @@ Prefer published `docs/...` references in `source-map.md` when the packet needs
 to travel across collaborators. Local `.canon/...` references are acceptable
 for short-lived local continuation when the upstream run has not been
 published yet.
+
+## Critique And Publish
+
+- Treat `inspect clarity` as the pre-run readiness checkpoint, not the final
+  approval that a packet is ready forever.
+- After the governed run, critique the emitted packet before you publish it.
+- Publish only when the packet authority, missing-context posture, and
+  unresolved questions are honest enough for broader readers.

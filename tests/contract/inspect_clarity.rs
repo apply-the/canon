@@ -104,7 +104,69 @@ fn inspect_clarity_recurses_directory_inputs_and_accepts_multiple_paths_in_one_g
     assert!(source_inputs.contains(&"canon-input/requirements/supporting/scope-and-questions.md"));
     assert_eq!(source_inputs.len(), 3, "source inputs should be de-duplicated");
     assert_eq!(json["entries"][0]["requires_clarification"].as_bool(), Some(true));
+    assert_eq!(
+        json["entries"][0]["authoring_lifecycle"]["packet_shape"].as_str(),
+        Some("directory-backed")
+    );
+    assert_eq!(
+        json["entries"][0]["authoring_lifecycle"]["authority_status"].as_str(),
+        Some("explicit-authoritative-brief")
+    );
+    assert_eq!(
+        json["entries"][0]["authoring_lifecycle"]["authoritative_inputs"][0].as_str(),
+        Some("canon-input/requirements/brief.md")
+    );
+    assert!(text.contains("Answer the remaining clarification questions"));
     assert!(text.contains("How is the Bird identified over USB?"));
+}
+
+#[test]
+fn inspect_clarity_keeps_ambiguous_directory_packets_explicit() {
+    let workspace = TempDir::new().expect("temp dir");
+    let implementation_dir = workspace.path().join("canon-input").join("implementation");
+    fs::create_dir_all(&implementation_dir).expect("implementation dir");
+    fs::write(
+        implementation_dir.join("source-map.md"),
+        "# Source Map\n\n## Upstream Sources\n\n- docs/changes/auth-session.md\n",
+    )
+    .expect("source map");
+    fs::write(
+        implementation_dir.join("notes.md"),
+        "# Notes\n\n## Supporting Context\n\n- Reuse auth session revocation helper.\n",
+    )
+    .expect("notes");
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "inspect",
+            "clarity",
+            "--mode",
+            "implementation",
+            "--input",
+            "canon-input/implementation",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let text = String::from_utf8(output).expect("utf8 stdout");
+    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+
+    assert_eq!(
+        json["entries"][0]["authoring_lifecycle"]["authority_status"].as_str(),
+        Some("ambiguous-current-brief")
+    );
+    assert!(
+        json["entries"][0]["authoring_lifecycle"]["authoritative_inputs"]
+            .as_array()
+            .is_some_and(|items| items.is_empty())
+    );
+    assert!(text.contains("add `brief.md` or reduce the packet to one clear readiness brief"));
 }
 
 #[test]

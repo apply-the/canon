@@ -310,6 +310,13 @@ impl EngineService {
             &clarification_questions,
             &reasoning_signals,
         );
+        let authoring_lifecycle = self.build_authoring_lifecycle_summary(
+            inputs,
+            &source_inputs,
+            &missing_context,
+            &clarification_questions,
+            output_quality.materially_closed,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus =
@@ -324,6 +331,7 @@ impl EngineService {
             clarification_questions,
             reasoning_signals,
             output_quality,
+            authoring_lifecycle,
             recommended_focus,
         })
     }
@@ -356,6 +364,13 @@ impl EngineService {
             &clarification_questions,
             &reasoning_signals,
         );
+        let authoring_lifecycle = self.build_authoring_lifecycle_summary(
+            inputs,
+            &source_inputs,
+            &missing_context,
+            &clarification_questions,
+            output_quality.materially_closed,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
@@ -375,6 +390,7 @@ impl EngineService {
             clarification_questions,
             reasoning_signals,
             output_quality,
+            authoring_lifecycle,
             recommended_focus,
         })
     }
@@ -407,6 +423,13 @@ impl EngineService {
             &clarification_questions,
             &reasoning_signals,
         );
+        let authoring_lifecycle = self.build_authoring_lifecycle_summary(
+            inputs,
+            &source_inputs,
+            &missing_context,
+            &clarification_questions,
+            output_quality.materially_closed,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
@@ -426,6 +449,7 @@ impl EngineService {
             clarification_questions,
             reasoning_signals,
             output_quality,
+            authoring_lifecycle,
             recommended_focus,
         })
     }
@@ -458,6 +482,13 @@ impl EngineService {
             &clarification_questions,
             &reasoning_signals,
         );
+        let authoring_lifecycle = self.build_authoring_lifecycle_summary(
+            inputs,
+            &source_inputs,
+            &missing_context,
+            &clarification_questions,
+            output_quality.materially_closed,
+        );
         let requires_clarification =
             !missing_context.is_empty() || !clarification_questions.is_empty();
         let recommended_focus = if !missing_context.is_empty() {
@@ -477,6 +508,7 @@ impl EngineService {
             clarification_questions,
             reasoning_signals,
             output_quality,
+            authoring_lifecycle,
             recommended_focus,
         })
     }
