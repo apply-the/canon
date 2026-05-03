@@ -19,11 +19,29 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.38.0`
+- None recorded after `0.39.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.38.0`.
+- No additional released feature-spec delivery is recorded after `0.39.0`.
+
+## [0.39.0] - 2026-05-02
+
+Delivered specs:
+
+- `039` - Authoring Experience And Packet Readiness
+
+Highlights:
+
+- Extend `inspect clarity` with an additive authoring-lifecycle summary that
+  explains packet shape, authoritative brief inputs, supporting context, and
+  remaining readiness delta for file-backed packets.
+- Align the shared file-backed lifecycle across the mode guide,
+  template-facing docs, carry-forward example, and `canon-inspect-clarity`
+  skill so the path from authored brief to publishable packet stays explicit.
+- Align the `0.39.0` release surface across workspace manifests, lockfile,
+  runtime compatibility references, README, roadmap, changelog, and focused
+  validation evidence.
 
 ## [0.38.0] - 2026-05-02
 

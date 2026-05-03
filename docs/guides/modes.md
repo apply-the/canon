@@ -181,6 +181,25 @@ narrowed to the current feature slice. Canon still judges readiness from the
 current mode brief; it does not implicitly dereference prior `.canon/` runs,
 published `docs/` packets, or `@last`.
 
+### Shared Authoring Lifecycle
+
+Across file-backed modes, keep one explicit lifecycle:
+
+1. Author or tighten the current-mode brief.
+2. Run `canon inspect clarity` on the canonical file or folder-backed packet.
+3. Start the matching governed run only after the packet is clear enough for
+  that mode.
+4. Critique the emitted packet or artifacts instead of treating first output as
+  final.
+5. Publish only when the packet is truly ready for wider consumption.
+
+When a folder-backed packet contains `brief.md`, Canon treats that file as the
+authoritative current-mode brief for readiness. Supporting files such as
+`source-map.md` and `selected-context.md` may ground the packet, but they do
+not replace the current-mode brief. If Canon cannot identify one authoritative
+brief safely, keep the ambiguity explicit and tighten the packet shape before
+starting the governed run.
+
 Every mode that expects authored input now fails before execution if the input
 is missing, empty, whitespace-only, or structurally insufficient. That includes
 empty files, empty directories, and directory expansions that produce no usable
