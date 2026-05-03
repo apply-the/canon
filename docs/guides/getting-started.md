@@ -4,11 +4,12 @@ This guide is the practical version of the README: what Canon does, how to insta
 
 ## What Canon Is
 
-Canon is a local CLI for governed AI-assisted engineering work.
+Canon is the governed packet runtime for AI-assisted engineering work.
 
 You use Canon to:
 
 - start a run with an explicit mode, risk, zone, owner, and authored input
+- inspect packet clarity before starting irreversible downstream work
 - keep artifacts, approvals, evidence, and invocation history under `.canon/`
 - inspect what happened before trusting the result
 - publish completed packets into visible repository paths such as `docs/` or `specs/`
@@ -94,7 +95,19 @@ author against explicit packet shapes and bounded personas: product lead,
 architect, and change owner. Those personas shape tone and audience fit only;
 they do not weaken canonical sections or missing-body honesty.
 
-### 3. Start the Run
+### 3. Inspect Clarity Before Running
+
+Use `inspect clarity` to confirm that the authored packet is materially useful
+enough for the governed run you are about to start.
+
+```bash
+canon inspect clarity --mode requirements --input canon-input/requirements.md
+```
+
+If Canon reports missing context or weak reasoning, tighten the packet before
+you create the run.
+
+### 4. Start the Run
 
 ```bash
 canon run \
@@ -107,7 +120,7 @@ canon run \
 
 Canon returns a `run_id`. Keep that id.
 
-### 4. Inspect What Canon Recorded
+### 5. Inspect What Canon Recorded
 
 ```bash
 canon status --run <RUN_ID>
@@ -123,7 +136,7 @@ These commands tell you:
 - which artifacts were emitted
 - what evidence supports the packet
 
-### 5. Approve or Resume When Needed
+### 6. Approve or Resume When Needed
 
 Some runs stop in `AwaitingApproval` or require an explicit follow-up step.
 
@@ -132,7 +145,7 @@ canon approve --run <RUN_ID> --target <APPROVAL_TARGET> --decision approve --rat
 canon resume --run <RUN_ID>
 ```
 
-### 6. Publish the Packet
+### 7. Publish the Packet
 
 When the run is ready to leave `.canon/` and become visible repository documentation:
 

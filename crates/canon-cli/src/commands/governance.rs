@@ -249,8 +249,8 @@ fn capabilities_response() -> GovernanceCapabilitiesResponse {
         approval_state_values: APPROVAL_STATE_VALUES,
         packet_readiness_values: PACKET_READINESS_VALUES,
         compatibility_notes: [
-            "Requests that omit adapter_schema_version are interpreted as v1.",
-            "Unknown additive request fields are ignored within supported schema versions.",
+            "The governance adapter is the machine-facing boundary around the same Canon runtime used by the human CLI.",
+            "Canon is not the higher-level orchestrator; requests that omit adapter_schema_version are interpreted as v1 and unknown additive fields are ignored within supported schema versions.",
         ],
     }
 }

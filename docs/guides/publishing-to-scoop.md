@@ -41,13 +41,13 @@ workflow manually with `workflow_dispatch` and leave `publish=false`.
 
 ## What This Guide Assumes
 
-- You already have a release version such as `0.39.0`.
-- The GitHub release tag will be `v0.39.0`.
+- You already have a release version such as `0.40.0`.
+- The GitHub release tag will be `v0.40.0`.
 - A local `dist/` directory exists with the release archives, checksum file,
   and release notes.
 - `jq`, `tar`, `zip`, `unzip`, and `shasum` are available in your shell.
 
-The scripts in this repository expect the raw semantic version like `0.39.0`,
+The scripts in this repository expect the raw semantic version like `0.40.0`,
 not the Git tag form with the `v` prefix.
 
 ## Required Release Files
@@ -77,7 +77,7 @@ If you want to check that the expected files are present before generating
 metadata:
 
 ```bash
-VERSION=0.39.0
+VERSION=0.40.0
 DIST_DIR=dist
 
 ls "$DIST_DIR"/canon-"$VERSION"-*.tar.gz
@@ -92,7 +92,7 @@ Generate the machine-readable release description from the canonical release
 bundle:
 
 ```bash
-VERSION=0.39.0
+VERSION=0.40.0
 DIST_DIR=dist
 
 bash scripts/release/write-distribution-metadata.sh \
@@ -182,7 +182,7 @@ The first slice keeps final submission manual. After local verification:
 Example:
 
 ```bash
-VERSION=0.39.0
+VERSION=0.40.0
 SCOOP_MAIN="$HOME/src/Main"
 
 cp "$DIST_DIR/canon-$VERSION-scoop-manifest.json" "$SCOOP_MAIN/bucket/canon.json"
@@ -211,7 +211,7 @@ reopening the release bundle.
 
 ## Common Failure Modes
 
-- Passing `v0.39.0` to the scripts instead of `0.39.0`
+- Passing `v0.40.0` to the scripts instead of `0.40.0`
 - Missing `release-notes.md` or `canon-<VERSION>-SHA256SUMS.txt`
 - A Windows zip that contains nested directories instead of a root `canon.exe`
 - Hand-editing the generated JSON after verification instead of regenerating it
