@@ -528,6 +528,54 @@ fn render_clarity_markdown(entries: &[Value]) -> String {
         }
     }
 
+    if let Some(authoring_lifecycle) = entry.get("authoring_lifecycle").and_then(Value::as_object) {
+        lines.push(String::new());
+        lines.push("## Authoring Lifecycle".to_string());
+        lines.push(String::new());
+
+        if let Some(packet_shape) = scalar_value(authoring_lifecycle.get("packet_shape")) {
+            lines.push(format!("Packet Shape: {packet_shape}"));
+        }
+        if let Some(authority_status) = scalar_value(authoring_lifecycle.get("authority_status")) {
+            lines.push(format!("Authority Status: {authority_status}"));
+        }
+
+        let authoritative_inputs = string_list(authoring_lifecycle.get("authoritative_inputs"));
+        if !authoritative_inputs.is_empty() {
+            lines.push(String::new());
+            lines.push("Authoritative Inputs:".to_string());
+            for input in authoritative_inputs {
+                lines.push(format!("- {}", humanize_path(&input)));
+            }
+        }
+
+        let supporting_inputs = string_list(authoring_lifecycle.get("supporting_inputs"));
+        if !supporting_inputs.is_empty() {
+            lines.push(String::new());
+            lines.push("Supporting Inputs:".to_string());
+            for input in supporting_inputs {
+                lines.push(format!("- {}", humanize_path(&input)));
+            }
+        }
+
+        let readiness_delta = string_list(authoring_lifecycle.get("readiness_delta"));
+        if !readiness_delta.is_empty() {
+            lines.push(String::new());
+            lines.push("Readiness Delta:".to_string());
+            for item in readiness_delta {
+                lines.push(format!("- {item}"));
+            }
+        }
+
+        if let Some(next_authoring_step) =
+            scalar_value(authoring_lifecycle.get("next_authoring_step"))
+        {
+            lines.push(String::new());
+            lines.push("Next Authoring Step:".to_string());
+            lines.push(next_authoring_step);
+        }
+    }
+
     let reasoning_signals = string_list(entry.get("reasoning_signals"));
     if !reasoning_signals.is_empty() {
         lines.push(String::new());
@@ -729,6 +777,17 @@ mod tests {
                         "Constraints are incomplete; downstream shaping would lack explicit non-negotiables."
                     ]
                 },
+                "authoring_lifecycle": {
+                    "packet_shape": "single-file",
+                    "authority_status": "single-input-authoritative-brief",
+                    "authoritative_inputs": ["idea.md"],
+                    "supporting_inputs": [],
+                    "readiness_delta": [
+                        "Constraints are incomplete; downstream shaping would lack explicit non-negotiables.",
+                        "1 clarification question(s) still remain before this packet is unambiguously ready."
+                    ],
+                    "next_authoring_step": "Strengthen the authoritative brief by resolving the named missing-context items before starting the governed run."
+                },
                 "recommended_focus": "Resolve the missing context items before starting a requirements run or handing the packet to downstream design work."
             }]
         });
@@ -738,6 +797,11 @@ mod tests {
         assert!(markdown.contains("# clarity"));
         assert!(markdown.contains("Mode: requirements"));
         assert!(markdown.contains("Requires Clarification: yes"));
+        assert!(markdown.contains("## Authoring Lifecycle"));
+        assert!(markdown.contains("Packet Shape: single-file"));
+        assert!(markdown.contains("Authority Status: single-input-authoritative-brief"));
+        assert!(markdown.contains("Authoritative Inputs:"));
+        assert!(markdown.contains("Next Authoring Step:"));
         assert!(markdown.contains("## Clarification Questions"));
         assert!(markdown.contains("## Output Quality"));
         assert!(markdown.contains("Posture: structurally-complete"));
@@ -1169,5 +1233,88 @@ mod tests {
         assert!(markdown.contains(
             "Use $canon-approve for target invocation:req-1 on run run-456 after review."
         ));
+    }
+
+    #[test]
+    fn render_list_markdown_empty_entries_shows_placeholder() {
+        let value = serde_json::json!({ "entries": [] });
+        let markdown = render_markdown_from_json(&value, "modes", None);
+        assert!(markdown.contains("# modes"));
+        assert!(markdown.contains("- No entries recorded."));
+    }
+
+    #[test]
+    fn render_list_markdown_serializes_non_string_entries() {
+        let value = serde_json::json!({ "entries": [{"key": "val"}] });
+        let markdown = render_markdown_from_json(&value, "policies", None);
+        assert!(markdown.contains("# policies"));
+        assert!(markdown.contains("- {\"key\":\"val\"}"));
+    }
+
+    #[test]
+    fn render_artifacts_markdown_empty_entries_shows_placeholder() {
+        let value = serde_json::json!({ "entries": [] });
+        let markdown = render_markdown_from_json(&value, "artifacts", Some("run-abc"));
+        assert!(markdown.contains("# artifacts"));
+        assert!(markdown.contains("Run ID: run-abc"));
+        assert!(markdown.contains("- No artifacts recorded."));
+    }
+
+    #[test]
+    fn render_artifacts_markdown_with_system_context_and_run_id() {
+        let value = serde_json::json!({ "entries": ["artifacts/run-1/req/ps.md"], "system_context": "new" });
+        let markdown = render_markdown_from_json(&value, "artifacts", Some("run-1"));
+        assert!(markdown.contains("Run ID: run-1"));
+        assert!(markdown.contains("System Context: new"));
+        assert!(markdown.contains("- .canon/artifacts/run-1/req/ps.md"));
+    }
+
+    #[test]
+    fn render_evidence_markdown_empty_entries_shows_placeholder() {
+        let value = serde_json::json!({ "entries": [] });
+        let markdown = render_markdown_from_json(&value, "evidence", None);
+        assert!(markdown.contains("# evidence"));
+        assert!(markdown.contains("- No evidence recorded."));
+    }
+
+    #[test]
+    fn render_evidence_markdown_non_object_first_entry_shows_placeholder() {
+        let value = serde_json::json!({ "entries": ["not-an-object"] });
+        let markdown = render_markdown_from_json(&value, "evidence", None);
+        assert!(markdown.contains("- No evidence recorded."));
+    }
+
+    #[test]
+    fn render_invocations_markdown_empty_entries_shows_placeholder() {
+        let value = serde_json::json!({ "entries": [] });
+        let markdown = render_markdown_from_json(&value, "invocations", Some("run-x"));
+        assert!(markdown.contains("# invocations"));
+        assert!(markdown.contains("Run ID: run-x"));
+        assert!(markdown.contains("- No invocations recorded."));
+    }
+
+    #[test]
+    fn render_invocations_markdown_skips_non_object_entries() {
+        let value = serde_json::json!({ "entries": ["not-an-object", {"request_id": "req-1", "adapter": "Shell"}] });
+        let markdown = render_markdown_from_json(&value, "invocations", None);
+        // The non-object entry should be skipped (no crash), the object entry should render
+        assert!(markdown.contains("## req-1"));
+        assert!(markdown.contains("Adapter: Shell"));
+    }
+
+    #[test]
+    fn render_risk_zone_markdown_empty_entries_shows_placeholder() {
+        let value = serde_json::json!({ "entries": [] });
+        let markdown = render_markdown_from_json(&value, "risk-zone", None);
+        assert!(markdown.contains("# risk-zone"));
+        assert!(markdown.contains("- No classification suggestion recorded."));
+    }
+
+    #[test]
+    fn render_markdown_from_json_without_entries_key_treats_as_empty() {
+        // value has no "entries" key at all
+        let value = serde_json::json!({ "something_else": "data" });
+        let markdown = render_markdown_from_json(&value, "invocations", None);
+        assert!(markdown.contains("- No invocations recorded."));
     }
 }

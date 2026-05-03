@@ -9,7 +9,11 @@
 
 **Canon is a local CLI for governed AI-assisted software engineering. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.38.0`.
+The current delivery line in this repository targets Canon `0.39.0`.
+
+For file-backed modes, the shared authored lifecycle is explicit: author the
+packet, run `inspect clarity`, start the governed run, critique the emitted
+packet, and publish only when the packet is truly ready.
 
 
 ## What Canon Does

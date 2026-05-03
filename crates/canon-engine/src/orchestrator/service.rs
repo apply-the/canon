@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use canon_adapters::classify_capability;
@@ -300,6 +301,7 @@ pub struct ClarityInspectSummary {
     pub clarification_questions: Vec<ClarificationQuestionSummary>,
     pub reasoning_signals: Vec<String>,
     pub output_quality: OutputQualitySummary,
+    pub authoring_lifecycle: AuthoringLifecycleSummary,
     pub recommended_focus: String,
 }
 
@@ -309,6 +311,16 @@ pub struct OutputQualitySummary {
     pub materially_closed: bool,
     pub evidence_signals: Vec<String>,
     pub downgrade_reasons: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AuthoringLifecycleSummary {
+    pub packet_shape: String,
+    pub authority_status: String,
+    pub authoritative_inputs: Vec<String>,
+    pub supporting_inputs: Vec<String>,
+    pub readiness_delta: Vec<String>,
+    pub next_authoring_step: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -2363,6 +2375,118 @@ impl EngineService {
             .unwrap_or_else(|_| resolved.display().to_string())
     }
 
+    pub(super) fn build_authoring_lifecycle_summary(
+        &self,
+        inputs: &[String],
+        source_inputs: &[String],
+        missing_context: &[String],
+        clarification_questions: &[ClarificationQuestionSummary],
+        materially_closed: bool,
+    ) -> AuthoringLifecycleSummary {
+        let resolved_inputs =
+            inputs.iter().map(|input| self.resolve_input_path(input)).collect::<Vec<_>>();
+        let directory_roots =
+            resolved_inputs.iter().filter(|path| path.is_dir()).cloned().collect::<Vec<_>>();
+        let packet_shape = if directory_roots.len() == 1
+            && resolved_inputs
+                .iter()
+                .all(|path| path == &directory_roots[0] || path.starts_with(&directory_roots[0]))
+        {
+            "directory-backed"
+        } else if resolved_inputs.len() == 1 && resolved_inputs[0].is_file() {
+            "single-file"
+        } else {
+            "multi-input"
+        }
+        .to_string();
+
+        let normalized_source_inputs =
+            source_inputs.iter().cloned().collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>();
+
+        let authoritative_inputs = if normalized_source_inputs
+            .iter()
+            .any(|path| Self::authored_input_name(path) == Some("brief.md"))
+        {
+            normalized_source_inputs
+                .iter()
+                .filter(|path| Self::authored_input_name(path) == Some("brief.md"))
+                .cloned()
+                .collect::<Vec<_>>()
+        } else if normalized_source_inputs.len() == 1 {
+            normalized_source_inputs.clone()
+        } else {
+            Vec::new()
+        };
+
+        let authoritative_lookup = authoritative_inputs.iter().cloned().collect::<BTreeSet<_>>();
+        let supporting_inputs = normalized_source_inputs
+            .iter()
+            .filter(|path| !authoritative_lookup.contains(*path))
+            .cloned()
+            .collect::<Vec<_>>();
+
+        let authority_status = if authoritative_inputs
+            .iter()
+            .any(|path| Self::authored_input_name(path) == Some("brief.md"))
+        {
+            "explicit-authoritative-brief"
+        } else if packet_shape == "single-file" && !authoritative_inputs.is_empty() {
+            "single-input-authoritative-brief"
+        } else if !authoritative_inputs.is_empty() {
+            "derived-authoritative-input"
+        } else {
+            "ambiguous-current-brief"
+        }
+        .to_string();
+
+        let mut readiness_delta = Vec::new();
+        if authority_status == "ambiguous-current-brief" {
+            readiness_delta.push(
+                "Canon could not identify one authoritative current-mode brief from the supplied inputs; add `brief.md` or reduce the packet to one clear readiness brief."
+                    .to_string(),
+            );
+        }
+        readiness_delta.extend(missing_context.iter().cloned());
+        if !clarification_questions.is_empty() {
+            readiness_delta.push(format!(
+                "{} clarification question(s) still remain before this packet is unambiguously ready.",
+                clarification_questions.len()
+            ));
+        }
+        if !supporting_inputs.is_empty()
+            && (authority_status == "ambiguous-current-brief" || !missing_context.is_empty())
+        {
+            readiness_delta.push(
+                "Supporting inputs are present, but they do not replace the current-mode brief Canon uses for readiness."
+                    .to_string(),
+            );
+        }
+
+        let next_authoring_step = if authority_status == "ambiguous-current-brief" {
+            "Tighten the packet so one current-mode brief is authoritative before relying on the supporting files.".to_string()
+        } else if !missing_context.is_empty() {
+            "Strengthen the authoritative brief by resolving the named missing-context items before starting the governed run.".to_string()
+        } else if !clarification_questions.is_empty() {
+            "Answer the remaining clarification questions in the authoritative brief or supporting notes before treating the packet as fully ready.".to_string()
+        } else if materially_closed {
+            "Packet authority is explicit and the brief already materially closes the decision; preserve that closure when you start the governed run.".to_string()
+        } else if !supporting_inputs.is_empty() {
+            "Packet authority is explicit; keep the supporting inputs as provenance and move to the matching governed run when ready.".to_string()
+        } else {
+            "Packet authority is explicit and the brief is ready for the matching governed run."
+                .to_string()
+        };
+
+        AuthoringLifecycleSummary {
+            packet_shape,
+            authority_status,
+            authoritative_inputs,
+            supporting_inputs,
+            readiness_delta,
+            next_authoring_step,
+        }
+    }
+
     pub(super) fn resolve_input_path(&self, input: &str) -> PathBuf {
         let path = PathBuf::from(input);
         if path.is_absolute() { path } else { self.repo_root.join(path) }
@@ -2427,6 +2551,9 @@ impl EngineService {
             skills_skipped: summary.skills_skipped,
             claude_md_created: summary.claude_md_created,
         }
+    }
+    fn authored_input_name(path: &str) -> Option<&str> {
+        Path::new(path).file_name().and_then(|name| name.to_str())
     }
 
     pub(super) fn resolve_approver(&self, explicit_approver: &str) -> String {

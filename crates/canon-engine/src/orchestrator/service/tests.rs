@@ -1,6 +1,6 @@
 use super::{
-    EngineService, GateInspectSummary, ModeResultSummary, RecommendedActionSummary,
-    ResultActionSummary, RunRequest, apply_execution_posture_summary,
+    ClarificationQuestionSummary, EngineService, GateInspectSummary, ModeResultSummary,
+    RecommendedActionSummary, ResultActionSummary, RunRequest, apply_execution_posture_summary,
     approved_execution_mutation_rationale, build_action_chips_for, canonical_mode_input_binding,
     capability_tag, execution_continuation_pending, extract_change_surface_entries,
     preserve_multiline_summary, recommend_next_action, resolved_execution_posture_label,
@@ -324,6 +324,86 @@ fn auto_bind_canonical_mode_inputs_prefers_directory_over_single_file() {
     assert_eq!(
         service.auto_bind_canonical_mode_inputs(Mode::Implementation, &[], &[]),
         vec!["canon-input/implementation".to_string()]
+    );
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_prefers_brief_for_directory_packets() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("implementation");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    std::fs::write(
+        packet_root.join("brief.md"),
+        "# Implementation Brief\n\n## Task Mapping\n\n- wire auth session revocation\n",
+    )
+    .expect("brief");
+    std::fs::write(packet_root.join("source-map.md"), "# Source Map\n\n- docs/changes/auth.md\n")
+        .expect("source map");
+    std::fs::write(
+        packet_root.join("selected-context.md"),
+        "# Selected Context\n\n- auth/session.rs\n",
+    )
+    .expect("selected context");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["canon-input/implementation".to_string()];
+    let source_inputs = service.clarity_source_inputs(&inputs).expect("source inputs");
+
+    let summary = service.build_authoring_lifecycle_summary(
+        &inputs,
+        &source_inputs,
+        &[],
+        &[ClarificationQuestionSummary {
+            id: "q1".to_string(),
+            prompt: "What remains open?".to_string(),
+            rationale: "Need explicit open question.".to_string(),
+            evidence: "No explicit unresolved question.".to_string(),
+            affects: "brief.md".to_string(),
+            default_if_skipped: "Keep packet conditional.".to_string(),
+            status: "required".to_string(),
+        }],
+        false,
+    );
+
+    assert_eq!(summary.packet_shape, "directory-backed");
+    assert_eq!(summary.authority_status, "explicit-authoritative-brief");
+    assert_eq!(summary.authoritative_inputs, vec!["canon-input/implementation/brief.md"]);
+    assert!(
+        summary.supporting_inputs.contains(&"canon-input/implementation/source-map.md".to_string())
+    );
+    assert!(
+        summary
+            .supporting_inputs
+            .contains(&"canon-input/implementation/selected-context.md".to_string())
+    );
+    assert!(summary.readiness_delta.iter().any(|item| item.contains("clarification question")));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_keeps_ambiguous_directory_packets_explicit() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("implementation");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    std::fs::write(packet_root.join("source-map.md"), "# Source Map\n\n- docs/changes/auth.md\n")
+        .expect("source map");
+    std::fs::write(packet_root.join("notes.md"), "# Notes\n\n- auth/session.rs\n").expect("notes");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["canon-input/implementation".to_string()];
+    let source_inputs = service.clarity_source_inputs(&inputs).expect("source inputs");
+
+    let summary =
+        service.build_authoring_lifecycle_summary(&inputs, &source_inputs, &[], &[], false);
+
+    assert_eq!(summary.packet_shape, "directory-backed");
+    assert_eq!(summary.authority_status, "ambiguous-current-brief");
+    assert!(summary.authoritative_inputs.is_empty());
+    assert_eq!(summary.supporting_inputs.len(), 2);
+    assert!(
+        summary
+            .readiness_delta
+            .iter()
+            .any(|item| item.contains("add `brief.md` or reduce the packet"))
     );
 }
 
@@ -878,4 +958,202 @@ fn approved_execution_mutation_rationale_covers_mode_variants() {
     let other_label =
         approved_execution_mutation_rationale(Mode::Requirements, &scope, "patch.diff");
     assert!(other_label.contains("bounded mutation"));
+}
+
+#[test]
+fn validate_authored_inputs_rejects_pr_review_with_inline_text() {
+    let service = EngineService::new("/tmp/canon-root");
+    let err = service
+        .validate_authored_inputs(Mode::PrReview, &[], &["some inline text".to_string()])
+        .expect_err("should reject inline text for pr-review");
+    assert!(err.to_string().contains("pr-review does not support --input-text"));
+}
+
+#[test]
+fn validate_authored_inputs_allows_pr_review_without_inline_inputs() {
+    let service = EngineService::new("/tmp/canon-root");
+    service
+        .validate_authored_inputs(Mode::PrReview, &["ref-a".to_string(), "ref-b".to_string()], &[])
+        .expect("pr-review with file refs and no inline inputs should be ok");
+}
+
+#[test]
+fn validate_authored_inputs_rejects_review_mode_with_zero_sources() {
+    let service = EngineService::new("/tmp/canon-root");
+    let err = service
+        .validate_authored_inputs(Mode::Review, &[], &[])
+        .expect_err("review with no inputs should fail");
+    assert!(err.to_string().contains("review requires exactly one authored input"));
+}
+
+#[test]
+fn validate_authored_inputs_rejects_review_mode_with_multiple_sources() {
+    let service = EngineService::new("/tmp/canon-root");
+    let err = service
+        .validate_authored_inputs(
+            Mode::Review,
+            &["input-a.md".to_string(), "input-b.md".to_string()],
+            &[],
+        )
+        .expect_err("review with two inputs should fail");
+    assert!(err.to_string().contains("review requires exactly one authored input"));
+}
+
+#[test]
+fn validate_authored_inputs_rejects_empty_inline_input_text() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+    let err = service
+        .validate_authored_inputs(Mode::Requirements, &[], &["   ".to_string()])
+        .expect_err("whitespace-only inline input should fail");
+    assert!(err.to_string().contains("empty or whitespace-only"));
+}
+
+#[test]
+fn validate_authored_inputs_rejects_regular_mode_with_no_sources() {
+    let service = EngineService::new("/tmp/canon-root");
+    let err = service
+        .validate_authored_inputs(Mode::Requirements, &[], &[])
+        .expect_err("requirements with no sources should fail");
+    assert!(err.to_string().contains("requires at least one authored input"));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_multi_input_shape_is_ambiguous_without_brief() {
+    let workspace = TempDir::new().expect("temp dir");
+    let file_a = workspace.path().join("idea.md");
+    let file_b = workspace.path().join("context.md");
+    std::fs::write(&file_a, "# Idea\n").expect("idea.md");
+    std::fs::write(&file_b, "# Context\n").expect("context.md");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["idea.md".to_string(), "context.md".to_string()];
+    let source_inputs = vec!["idea.md".to_string(), "context.md".to_string()];
+    let summary =
+        service.build_authoring_lifecycle_summary(&inputs, &source_inputs, &[], &[], false);
+
+    assert_eq!(summary.packet_shape, "multi-input");
+    assert_eq!(summary.authority_status, "ambiguous-current-brief");
+    assert!(summary.authoritative_inputs.is_empty());
+    assert!(summary.readiness_delta.iter().any(|s| s.contains("add `brief.md`")));
+    assert!(
+        summary
+            .next_authoring_step
+            .contains("Tighten the packet so one current-mode brief is authoritative")
+    );
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_materially_closed_sets_preserve_next_step() {
+    let workspace = TempDir::new().expect("temp dir");
+    let idea = workspace.path().join("idea.md");
+    std::fs::write(&idea, "# Idea\n").expect("idea.md");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["idea.md".to_string()];
+    let source_inputs = vec!["idea.md".to_string()];
+    let summary = service.build_authoring_lifecycle_summary(
+        &inputs,
+        &source_inputs,
+        &[],
+        &[],
+        true, // materially_closed
+    );
+
+    assert_eq!(summary.packet_shape, "single-file");
+    assert_eq!(summary.authority_status, "single-input-authoritative-brief");
+    assert!(summary.readiness_delta.is_empty());
+    assert!(summary.next_authoring_step.contains("materially closes the decision"));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_clarification_questions_only_sets_answer_next_step() {
+    let workspace = TempDir::new().expect("temp dir");
+    let idea = workspace.path().join("idea.md");
+    std::fs::write(&idea, "# Idea\n").expect("idea.md");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["idea.md".to_string()];
+    let source_inputs = vec!["idea.md".to_string()];
+    let question = ClarificationQuestionSummary {
+        id: "q-constraints-1".to_string(),
+        prompt: "Which constraints are non-negotiable?".to_string(),
+        rationale: "Need constraints before shaping.".to_string(),
+        evidence: "No constraints section found.".to_string(),
+        affects: "options.md".to_string(),
+        default_if_skipped: "Leave conditional.".to_string(),
+        status: "required".to_string(),
+    };
+    let summary =
+        service.build_authoring_lifecycle_summary(&inputs, &source_inputs, &[], &[question], false);
+
+    assert_eq!(summary.packet_shape, "single-file");
+    assert_eq!(summary.readiness_delta.len(), 1);
+    assert!(summary.readiness_delta[0].contains("clarification question(s)"));
+    assert!(summary.next_authoring_step.contains("Answer the remaining clarification questions"));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_supporting_inputs_with_missing_context_adds_delta() {
+    let workspace = TempDir::new().expect("temp dir");
+    let brief = workspace.path().join("brief.md");
+    let context_file = workspace.path().join("context.md");
+    std::fs::write(&brief, "# Brief\n").expect("brief.md");
+    std::fs::write(&context_file, "# Context\n").expect("context.md");
+
+    let service = EngineService::new(workspace.path());
+    // brief.md is authoritative, context.md is a supporting input
+    let inputs = vec!["brief.md".to_string(), "context.md".to_string()];
+    let source_inputs = vec!["brief.md".to_string(), "context.md".to_string()];
+    let summary = service.build_authoring_lifecycle_summary(
+        &inputs,
+        &source_inputs,
+        &["Missing constraints section.".to_string()],
+        &[],
+        false,
+    );
+
+    // supporting_inputs is non-empty and missing_context is non-empty → delta should include the note
+    assert!(!summary.supporting_inputs.is_empty());
+    assert!(summary.readiness_delta.iter().any(|s| s.contains("Supporting inputs are present")));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_with_supporting_inputs_and_no_missing_context() {
+    let workspace = TempDir::new().expect("temp dir");
+    let brief = workspace.path().join("brief.md");
+    let support = workspace.path().join("context.md");
+    std::fs::write(&brief, "# Brief\n").expect("brief.md");
+    std::fs::write(&support, "# Context\n").expect("context.md");
+
+    let service = EngineService::new(workspace.path());
+    let inputs = vec!["brief.md".to_string(), "context.md".to_string()];
+    let source_inputs = vec!["brief.md".to_string(), "context.md".to_string()];
+    let summary =
+        service.build_authoring_lifecycle_summary(&inputs, &source_inputs, &[], &[], false);
+
+    assert_eq!(summary.authority_status, "explicit-authoritative-brief");
+    assert!(!summary.supporting_inputs.is_empty());
+    assert!(summary.next_authoring_step.contains("keep the supporting inputs as provenance"));
+}
+
+#[test]
+fn build_authoring_lifecycle_summary_derived_authoritative_input_from_single_non_brief() {
+    let workspace = TempDir::new().expect("temp dir");
+    let idea = workspace.path().join("idea.md");
+    let other = workspace.path().join("other.md");
+    std::fs::write(&idea, "# Idea\n").expect("idea.md");
+    std::fs::write(&other, "# Other\n").expect("other.md");
+
+    let service = EngineService::new(workspace.path());
+    // Multi-input with no brief.md → if >1 source input, authority is ambiguous
+    // But if exactly 1 source_input with non-brief name → derived-authoritative-input
+    let inputs = vec!["idea.md".to_string(), "other.md".to_string()];
+    // source_inputs has only 1 entry (deduplicated scenario)
+    let source_inputs = vec!["idea.md".to_string(), "other.md".to_string()];
+    let summary =
+        service.build_authoring_lifecycle_summary(&inputs, &source_inputs, &[], &[], false);
+
+    // 2 source inputs, no brief.md → ambiguous
+    assert_eq!(summary.authority_status, "ambiguous-current-brief");
 }
