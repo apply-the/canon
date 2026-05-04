@@ -64,13 +64,18 @@ GitHub Releases remain the canonical source of truth for the Homebrew formula,
 
 ### Homebrew
 
-On macOS and Linux you can install Canon from the official Homebrew tap:
+On macOS and Linux you can install Canon from the dedicated Homebrew tap
+repository `apply-the/homebrew-canon`:
 
 ```bash
 brew tap apply-the/canon
 brew install canon
 canon --version
 ```
+
+The tap formula builds Canon directly from the tagged source release, so the
+tap remains the authoritative Homebrew surface even when package metadata is
+maintained outside the main Canon repository.
 
 ### Windows via winget
 
