@@ -14,6 +14,7 @@ must stay brutally explicit about the boundary and nearest honest alternative.
 | `canon-inspect-clarity` | executable-wrapper | `available-now` | discoverable-standard | `canon-requirements`, `canon-discovery` |
 | `canon-approve` | executable-wrapper | `available-now` | discoverable-standard | `canon-resume`, `canon-status` |
 | `canon-resume` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-evidence` |
+| `canon-publish` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-artifacts` |
 | `canon-requirements` | executable-wrapper | `available-now` | prominent | `canon-inspect-clarity`, `canon-status` |
 | `canon-change` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-approve` |
 | `canon-pr-review` | executable-wrapper | `available-now` | discoverable-standard | `canon-status`, `canon-inspect-evidence` |

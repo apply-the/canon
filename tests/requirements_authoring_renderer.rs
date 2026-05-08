@@ -93,6 +93,14 @@ fn requirements_renderer_preserves_authored_sections_verbatim() {
         "",
         "",
     );
+    let prd = render_requirements_artifact_from_evidence(
+        "prd.md",
+        "Bound the firmware-flashing workflow before planning.",
+        FULL_BRIEF,
+        "",
+        "",
+        "",
+    );
 
     assert!(
         problem_statement.contains(
@@ -103,12 +111,20 @@ fn requirements_renderer_preserves_authored_sections_verbatim() {
     assert!(!problem_statement.contains(MISSING_AUTHORED_BODY_MARKER));
     assert!(scope_cuts.contains("## Scope Cuts\n\n- No GUI in this slice."));
     assert!(scope_cuts.contains("## Deferred Work\n\n- Hosted rollout stays deferred."));
+    assert!(prd.contains("# Product Requirements Document"));
+    assert!(
+        prd.contains(
+            "## Problem\n\nBound the firmware-flashing workflow to a USB-only CLI surface."
+        )
+    );
+    assert!(prd.contains("## Recommended Path\n\nDeliver the bounded CLI slice first."));
+    assert!(prd.contains("## Open Questions\n\n- How is bootloader mode entered?"));
 }
 
 #[test]
 fn requirements_renderer_emits_missing_body_marker_for_missing_heading() {
     let rendered = render_requirements_artifact_from_evidence(
-        "problem-statement.md",
+        "prd.md",
         "Bound the firmware-flashing workflow before planning.",
         MISSING_OUTCOME_BRIEF,
         "",
@@ -123,6 +139,7 @@ fn requirements_renderer_emits_missing_body_marker_for_missing_heading() {
     );
     assert!(rendered.contains(MISSING_AUTHORED_BODY_MARKER));
     assert!(rendered.contains("`## Outcome`"));
+    assert!(rendered.contains("`## Recommended Path`"));
 }
 
 #[test]

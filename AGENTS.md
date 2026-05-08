@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-03
+Auto-generated from all feature plans. Last updated: 2026-05-08
 
 ## Governing Constitution
 
@@ -56,6 +56,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-03
 - repository files plus the existing `.canon/` runtime layout only; no new persistence family (039-authoring-packet-readiness)
 - Rust 1.95.0 workspace plus Markdown documentation + Existing workspace crates, `assert_cmd`, `predicates`, `serde_json`, `tempfile`, `toml`, and the existing Spec Kit shell scripts (040-governance-runtime-framing)
 - Repository files and `.canon/` runtime semantics are documented but not structurally changed (040-governance-runtime-framing)
+- Rust 1.95.0 workspace plus Markdown documentation and repo-local skills + Existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`), `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`, and repo skill validation scripts (041-prd-publish-chat)
+- Local filesystem under `.canon/` plus published repository files under `specs/`, `docs/`, and `.agents/skills/` (041-prd-publish-chat)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -114,9 +116,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 041-prd-publish-chat: Added Rust 1.95.0 workspace plus Markdown documentation and repo-local skills + Existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`), `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`, and repo skill validation scripts
 - 040-governance-runtime-framing: Added Rust 1.95.0 workspace plus Markdown documentation + Existing workspace crates, `assert_cmd`, `predicates`, `serde_json`, `tempfile`, `toml`, and the existing Spec Kit shell scripts
 - 039-authoring-packet-readiness: Added Rust 1.95.0 workspace plus Markdown documentation and embedded skill artifacts + workspace crates `canon-engine`, `canon-cli`, and `canon-adapters`; existing `serde` or `serde_json` output contracts; repo-local Speckit and embedded skill mirrors
-- 038-guided-run-operations: Added Rust 1.95.0 workspace plus Bash, PowerShell, and Markdown documentation artifacts + workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `serde`/`serde_json` output contracts; shared skill helper scripts under `.agents/skills` and `defaults/embedded-skills`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

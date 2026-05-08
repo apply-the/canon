@@ -74,7 +74,7 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         .args(["inspect", "artifacts", "--run", &run_id, "--output", "json"])
         .assert()
         .success()
-        .stdout(contains("problem-statement.md"))
+        .stdout(contains("prd.md"))
         .stdout(contains("decision-checklist.md"))
         .get_output()
         .stdout
@@ -89,6 +89,7 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         format!(".canon/artifacts/{run_id}/requirements/constraints.md"),
         format!(".canon/artifacts/{run_id}/requirements/decision-checklist.md"),
         format!(".canon/artifacts/{run_id}/requirements/options.md"),
+        format!(".canon/artifacts/{run_id}/requirements/prd.md"),
         format!(".canon/artifacts/{run_id}/requirements/problem-statement.md"),
         format!(".canon/artifacts/{run_id}/requirements/scope-cuts.md"),
         format!(".canon/artifacts/{run_id}/requirements/tradeoffs.md"),
@@ -102,6 +103,7 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         .success()
         .stdout(contains("# artifacts"))
         .stdout(contains(format!("Run ID: {run_id}")))
+        .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/prd.md")))
         .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/problem-statement.md")));
 
     let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())

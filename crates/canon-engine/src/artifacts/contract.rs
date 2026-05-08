@@ -37,6 +37,20 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &["Summary", "Decision Checklist", "Open Questions"],
                 &[GateKind::Risk, GateKind::ReleaseReadiness],
             ),
+            requirement(
+                "prd.md",
+                &[
+                    "Summary",
+                    "Problem",
+                    "Outcome",
+                    "Constraints",
+                    "Recommended Path",
+                    "Tradeoffs",
+                    "Scope Cuts",
+                    "Decision Checklist",
+                ],
+                &[GateKind::Exploration, GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
         ],
         Mode::Discovery => vec![
             requirement(
