@@ -20,7 +20,7 @@ output before opening the Scoop bucket pull request.
 Canon ties Scoop artifact generation to the release workflow in CI.
 
 - `.github/workflows/release.yml` runs automatically on `push` for tags that
-  match `v*`.
+  match plain semantic versions such as `0.41.0`.
 - That workflow builds the platform archives, renders `release-notes.md`,
   generates checksums, writes `canon-<VERSION>-distribution-metadata.json`,
   renders `canon-<VERSION>-scoop-manifest.json`, and verifies the extended
@@ -31,7 +31,7 @@ Canon ties Scoop artifact generation to the release workflow in CI.
 That means the correct operational sequence is:
 
 1. Bump the workspace version and merge the release-ready change.
-2. Create and push the Git tag `v<VERSION>`.
+2. Create and push the Git tag `<VERSION>`.
 3. Let CI build, verify, and publish the release bundle plus the generated
    Scoop manifest.
 4. Use that generated manifest as the source for the manual Scoop submission.
@@ -42,13 +42,13 @@ workflow manually with `workflow_dispatch` and leave `publish=false`.
 ## What This Guide Assumes
 
 - You already have a release version such as `0.41.0`.
-- The GitHub release tag will be `v0.41.0`.
+- The GitHub release tag will be `0.41.0`.
 - A local `dist/` directory exists with the release archives, checksum file,
   and release notes.
 - `jq`, `tar`, `zip`, `unzip`, and `shasum` are available in your shell.
 
-The scripts in this repository expect the raw semantic version like `0.41.0`,
-not the Git tag form with the `v` prefix.
+The scripts in this repository expect the raw semantic version like `0.41.0`.
+There is no `v` prefix in the release tag.
 
 ## Required Release Files
 
@@ -211,7 +211,7 @@ reopening the release bundle.
 
 ## Common Failure Modes
 
-- Passing `v0.41.0` to the scripts instead of `0.41.0`
+- Passing `v0.41.0` anywhere in the release flow instead of `0.41.0`
 - Missing `release-notes.md` or `canon-<VERSION>-SHA256SUMS.txt`
 - A Windows zip that contains nested directories instead of a root `canon.exe`
 - Hand-editing the generated JSON after verification instead of regenerating it

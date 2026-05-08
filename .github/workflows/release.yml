@@ -3,7 +3,7 @@ name: release
 on:
   push:
     tags:
-      - 'v*'
+      - '*.*.*'
   workflow_dispatch:
     inputs:
       version:
@@ -47,11 +47,11 @@ jobs:
             if [[ -z "$version" ]]; then
               version="$cargo_version"
             fi
-            tag="v${version}"
+            tag="${version}"
             publish="${{ inputs.publish }}"
           else
             tag="${GITHUB_REF_NAME}"
-            version="${tag#v}"
+            version="${tag}"
             publish="true"
           fi
 

@@ -164,7 +164,7 @@ verify_distribution_metadata() {
     exit 73
   fi
 
-  local tag="v${version}"
+  local tag="${version}"
   local release_url="https://github.com/apply-the/canon/releases/tag/${tag}"
   local download_base="https://github.com/apply-the/canon/releases/download/${tag}"
 
@@ -242,7 +242,7 @@ verify_distribution_metadata() {
 
 verify_homebrew_formula() {
   local path="$1"
-  local tag="v${version}"
+  local tag="${version}"
   local download_base="https://github.com/apply-the/canon/releases/download/${tag}"
 
   require_file "$path"
@@ -292,7 +292,7 @@ verify_homebrew_formula() {
 
 verify_winget_manifest_dir() {
   local dir="$1"
-  local tag="v${version}"
+  local tag="${version}"
   local artifact="canon-${version}-windows-x86_64.zip"
   local version_manifest="$dir/ApplyThe.Canon.yaml"
   local locale_manifest="$dir/ApplyThe.Canon.locale.en-US.yaml"
@@ -359,7 +359,7 @@ verify_winget_manifest_dir() {
 
 verify_scoop_manifest() {
   local path="$1"
-  local tag="v${version}"
+  local tag="${version}"
   local artifact="canon-${version}-windows-x86_64.zip"
   local installer_url="https://github.com/apply-the/canon/releases/download/${tag}/${artifact}"
   local installer_sha

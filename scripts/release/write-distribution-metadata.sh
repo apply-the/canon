@@ -58,7 +58,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 if [[ -z "$tag" ]]; then
-  tag="v${version}"
+  tag="${version}"
 fi
 
 expected_archives=(
