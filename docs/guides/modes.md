@@ -243,6 +243,10 @@ Publishing copies the emitted artifact files out of `.canon/artifacts/` and
 into a visible workspace directory. It never mutates or deletes the governed
 copy under `.canon/`.
 
+For `requirements`, that visible directory now includes both the sectional
+packet files and a consolidated `prd.md` so reviewers can read one product
+requirements document without reconstructing it from multiple files.
+
 Without `--to`, Canon uses a structured default leaf like
 `<YYYY-MM-DD>-<descriptor>/` under the mode's existing family root and writes
 `packet-metadata.json` beside the published artifacts so run identity, mode,
@@ -512,10 +516,14 @@ Requirements produces a bounded framing packet with these artifacts:
 - `tradeoffs.md`
 - `scope-cuts.md`
 - `decision-checklist.md`
+- `prd.md`
 
 Use that bundle when the team needs one durable packet that explains the
 problem, the constraints, the available options, the tradeoffs, and what still
-has to be decided.
+has to be decided. Inside `.canon/artifacts/<RUN_ID>/requirements/`, `prd.md`
+is the additive single-document view of the same packet. After
+`canon publish <RUN_ID>`, the published `specs/<YYYY-MM-DD>-<descriptor>/`
+directory carries both `prd.md` and the sectional files.
 
 ### PRD Shape
 
@@ -563,7 +571,7 @@ this bounded scope.
 
 ### Typical Handoff After This Mode
 
-- publish the approved requirements packet with `canon publish <RUN_ID>` to `specs/<YYYY-MM-DD>-<descriptor>/`, or use `--to` to place the PRD elsewhere
+- publish the approved requirements packet with `canon publish <RUN_ID>` to `specs/<YYYY-MM-DD>-<descriptor>/`; the published folder includes `prd.md`, the sectional packet files, and `packet-metadata.json`, or use `--to` to place the PRD elsewhere
 - move to `discovery` if the problem is still too fuzzy and the unknowns are more important than the framing
 - move to `system-shaping` if the problem is bounded and the next step is shaping a new capability
 - move to `change` if the work is clearly about a bounded change in an existing system

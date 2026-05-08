@@ -116,6 +116,10 @@ const SKILL_FILES: &[(&str, &str)] = &[
         include_str!("../../../../defaults/embedded-skills/canon-resume/skill-source.md"),
     ),
     (
+        "canon-publish/SKILL.md",
+        include_str!("../../../../defaults/embedded-skills/canon-publish/skill-source.md"),
+    ),
+    (
         "canon-discovery/SKILL.md",
         include_str!("../../../../defaults/embedded-skills/canon-discovery/skill-source.md"),
     ),

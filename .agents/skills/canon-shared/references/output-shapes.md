@@ -194,5 +194,6 @@ Later slices extend the same Canon-backed shapes to:
 - `canon-inspect-clarity`
 - `canon-approve`
 - `canon-resume`
+- `canon-publish`
 - `canon-change`
 - `canon-pr-review`

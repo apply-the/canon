@@ -5,7 +5,7 @@ use std::process::Command as ProcessCommand;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
-const VERSION: &str = "0.40.0";
+const VERSION: &str = "0.41.0";
 
 #[test]
 fn distribution_metadata_includes_provenance_and_channel_contracts() {
@@ -387,7 +387,7 @@ fn canonical_release_contract_renders_and_verifies_all_channels() {
 }
 
 #[test]
-fn release_docs_and_version_surfaces_align_on_0_40_0_delivery() {
+fn release_docs_and_version_surfaces_align_on_0_41_0_delivery() {
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
     let cargo_manifest = fs::read_to_string(repo_root.join("Cargo.toml")).expect("read Cargo.toml");
@@ -446,32 +446,25 @@ fn release_docs_and_version_surfaces_align_on_0_40_0_delivery() {
     let roadmap = fs::read_to_string(repo_root.join("ROADMAP.md")).expect("read roadmap");
     let roadmap_compact = roadmap.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(
-        roadmap.contains("No active roadmap entries remain after the delivered"),
-        "roadmap should state that no active macrofeatures remain"
-    );
-    assert_eq!(
-        roadmap.matches("## Feature ").count(),
-        0,
-        "roadmap should list no remaining macrofeatures"
+        roadmap.contains("`041-prd-publish-chat` slice"),
+        "roadmap should name the delivered 041 slice"
     );
     assert!(
         roadmap_compact.contains(
-            "The roadmap is intentionally empty until the next macrofeature is explicitly bounded and justified."
+            "This roadmap remains intentionally sparse: a macrofeature only moves forward once its bounds, artifact contract, and validation story are explicit."
         ),
-        "roadmap should state that the queue is intentionally empty"
+        "roadmap should keep the sparse-queue posture explicit"
     );
     assert!(
-        roadmap_compact.contains(
-            "There are no other active roadmap entries beyond the delivered `040` slice."
-        ),
-        "roadmap should make the delivered scope explicit"
+        roadmap.contains("## Proposed: `042-visual-artifact-generation`"),
+        "roadmap should advance the next proposed feature number"
     );
 
     let changelog = fs::read_to_string(repo_root.join("CHANGELOG.md")).expect("read changelog");
-    assert!(changelog.contains("## [0.40.0]"), "changelog should record the 0.40.0 release");
+    assert!(changelog.contains("## [0.41.0]"), "changelog should record the 0.41.0 release");
     assert!(
-        changelog.contains("Governance Runtime Framing"),
-        "changelog should name the 040 feature"
+        changelog.contains("Requirements PRD Publishing And Chat Publish Skill"),
+        "changelog should name the 041 feature"
     );
     assert!(
         changelog.contains("Architecture Clarification Readiness And Mode Reroute"),
@@ -484,6 +477,65 @@ fn release_docs_and_version_surfaces_align_on_0_40_0_delivery() {
     assert!(
         changelog.contains("Authoring Experience And Packet Readiness"),
         "changelog should name the 039 feature"
+    );
+}
+
+#[test]
+fn release_workflow_pushes_homebrew_tap_directly() {
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let release_workflow = fs::read_to_string(repo_root.join(".github/workflows/release.yml"))
+        .expect("read release workflow");
+
+    assert!(
+        release_workflow.contains("name: sync-homebrew-tap"),
+        "release workflow should keep the tap sync job"
+    );
+    assert!(
+        release_workflow.contains("if: needs.prepare-release-metadata.outputs.publish == 'true'"),
+        "release workflow should drive tap sync from publish=true"
+    );
+    assert!(
+        release_workflow
+            .contains("Add it as a repository or organization secret available to this repo"),
+        "release workflow should explain the missing tap token"
+    );
+    assert!(
+        release_workflow.contains("contents:write access to apply-the/homebrew-canon"),
+        "release workflow should require direct write access to the tap repo"
+    );
+    assert!(
+        release_workflow.contains("permission to push to its main branch"),
+        "release workflow should require push permission on tap main"
+    );
+    assert!(
+        release_workflow.contains("ref: main"),
+        "release workflow should checkout the tap main branch"
+    );
+    assert!(
+        release_workflow.contains("id: sync_formula"),
+        "release workflow should capture tap sync status"
+    );
+    assert!(
+        release_workflow.contains("git add Formula/canon.rb"),
+        "release workflow should stage the tap formula directly"
+    );
+    assert!(
+        release_workflow.contains("git commit -m \"canon ${VERSION}\""),
+        "release workflow should commit the tap update directly"
+    );
+    assert!(
+        release_workflow.contains("git push origin HEAD:main"),
+        "release workflow should push directly to tap main"
+    );
+    assert!(
+        release_workflow.contains(
+            "Expected ${FORMULA_PATH} to change before pushing Canon ${VERSION} into apply-the/homebrew-canon"
+        ),
+        "release workflow should fail when a direct push has no tap diff"
+    );
+    assert!(
+        !release_workflow.contains("create-pull-request@v7"),
+        "release workflow should no longer open a tap PR"
     );
 }
 

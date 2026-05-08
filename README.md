@@ -9,7 +9,7 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.40.0`.
+The current delivery line in this repository targets Canon `0.41.0`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON
@@ -251,6 +251,14 @@ canon resume --run <RUN_ID>
 canon publish <RUN_ID>
 ```
 
+Generated packet files land under `.canon/artifacts/<RUN_ID>/...` first. The
+`publish` step copies those governed artifacts into a visible repository
+destination. For `requirements`, the published directory now includes the
+sectional packet files plus a consolidated `prd.md`.
+
+If you initialized repo-local AI skills, the same publish step is also exposed
+in chat through `$canon-publish`.
+
 `canon run` and `canon status` now return one coherent operator story instead
 of leaving you to reconstruct the flow manually: a readable result packet when
 one exists, explicit blockers when the run is blocked, one recommended next
@@ -267,6 +275,7 @@ review-first instead of jumping straight to approval.
 - Use `canon inspect ...` to see what Canon actually recorded.
 - Use `canon approve` and `canon resume` when a run is gated.
 - Use `canon publish` when you want a completed packet copied into `docs/` or `specs/` under a structured default folder, or into another visible path with `--to`.
+- Expect generated artifacts to exist first under `.canon/artifacts/`; publish is the step that materializes visible docs in the repository.
 
 ## Documentation
 

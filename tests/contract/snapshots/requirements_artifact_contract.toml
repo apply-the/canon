@@ -83,3 +83,22 @@ gates = [
     "Risk",
     "ReleaseReadiness",
 ]
+
+[[artifact_requirements]]
+file_name = "prd.md"
+format = "Markdown"
+required_sections = [
+    "Summary",
+    "Problem",
+    "Outcome",
+    "Constraints",
+    "Recommended Path",
+    "Tradeoffs",
+    "Scope Cuts",
+    "Decision Checklist",
+]
+gates = [
+    "Exploration",
+    "Architecture",
+    "ReleaseReadiness",
+]

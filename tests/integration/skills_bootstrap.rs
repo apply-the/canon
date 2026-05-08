@@ -78,6 +78,10 @@ fn init_with_codex_materializes_agents_skills_only() {
         "canon-requirements/SKILL.md should exist in .agents/skills"
     );
     assert!(
+        skills.join("canon-publish").join("SKILL.md").exists(),
+        "canon-publish/SKILL.md should exist in .agents/skills"
+    );
+    assert!(
         skills.join("canon-review").join("SKILL.md").exists(),
         "canon-review/SKILL.md should exist in .agents/skills"
     );
@@ -119,6 +123,10 @@ fn init_with_claude_materializes_claude_skills_only() {
     assert!(
         claude_skills.join("canon-requirements").join("SKILL.md").exists(),
         "canon-requirements/SKILL.md should exist in .claude/skills"
+    );
+    assert!(
+        claude_skills.join("canon-publish").join("SKILL.md").exists(),
+        "canon-publish/SKILL.md should exist in .claude/skills"
     );
     assert!(
         claude_skills.join("canon-review").join("SKILL.md").exists(),
@@ -241,6 +249,10 @@ fn skills_install_for_codex_works_without_canon_dir() {
         "canon-init/SKILL.md should exist in .agents/skills"
     );
     assert!(
+        skills.join("canon-publish").join("SKILL.md").exists(),
+        "canon-publish/SKILL.md should exist in .agents/skills"
+    );
+    assert!(
         !workspace.path().join(".claude").exists(),
         ".claude should not be created by codex skills install"
     );
@@ -282,8 +294,8 @@ fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
         "skills install should materialize the current embedded runtime compatibility reference"
     );
     assert!(
-        installed.contains("expected_workspace_version = \"0.40.0\""),
-        "skills install should carry the 0.40.0 runtime compatibility expectation"
+        installed.contains("expected_workspace_version = \"0.41.0\""),
+        "skills install should carry the 0.41.0 runtime compatibility expectation"
     );
 }
 

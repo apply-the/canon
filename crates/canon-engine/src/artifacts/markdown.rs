@@ -35,6 +35,9 @@ pub fn render_requirements_artifact(file_name: &str, idea_summary: &str) -> Stri
         "decision-checklist.md" => format!(
             "# Decision Checklist\n\n## Summary\n\n{idea_summary}\n\n## Decision Checklist\n\n- [x] The mode and scope are explicit.\n- [x] Risk classification is recorded before execution.\n- [x] The artifact bundle captures constraints, options, tradeoffs, and cuts.\n- [x] The next stage can review the bundle without relying on chat history.\n\n## Open Questions\n\n- Which downstream mode should consume this bundle first?\n- Does the current artifact contract need stricter organization-specific policy overrides?\n"
         ),
+        "prd.md" => format!(
+            "# Product Requirements Document\n\n## Summary\n\n{idea_summary}\n\n## Problem\n\nThe team needs a bounded product-facing requirements packet that can be read as one coherent document.\n\n## Outcome\n\nStakeholders can review a single PRD while retaining the sectional packet for deeper inspection.\n\n## Constraints\n\n- Keep the packet local-first and auditable.\n- Preserve explicit human ownership and approval checkpoints.\n\n## Recommended Path\n\nRender one additive PRD beside the sectional requirements files so publish stays readable without breaking existing artifact consumers.\n\n## Tradeoffs\n\n- A consolidated PRD adds one more artifact to maintain.\n- The sectional files still exist because they remain useful for focused review.\n\n## Scope Cuts\n\n- No publish-engine rewrite in this slice.\n\n## Decision Checklist\n\n- [x] The consolidated PRD is additive.\n- [x] The publish flow remains governed by existing gates.\n"
+        ),
         other => render_markdown(other, idea_summary),
     }
 }
@@ -98,6 +101,25 @@ pub fn render_requirements_artifact_from_evidence(
             idea_summary,
             authored_summary,
             &[
+                AuthoredSectionSpec { canonical_heading: "Decision Checklist", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Open Questions", aliases: &[] },
+            ],
+        ),
+        "prd.md" => render_authored_artifact(
+            "Product Requirements Document",
+            idea_summary,
+            authored_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Problem", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Outcome", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Constraints", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Non-Negotiables", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Options", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommended Path", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Tradeoffs", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Consequences", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Scope Cuts", aliases: &["Out of Scope"] },
+                AuthoredSectionSpec { canonical_heading: "Deferred Work", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Decision Checklist", aliases: &[] },
                 AuthoredSectionSpec { canonical_heading: "Open Questions", aliases: &[] },
             ],

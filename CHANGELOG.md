@@ -19,11 +19,23 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.40.0`
+- None recorded after `0.41.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.40.0`.
+- No additional released feature-spec delivery is recorded after `0.41.0`.
+
+## [0.41.0] - 2026-05-07
+
+Delivered specs:
+
+- `041` - Requirements PRD Publishing And Chat Publish Skill
+
+Highlights:
+
+- Add an additive `prd.md` to the `requirements` packet so published requirements runs now expose one consolidated product-facing document alongside the sectional artifact set.
+- Add the `canon-publish` repo-local skill and embedded mirror so chat-first Copilot or Codex workflows can drive the real `canon publish` command explicitly.
+- Clarify the publish UX across README, mode guidance, runtime compatibility surfaces, roadmap, and release metadata so users know artifacts land under `.canon/artifacts/` before publish materializes visible docs.
 
 ## [0.40.0] - 2026-05-03
 
