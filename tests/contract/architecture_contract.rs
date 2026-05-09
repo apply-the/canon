@@ -89,7 +89,7 @@ fn start_architecture_run(workspace: &TempDir, risk: &str, zone: &str) -> serde_
 fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::Architecture);
 
-    assert_eq!(contract.artifact_requirements.len(), 9);
+    assert_eq!(contract.artifact_requirements.len(), 19);
 
     let names = contract
         .artifact_requirements
@@ -99,6 +99,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     assert_eq!(
         names,
         vec![
+            "architecture-overview.md",
             "architecture-decisions.md",
             "invariants.md",
             "tradeoff-matrix.md",
@@ -106,10 +107,38 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
             "context-map.md",
             "readiness-assessment.md",
             "system-context.md",
+            "system-context.mmd",
             "container-view.md",
+            "container-view.mmd",
+            "deployment-view.md",
+            "deployment-view.mmd",
+            "view-manifest.json",
+            "packet-metadata.json",
             "component-view.md",
+            "component-view.mmd",
+            "dynamic-view.md",
+            "dynamic-view.mmd",
         ]
     );
+
+    let overview = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "architecture-overview.md")
+        .expect("architecture overview requirement");
+    assert_eq!(
+        overview.required_sections,
+        vec![
+            "Summary",
+            "Primary Decision",
+            "Key Constraints",
+            "Included Views",
+            "Omitted Views",
+            "Review Guidance",
+        ]
+    );
+    assert_eq!(overview.gates, vec![GateKind::Architecture, GateKind::ReleaseReadiness]);
+    assert!(overview.required);
 
     let context_map = contract
         .artifact_requirements
@@ -165,6 +194,22 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
         ]
     );
     assert_eq!(tradeoff_matrix.gates, vec![GateKind::Architecture, GateKind::Risk]);
+
+    let manifest = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "view-manifest.json")
+        .expect("view manifest requirement");
+    assert!(manifest.required_sections.is_empty());
+    assert_eq!(manifest.gates, vec![GateKind::ReleaseReadiness]);
+    assert!(manifest.required);
+
+    let component_view = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.file_name == "component-view.md")
+        .expect("component view requirement");
+    assert!(!component_view.required);
 }
 
 #[test]

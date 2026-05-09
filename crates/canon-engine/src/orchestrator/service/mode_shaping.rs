@@ -365,23 +365,6 @@ impl EngineService {
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
         let copilot = CopilotCliAdapter;
         let generation_output = copilot.generate(&context_summary);
-        let generation_attempt = self.completed_attempt(
-            &generation_request,
-            1,
-            &generation_output.executor,
-            ToolOutcome {
-                kind: ToolOutcomeKind::Succeeded,
-                summary: generation_output.summary.clone(),
-                exit_code: Some(0),
-                payload_refs: Vec::new(),
-                candidate_artifacts: artifact_contract
-                    .artifact_requirements
-                    .iter()
-                    .map(|requirement| requirement.file_name.clone())
-                    .collect(),
-                recorded_at: OffsetDateTime::now_utc(),
-            },
-        );
 
         let critique_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
@@ -412,13 +395,82 @@ impl EngineService {
             },
         );
 
-        let artifact_paths = artifact_contract
+        let selected_artifact_names = artifact_contract
             .artifact_requirements
             .iter()
-            .map(|requirement| {
-                format!("artifacts/{}/{}/{}", run_id, request.mode.as_str(), requirement.file_name)
+            .filter(|requirement| {
+                requirement.required
+                    || crate::artifacts::markdown::architecture_artifact_enabled(
+                        &requirement.file_name,
+                        &context_summary,
+                    )
+            })
+            .map(|requirement| requirement.file_name.clone())
+            .collect::<Vec<_>>();
+
+        let view_manifest_contents =
+            build_architecture_view_manifest(&selected_artifact_names, &context_summary);
+        let packet_metadata_contents =
+            build_architecture_packet_metadata(&run_id, &selected_artifact_names, &context_summary);
+
+        let artifacts = artifact_contract
+            .artifact_requirements
+            .iter()
+            .filter(|requirement| {
+                selected_artifact_names.iter().any(|file_name| file_name == &requirement.file_name)
+            })
+            .map(|requirement| PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: requirement.file_name.clone(),
+                    relative_path: format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    ),
+                    format: requirement.format,
+                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                        request_ids: vec![
+                            context_request.request_id.clone(),
+                            generation_request.request_id.clone(),
+                            critique_request.request_id.clone(),
+                        ],
+                        evidence_bundle: Some(evidence_path.clone()),
+                        disposition: crate::domain::execution::EvidenceDisposition::Supporting,
+                    }),
+                },
+                contents: match requirement.file_name.as_str() {
+                    "view-manifest.json" => view_manifest_contents.clone(),
+                    "packet-metadata.json" => packet_metadata_contents.clone(),
+                    _ => render_architecture_artifact(
+                        &requirement.file_name,
+                        &context_summary,
+                        &generation_output.summary,
+                        &critique_output.summary,
+                    ),
+                },
             })
             .collect::<Vec<_>>();
+
+        let artifact_paths = artifacts
+            .iter()
+            .map(|artifact| artifact.record.relative_path.clone())
+            .collect::<Vec<_>>();
+
+        let generation_attempt = self.completed_attempt(
+            &generation_request,
+            1,
+            &generation_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: generation_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: selected_artifact_names.clone(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
         let generation_path = GenerationPath {
             path_id: format!("generation:{}", generation_request.request_id),
             request_ids: vec![generation_request.request_id.clone()],
@@ -447,38 +499,6 @@ impl EngineService {
                 },
             ),
         };
-
-        let artifacts = artifact_contract
-            .artifact_requirements
-            .iter()
-            .map(|requirement| PersistedArtifact {
-                record: ArtifactRecord {
-                    file_name: requirement.file_name.clone(),
-                    relative_path: format!(
-                        "artifacts/{}/{}/{}",
-                        run_id,
-                        request.mode.as_str(),
-                        requirement.file_name
-                    ),
-                    format: requirement.format,
-                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
-                        request_ids: vec![
-                            context_request.request_id.clone(),
-                            generation_request.request_id.clone(),
-                            critique_request.request_id.clone(),
-                        ],
-                        evidence_bundle: Some(evidence_path.clone()),
-                        disposition: crate::domain::execution::EvidenceDisposition::Supporting,
-                    }),
-                },
-                contents: render_architecture_artifact(
-                    &requirement.file_name,
-                    &context_summary,
-                    &generation_output.summary,
-                    &critique_output.summary,
-                ),
-            })
-            .collect::<Vec<_>>();
 
         let approvals = Vec::new();
         let gate_inputs = artifacts
@@ -592,5 +612,145 @@ impl EngineService {
                 artifact_count: bundle.artifacts.len(),
             },
         )
+    }
+}
+
+fn build_architecture_view_manifest(
+    selected_artifact_names: &[String],
+    context_summary: &str,
+) -> String {
+    let views = [
+        ("system-context", "System Context", true, "system-context.md", "system-context.mmd"),
+        ("container", "Container View", true, "container-view.md", "container-view.mmd"),
+        ("deployment", "Deployment View", true, "deployment-view.md", "deployment-view.mmd"),
+        ("component", "Component View", false, "component-view.md", "component-view.mmd"),
+        ("dynamic", "Dynamic View", false, "dynamic-view.md", "dynamic-view.mmd"),
+    ]
+    .into_iter()
+    .map(|(view, title, required, markdown_artifact, mermaid_artifact)| {
+        let authored = crate::artifacts::markdown::architecture_view_authored(
+            markdown_artifact,
+            context_summary,
+        );
+        let included = selected_artifact_names
+            .iter()
+            .any(|file_name| file_name == markdown_artifact);
+
+        serde_json::json!({
+            "view": view,
+            "title": title,
+            "required": required,
+            "authored": authored,
+            "included": included,
+            "artifacts": if included {
+                serde_json::json!([markdown_artifact, mermaid_artifact])
+            } else {
+                serde_json::json!([])
+            },
+            "reason": if authored {
+                serde_json::Value::Null
+            } else if required {
+                serde_json::Value::String(format!(
+                    "No `## {}` section was authored; Canon emitted an explicit omission artifact instead.",
+                    architecture_view_heading(markdown_artifact)
+                ))
+            } else {
+                serde_json::Value::String(format!(
+                    "No `## {}` section was authored; this optional view was omitted from the packet.",
+                    architecture_view_heading(markdown_artifact)
+                ))
+            }
+        })
+    })
+    .collect::<Vec<_>>();
+
+    serde_json::to_string_pretty(&serde_json::json!({
+        "primary_artifact": "architecture-overview.md",
+        "render_targets": {
+            "mermaid_source": "generated",
+            "svg": "unsupported",
+            "png": "unsupported"
+        },
+        "views": views,
+    }))
+    .expect("serialize architecture view manifest")
+}
+
+fn build_architecture_packet_metadata(
+    run_id: &str,
+    selected_artifact_names: &[String],
+    context_summary: &str,
+) -> String {
+    let included_views = [
+        "system-context.md",
+        "container-view.md",
+        "deployment-view.md",
+        "component-view.md",
+        "dynamic-view.md",
+    ]
+    .into_iter()
+    .filter(|file_name| selected_artifact_names.iter().any(|selected| selected == file_name))
+    .map(|file_name| serde_json::Value::String(architecture_view_heading(file_name).to_string()))
+    .collect::<Vec<_>>();
+
+    serde_json::to_string_pretty(&serde_json::json!({
+        "packet_kind": "architecture-visual-packet",
+        "run_id": run_id,
+        "mode": "architecture",
+        "primary_artifact": "architecture-overview.md",
+        "artifact_count": selected_artifact_names.len(),
+        "included_views": included_views,
+        "render_targets": {
+            "mermaid_source": "generated",
+            "svg": "unsupported",
+            "png": "unsupported"
+        },
+        "source_context": {
+            "system_context_authored": crate::artifacts::markdown::architecture_view_authored(
+                "system-context.md",
+                context_summary,
+            ),
+            "container_view_authored": crate::artifacts::markdown::architecture_view_authored(
+                "container-view.md",
+                context_summary,
+            ),
+            "deployment_view_authored": crate::artifacts::markdown::architecture_view_authored(
+                "deployment-view.md",
+                context_summary,
+            ),
+        },
+    }))
+    .expect("serialize architecture packet metadata")
+}
+
+fn architecture_view_heading(file_name: &str) -> &'static str {
+    match file_name {
+        "system-context.md" => "System Context",
+        "container-view.md" => "Containers",
+        "deployment-view.md" => "Deployment",
+        "component-view.md" => "Components",
+        "dynamic-view.md" => "Dynamic View",
+        _ => "System Context",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::architecture_view_heading;
+
+    #[test]
+    fn architecture_view_heading_returns_system_context_for_known_views() {
+        assert_eq!(architecture_view_heading("system-context.md"), "System Context");
+        assert_eq!(architecture_view_heading("container-view.md"), "Containers");
+        assert_eq!(architecture_view_heading("deployment-view.md"), "Deployment");
+        assert_eq!(architecture_view_heading("component-view.md"), "Components");
+        assert_eq!(architecture_view_heading("dynamic-view.md"), "Dynamic View");
+    }
+
+    #[test]
+    fn architecture_view_heading_falls_back_to_system_context_for_unknown_file_names() {
+        assert_eq!(architecture_view_heading("unknown-view.md"), "System Context");
+        assert_eq!(architecture_view_heading(""), "System Context");
+        assert_eq!(architecture_view_heading("architecture-decisions.md"), "System Context");
     }
 }

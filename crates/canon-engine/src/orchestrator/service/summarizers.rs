@@ -402,7 +402,14 @@ fn summarize_architecture_mode_result(
 ) -> Option<ModeResultSummary> {
     let primary = artifacts
         .iter()
-        .find(|artifact| artifact.record.file_name == "architecture-decisions.md")?;
+        .find(|artifact| artifact.record.file_name == "architecture-overview.md")
+        .or_else(|| {
+            artifacts
+                .iter()
+                .find(|artifact| artifact.record.file_name == "architecture-decisions.md")
+        })?;
+    let decisions_artifact =
+        artifacts.iter().find(|artifact| artifact.record.file_name == "architecture-decisions.md");
     let invariants_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "invariants.md");
     let tradeoff_artifact =
@@ -412,8 +419,10 @@ fn summarize_architecture_mode_result(
     let context_map_artifact =
         artifacts.iter().find(|artifact| artifact.record.file_name == "context-map.md");
 
-    let decisions = extract_context_section(&primary.contents, "Decision")
+    let decisions = decisions_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Decision"))
         .or_else(|| extract_context_section(&primary.contents, "Decisions"))
+        .or_else(|| extract_context_section(&primary.contents, "Primary Decision"))
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
         .unwrap_or_else(|| "NOT CAPTURED - Architecture decisions are missing.".to_string());
     let tradeoffs = tradeoff_artifact
@@ -471,7 +480,11 @@ fn summarize_architecture_mode_result(
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: "Architecture Decisions".to_string(),
+        primary_artifact_title: if primary.record.file_name == "architecture-overview.md" {
+            "Architecture Overview".to_string()
+        } else {
+            "Architecture Decisions".to_string()
+        },
         primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
         primary_artifact_action: primary_artifact_action_for(&format!(
             ".canon/{}",
@@ -1791,5 +1804,31 @@ mod tests {
             summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
         assert!(summary.headline.contains("no direct contradictions"));
         assert!(summary.artifact_packet_summary.contains("no-direct-contradiction"));
+    }
+
+    #[test]
+    fn summarize_architecture_mode_result_uses_overview_when_present() {
+        let artifacts = vec![make_artifact(
+            "architecture-overview.md",
+            "## Primary Decision\n- Use C4 views.\n",
+        )];
+        let summary = summarize_mode_result(Mode::Architecture, &artifacts).unwrap();
+        assert_eq!(summary.primary_artifact_title, "Architecture Overview");
+    }
+
+    #[test]
+    fn summarize_architecture_mode_result_falls_back_to_decisions_when_overview_absent() {
+        let artifacts = vec![make_artifact(
+            "architecture-decisions.md",
+            "## Decision\n- Use a layered architecture.\n",
+        )];
+        let summary = summarize_mode_result(Mode::Architecture, &artifacts).unwrap();
+        assert_eq!(summary.primary_artifact_title, "Architecture Decisions");
+    }
+
+    #[test]
+    fn summarize_architecture_mode_result_returns_none_when_both_primary_artifacts_absent() {
+        let artifacts = vec![make_artifact("invariants.md", "## Invariants\n- keep stable\n")];
+        assert!(summarize_mode_result(Mode::Architecture, &artifacts).is_none());
     }
 }

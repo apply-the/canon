@@ -18,12 +18,25 @@ reports for downstream finance teams. External actors:
 - `report-store` (object storage bucket)
 - `metrics-sink` (managed time-series store)
 
+## Deployment
+
+- `analytics-cli` runs as a scheduled batch job on the reporting worker pool.
+- `report-store` is provisioned in the finance data account.
+- `metrics-sink` remains a managed shared service.
+
 ## Components
 
 - `event-loader` reads raw events from disk.
 - `aggregator` collapses events into report rows.
 - `report-writer` persists rows to `report-store`.
 - `metrics-emitter` pushes counters to `metrics-sink`.
+
+## Dynamic View
+
+- `event-loader` reads and validates raw events.
+- `aggregator` derives report rows.
+- `report-writer` persists the report.
+- `metrics-emitter` publishes telemetry.
 "#;
 
 const PARTIAL_BRIEF: &str = r#"# Architecture Brief
@@ -155,6 +168,11 @@ fn renderer_preserves_authored_c4_sections_verbatim() {
     assert!(component_view.contains("# Component View"));
     assert!(component_view.contains("`metrics-emitter` pushes counters to `metrics-sink`."));
     assert!(!component_view.contains(C4_MISSING_AUTHORED_BODY_MARKER));
+
+    let deployment_view = render_architecture_artifact("deployment-view.md", FULL_BRIEF, "", "");
+    assert!(deployment_view.contains("# Deployment View"));
+    assert!(deployment_view.contains("reporting worker pool"));
+    assert!(!deployment_view.contains(C4_MISSING_AUTHORED_BODY_MARKER));
 }
 
 #[test]
@@ -170,7 +188,9 @@ fn renderer_emits_missing_body_marker_for_each_omitted_c4_section() {
 #[test]
 fn renderer_emits_missing_body_marker_when_all_c4_sections_are_absent() {
     let empty_brief = "# Architecture Brief\n\nNothing authored.\n";
-    for file in ["system-context.md", "container-view.md", "component-view.md"] {
+    for file in
+        ["system-context.md", "container-view.md", "deployment-view.md", "component-view.md"]
+    {
         let rendered = render_architecture_artifact(file, empty_brief, "", "");
         assert!(
             rendered.contains(C4_MISSING_AUTHORED_BODY_MARKER),
@@ -211,4 +231,31 @@ fn renderer_emits_missing_body_marker_for_omitted_decision_sections() {
         render_architecture_artifact("tradeoff-matrix.md", MISSING_DECISION_SECTION_BRIEF, "", "");
     assert!(rendered.contains(MISSING_AUTHORED_BODY_MARKER));
     assert!(rendered.contains("`## Why Not The Others`"));
+}
+
+#[test]
+fn renderer_emits_primary_overview_with_embedded_mermaid_and_omission_notes() {
+    let rendered = render_architecture_artifact("architecture-overview.md", PARTIAL_BRIEF, "", "");
+
+    assert!(rendered.starts_with("# Architecture Overview"));
+    assert!(rendered.contains("## Included Views"));
+    assert!(rendered.contains("```mermaid"));
+    assert!(rendered.contains("System Context"));
+    assert!(rendered.contains("Deployment View"));
+    assert!(rendered.contains("## Omitted Views"));
+    assert!(rendered.contains("Component View: omitted"));
+    assert!(rendered.contains("Dynamic View: omitted"));
+}
+
+#[test]
+fn renderer_emits_mermaid_sidecars_for_present_and_missing_views() {
+    let system_context_mermaid =
+        render_architecture_artifact("system-context.mmd", FULL_BRIEF, "", "");
+    assert!(system_context_mermaid.starts_with("flowchart LR"));
+    assert!(system_context_mermaid.contains("finance-analyst (reads reports)"));
+
+    let deployment_mermaid =
+        render_architecture_artifact("deployment-view.mmd", PARTIAL_BRIEF, "", "");
+    assert!(deployment_mermaid.starts_with("flowchart TD"));
+    assert!(deployment_mermaid.contains("No `## Deployment` section was authored"));
 }

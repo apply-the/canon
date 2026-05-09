@@ -703,7 +703,11 @@ fn change_preservation_gate(
                     crate::artifacts::contract::validate_artifact(requirement, contents)
                 })
                 .unwrap_or_else(|| {
-                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    if requirement.required {
+                        vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    } else {
+                        Vec::new()
+                    }
                 })
         })
         .collect::<Vec<_>>();
@@ -946,7 +950,11 @@ fn implementation_readiness_gate(
                     crate::artifacts::contract::validate_artifact(requirement, contents)
                 })
                 .unwrap_or_else(|| {
-                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    if requirement.required {
+                        vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    } else {
+                        Vec::new()
+                    }
                 })
         })
         .collect::<Vec<_>>();
@@ -988,7 +996,11 @@ fn refactor_preservation_gate(
                     crate::artifacts::contract::validate_artifact(requirement, contents)
                 })
                 .unwrap_or_else(|| {
-                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    if requirement.required {
+                        vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    } else {
+                        Vec::new()
+                    }
                 })
         })
         .collect::<Vec<_>>();
@@ -1312,7 +1324,11 @@ fn pr_review_architecture_gate(
                     crate::artifacts::contract::validate_artifact(requirement, contents)
                 })
                 .unwrap_or_else(|| {
-                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    if requirement.required {
+                        vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    } else {
+                        Vec::new()
+                    }
                 })
         })
         .collect::<Vec<_>>();
@@ -1357,7 +1373,13 @@ fn review_disposition_gate_for_file(
                 .map(|(_, contents)| {
                     crate::artifacts::contract::validate_artifact(requirement, contents)
                 })
-                .unwrap_or_else(|| vec![format!("missing required artifact `{file_name}`")])
+                .unwrap_or_else(|| {
+                    if requirement.required {
+                        vec![format!("missing required artifact `{file_name}`")]
+                    } else {
+                        Vec::new()
+                    }
+                })
         })
         .collect::<Vec<_>>();
 
@@ -1567,13 +1589,24 @@ fn named_artifact_gate(
                     blockers
                 })
                 .unwrap_or_else(|| {
-                    vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    if requirement.required {
+                        vec![format!("missing required artifact `{}`", requirement.file_name)]
+                    } else {
+                        Vec::new()
+                    }
                 })
         })
         .collect::<Vec<_>>();
 
     if blockers.is_empty()
-        && names.iter().any(|name| !artifacts.iter().any(|(file_name, _)| file_name == name))
+        && contract
+            .artifact_requirements
+            .iter()
+            .filter(|requirement| requirement.required)
+            .filter(|requirement| names.iter().any(|name| requirement.file_name == *name))
+            .any(|requirement| {
+                !artifacts.iter().any(|(file_name, _)| file_name == &requirement.file_name)
+            })
     {
         blockers.push(fallback_blocker.to_string());
     }
@@ -1641,7 +1674,46 @@ mod tests {
             format: ArtifactFormat::Markdown,
             required_sections: sections.iter().map(ToString::to_string).collect(),
             gates: gates.to_vec(),
+            required: true,
         }
+    }
+
+    fn optional_artifact_requirement(
+        file_name: &str,
+        sections: &[&str],
+        gates: &[GateKind],
+    ) -> ArtifactRequirement {
+        ArtifactRequirement {
+            file_name: file_name.to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: sections.iter().map(ToString::to_string).collect(),
+            gates: gates.to_vec(),
+            required: false,
+        }
+    }
+
+    #[test]
+    fn named_artifact_gate_ignores_missing_optional_artifacts() {
+        let contract = ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![optional_artifact_requirement(
+                "dynamic-view.md",
+                &["Summary"],
+                &[GateKind::Architecture],
+            )],
+            required_verification_layers: Vec::new(),
+        };
+
+        let evaluation = super::named_artifact_gate(
+            GateKind::Architecture,
+            &contract,
+            &[],
+            &["dynamic-view.md"],
+            "dynamic view should exist when required",
+        );
+
+        assert_eq!(evaluation.status, GateStatus::Passed);
+        assert!(evaluation.blockers.is_empty());
     }
 
     fn incident_contract() -> ArtifactContract {
@@ -2246,6 +2318,143 @@ mod tests {
                 .blockers
                 .iter()
                 .any(|blocker| blocker.contains("runtime-disabled pr-review invocation attempts"))
+        );
+    }
+
+    #[test]
+    fn change_preservation_gate_ignores_missing_optional_artifact() {
+        // A contract where "change-surface.md" is optional and not supplied.
+        // The gate should pass because the missing artifact is not required.
+        let contract = ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![
+                artifact_requirement(
+                    "legacy-invariants.md",
+                    &["Legacy Invariants"],
+                    &[GateKind::ChangePreservation],
+                ),
+                optional_artifact_requirement(
+                    "change-surface.md",
+                    &[],
+                    &[GateKind::ChangePreservation],
+                ),
+            ],
+            required_verification_layers: Vec::new(),
+        };
+        let artifacts = vec![(
+            "legacy-invariants.md".to_string(),
+            "## Legacy Invariants\n\nBounded.".to_string(),
+        )];
+
+        let evaluations = evaluate_change_gates(
+            &contract,
+            &artifacts,
+            ChangeGateContext {
+                owner: "owner",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        let preservation = gate(&evaluations, GateKind::ChangePreservation);
+
+        assert_eq!(preservation.status, GateStatus::Passed);
+        assert!(
+            !preservation.blockers.iter().any(|b| b.contains("change-surface.md")),
+            "optional artifact absence must not produce a blocker"
+        );
+    }
+
+    #[test]
+    fn implementation_readiness_gate_ignores_missing_optional_artifact() {
+        // A contract where "mutation-bounds.md" is optional and not supplied.
+        let contract = ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![
+                artifact_requirement(
+                    "task-mapping.md",
+                    &["Task Mapping"],
+                    &[GateKind::ImplementationReadiness],
+                ),
+                optional_artifact_requirement(
+                    "mutation-bounds.md",
+                    &[],
+                    &[GateKind::ImplementationReadiness],
+                ),
+            ],
+            required_verification_layers: Vec::new(),
+        };
+        let artifacts =
+            vec![("task-mapping.md".to_string(), "## Task Mapping\n\nTask list.".to_string())];
+
+        let evaluations = evaluate_implementation_gates(
+            &contract,
+            &artifacts,
+            ImplementationGateContext {
+                owner: "owner",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        let readiness = gate(&evaluations, GateKind::ImplementationReadiness);
+
+        assert_eq!(readiness.status, GateStatus::Passed);
+        assert!(
+            !readiness.blockers.iter().any(|b| b.contains("mutation-bounds.md")),
+            "optional artifact absence must not produce a blocker"
+        );
+    }
+
+    #[test]
+    fn refactor_preservation_gate_ignores_missing_optional_artifact() {
+        // A contract where "refactor-scope.md" is optional and not supplied.
+        let contract = ArtifactContract {
+            version: 1,
+            artifact_requirements: vec![
+                artifact_requirement(
+                    "preserved-behavior.md",
+                    &["Preserved Behavior"],
+                    &[GateKind::ChangePreservation],
+                ),
+                optional_artifact_requirement(
+                    "refactor-scope.md",
+                    &[],
+                    &[GateKind::ChangePreservation],
+                ),
+            ],
+            required_verification_layers: Vec::new(),
+        };
+        let artifacts = vec![(
+            "preserved-behavior.md".to_string(),
+            "## Preserved Behavior\n\nBounded refactor.".to_string(),
+        )];
+
+        let evaluations = evaluate_refactor_gates(
+            &contract,
+            &artifacts,
+            RefactorGateContext {
+                owner: "owner",
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approvals: &[],
+                system_context: Some(SystemContext::Existing),
+                validation_independence_satisfied: true,
+                evidence_complete: true,
+            },
+        );
+        let preservation = gate(&evaluations, GateKind::ChangePreservation);
+
+        assert_eq!(preservation.status, GateStatus::Passed);
+        assert!(
+            !preservation.blockers.iter().any(|b| b.contains("refactor-scope.md")),
+            "optional artifact absence must not produce a blocker"
         );
     }
 }
