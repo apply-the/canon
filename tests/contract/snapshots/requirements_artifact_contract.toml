@@ -17,6 +17,7 @@ gates = [
     "Exploration",
     "Risk",
 ]
+required = true
 
 [[artifact_requirements]]
 file_name = "constraints.md"
@@ -31,6 +32,7 @@ gates = [
     "Risk",
     "Architecture",
 ]
+required = true
 
 [[artifact_requirements]]
 file_name = "options.md"
@@ -44,6 +46,7 @@ gates = [
     "Exploration",
     "Architecture",
 ]
+required = true
 
 [[artifact_requirements]]
 file_name = "tradeoffs.md"
@@ -57,6 +60,7 @@ gates = [
     "Architecture",
     "ReleaseReadiness",
 ]
+required = true
 
 [[artifact_requirements]]
 file_name = "scope-cuts.md"
@@ -70,6 +74,7 @@ gates = [
     "Exploration",
     "ReleaseReadiness",
 ]
+required = true
 
 [[artifact_requirements]]
 file_name = "decision-checklist.md"
@@ -83,6 +88,7 @@ gates = [
     "Risk",
     "ReleaseReadiness",
 ]
+required = true
 
 [[artifact_requirements]]
 file_name = "prd.md"
@@ -102,3 +108,4 @@ gates = [
     "Architecture",
     "ReleaseReadiness",
 ]
+required = true

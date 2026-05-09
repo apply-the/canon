@@ -9,7 +9,7 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.41.0`.
+The current delivery line in this repository targets Canon `0.42.0`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON
@@ -254,7 +254,11 @@ canon publish <RUN_ID>
 Generated packet files land under `.canon/artifacts/<RUN_ID>/...` first. The
 `publish` step copies those governed artifacts into a visible repository
 destination. For `requirements`, the published directory now includes the
-sectional packet files plus a consolidated `prd.md`.
+sectional packet files plus a consolidated `prd.md`. For `architecture`, the
+published directory now centers one `architecture-overview.md` handoff doc,
+keeps required System Context, Container, and Deployment sidecars alongside
+Mermaid `.mmd` sources, and records optional deeper views in a machine-readable
+manifest instead of forcing every packet to carry component-level boilerplate.
 
 If you initialized repo-local AI skills, the same publish step is also exposed
 in chat through `$canon-publish`.

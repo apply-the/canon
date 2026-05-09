@@ -329,6 +329,9 @@ pub fn render_architecture_artifact(
         format!("Decision focus: {decision_focus}\nConstraint: {constraint}");
 
     match file_name {
+        "architecture-overview.md" => {
+            render_architecture_overview(context_summary, &decision_focus, &constraint)
+        }
         "architecture-decisions.md" => render_authored_artifact(
             "Architecture Decisions",
             &architecture_summary,
@@ -381,32 +384,248 @@ pub fn render_architecture_artifact(
             critique_summary,
         ),
         "system-context.md" => {
-            render_c4_artifact("System Context", "system context", context_summary)
+            render_c4_artifact("System Context", "System Context", &[], context_summary)
         }
-        "container-view.md" => render_c4_artifact("Container View", "containers", context_summary),
-        "component-view.md" => render_c4_artifact("Component View", "components", context_summary),
+        "system-context.mmd" => render_architecture_mermaid_artifact(
+            "System Context",
+            "System Context",
+            &[],
+            context_summary,
+        ),
+        "container-view.md" => {
+            render_c4_artifact("Container View", "Containers", &[], context_summary)
+        }
+        "container-view.mmd" => render_architecture_mermaid_artifact(
+            "Container View",
+            "Containers",
+            &[],
+            context_summary,
+        ),
+        "deployment-view.md" => render_c4_artifact(
+            "Deployment View",
+            "Deployment",
+            &["Deployment View", "Deployment Topology"],
+            context_summary,
+        ),
+        "deployment-view.mmd" => render_architecture_mermaid_artifact(
+            "Deployment View",
+            "Deployment",
+            &["Deployment View", "Deployment Topology"],
+            context_summary,
+        ),
+        "component-view.md" => {
+            render_c4_artifact("Component View", "Components", &[], context_summary)
+        }
+        "component-view.mmd" => render_architecture_mermaid_artifact(
+            "Component View",
+            "Components",
+            &[],
+            context_summary,
+        ),
+        "dynamic-view.md" => render_c4_artifact(
+            "Dynamic View",
+            "Dynamic View",
+            &["Dynamic Flow", "Dynamic Flows"],
+            context_summary,
+        ),
+        "dynamic-view.mmd" => render_architecture_mermaid_artifact(
+            "Dynamic View",
+            "Dynamic View",
+            &["Dynamic Flow", "Dynamic Flows"],
+            context_summary,
+        ),
         other => render_markdown(other, context_summary),
     }
+}
+
+pub fn architecture_artifact_enabled(file_name: &str, context_summary: &str) -> bool {
+    match file_name {
+        "component-view.md" | "component-view.mmd" => {
+            architecture_view_authored(file_name, context_summary)
+        }
+        "dynamic-view.md" | "dynamic-view.mmd" => {
+            architecture_view_authored(file_name, context_summary)
+        }
+        _ => true,
+    }
+}
+
+pub fn architecture_view_authored(file_name: &str, context_summary: &str) -> bool {
+    let (canonical_heading, aliases) = architecture_view_heading(file_name);
+    extract_authored_h2_section(context_summary, canonical_heading, aliases).is_some()
 }
 
 /// Shared marker emitted by C4 architecture artifacts when the authored brief
 /// did not include the canonical H2 section. Tests rely on this exact text.
 pub const C4_MISSING_AUTHORED_BODY_MARKER: &str = MISSING_AUTHORED_BODY_MARKER;
 
-fn render_c4_artifact(title: &str, marker: &str, context_summary: &str) -> String {
-    let normalized = context_summary.to_lowercase();
-    let canonical = canonical_c4_heading(marker);
-    match extract_marker(context_summary, &normalized, marker) {
-        Some(body) if !body.trim().is_empty() => {
-            format!("# {title}\n\n{canonical}\n\n{body}\n")
+fn render_c4_artifact(
+    title: &str,
+    canonical_heading: &str,
+    aliases: &[&str],
+    context_summary: &str,
+) -> String {
+    let canonical = format!("## {canonical_heading}");
+    match extract_authored_h2_section(context_summary, canonical_heading, aliases) {
+        Some(body) if !body.trim().is_empty() => format!("# {title}\n\n{canonical}\n\n{body}\n"),
+        _ => format!(
+            "# {title}\n\n{canonical}\n\n{marker_heading}\n\nNo `{canonical}` section was authored in the supplied brief.\nAuthor this section in the architecture brief and rerun.\n",
+            marker_heading = C4_MISSING_AUTHORED_BODY_MARKER,
+        ),
+    }
+}
+
+fn render_architecture_overview(
+    context_summary: &str,
+    decision_focus: &str,
+    constraint: &str,
+) -> String {
+    let primary_decision = extract_authored_h2_section(context_summary, "Decision", &[])
+        .unwrap_or_else(|| decision_focus.to_string());
+    let key_constraints = extract_authored_h2_section(context_summary, "Constraints", &[])
+        .unwrap_or_else(|| constraint.to_string());
+
+    let included_views = architecture_overview_views(context_summary, true);
+    let omitted_views = architecture_overview_views(context_summary, false);
+
+    format!(
+        "# Architecture Overview\n\n## Summary\n\nDecision focus: {decision_focus}\n\n## Primary Decision\n\n{primary_decision}\n\n## Key Constraints\n\n{key_constraints}\n\n## Included Views\n\n{included_views}\n\n## Omitted Views\n\n{omitted_views}\n\n## Review Guidance\n\nStart with this overview, then inspect `architecture-decisions.md` for rationale, `context-map.md` for domain boundaries, and `view-manifest.json` for the machine-readable packet map.\n"
+    )
+}
+
+fn architecture_overview_views(context_summary: &str, included: bool) -> String {
+    let view_specs = [
+        ("system-context.md", "System Context", true, "system-context.md", "system-context.mmd"),
+        ("container-view.md", "Container View", true, "container-view.md", "container-view.mmd"),
+        (
+            "deployment-view.md",
+            "Deployment View",
+            true,
+            "deployment-view.md",
+            "deployment-view.mmd",
+        ),
+        ("component-view.md", "Component View", false, "component-view.md", "component-view.mmd"),
+        ("dynamic-view.md", "Dynamic View", false, "dynamic-view.md", "dynamic-view.mmd"),
+    ];
+
+    let mut sections = Vec::new();
+    for (file_name, title, required, markdown_artifact, mermaid_artifact) in view_specs {
+        let authored = architecture_view_authored(file_name, context_summary);
+        let is_included = required || authored;
+        if is_included != included {
+            continue;
         }
-        _ => {
-            format!(
-                "# {title}\n\n{canonical}\n\n{marker_heading}\n\nNo `{canonical}` section was authored in the supplied brief.\nAuthor this section in the architecture brief and rerun.\n",
-                marker_heading = C4_MISSING_AUTHORED_BODY_MARKER,
-            )
+
+        if included {
+            let coverage_note = if authored {
+                format!("- {title}: emitted as `{markdown_artifact}` and `{mermaid_artifact}`.")
+            } else {
+                format!(
+                    "- {title}: emitted as `{markdown_artifact}` and `{mermaid_artifact}` with an explicit omission note because no authored section was supplied."
+                )
+            };
+            let mermaid = render_architecture_artifact(mermaid_artifact, context_summary, "", "");
+            sections.push(format!("{coverage_note}\n\n### {title}\n\n```mermaid\n{mermaid}\n```"));
+        } else {
+            sections.push(format!(
+                "- {title}: omitted because no corresponding authored section was supplied in the architecture brief."
+            ));
         }
     }
+
+    if sections.is_empty() { "- None.".to_string() } else { sections.join("\n\n") }
+}
+
+fn render_architecture_mermaid_artifact(
+    title: &str,
+    canonical_heading: &str,
+    aliases: &[&str],
+    context_summary: &str,
+) -> String {
+    match extract_authored_h2_section(context_summary, canonical_heading, aliases) {
+        Some(body) if !body.trim().is_empty() => render_architecture_mermaid_body(title, &body),
+        _ => render_missing_architecture_mermaid(canonical_heading),
+    }
+}
+
+fn render_architecture_mermaid_body(title: &str, body: &str) -> String {
+    if title == "System Context" {
+        render_system_context_mermaid(body)
+    } else {
+        render_linear_mermaid(title, body)
+    }
+}
+
+fn render_system_context_mermaid(body: &str) -> String {
+    let bullets = extract_bullet_items(body);
+    let summary = first_paragraph(body).unwrap_or("System context");
+    let mut lines =
+        vec!["flowchart LR".to_string(), format!("    system[\"{}\"]", mermaid_label(summary))];
+
+    if bullets.is_empty() {
+        lines.push("    system_note[\"Author external actors in bullet form for a richer system-context diagram.\"]".to_string());
+        lines.push("    system_note -.-> system".to_string());
+    } else {
+        for (index, bullet) in bullets.iter().enumerate() {
+            let actor_id = format!("actor{}", index + 1);
+            lines.push(format!("    {actor_id}[\"{}\"]", mermaid_label(bullet)));
+            lines.push(format!("    {actor_id} --> system"));
+        }
+    }
+
+    lines.join("\n")
+}
+
+fn render_linear_mermaid(_title: &str, body: &str) -> String {
+    let nodes = {
+        let bullets = extract_bullet_items(body);
+        if bullets.is_empty() { extract_paragraph_nodes(body) } else { bullets }
+    };
+
+    if nodes.is_empty() {
+        return "flowchart LR\n    missing[\"No structured view content was authored.\"]"
+            .to_string();
+    }
+
+    let mut lines = vec!["flowchart LR".to_string()];
+    for (index, node) in nodes.iter().enumerate() {
+        lines.push(format!("    n{index}[\"{}\"]", mermaid_label(node)));
+        if index > 0 {
+            lines.push(format!("    n{} --> n{index}", index - 1));
+        }
+    }
+
+    lines.join("\n")
+}
+
+fn render_missing_architecture_mermaid(canonical_heading: &str) -> String {
+    format!(
+        "flowchart TD\n    missing[\"No `## {canonical_heading}` section was authored in the supplied brief.\"]"
+    )
+}
+
+fn extract_bullet_items(body: &str) -> Vec<String> {
+    body.lines()
+        .map(str::trim)
+        .filter_map(|line| {
+            line.strip_prefix("- ").or_else(|| line.strip_prefix("* ")).map(trim_multiline_block)
+        })
+        .filter(|line| !line.is_empty())
+        .collect()
+}
+
+fn extract_paragraph_nodes(body: &str) -> Vec<String> {
+    body.split("\n\n").map(trim_multiline_block).filter(|paragraph| !paragraph.is_empty()).collect()
+}
+
+fn first_paragraph(body: &str) -> Option<&str> {
+    body.split("\n\n").map(str::trim).find(|paragraph| {
+        !paragraph.is_empty() && !paragraph.starts_with("-") && !paragraph.starts_with("*")
+    })
+}
+
+fn mermaid_label(text: &str) -> String {
+    text.replace('"', "'").replace('\n', " ")
 }
 
 fn render_authored_artifact(
@@ -565,12 +784,18 @@ fn is_matching_h2_heading(line: &str, marker: &str) -> bool {
         .is_some_and(|heading| heading.eq_ignore_ascii_case(marker))
 }
 
-fn canonical_c4_heading(marker: &str) -> &'static str {
-    match marker {
-        "system context" => "## System Context",
-        "containers" => "## Containers",
-        "components" => "## Components",
-        _ => "## (unknown C4 section)",
+fn architecture_view_heading(file_name: &str) -> (&'static str, &'static [&'static str]) {
+    match file_name {
+        "system-context.md" | "system-context.mmd" => ("System Context", &[]),
+        "container-view.md" | "container-view.mmd" => ("Containers", &[]),
+        "deployment-view.md" | "deployment-view.mmd" => {
+            ("Deployment", &["Deployment View", "Deployment Topology"])
+        }
+        "component-view.md" | "component-view.mmd" => ("Components", &[]),
+        "dynamic-view.md" | "dynamic-view.mmd" => {
+            ("Dynamic View", &["Dynamic Flow", "Dynamic Flows"])
+        }
+        _ => ("System Context", &[]),
     }
 }
 
@@ -2484,10 +2709,11 @@ fn ownership_breaks(packet: &ReviewPacket) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        MISSING_AUTHORED_BODY_MARKER, extract_authored_h2_section, extract_marker,
+        MISSING_AUTHORED_BODY_MARKER, architecture_artifact_enabled, extract_authored_h2_section,
+        extract_marker, extract_paragraph_nodes, first_paragraph, mermaid_label,
         render_architecture_artifact, render_backlog_artifact, render_change_artifact,
-        render_discovery_artifact, render_incident_artifact, render_migration_artifact,
-        render_missing_authored_body_block, render_pr_review_artifact,
+        render_discovery_artifact, render_incident_artifact, render_linear_mermaid,
+        render_migration_artifact, render_missing_authored_body_block, render_pr_review_artifact,
         render_requirements_artifact, render_requirements_artifact_from_evidence,
         render_review_artifact, render_system_shaping_artifact, render_verification_artifact,
     };
@@ -2920,5 +3146,62 @@ mod tests {
         assert!(planning_risks.contains(MISSING_AUTHORED_BODY_MARKER));
         assert!(planning_risks.contains("instead of inventing risk bullets"));
         assert!(!planning_risks.contains("Sequencing uncertainty:"));
+    }
+
+    #[test]
+    fn render_linear_mermaid_emits_missing_node_for_empty_body() {
+        let result = render_linear_mermaid("Container View", "");
+        assert!(result.contains("No structured view content was authored."));
+        assert!(result.starts_with("flowchart LR"));
+    }
+
+    #[test]
+    fn extract_paragraph_nodes_splits_on_double_newline() {
+        let body = "First node\n\nSecond node\n\nThird node";
+        let nodes = extract_paragraph_nodes(body);
+        assert_eq!(nodes, vec!["First node", "Second node", "Third node"]);
+    }
+
+    #[test]
+    fn extract_paragraph_nodes_ignores_empty_paragraphs() {
+        let body = "Node A\n\n\n\nNode B";
+        let nodes = extract_paragraph_nodes(body);
+        assert_eq!(nodes, vec!["Node A", "Node B"]);
+    }
+
+    #[test]
+    fn first_paragraph_skips_bullet_lines() {
+        let body = "- bullet item\n\nActual paragraph";
+        assert_eq!(first_paragraph(body), Some("Actual paragraph"));
+    }
+
+    #[test]
+    fn first_paragraph_returns_none_for_all_bullet_body() {
+        let body = "- first\n\n- second";
+        assert_eq!(first_paragraph(body), None);
+    }
+
+    #[test]
+    fn mermaid_label_replaces_quotes_and_newlines() {
+        assert_eq!(mermaid_label("say \"hello\""), "say 'hello'");
+        assert_eq!(mermaid_label("line one\nline two"), "line one line two");
+    }
+
+    #[test]
+    fn architecture_artifact_enabled_returns_false_for_unmentioned_optional_views() {
+        // component-view and dynamic-view are optional; they are disabled when their
+        // authored section is absent from the context summary.
+        assert!(!architecture_artifact_enabled("component-view.md", ""));
+        assert!(!architecture_artifact_enabled("component-view.mmd", ""));
+        assert!(!architecture_artifact_enabled("dynamic-view.md", ""));
+        assert!(!architecture_artifact_enabled("dynamic-view.mmd", ""));
+    }
+
+    #[test]
+    fn architecture_artifact_enabled_returns_true_for_required_views() {
+        // System-context and container views are always enabled.
+        assert!(architecture_artifact_enabled("system-context.md", ""));
+        assert!(architecture_artifact_enabled("container-view.md", ""));
+        assert!(architecture_artifact_enabled("architecture-decisions.md", ""));
     }
 }

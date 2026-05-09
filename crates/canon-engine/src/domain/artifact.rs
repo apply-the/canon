@@ -20,6 +20,8 @@ pub struct ArtifactRequirement {
     pub format: ArtifactFormat,
     pub required_sections: Vec<String>,
     pub gates: Vec<GateKind>,
+    #[serde(default = "default_artifact_required")]
+    pub required: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,6 +37,10 @@ pub struct ArtifactRecord {
     pub relative_path: String,
     pub format: ArtifactFormat,
     pub provenance: Option<ArtifactProvenance>,
+}
+
+const fn default_artifact_required() -> bool {
+    true
 }
 
 impl ArtifactRecord {
@@ -102,7 +108,7 @@ pub struct ArtifactProvenance {
 
 #[cfg(test)]
 mod tests {
-    use super::{ArtifactFormat, ArtifactRecord};
+    use super::{ArtifactFormat, ArtifactRecord, ArtifactRequirement};
     use crate::domain::mode::Mode;
 
     fn sample_record(relative_path: &str) -> ArtifactRecord {
@@ -145,5 +151,22 @@ mod tests {
         assert!(
             error.contains("must not escape .canon/artifacts/ with traversal or root components")
         );
+    }
+
+    #[test]
+    fn artifact_requirement_defaults_required_to_true_when_field_absent() {
+        let json =
+            r#"{"file_name":"overview.md","format":"Markdown","required_sections":[],"gates":[]}"#;
+        let req: ArtifactRequirement = serde_json::from_str(json).unwrap();
+        assert!(req.required, "required should default to true when the field is absent");
+    }
+
+    #[test]
+    fn artifact_requirement_accepts_explicit_required_false() {
+        let req: ArtifactRequirement = serde_json::from_str(
+            r#"{"file_name":"optional.md","format":"Markdown","required_sections":[],"gates":[],"required":false}"#,
+        )
+        .unwrap();
+        assert!(!req.required);
     }
 }

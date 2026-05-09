@@ -19,11 +19,23 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.41.0`
+- None recorded after `0.42.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.41.0`.
+- No additional released feature-spec delivery is recorded after `0.42.0`.
+
+## [0.42.0] - 2026-05-08
+
+Delivered specs:
+
+- `042` - Pragmatic C4 Architecture Packets And Visual Artifacts
+
+Highlights:
+
+- Reframe the `architecture` packet around one primary handoff document so System Context, Container, and Deployment coverage are reviewable without opening every supporting file independently.
+- Add machine-readable Mermaid view artifacts and a packet manifest so architecture documentation stays both human-readable and tool-friendly.
+- Keep deeper C4 views and rendered SVG or PNG assets optional and evidence-driven instead of mandatory boilerplate.
 
 ## [0.41.0] - 2026-05-07
 

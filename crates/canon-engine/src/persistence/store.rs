@@ -813,22 +813,27 @@ impl WorkspaceStore {
             .artifact_requirements
             .iter()
             .map(|requirement| {
-                let record = manifest
+                let Some(record) = manifest
                     .records
                     .iter()
                     .find(|record| record.file_name == requirement.file_name)
                     .cloned()
-                    .ok_or_else(|| {
-                        Error::other(format!(
+                else {
+                    return if requirement.required {
+                        Err(Error::other(format!(
                             "artifact `{}` missing from persisted manifest",
                             requirement.file_name
-                        ))
-                    })?;
+                        )))
+                    } else {
+                        Ok(None)
+                    };
+                };
                 let path = artifact_storage_path(&self.layout, &record, run_id, mode)?;
                 let contents = fs::read_to_string(path)?;
-                Ok(PersistedArtifact { record, contents })
+                Ok(Some(PersistedArtifact { record, contents }))
             })
-            .collect()
+            .collect::<Result<Vec<_>, _>>()
+            .map(|artifacts| artifacts.into_iter().flatten().collect())
     }
 
     pub fn persist_gate_evaluations(
@@ -1272,8 +1277,10 @@ mod tests {
     use tempfile::TempDir;
     use time::OffsetDateTime;
 
-    use super::{PersistedRunBundle, WorkspaceStore};
-    use crate::domain::artifact::ArtifactContract;
+    use super::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
+    use crate::domain::artifact::{
+        ArtifactContract, ArtifactFormat, ArtifactRecord, ArtifactRequirement,
+    };
     use crate::domain::execution::{ExecutionPosture, MutationBounds, MutationExpansionPolicy};
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
@@ -1413,5 +1420,102 @@ mod tests {
         assert_eq!(loaded.refactor_execution, context.refactor_execution);
         assert_eq!(loaded.upstream_context, context.upstream_context);
         assert!(loaded.inline_inputs.is_empty());
+    }
+
+    #[test]
+    fn load_persisted_artifacts_skips_missing_optional_artifacts() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        let bundle = PersistedRunBundle {
+            run: RunManifest {
+                run_id: "optional-artifacts".to_string(),
+                uuid: None,
+                short_id: None,
+                slug: None,
+                title: None,
+                mode: Mode::Architecture,
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                system_context: Some(crate::domain::run::SystemContext::Existing),
+                classification: ClassificationProvenance::explicit(),
+                owner: "principal-architect".to_string(),
+                created_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            context: RunContext {
+                repo_root: workspace.path().display().to_string(),
+                owner: Some("principal-architect".to_string()),
+                inputs: vec!["architecture.md".to_string()],
+                excluded_paths: Vec::new(),
+                input_fingerprints: Vec::new(),
+                system_context: Some(crate::domain::run::SystemContext::Existing),
+                upstream_context: None,
+                implementation_execution: None,
+                refactor_execution: None,
+                backlog_planning: None,
+                inline_inputs: Vec::new(),
+                captured_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            state: RunStateManifest {
+                state: RunState::Completed,
+                updated_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            artifact_contract: ArtifactContract {
+                version: 1,
+                artifact_requirements: vec![
+                    ArtifactRequirement {
+                        file_name: "architecture-overview.md".to_string(),
+                        format: ArtifactFormat::Markdown,
+                        required_sections: vec!["Summary".to_string()],
+                        gates: Vec::new(),
+                        required: true,
+                    },
+                    ArtifactRequirement {
+                        file_name: "dynamic-view.md".to_string(),
+                        format: ArtifactFormat::Markdown,
+                        required_sections: vec!["Summary".to_string()],
+                        gates: Vec::new(),
+                        required: false,
+                    },
+                ],
+                required_verification_layers: Vec::new(),
+            },
+            artifacts: vec![PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "architecture-overview.md".to_string(),
+                    relative_path:
+                        "artifacts/optional-artifacts/architecture/architecture-overview.md"
+                            .to_string(),
+                    format: ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Architecture Overview\n\n## Summary\n\nPrimary packet.\n".to_string(),
+            }],
+            links: LinkManifest {
+                artifacts: Vec::new(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: None,
+            },
+            gates: Vec::new(),
+            approvals: Vec::new(),
+            verification_records: Vec::new(),
+            evidence: None,
+            invocations: Vec::new(),
+        };
+
+        store.persist_run_bundle(&bundle).expect("persist run bundle");
+
+        let loaded = store
+            .load_persisted_artifacts(
+                "optional-artifacts",
+                Mode::Architecture,
+                &bundle.artifact_contract,
+            )
+            .expect("load artifacts");
+
+        assert_eq!(loaded.len(), 1, "optional missing artifacts should be ignored");
+        assert_eq!(loaded[0].record.file_name, "architecture-overview.md");
     }
 }

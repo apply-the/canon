@@ -758,23 +758,32 @@ change the decision or next mode.
 
 Architecture produces a structural decision packet with these artifacts:
 
+- `architecture-overview.md` (the primary human-readable handoff, embedding Mermaid previews for the emitted architecture views)
 - `architecture-decisions.md` (ADR-like decision record preserving `Decision`, `Constraints`, `Decision Drivers`, `Recommendation`, and `Consequences`)
 - `invariants.md` (mandatory boundary invariants)
 - `tradeoff-matrix.md` (alternatives and tradeoff analysis preserving `Options Considered`, `Evaluation Criteria`, `Pros`, `Cons`, and `Why Not The Others`)
 - `boundary-map.md` (system boundaries and ownership)
 - `context-map.md` (bounded contexts, relationships, seams, ownership, and shared invariants)
 - `readiness-assessment.md` (decision readiness, working assumptions, unresolved questions, blockers, accepted risks, and recommended next mode)
-- `system-context.md` (C4 Level 1: system and external actors; requires authored `## System Context` in brief)
-- `container-view.md` (C4 Level 2: deployable containers; requires authored `## Containers` in brief)
-- `component-view.md` (C4 Level 3: component decomposition; requires authored `## Components` in brief)
+- `system-context.md` plus `system-context.mmd` (required C4 Level 1 coverage)
+- `container-view.md` plus `container-view.mmd` (required C4 Level 2 coverage)
+- `deployment-view.md` plus `deployment-view.mmd` (required deployment coverage with explicit omission notes when the brief does not justify a rendered view)
+- `view-manifest.json` and `packet-metadata.json` (machine-readable packet inventory, render-target posture, and omission tracking)
+- optional `component-view.md` plus `component-view.mmd` when the brief authors `## Components`
+- optional `dynamic-view.md` plus `dynamic-view.mmd` when the brief authors `## Dynamic View` or `## Dynamic Flow`
 
-The decision artifacts and the three C4 artifacts preserve authored sections
-verbatim from the architecture brief. If a section is omitted or uses a
-non-canonical heading variant, the artifact emits an explicit
-`## Missing Authored Body` block referencing the canonical heading rather than
-fabricating content. `## Risks` remains accepted as a backward-compatible
-input alias and is rendered as `## Consequences` in
-`architecture-decisions.md`.
+The decision artifacts and emitted architecture views preserve authored sections
+verbatim from the architecture brief. If a required view section is omitted or
+uses a non-canonical heading variant, Canon emits an explicit
+`## Missing Authored Body` block in the markdown sidecar and a placeholder
+Mermaid source rather than fabricating structure. Optional component and dynamic
+views are omitted entirely when the authored brief does not justify them, and
+that omission is recorded in `view-manifest.json` and surfaced from
+`architecture-overview.md`. `## Risks` remains accepted as a backward-compatible
+input alias and is rendered as `## Consequences` in `architecture-decisions.md`.
+
+Run and status summaries now surface `architecture-overview.md` as the primary
+artifact so reviewers can start from one coherent packet entrypoint.
 
 This mode includes mandatory critique and is designed to leave behind a
 decision bundle that later work can implement or review without relying on chat
@@ -801,7 +810,7 @@ not a failure in the mode itself.
 
 ### Typical Handoff After This Mode
 
-- publish the approved architecture packet with `canon publish <RUN_ID>` to `docs/architecture/decisions/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
+- publish the approved architecture packet with `canon publish <RUN_ID>` to `docs/architecture/decisions/<YYYY-MM-DD>-<descriptor>/`, where `architecture-overview.md` is the main review entrypoint and the sidecar views plus manifests remain available for deeper inspection, or use `--to` for another public destination
 - move to `change` when the structural decision now needs a bounded change plan in an existing system
 - move to later implementation work once the boundaries and invariants are accepted
 - return to `discovery` when the problem and decision surface are still blurry

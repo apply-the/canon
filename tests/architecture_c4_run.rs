@@ -107,12 +107,25 @@ reports for downstream finance teams. External actors:
 - `report-store` (object storage bucket)
 - `metrics-sink` (managed time-series store)
 
+## Deployment
+
+- `analytics-cli` runs on a scheduled reporting worker.
+- `report-store` lives in the finance data account.
+- `metrics-sink` remains a managed shared observability service.
+
 ## Components
 
 - `event-loader` reads raw events from disk.
 - `aggregator` collapses events into report rows.
 - `report-writer` persists rows to `report-store`.
 - `metrics-emitter` pushes counters to `metrics-sink`.
+
+## Dynamic View
+
+- `event-loader` validates the raw file.
+- `aggregator` derives report rows.
+- `report-writer` persists the report.
+- `metrics-emitter` publishes telemetry.
 "#;
 
 fn architecture_request(owner: &str, inputs: Vec<&str>) -> RunRequest {
@@ -132,7 +145,7 @@ fn architecture_request(owner: &str, inputs: Vec<&str>) -> RunRequest {
 }
 
 #[test]
-fn architecture_run_persists_all_nine_artifacts_including_context_map_and_c4_views() {
+fn architecture_run_persists_overview_visual_sidecars_and_optional_deeper_views() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("architecture.md"), C4_BRIEF).expect("brief file");
 
@@ -155,7 +168,7 @@ fn architecture_run_persists_all_nine_artifacts_including_context_map_and_c4_vie
     assert_eq!(approved.state, "Completed");
 
     let contract = contract_for_mode(Mode::Architecture);
-    assert_eq!(contract.artifact_requirements.len(), 9);
+    assert_eq!(contract.artifact_requirements.len(), 19);
 
     let artifact_dir = workspace
         .path()
@@ -200,6 +213,12 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
         .join(&summary.run_id)
         .join("architecture");
 
+    let overview =
+        fs::read_to_string(artifact_dir.join("architecture-overview.md")).expect("overview");
+    assert!(overview.starts_with("# Architecture Overview"));
+    assert!(overview.contains("## Included Views"));
+    assert!(overview.contains("```mermaid"));
+
     let system_context =
         fs::read_to_string(artifact_dir.join("system-context.md")).expect("system-context.md");
     assert!(system_context.contains("# System Context"));
@@ -220,6 +239,22 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
     assert!(component_view.contains("`metrics-emitter` pushes counters to `metrics-sink`."));
     assert!(!component_view.contains("## Missing Authored Body"));
     assert!(!component_view.contains("## Recommendation"));
+
+    let deployment_view =
+        fs::read_to_string(artifact_dir.join("deployment-view.md")).expect("deployment-view.md");
+    assert!(deployment_view.contains("# Deployment View"));
+    assert!(deployment_view.contains("scheduled reporting worker"));
+    assert!(!deployment_view.contains("## Missing Authored Body"));
+
+    let dynamic_view =
+        fs::read_to_string(artifact_dir.join("dynamic-view.md")).expect("dynamic-view.md");
+    assert!(dynamic_view.contains("# Dynamic View"));
+    assert!(dynamic_view.contains("publishes telemetry"));
+
+    let view_manifest =
+        fs::read_to_string(artifact_dir.join("view-manifest.json")).expect("view-manifest.json");
+    assert!(view_manifest.contains("\"primary_artifact\": \"architecture-overview.md\""));
+    assert!(view_manifest.contains("\"render_targets\""));
 
     let context_map =
         fs::read_to_string(artifact_dir.join("context-map.md")).expect("context-map.md");
@@ -259,11 +294,16 @@ fn architecture_run_emits_missing_body_marker_when_brief_omits_c4_sections() {
         .join(&summary.run_id)
         .join("architecture");
 
-    for file in ["system-context.md", "container-view.md", "component-view.md"] {
+    for file in ["system-context.md", "container-view.md", "deployment-view.md"] {
         let body = fs::read_to_string(artifact_dir.join(file)).expect(file);
         assert!(
             body.contains("## Missing Authored Body"),
             "{file} should emit missing-body marker when brief omits the C4 section"
         );
     }
+
+    assert!(!artifact_dir.join("component-view.md").exists());
+    assert!(!artifact_dir.join("component-view.mmd").exists());
+    assert!(!artifact_dir.join("dynamic-view.md").exists());
+    assert!(!artifact_dir.join("dynamic-view.mmd").exists());
 }

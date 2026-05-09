@@ -498,6 +498,18 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         ],
         Mode::Architecture => vec![
             requirement(
+                "architecture-overview.md",
+                &[
+                    "Summary",
+                    "Primary Decision",
+                    "Key Constraints",
+                    "Included Views",
+                    "Omitted Views",
+                    "Review Guidance",
+                ],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
                 "architecture-decisions.md",
                 &[
                     "Summary",
@@ -562,10 +574,62 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &["System Context"],
                 &[GateKind::Architecture, GateKind::Exploration],
             ),
+            requirement_with_format(
+                "system-context.mmd",
+                ArtifactFormat::Markdown,
+                &[],
+                &[GateKind::Architecture, GateKind::Exploration],
+            ),
             requirement("container-view.md", &["Containers"], &[GateKind::Architecture]),
+            requirement_with_format(
+                "container-view.mmd",
+                ArtifactFormat::Markdown,
+                &[],
+                &[GateKind::Architecture],
+            ),
             requirement(
+                "deployment-view.md",
+                &["Deployment"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement_with_format(
+                "deployment-view.mmd",
+                ArtifactFormat::Markdown,
+                &[],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement_with_format(
+                "view-manifest.json",
+                ArtifactFormat::Json,
+                &[],
+                &[GateKind::ReleaseReadiness],
+            ),
+            requirement_with_format(
+                "packet-metadata.json",
+                ArtifactFormat::Json,
+                &[],
+                &[GateKind::ReleaseReadiness],
+            ),
+            optional_requirement(
                 "component-view.md",
                 &["Components"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            optional_requirement_with_format(
+                "component-view.mmd",
+                ArtifactFormat::Markdown,
+                &[],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            optional_requirement(
+                "dynamic-view.md",
+                &["Dynamic View"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            optional_requirement_with_format(
+                "dynamic-view.mmd",
+                ArtifactFormat::Markdown,
+                &[],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
         ],
@@ -849,7 +913,10 @@ pub fn validate_release_bundle(
     for requirement in &contract.artifact_requirements {
         match artifacts.iter().find(|(file_name, _)| file_name == &requirement.file_name) {
             Some((_, contents)) => blockers.extend(validate_artifact(requirement, contents)),
-            None => blockers.push(format!("missing required artifact `{}`", requirement.file_name)),
+            None if requirement.required => {
+                blockers.push(format!("missing required artifact `{}`", requirement.file_name))
+            }
+            None => {}
         }
     }
 
@@ -861,10 +928,43 @@ fn requirement(
     required_sections: &[&str],
     gates: &[GateKind],
 ) -> ArtifactRequirement {
+    requirement_with_format(file_name, ArtifactFormat::Markdown, required_sections, gates)
+}
+
+fn requirement_with_format(
+    file_name: &str,
+    format: ArtifactFormat,
+    required_sections: &[&str],
+    gates: &[GateKind],
+) -> ArtifactRequirement {
     ArtifactRequirement {
         file_name: file_name.to_string(),
-        format: ArtifactFormat::Markdown,
+        format,
         required_sections: required_sections.iter().map(ToString::to_string).collect(),
         gates: gates.to_vec(),
+        required: true,
+    }
+}
+
+fn optional_requirement(
+    file_name: &str,
+    required_sections: &[&str],
+    gates: &[GateKind],
+) -> ArtifactRequirement {
+    optional_requirement_with_format(file_name, ArtifactFormat::Markdown, required_sections, gates)
+}
+
+fn optional_requirement_with_format(
+    file_name: &str,
+    format: ArtifactFormat,
+    required_sections: &[&str],
+    gates: &[GateKind],
+) -> ArtifactRequirement {
+    ArtifactRequirement {
+        file_name: file_name.to_string(),
+        format,
+        required_sections: required_sections.iter().map(ToString::to_string).collect(),
+        gates: gates.to_vec(),
+        required: false,
     }
 }
