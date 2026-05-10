@@ -441,7 +441,7 @@ for artifact in "${expected_archives[@]}"; do
 
   version_file="${dist_dir}/${artifact}.version.txt"
   require_file "$version_file"
-  if ! grep -Eq "(^| )${version}$" "$version_file"; then
+  if ! tr -d '\r\000' < "$version_file" | grep -Eq "(^|[[:space:]])${version}([[:space:]]|$)"; then
     echo "Version evidence mismatch in ${version_file}" >&2
     exit 71
   fi

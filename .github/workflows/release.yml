@@ -130,7 +130,7 @@ jobs:
           New-Item -ItemType Directory -Path dist -Force | Out-Null
           $versionOutput = & "target/${{ matrix.target }}/release/canon.exe" --version
           $artifactPath = & ./scripts/release/package-windows.ps1 -Version '${{ needs.prepare-release-metadata.outputs.version }}' -Target '${{ matrix.target }}' -OutputDir dist
-          Set-Content -Path ("{0}.version.txt" -f $artifactPath) -Value $versionOutput
+          Set-Content -Path ("{0}.version.txt" -f $artifactPath) -Value $versionOutput -Encoding utf8NoBOM -NoNewline
 
       - uses: actions/upload-artifact@v4
         with:
