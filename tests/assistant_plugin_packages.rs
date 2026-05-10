@@ -138,7 +138,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
             .collect::<Vec<_>>(),
         "paths": {
             "skills": ".agents/skills",
-            "methods": ".canon/methods"
+            "methods": "defaults/methods"
         }
     });
 

@@ -56,7 +56,6 @@
   ],
   "requiredPaths": [
     ".agents/skills",
-    ".canon/methods",
     "defaults/embedded-skills",
     "assistant/commands/governed-methods.json",
     "assistant/prompts/starter-prompts.md",

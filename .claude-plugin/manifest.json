@@ -54,7 +54,7 @@
   ],
   "paths": {
     "skills": ".agents/skills",
-    "methods": ".canon/methods",
+    "methods": "defaults/methods",
     "embeddedSkills": "defaults/embedded-skills",
     "commands": "assistant/commands/governed-methods.json",
     "starterPrompts": "assistant/prompts/starter-prompts.md",
