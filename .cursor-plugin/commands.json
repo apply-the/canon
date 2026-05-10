@@ -1,0 +1,34 @@
+{
+  "commandsRef": "assistant/commands/governed-methods.json",
+  "host": "cursor",
+  "bindings": [
+    {
+      "id": "canon.clarifyInput",
+      "method": "clarify-input"
+    },
+    {
+      "id": "canon.startGovernedPacket",
+      "method": "start-governed-packet"
+    },
+    {
+      "id": "canon.inspectStatus",
+      "method": "inspect-status"
+    },
+    {
+      "id": "canon.inspectEvidence",
+      "method": "inspect-evidence"
+    },
+    {
+      "id": "canon.reviewPacket",
+      "method": "review-packet"
+    },
+    {
+      "id": "canon.verifyClaims",
+      "method": "verify-claims"
+    },
+    {
+      "id": "canon.publishPacket",
+      "method": "publish-packet"
+    }
+  ]
+}

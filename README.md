@@ -9,7 +9,7 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.43.0`.
+The current delivery line in this repository targets Canon `0.44.0`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON
@@ -54,6 +54,19 @@ when a human is driving the repository directly; use `canon governance` when a
 tool needs a stable integration boundary. See
 `docs/integration/governance-adapter.md` for request or response examples,
 stable field expectations, and boundary rules for external orchestrators.
+
+## Assistant Plugin Packages
+
+Canon includes host package folders for assistant support:
+
+- `.claude-plugin/`
+- `.codex-plugin/`
+- `.cursor-plugin/`
+
+Copilot support is documented as a command and prompt pack at
+`assistant/prompts/copilot-command-pack.md`. Installation steps, host
+limitations, and validation are covered in
+`docs/guides/assistant-plugin-packages.md`.
 
 ## Install
 

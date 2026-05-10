@@ -21,7 +21,7 @@ resolver = "2"
 edition = "2024"
 license = "MIT"
 rust-version = "1.95.0"
-version = "0.43.0"
+version = "0.44.0"
 
 [workspace.dependencies]
 assert_cmd = "2"
@@ -42,13 +42,15 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 uuid = { version = "1", features = ["serde", "v7"] }
 
+[dependencies]
+serde_json.workspace = true
+toml.workspace = true
+
 [dev-dependencies]
 canon-adapters = { path = "crates/canon-adapters" }
 canon-engine = { path = "crates/canon-engine" }
 assert_cmd.workspace = true
 predicates.workspace = true
-serde_json.workspace = true
 tempfile.workspace = true
 time.workspace = true
-toml.workspace = true
 uuid.workspace = true

@@ -1,0 +1,97 @@
+{
+  "name": "canon",
+  "displayName": "Canon Assistant Support",
+  "version": "0.44.0",
+  "description": "Governed packet runtime for AI-assisted engineering work",
+  "author": {
+    "name": "Apply The",
+    "url": "https://github.com/apply-the"
+  },
+  "homepage": "https://github.com/apply-the/canon",
+  "repository": "https://github.com/apply-the/canon",
+  "license": "MIT",
+  "keywords": [
+    "canon",
+    "governance",
+    "packets",
+    "evidence",
+    "approvals",
+    "provenance",
+    "ai-assisted-engineering"
+  ],
+  "positioning": [
+    "Governed packet runtime for AI-assisted engineering work",
+    "Structured packets, evidence, approvals, and provenance",
+    "Governed methods for requirements, architecture, backlog, implementation, review, verification, incident, and migration"
+  ],
+  "capabilities": [
+    {
+      "id": "clarify-input",
+      "label": "clarify input"
+    },
+    {
+      "id": "start-governed-packet",
+      "label": "start governed packet"
+    },
+    {
+      "id": "inspect-status",
+      "label": "inspect status"
+    },
+    {
+      "id": "inspect-evidence",
+      "label": "inspect evidence"
+    },
+    {
+      "id": "review-packet",
+      "label": "review packet"
+    },
+    {
+      "id": "verify-claims",
+      "label": "verify claims"
+    },
+    {
+      "id": "publish-packet",
+      "label": "publish packet"
+    }
+  ],
+  "requiredPaths": [
+    ".agents/skills",
+    ".canon/methods",
+    "defaults/embedded-skills",
+    "assistant/commands/governed-methods.json",
+    "assistant/prompts/starter-prompts.md",
+    "assistant/prompts/copilot-command-pack.md",
+    "assistant/assets/canon-plugin-icon.svg",
+    "assistant/assets/canon-plugin-logo.svg"
+  ],
+  "supportedHosts": [
+    {
+      "id": "claude",
+      "displayName": "Claude Code",
+      "packagePath": ".claude-plugin",
+      "manifestPath": ".claude-plugin/manifest.json"
+    },
+    {
+      "id": "codex",
+      "displayName": "Codex",
+      "packagePath": ".codex-plugin",
+      "manifestPath": ".codex-plugin/plugin.json"
+    },
+    {
+      "id": "cursor",
+      "displayName": "Cursor",
+      "packagePath": ".cursor-plugin",
+      "manifestPath": ".cursor-plugin/manifest.json"
+    }
+  ],
+  "copilot": {
+    "manifestSupported": false,
+    "commandPromptPack": "assistant/prompts/copilot-command-pack.md"
+  },
+  "prohibitedPositioning": [
+    "agent framework",
+    "orchestrator",
+    "coding agent",
+    "workspace mutation engine"
+  ]
+}
