@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" role="img" aria-label="Canon assistant support logo">
+  <rect width="240" height="80" rx="10" fill="#111827"/>
+  <path d="M32 22h48v8H40v20h40v8H32z" fill="#f9fafb"/>
+  <path d="M54 34h36v8H54z" fill="#38bdf8"/>
+  <text x="104" y="48" fill="#f9fafb" font-family="Arial, sans-serif" font-size="26">Canon</text>
+</svg>

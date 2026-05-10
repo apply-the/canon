@@ -1,0 +1,65 @@
+{
+  "name": "canon",
+  "displayName": "Canon Assistant Support for Cursor",
+  "version": "0.44.0",
+  "description": "Governed packet runtime for AI-assisted engineering work",
+  "author": {
+    "name": "Apply The",
+    "url": "https://github.com/apply-the"
+  },
+  "homepage": "https://github.com/apply-the/canon",
+  "repository": "https://github.com/apply-the/canon",
+  "license": "MIT",
+  "keywords": [
+    "canon",
+    "governance",
+    "packets",
+    "evidence",
+    "approvals",
+    "provenance"
+  ],
+  "capabilities": [
+    {
+      "id": "clarify-input",
+      "label": "clarify input"
+    },
+    {
+      "id": "start-governed-packet",
+      "label": "start governed packet"
+    },
+    {
+      "id": "inspect-status",
+      "label": "inspect status"
+    },
+    {
+      "id": "inspect-evidence",
+      "label": "inspect evidence"
+    },
+    {
+      "id": "review-packet",
+      "label": "review packet"
+    },
+    {
+      "id": "verify-claims",
+      "label": "verify claims"
+    },
+    {
+      "id": "publish-packet",
+      "label": "publish packet"
+    }
+  ],
+  "positioning": [
+    "Structured packets, evidence, approvals, and provenance",
+    "Governed methods for requirements, architecture, backlog, implementation, review, verification, incident, and migration"
+  ],
+  "paths": {
+    "skills": ".agents/skills",
+    "methods": "defaults/methods",
+    "embeddedSkills": "defaults/embedded-skills",
+    "commands": "assistant/commands/governed-methods.json",
+    "starterPrompts": "assistant/prompts/starter-prompts.md",
+    "icon": "assistant/assets/canon-plugin-icon.svg",
+    "logo": "assistant/assets/canon-plugin-logo.svg"
+  },
+  "commands": ".cursor-plugin/commands.json"
+}

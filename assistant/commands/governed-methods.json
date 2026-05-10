@@ -1,0 +1,60 @@
+{
+  "commands": [
+    {
+      "id": "clarify-input",
+      "label": "clarify input",
+      "purpose": "Inspect authored input before starting a governed packet.",
+      "canonCommand": "canon inspect clarity --mode <MODE> --input <INPUT_PATH>",
+      "skillRef": ".agents/skills/canon-inspect-clarity/SKILL.md",
+      "methodRef": null
+    },
+    {
+      "id": "start-governed-packet",
+      "label": "start governed packet",
+      "purpose": "Start a governed packet with explicit mode, risk, zone, owner, and authored input.",
+      "canonCommand": "canon run --mode <MODE> --risk <RISK> --zone <ZONE> --owner <OWNER> --input <INPUT_PATH>",
+      "skillRef": ".agents/skills/canon-init/SKILL.md",
+      "methodRef": ".canon/methods/requirements.toml"
+    },
+    {
+      "id": "inspect-status",
+      "label": "inspect status",
+      "purpose": "Inspect packet lifecycle state without changing packet contents.",
+      "canonCommand": "canon status --run <RUN_ID>",
+      "skillRef": ".agents/skills/canon-status/SKILL.md",
+      "methodRef": null
+    },
+    {
+      "id": "inspect-evidence",
+      "label": "inspect evidence",
+      "purpose": "Inspect evidence captured for a governed packet.",
+      "canonCommand": "canon inspect evidence --run <RUN_ID>",
+      "skillRef": ".agents/skills/canon-inspect-evidence/SKILL.md",
+      "methodRef": null
+    },
+    {
+      "id": "review-packet",
+      "label": "review packet",
+      "purpose": "Create or use a governed review packet for critique-first review.",
+      "canonCommand": "canon run --mode review --risk <RISK> --zone <ZONE> --owner <OWNER> --input <INPUT_PATH>",
+      "skillRef": ".agents/skills/canon-review/SKILL.md",
+      "methodRef": ".canon/methods/review.toml"
+    },
+    {
+      "id": "verify-claims",
+      "label": "verify claims",
+      "purpose": "Create or use a governed verification packet to evaluate claims and evidence.",
+      "canonCommand": "canon run --mode verification --risk <RISK> --zone <ZONE> --owner <OWNER> --input <INPUT_PATH>",
+      "skillRef": ".agents/skills/canon-verification/SKILL.md",
+      "methodRef": ".canon/methods/verification.toml"
+    },
+    {
+      "id": "publish-packet",
+      "label": "publish packet",
+      "purpose": "Publish a governed packet only after readiness is established.",
+      "canonCommand": "canon publish --run <RUN_ID>",
+      "skillRef": ".agents/skills/canon-publish/SKILL.md",
+      "methodRef": null
+    }
+  ]
+}

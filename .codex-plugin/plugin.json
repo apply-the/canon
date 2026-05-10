@@ -1,0 +1,87 @@
+{
+  "name": "canon",
+  "displayName": "Canon Assistant Support for Codex",
+  "version": "0.44.0",
+  "description": "Governed packet runtime for AI-assisted engineering work",
+  "author": {
+    "name": "Apply The",
+    "url": "https://github.com/apply-the"
+  },
+  "homepage": "https://github.com/apply-the/canon",
+  "repository": "https://github.com/apply-the/canon",
+  "license": "MIT",
+  "keywords": [
+    "canon",
+    "governance",
+    "packets",
+    "evidence",
+    "approvals",
+    "provenance"
+  ],
+  "skills": ".agents/skills",
+  "capabilities": [
+    {
+      "id": "clarify-input",
+      "label": "clarify input"
+    },
+    {
+      "id": "start-governed-packet",
+      "label": "start governed packet"
+    },
+    {
+      "id": "inspect-status",
+      "label": "inspect status"
+    },
+    {
+      "id": "inspect-evidence",
+      "label": "inspect evidence"
+    },
+    {
+      "id": "review-packet",
+      "label": "review packet"
+    },
+    {
+      "id": "verify-claims",
+      "label": "verify claims"
+    },
+    {
+      "id": "publish-packet",
+      "label": "publish packet"
+    }
+  ],
+  "positioning": [
+    "Structured packets, evidence, approvals, and provenance",
+    "Governed methods for requirements, architecture, backlog, implementation, review, verification, incident, and migration"
+  ],
+  "paths": {
+    "skills": ".agents/skills",
+    "methods": "defaults/methods",
+    "embeddedSkills": "defaults/embedded-skills",
+    "commands": "assistant/commands/governed-methods.json",
+    "starterPrompts": "assistant/prompts/starter-prompts.md",
+    "icon": "assistant/assets/canon-plugin-icon.svg",
+    "logo": "assistant/assets/canon-plugin-logo.svg"
+  },
+  "interface": {
+    "displayName": "Canon",
+    "shortDescription": "Governed packet runtime for AI-assisted engineering work",
+    "longDescription": "Canon exposes structured packets, evidence, approvals, and provenance through governed methods for requirements, architecture, backlog, implementation, review, verification, incident, and migration.",
+    "developerName": "Apply The",
+    "category": "Productivity",
+    "capabilities": [
+      "Governance",
+      "Evidence",
+      "Approvals",
+      "Provenance"
+    ],
+    "websiteURL": "https://github.com/apply-the/canon",
+    "defaultPrompt": [
+      "Clarify this Canon packet input.",
+      "Start a governed Canon packet.",
+      "Inspect Canon packet evidence."
+    ],
+    "brandColor": "#1F2937",
+    "composerIcon": "assistant/assets/canon-plugin-icon.svg",
+    "logo": "assistant/assets/canon-plugin-logo.svg"
+  }
+}
