@@ -63,6 +63,12 @@ Optional:
 - Canon command: `canon run --mode architecture --system-context <SYSTEM_CONTEXT> --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any approval target Canon emits.
 
+## ADR Publish Contract
+
+- After Canon emits a readable architecture packet, `canon publish <RUN_ID>` writes the normal packet under `docs/architecture/decisions/...` and one durable ADR under `docs/adr/ADR-XXXX-<slug>.md` by default.
+- `--to` can relocate the visible packet copy, but the ADR registry stays fixed under `docs/adr/`.
+- Treat the ADR as a publish-time projection of the governed packet, not as a second authored source. If the packet carries `## Missing Authored Body` or other honesty markers, preserve those signals instead of glossing over them in chat.
+
 ## Author Architecture Body Before Invoking Canon
 
 - The architecture brief MUST author the decision-facing sections

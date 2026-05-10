@@ -19,11 +19,23 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.42.0`
+- None recorded after `0.43.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.42.0`.
+- No additional released feature-spec delivery is recorded after `0.43.0`.
+
+## [0.43.0] - 2026-05-10
+
+Delivered specs:
+
+- `043` - Standard ADR Publish Artifacts
+
+Highlights:
+
+- Publish a standard ADR entry from `architecture` packets by default while keeping existing packet outputs authoritative.
+- Allow `change` and `migration` packets to opt into the same ADR registry during publish.
+- Keep ADR registry numbering fixed under `docs/adr/` and leave unsupported modes outside ADR publication.
 
 ## [0.42.0] - 2026-05-08
 

@@ -101,6 +101,27 @@ fn init_with_codex_materializes_agents_skills_only() {
         !workspace.path().join("CLAUDE.md").exists(),
         "CLAUDE.md should not be created for --ai codex"
     );
+
+    let architecture_skill =
+        std::fs::read_to_string(skills.join("canon-architecture").join("SKILL.md"))
+            .expect("read installed architecture skill");
+    let change_skill = std::fs::read_to_string(skills.join("canon-change").join("SKILL.md"))
+        .expect("read installed change skill");
+    let migration_skill = std::fs::read_to_string(skills.join("canon-migration").join("SKILL.md"))
+        .expect("read installed migration skill");
+
+    assert!(
+        architecture_skill.contains("docs/adr/ADR-XXXX-<slug>.md"),
+        "installed architecture skill should include ADR registry guidance"
+    );
+    assert!(
+        change_skill.contains("canon publish <RUN_ID> --adr"),
+        "installed change skill should include ADR opt-in guidance"
+    );
+    assert!(
+        migration_skill.contains("canon publish <RUN_ID> --adr"),
+        "installed migration skill should include ADR opt-in guidance"
+    );
 }
 
 #[test]
@@ -294,8 +315,8 @@ fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
         "skills install should materialize the current embedded runtime compatibility reference"
     );
     assert!(
-        installed.contains("expected_workspace_version = \"0.42.0\""),
-        "skills install should carry the 0.42.0 runtime compatibility expectation"
+        installed.contains("expected_workspace_version = \"0.43.0\""),
+        "skills install should carry the 0.43.0 runtime compatibility expectation"
     );
 }
 

@@ -118,6 +118,13 @@ reviewers, and approvers.
 - Systemic-impact or red-zone migration runs surface `gate:risk` approval first; once approved, the packet can complete without a separate execution-resume path.
 - Blocked migration packets remain publishable when Canon emitted a readable artifact set.
 
+## ADR Publish Contract
+
+- `canon publish <RUN_ID>` keeps publishing only the visible migration packet by default, even when the packet is recommendation-only.
+- Use `canon publish <RUN_ID> --adr` when the operator wants one durable ADR at `docs/adr/ADR-XXXX-<slug>.md` derived from the governed migration packet.
+- `--to` changes the packet destination only; the ADR registry remains fixed under `docs/adr/`.
+- If the emitted migration packet contains `## Missing Authored Body`, missing-context markers, or downgrade language, preserve those honesty signals when describing the ADR output.
+
 ## Expected Output Shape
 
 - concise run-start or gated summary

@@ -119,6 +119,13 @@ for maintainers and reviewers of the live system.
 - For a fresh request, do not present `continue existing run` versus `start fresh` as a primary choice. New intake is the default path unless the user explicitly requests continuation or provides a `RUN_ID`.
 - Return the real Canon run id, state, and any approval target Canon emits.
 
+## ADR Publish Contract
+
+- `canon publish <RUN_ID>` keeps publishing only the visible change packet by default.
+- Use `canon publish <RUN_ID> --adr` when the operator wants the same governed decision to enter the durable registry at `docs/adr/ADR-XXXX-<slug>.md`.
+- `--to` changes the packet destination only; `--adr` never relocates the ADR registry.
+- If the emitted packet preserves `## Missing Authored Body` or other honesty markers, keep those signals explicit when describing or reviewing the resulting ADR.
+
 ## AI Companion Operating Model
 
 After preflight succeeds and the real Canon run exists, the assistant is

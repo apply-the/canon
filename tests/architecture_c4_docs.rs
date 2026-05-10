@@ -33,6 +33,12 @@ fn architecture_skill_source_documents_authored_c4_requirement() {
             && content.contains("Persona guidance is presentation only"),
         "skill source must document the bounded architecture persona"
     );
+    assert!(
+        content.contains("## ADR Publish Contract")
+            && content.contains("docs/adr/ADR-XXXX-<slug>.md")
+            && content.contains("canon publish <RUN_ID>"),
+        "skill source must describe the default architecture ADR publish contract"
+    );
 }
 
 #[test]
