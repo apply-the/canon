@@ -135,7 +135,7 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
         Some("recommendation-only")
     );
 
-    let published = service.publish(&summary.run_id, None).expect("publish should succeed");
+    let published = service.publish(&summary.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&summary.run_id, "security-assessment");
     assert!(published.published_to.ends_with(&format!("docs/security-assessments/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("assessment-overview.md")));

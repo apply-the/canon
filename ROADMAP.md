@@ -37,6 +37,12 @@ primary `architecture-overview.md` handoff, records required System Context,
 Container, and Deployment coverage with Mermaid sidecars, and keeps optional
 deeper C4 views evidence-driven instead of mandatory boilerplate.
 
+Delivered work through `043` now also projects standard Nygard-style ADRs into
+the fixed `docs/adr/` registry: `architecture` publishes them by default,
+`change` and `migration` can opt in with `publish --adr`, numbering stays
+sequential without rewriting gaps, and unsupported modes remain outside the
+registry boundary.
+
 Canon now emits governed Mermaid sources for the core architecture views it can
 justify from the authored packet and records unsupported SVG or PNG targets
 explicitly instead of pretending they exist.

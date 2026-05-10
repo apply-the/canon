@@ -109,7 +109,7 @@ fn engine_publish_allows_approval_gated_operational_packets() {
 
     assert_eq!(run.state, "AwaitingApproval");
 
-    let published = service.publish(&run.run_id, None).expect("publish should succeed");
+    let published = service.publish(&run.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&run.run_id, "incident");
     assert!(published.published_to.ends_with(&format!("docs/incidents/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));

@@ -24,7 +24,7 @@ Canon already ties the `winget` artifact generation to the release workflow in
 CI.
 
 - `.github/workflows/release.yml` runs automatically on `push` for tags that
-  match plain semantic versions such as `0.42.0`.
+  match plain semantic versions such as `0.43.0`.
 - That workflow builds the platform archives, renders `release-notes.md`,
   generates checksums, writes `canon-<VERSION>-distribution-metadata.json`,
   renders the `winget` YAML bundle, and verifies the extended release surface.
@@ -45,13 +45,13 @@ workflow manually with `workflow_dispatch` and leave `publish=false`.
 
 ## What This Guide Assumes
 
-- You already have a release version such as `0.42.0`.
-- The GitHub release tag will be `0.42.0`.
+- You already have a release version such as `0.43.0`.
+- The GitHub release tag will be `0.43.0`.
 - A local `dist/` directory exists with the release archives, checksum file,
   and release notes.
 - `jq`, `tar`, `zip`, `unzip`, and `shasum` are available in your shell.
 
-The scripts in this repository expect the raw semantic version like `0.42.0`.
+The scripts in this repository expect the raw semantic version like `0.43.0`.
 There is no `v` prefix in the release tag.
 
 ## Required Release Files
@@ -80,7 +80,7 @@ If you want to check that the expected files are present before generating
 metadata:
 
 ```bash
-VERSION=0.42.0
+VERSION=0.43.0
 DIST_DIR=dist
 
 ls "$DIST_DIR"/canon-"$VERSION"-*.tar.gz
@@ -95,7 +95,7 @@ Generate the machine-readable release description from the canonical release
 bundle:
 
 ```bash
-VERSION=0.42.0
+VERSION=0.43.0
 DIST_DIR=dist
 
 bash scripts/release/write-distribution-metadata.sh \
@@ -197,7 +197,7 @@ manifests/a/ApplyThe/Canon/<VERSION>/
 Example:
 
 ```bash
-VERSION=0.42.0
+VERSION=0.43.0
 WINGET_PKGS="$HOME/src/winget-pkgs"
 
 mkdir -p "$WINGET_PKGS/manifests/a/ApplyThe/Canon/$VERSION"
@@ -228,7 +228,7 @@ reopening the release bundle.
 
 ## Common Failure Modes
 
-- Passing `v0.42.0` anywhere in the release flow instead of `0.42.0`
+- Passing `v0.43.0` anywhere in the release flow instead of `0.43.0`
 - Missing `release-notes.md` or `canon-<VERSION>-SHA256SUMS.txt`
 - A Windows zip that contains nested directories instead of a root `canon.exe`
 - Hand-editing the generated YAML after verification instead of regenerating it

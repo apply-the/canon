@@ -246,6 +246,10 @@ pub struct PublishCommand {
     /// Optional override for the destination directory
     #[arg(long)]
     pub to: Option<std::path::PathBuf>,
+
+    /// Export a durable ADR entry when the mode supports it
+    #[arg(long, default_value_t = false)]
+    pub adr: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -555,8 +559,20 @@ mod tests {
         let publish_cli = Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public"]);
         assert_command!(
             publish_cli.command,
-            Command::Publish(PublishCommand { run_id, to })
-                if run_id == "run-123" && to == Some(std::path::PathBuf::from("docs/public"))
+            Command::Publish(PublishCommand { run_id, to, adr })
+                if run_id == "run-123"
+                    && to == Some(std::path::PathBuf::from("docs/public"))
+                    && !adr
+        );
+
+        let publish_adr_cli =
+            Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public", "--adr"]);
+        assert_command!(
+            publish_adr_cli.command,
+            Command::Publish(PublishCommand { run_id, to, adr })
+                if run_id == "run-123"
+                    && to == Some(std::path::PathBuf::from("docs/public"))
+                    && adr
         );
 
         let approve_cli = Cli::parse_from([
@@ -864,6 +880,7 @@ mod tests {
                     command: Command::Publish(PublishCommand {
                         run_id: "run-missing".to_string(),
                         to: None,
+                        adr: false,
                     }),
                 },
                 repo_root,

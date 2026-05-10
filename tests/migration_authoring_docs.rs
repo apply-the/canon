@@ -64,6 +64,12 @@ fn migration_contract_and_skill_share_canonical_headings() {
         skill_source.contains("Missing Authored Body"),
         "skill source must mention the missing-body marker"
     );
+    assert!(
+        skill_source.contains("## ADR Publish Contract")
+            && skill_source.contains("canon publish <RUN_ID> --adr")
+            && skill_source.contains("docs/adr/ADR-XXXX-<slug>.md"),
+        "skill source must document migration ADR opt-in publish behavior"
+    );
 }
 
 #[test]

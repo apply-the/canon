@@ -9,7 +9,7 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.42.0`.
+The current delivery line in this repository targets Canon `0.43.0`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON
@@ -249,6 +249,7 @@ canon inspect artifacts --run <RUN_ID>
 canon approve --run <RUN_ID> --target <APPROVAL_TARGET> --decision approve --rationale "bounded approval for the packet"
 canon resume --run <RUN_ID>
 canon publish <RUN_ID>
+canon publish <RUN_ID> --adr
 ```
 
 Generated packet files land under `.canon/artifacts/<RUN_ID>/...` first. The
@@ -259,6 +260,11 @@ published directory now centers one `architecture-overview.md` handoff doc,
 keeps required System Context, Container, and Deployment sidecars alongside
 Mermaid `.mmd` sources, and records optional deeper views in a machine-readable
 manifest instead of forcing every packet to carry component-level boilerplate.
+The same `architecture` publish step also projects one standard ADR into the
+fixed repository registry at `docs/adr/ADR-XXXX-<slug>.md`. `change` and
+`migration` keep publishing only their packet directories unless you opt into
+the same registry with `canon publish <RUN_ID> --adr`. `--to` changes the
+packet destination only; ADR files still land under `docs/adr/`.
 
 If you initialized repo-local AI skills, the same publish step is also exposed
 in chat through `$canon-publish`.
@@ -278,7 +284,7 @@ review-first instead of jumping straight to approval.
 - Use `canon run` to start a governed packet.
 - Use `canon inspect ...` to see what Canon actually recorded.
 - Use `canon approve` and `canon resume` when a run is gated.
-- Use `canon publish` when you want a completed packet copied into `docs/` or `specs/` under a structured default folder, or into another visible path with `--to`.
+- Use `canon publish` when you want a completed packet copied into `docs/` or `specs/` under a structured default folder, or into another visible path with `--to`; add `--adr` when a `change` or `migration` packet should also enter the durable ADR registry.
 - Expect generated artifacts to exist first under `.canon/artifacts/`; publish is the step that materializes visible docs in the repository.
 
 ## Documentation

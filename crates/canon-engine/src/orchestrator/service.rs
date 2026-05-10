@@ -1152,9 +1152,14 @@ impl EngineService {
         })
     }
 
-    pub fn publish(&self, run: &str, to: Option<PathBuf>) -> Result<PublishSummary, EngineError> {
+    pub fn publish(
+        &self,
+        run: &str,
+        to: Option<PathBuf>,
+        adr: bool,
+    ) -> Result<PublishSummary, EngineError> {
         let canonical = self.resolve_run(run)?;
-        publish_run(&self.repo_root, &canonical, to.as_deref())
+        publish_run(&self.repo_root, &canonical, to.as_deref(), adr)
     }
 
     pub(super) fn refresh_run_state(

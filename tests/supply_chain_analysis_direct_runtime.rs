@@ -125,7 +125,7 @@ fn supply_chain_analysis_direct_run_exercises_service_summary_and_publish_paths(
     );
 
     let published = service
-        .publish(&summary.run_id, None)
+        .publish(&summary.run_id, None, false)
         .expect("publish should succeed before risk approval");
     let leaf = default_publish_leaf(&summary.run_id, "supply-chain-analysis");
     assert!(published.published_to.ends_with(&format!("docs/supply-chain/{leaf}")));

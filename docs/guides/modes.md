@@ -236,6 +236,7 @@ visible repository folder with:
 
 ```bash
 canon publish <RUN_ID>
+canon publish <RUN_ID> --adr
 canon publish <RUN_ID> --to docs/custom/path
 ```
 
@@ -246,6 +247,13 @@ copy under `.canon/`.
 For `requirements`, that visible directory now includes both the sectional
 packet files and a consolidated `prd.md` so reviewers can read one product
 requirements document without reconstructing it from multiple files.
+
+ADR projection is mode-bound rather than keyword-driven:
+
+- `architecture` publishes its packet and one standard ADR into `docs/adr/ADR-XXXX-<slug>.md` by default.
+- `change` and `migration` publish their packet only unless the operator adds `--adr`.
+- Unsupported modes reject `--adr` instead of silently creating registry entries.
+- `--to` only changes the packet destination; ADR files still land under `docs/adr/`.
 
 Without `--to`, Canon uses a structured default leaf like
 `<YYYY-MM-DD>-<descriptor>/` under the mode's existing family root and writes
