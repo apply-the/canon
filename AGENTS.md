@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-10
+Auto-generated from all feature plans. Last updated: 2026-05-11
 
 ## Governing Constitution
 
@@ -64,6 +64,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-10
 - local filesystem under `.canon/` for runtime artifacts plus repository-published outputs under `docs/`, `specs/`, and the new `docs/adr/` registry. (043-standard-adr-publish)
 - Rust 1.95.0 workspace plus JSON, Markdown, Bash, and SVG repository assets. + existing workspace crates and dev dependencies including `serde_json`; no new external crates are planned. (044-assistant-plugin-packages)
 - repository files only: hidden host package folders, shared assistant metadata under `assistant/`, docs under `docs/`, validation scripts under `scripts/`, and Spec Kit artifacts under `specs/044-assistant-plugin-packages/`. (044-assistant-plugin-packages)
+- Rust 1.95.0, Edition 2024, plus Markdown/JSON/YAML repository docs and metadata + Existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` surfaces (045-mode-publish-alignment)
+- Local filesystem under `.canon/` for runtime artifacts plus repository files under `docs/`, `assistant/`, `.agents/`, `defaults/`, `tests/`, and release metadata surfaces (045-mode-publish-alignment)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -122,9 +124,8 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 045-mode-publish-alignment: Added Rust 1.95.0, Edition 2024, plus Markdown/JSON/YAML repository docs and metadata + Existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` surfaces
 - 044-assistant-plugin-packages: Added Rust 1.95.0 workspace plus JSON, Markdown, Bash, and SVG repository assets. + existing workspace crates and dev dependencies including `serde_json`; no new external crates are planned.
-- 043-standard-adr-publish: Added Rust 1.95.0 workspace plus Markdown documentation and Spec Kit feature artifacts. + existing workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`.
-- 042-visual-artifact-generation: Added Rust 1.95.0 workspace plus Markdown documentation and Spec Kit feature artifacts. + existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`, plus `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`, and current release helper shell scripts.
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

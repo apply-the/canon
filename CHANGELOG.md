@@ -19,11 +19,35 @@ recorded workspace version.
 
 Delivered specs:
 
-- None recorded after `0.43.0`
+- None recorded after `0.45.0`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.43.0`.
+- No additional released feature-spec delivery is recorded after `0.45.0`.
+
+## [0.45.0] - 2026-05-11
+
+Delivered specs:
+
+- `045` - Mode Publish Alignment
+
+Highlights:
+
+- Align `security-assessment` publish behavior with the documented operational packet posture for readable blocked or approval-gated runs.
+- Correct assistant package publish examples so they use the real positional `canon publish <RUN_ID>` command shape.
+- Advance the repository release line and close the slice with versioned validation evidence.
+
+## [0.44.0] - 2026-05-10
+
+Delivered specs:
+
+- `044` - Assistant Plugin Packages
+
+Highlights:
+
+- Add Canon-owned assistant package folders, shared metadata, prompts, commands, and validation for Claude Code, Codex, Cursor, and Copilot command-pack support.
+- Keep Canon CLI and governance adapter behavior authoritative while packaging governed methods for host discovery.
+- Add repeatable validation for package metadata drift, required capability coverage, and prohibited positioning language.
 
 ## [0.43.0] - 2026-05-10
 
