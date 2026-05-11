@@ -119,6 +119,25 @@ Use this repo workflow unless a feature calls for something stricter:
 5. Run the validation commands above.
 6. Review your diff for unrelated edits before asking for review.
 
+## Reporting Issues
+
+Use the GitHub issue templates in `.github/ISSUE_TEMPLATE/` so reports land with
+the right structure:
+
+- `bug-report.yaml` for reproducible defects in the CLI, runtime, release surfaces, or assistant packages
+- `documentation.yaml` for README, guides, templates, examples, and contributor-doc issues
+- `feature-request.md` for bounded product proposals
+- `issue.md` only when the other templates do not fit
+
+If the report is a vulnerability, do not open a public exploit report. Follow
+`SECURITY.md` instead.
+
+## Pull Requests
+
+GitHub pre-fills `.github/PULL_REQUEST_TEMPLATE.md` for new pull requests.
+Keep it accurate and include the exact validation you ran for the touched
+surfaces.
+
 ## Working on Release or Install UX
 
 If your change touches packaging, install guidance, or release automation,
@@ -149,3 +168,8 @@ If your change touches `.agents/skills/`:
 - contributor docs are updated if the development workflow changed
 - local validation commands passed, or any gap is explicitly called out
 - release-surface changes keep install, packaging, and compatibility guidance aligned
+
+## Code of Conduct
+
+Participation in Canon project spaces is governed by
+`.github/CODE_OF_CONDUCT.md`.

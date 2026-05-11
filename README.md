@@ -318,3 +318,5 @@ To see what is planned next for Canon beyond the current implementation, see [RO
 ## How To Contribute
 
 If you want to build or develop Canon itself, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Use the GitHub issue templates under [.github/ISSUE_TEMPLATE/](.github/ISSUE_TEMPLATE/) when reporting bugs, documentation gaps, feature requests, or other repository issues.
+For vulnerabilities, follow [SECURITY.md](SECURITY.md). Participation in Canon project spaces follows the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
