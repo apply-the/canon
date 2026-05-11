@@ -118,6 +118,33 @@ fn metadata_paths_and_versions_are_aligned() {
 }
 
 #[test]
+fn publish_command_surfaces_match_the_positional_cli_contract() {
+    let commands = read_json("assistant/commands/governed-methods.json");
+    let publish_command = commands["commands"]
+        .as_array()
+        .expect("commands array")
+        .iter()
+        .find(|entry| entry["id"] == "publish-packet")
+        .expect("publish command entry");
+
+    assert_eq!(
+        publish_command["canonCommand"],
+        json!("canon publish <RUN_ID>"),
+        "assistant publish command metadata must use the positional CLI contract"
+    );
+
+    let copilot_pack = read_text("assistant/prompts/copilot-command-pack.md");
+    assert!(
+        copilot_pack.contains("| Publish packet | Publish this Canon packet after readiness is established. | `canon publish <RUN_ID>` |"),
+        "Copilot command pack must document the positional publish syntax"
+    );
+    assert!(
+        !copilot_pack.contains("canon publish --run <RUN_ID>"),
+        "Copilot command pack must not document an unsupported --run publish form"
+    );
+}
+
+#[test]
 fn validation_rejects_drift_and_prohibited_positioning() {
     assert!(serde_json::from_str::<Value>("{").is_err(), "invalid JSON must be rejected");
 
@@ -125,7 +152,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let valid = json!({
         "name": "canon",
         "displayName": "Canon Assistant Support",
-        "version": "0.44.0",
+        "version": "0.45.0",
         "description": "Governed packet runtime for AI-assisted engineering work",
         "author": {"name": "Apply The", "url": "https://github.com/apply-the"},
         "homepage": "https://github.com/apply-the/canon",
@@ -145,7 +172,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut missing_fields = valid.clone();
     missing_fields.as_object_mut().expect("valid manifest must be an object").remove("author");
     assert!(
-        manifest_errors(&missing_fields, "0.44.0", &root)
+        manifest_errors(&missing_fields, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("missing required field"))
     );
@@ -153,7 +180,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut version_drift = valid.clone();
     version_drift["version"] = json!("0.0.0");
     assert!(
-        manifest_errors(&version_drift, "0.44.0", &root)
+        manifest_errors(&version_drift, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("version"))
     );
@@ -161,7 +188,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut missing_path = valid.clone();
     missing_path["paths"]["skills"] = json!("missing/skills");
     assert!(
-        manifest_errors(&missing_path, "0.44.0", &root)
+        manifest_errors(&missing_path, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("referenced path"))
     );
@@ -169,7 +196,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut non_string_path = valid.clone();
     non_string_path["paths"]["skills"] = json!(false);
     assert!(
-        manifest_errors(&non_string_path, "0.44.0", &root)
+        manifest_errors(&non_string_path, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("path references must be strings"))
     );
@@ -177,7 +204,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut missing_paths = valid.clone();
     missing_paths.as_object_mut().expect("valid manifest must be an object").remove("paths");
     assert!(
-        manifest_errors(&missing_paths, "0.44.0", &root)
+        manifest_errors(&missing_paths, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("missing paths object"))
     );
@@ -185,7 +212,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut missing_method = valid.clone();
     missing_method["capabilities"] = json!([]);
     assert!(
-        manifest_errors(&missing_method, "0.44.0", &root)
+        manifest_errors(&missing_method, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("missing required governed method"))
     );
@@ -193,7 +220,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut invalid_capability = valid.clone();
     invalid_capability["capabilities"] = json!([{"label": "missing id"}]);
     assert!(
-        manifest_errors(&invalid_capability, "0.44.0", &root)
+        manifest_errors(&invalid_capability, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("capability id must be a string"))
     );
@@ -201,7 +228,7 @@ fn validation_rejects_drift_and_prohibited_positioning() {
     let mut prohibited = valid;
     prohibited["description"] = json!("Canon is an agent framework");
     assert!(
-        manifest_errors(&prohibited, "0.44.0", &root)
+        manifest_errors(&prohibited, "0.45.0", &root)
             .iter()
             .any(|error| error.contains("prohibited positioning"))
     );

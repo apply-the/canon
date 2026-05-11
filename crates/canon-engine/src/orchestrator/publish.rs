@@ -64,7 +64,11 @@ pub fn publish_run(
 
     let operational_packet_publishable = matches!(
         manifest.mode,
-        Mode::Incident | Mode::Migration | Mode::SystemAssessment | Mode::SupplyChainAnalysis
+        Mode::Incident
+            | Mode::SecurityAssessment
+            | Mode::Migration
+            | Mode::SystemAssessment
+            | Mode::SupplyChainAnalysis
     ) && matches!(
         state.state,
         RunState::AwaitingApproval | RunState::Blocked | RunState::Completed
@@ -679,9 +683,27 @@ mod tests {
     #[test]
     fn default_publish_directory_maps_supported_modes() {
         assert_eq!(default_publish_directory(Mode::Requirements), "specs");
+        assert_eq!(default_publish_directory(Mode::Discovery), "docs/discovery");
+        assert_eq!(default_publish_directory(Mode::SystemShaping), "docs/architecture/shaping");
+        assert_eq!(default_publish_directory(Mode::Change), "docs/changes");
         assert_eq!(default_publish_directory(Mode::Backlog), "docs/planning");
         assert_eq!(default_publish_directory(Mode::Architecture), "docs/architecture/decisions");
+        assert_eq!(default_publish_directory(Mode::Implementation), "docs/implementation");
+        assert_eq!(default_publish_directory(Mode::Refactor), "docs/refactors");
+        assert_eq!(default_publish_directory(Mode::Verification), "docs/verification");
+        assert_eq!(default_publish_directory(Mode::Review), "docs/reviews");
         assert_eq!(default_publish_directory(Mode::PrReview), "docs/reviews/prs");
+        assert_eq!(default_publish_directory(Mode::Incident), "docs/incidents");
+        assert_eq!(
+            default_publish_directory(Mode::SystemAssessment),
+            "docs/architecture/assessments"
+        );
+        assert_eq!(
+            default_publish_directory(Mode::SecurityAssessment),
+            "docs/security-assessments"
+        );
+        assert_eq!(default_publish_directory(Mode::Migration), "docs/migrations");
+        assert_eq!(default_publish_directory(Mode::SupplyChainAnalysis), "docs/supply-chain");
     }
 
     #[test]

@@ -112,6 +112,28 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
         mode_result.primary_artifact_path.ends_with("security-assessment/assessment-overview.md")
     );
 
+    let pre_approval_publish = service
+        .publish(&summary.run_id, None, false)
+        .expect("awaiting-approval security assessment should publish");
+    let pre_approval_leaf = default_publish_leaf(&summary.run_id, "security-assessment");
+    assert!(
+        pre_approval_publish
+            .published_to
+            .ends_with(&format!("docs/security-assessments/{pre_approval_leaf}"))
+    );
+    assert!(
+        pre_approval_publish
+            .published_files
+            .iter()
+            .any(|path| path.ends_with("assessment-overview.md"))
+    );
+    assert!(
+        pre_approval_publish
+            .published_files
+            .iter()
+            .any(|path| path.ends_with("packet-metadata.json"))
+    );
+
     let approval = service
         .approve(
             &summary.run_id,
@@ -197,5 +219,21 @@ fn security_assessment_direct_run_exposes_blocked_gate_and_missing_body_markers(
     assert_eq!(
         status.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
         Some("recommendation-only")
+    );
+
+    let blocked_publish = service
+        .publish(&summary.run_id, None, false)
+        .expect("blocked security assessment should publish");
+    let blocked_leaf = default_publish_leaf(&summary.run_id, "security-assessment");
+    assert!(
+        blocked_publish
+            .published_to
+            .ends_with(&format!("docs/security-assessments/{blocked_leaf}"))
+    );
+    assert!(
+        blocked_publish.published_files.iter().any(|path| path.ends_with("assessment-overview.md"))
+    );
+    assert!(
+        blocked_publish.published_files.iter().any(|path| path.ends_with("packet-metadata.json"))
     );
 }

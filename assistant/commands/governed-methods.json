@@ -52,7 +52,7 @@
       "id": "publish-packet",
       "label": "publish packet",
       "purpose": "Publish a governed packet only after readiness is established.",
-      "canonCommand": "canon publish --run <RUN_ID>",
+      "canonCommand": "canon publish <RUN_ID>",
       "skillRef": ".agents/skills/canon-publish/SKILL.md",
       "methodRef": null
     }
