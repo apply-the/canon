@@ -14,9 +14,9 @@ use time::OffsetDateTime;
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
     render_architecture_artifact, render_change_artifact, render_discovery_artifact,
-    render_implementation_artifact, render_incident_artifact, render_migration_artifact,
-    render_pr_review_artifact, render_refactor_artifact,
-    render_requirements_artifact_from_evidence, render_review_artifact,
+    render_domain_language_artifact, render_domain_model_artifact, render_implementation_artifact,
+    render_incident_artifact, render_migration_artifact, render_pr_review_artifact,
+    render_refactor_artifact, render_requirements_artifact_from_evidence, render_review_artifact,
     render_security_assessment_artifact, render_supply_chain_analysis_artifact,
     render_system_assessment_artifact, render_system_shaping_artifact,
     render_verification_artifact,
@@ -59,6 +59,8 @@ mod inspect;
 mod mode_backlog;
 mod mode_change;
 mod mode_discovery;
+mod mode_domain_language;
+mod mode_domain_model;
 mod mode_incident;
 mod mode_migration;
 mod mode_pr_review;
@@ -628,6 +630,8 @@ impl EngineService {
             Mode::Review => self.run_review(&store, request, policy_set),
             Mode::Verification => self.run_verification(&store, request, policy_set),
             Mode::PrReview => self.run_pr_review(&store, request, policy_set),
+            Mode::DomainLanguage => self.run_domain_language(&store, request, policy_set),
+            Mode::DomainModel => self.run_domain_model(&store, request, policy_set),
         }
     }
 
@@ -1248,6 +1252,30 @@ impl EngineService {
                 contract,
                 &artifact_inputs,
                 gatekeeper::SecurityAssessmentGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::DomainLanguage => gatekeeper::evaluate_domain_language_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::DomainLanguageGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
+            Mode::DomainModel => gatekeeper::evaluate_domain_model_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::DomainModelGateContext {
                     owner: &manifest.owner,
                     risk: manifest.risk,
                     zone: manifest.zone,
@@ -2702,6 +2730,8 @@ fn canonical_mode_input_binding(mode: Mode) -> Option<(&'static str, &'static st
         Mode::SecurityAssessment => Some(("security-assessment.md", "security-assessment")),
         Mode::SupplyChainAnalysis => Some(("supply-chain-analysis.md", "supply-chain-analysis")),
         Mode::Refactor => Some(("refactor.md", "refactor")),
+        Mode::DomainLanguage => Some(("domain-language.md", "domain-language")),
+        Mode::DomainModel => Some(("domain-model.md", "domain-model")),
         _ => None,
     }
 }

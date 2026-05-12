@@ -45,7 +45,9 @@ pub(crate) fn resolved_execution_posture_label_for_mode(
         | Mode::Migration
         | Mode::SystemAssessment
         | Mode::SecurityAssessment
-        | Mode::SupplyChainAnalysis => Some("recommendation-only".to_string()),
+        | Mode::SupplyChainAnalysis
+        | Mode::DomainLanguage
+        | Mode::DomainModel => Some("recommendation-only".to_string()),
         _ => None,
     })
 }

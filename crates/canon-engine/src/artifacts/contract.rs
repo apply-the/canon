@@ -864,6 +864,145 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
             ),
         ],
+        Mode::DomainLanguage => vec![
+            requirement(
+                "language-overview.md",
+                &[
+                    "Summary",
+                    "Domain Scope",
+                    "Language Maturity",
+                    "Upstream Sources",
+                    "Downstream Consumers",
+                ],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "domain-glossary.md",
+                &["Summary", "Glossary Entries", "Source References", "Open Gaps"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "preferred-language.md",
+                &["Summary", "Canonical Terms", "Deprecated Synonyms", "Migration Notes"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "language-conflicts.md",
+                &["Summary", "Conflict Inventory", "Resolution Status", "Escalation Triggers"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "contextual-meanings.md",
+                &["Summary", "Context-Dependent Terms", "Disambiguation Rules", "Usage Examples"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "business-language-rules.md",
+                &["Summary", "Naming Conventions", "Domain Boundaries", "Enforcement Guidance"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "code-and-api-vocabulary.md",
+                &["Summary", "Code Naming Patterns", "API Surface Terms", "Alignment Gaps"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "downstream-language-guidance.md",
+                &["Summary", "Consumer Modes", "Handoff Expectations", "Adoption Risks"],
+                &[GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "language-decision-record.md",
+                &[
+                    "Summary",
+                    "Decision Drivers",
+                    "Options Considered",
+                    "Decision Evidence",
+                    "Recommendation",
+                    "Consequences",
+                ],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "ai-provenance.md",
+                &["Summary", "Generation Lineage", "Human Authored Sections", "Confidence Posture"],
+                &[GateKind::ReleaseReadiness],
+            ),
+        ],
+        Mode::DomainModel => vec![
+            requirement(
+                "model-overview.md",
+                &[
+                    "Summary",
+                    "Domain Scope",
+                    "Model Maturity",
+                    "Upstream Sources",
+                    "Downstream Consumers",
+                ],
+                &[GateKind::Risk, GateKind::Architecture],
+            ),
+            requirement(
+                "concept-catalog.md",
+                &["Summary", "Concepts", "Ownership Boundaries", "Open Gaps"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "relationship-map.md",
+                &["Summary", "Relationships", "Cardinality Rules", "Boundary Crossings"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "bounded-context-map.md",
+                &["Summary", "Bounded Contexts", "Context Relationships", "Integration Seams"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "lifecycle-and-state-model.md",
+                &["Summary", "Entity Lifecycles", "State Transitions", "Invariant Guards"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "domain-invariants.md",
+                &["Summary", "Invariants", "Enforcement Points", "Violation Consequences"],
+                &[GateKind::Architecture, GateKind::Risk],
+            ),
+            requirement(
+                "policy-and-constraint-rules.md",
+                &["Summary", "Business Policies", "Constraint Rules", "Exception Handling"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "feature-impact-rules.md",
+                &["Summary", "Impact Rules", "Affected Concepts", "Downstream Effects"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "code-data-alignment.md",
+                &["Summary", "Code Mapping", "Data Store Mapping", "Alignment Gaps"],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "model-gaps-and-risks.md",
+                &["Summary", "Model Gaps", "Risk Signals", "Recommended Follow-Ups"],
+                &[GateKind::Risk, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "downstream-model-guidance.md",
+                &["Summary", "Consumer Modes", "Handoff Expectations", "Adoption Risks"],
+                &[GateKind::ReleaseReadiness],
+            ),
+            requirement_with_format(
+                "domain-model.json",
+                ArtifactFormat::Json,
+                &[],
+                &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement(
+                "ai-provenance.md",
+                &["Summary", "Generation Lineage", "Human Authored Sections", "Confidence Posture"],
+                &[GateKind::ReleaseReadiness],
+            ),
+        ],
     };
 
     let prefixed_files = files

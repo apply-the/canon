@@ -381,7 +381,9 @@ pub(crate) fn authored_clarity_family(mode: Mode) -> AuthoredClarityFamily {
         | Mode::Verification
         | Mode::Incident
         | Mode::SecurityAssessment
-        | Mode::SystemAssessment => AuthoredClarityFamily::Assessment,
+        | Mode::SystemAssessment
+        | Mode::DomainLanguage
+        | Mode::DomainModel => AuthoredClarityFamily::Assessment,
         Mode::Requirements | Mode::Discovery | Mode::PrReview | Mode::SupplyChainAnalysis => {
             AuthoredClarityFamily::Planning
         }

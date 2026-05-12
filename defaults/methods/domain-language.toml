@@ -1,0 +1,17 @@
+version = 1
+mode = "domain-language"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Risk", "Architecture", "ReleaseReadiness"]
+artifacts = [
+    "language-overview.md",
+    "domain-glossary.md",
+    "preferred-language.md",
+    "language-conflicts.md",
+    "contextual-meanings.md",
+    "business-language-rules.md",
+    "code-and-api-vocabulary.md",
+    "downstream-language-guidance.md",
+    "language-decision-record.md",
+    "ai-provenance.md",
+]

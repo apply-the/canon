@@ -1,0 +1,20 @@
+version = 1
+mode = "domain-model"
+emphasis = "analysis-heavy"
+implementation_depth = "full"
+gate_profile = ["Risk", "Architecture", "ReleaseReadiness"]
+artifacts = [
+    "model-overview.md",
+    "concept-catalog.md",
+    "relationship-map.md",
+    "bounded-context-map.md",
+    "lifecycle-and-state-model.md",
+    "domain-invariants.md",
+    "policy-and-constraint-rules.md",
+    "feature-impact-rules.md",
+    "code-data-alignment.md",
+    "model-gaps-and-risks.md",
+    "downstream-model-guidance.md",
+    "domain-model.json",
+    "ai-provenance.md",
+]
