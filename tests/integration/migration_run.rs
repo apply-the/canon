@@ -108,16 +108,16 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
             .iter()
             .any(|target| target.as_str() == Some("gate:risk")))
     );
-    assert!(artifact_root.join("source-target-map.md").exists());
-    assert!(artifact_root.join("compatibility-matrix.md").exists());
-    assert!(artifact_root.join("fallback-plan.md").exists());
+    assert!(artifact_root.join("01-source-target-map.md").exists());
+    assert!(artifact_root.join("02-compatibility-matrix.md").exists());
+    assert!(artifact_root.join("04-fallback-plan.md").exists());
 
-    let compatibility =
-        fs::read_to_string(artifact_root.join("compatibility-matrix.md")).expect("compatibility");
+    let compatibility = fs::read_to_string(artifact_root.join("02-compatibility-matrix.md"))
+        .expect("compatibility");
     assert!(compatibility.contains("## Options Matrix"));
 
     let fallback_plan =
-        fs::read_to_string(artifact_root.join("fallback-plan.md")).expect("fallback plan");
+        fs::read_to_string(artifact_root.join("04-fallback-plan.md")).expect("fallback plan");
     assert!(
         fallback_plan.contains(
             "## Rollback Triggers\n\n- token validation failures or elevated login errors"
@@ -128,7 +128,7 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
     assert!(!fallback_plan.contains("## Missing Authored Body"));
 
     let decision_record =
-        fs::read_to_string(artifact_root.join("decision-record.md")).expect("decision record");
+        fs::read_to_string(artifact_root.join("06-decision-record.md")).expect("decision record");
     assert!(decision_record.contains("## Tradeoff Analysis"));
     assert!(decision_record.contains("## Decision Evidence"));
     assert!(decision_record.contains("## Recommendation"));
@@ -177,7 +177,7 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
             .join("docs")
             .join("migrations")
             .join(default_publish_leaf(run_id, "migration"))
-            .join("source-target-map.md")
+            .join("01-source-target-map.md")
             .exists()
     );
 }
@@ -222,7 +222,7 @@ fn run_migration_blocks_when_a_required_authored_section_is_missing() {
     assert_eq!(json["blocking_classification"], "artifact-blocked");
 
     let fallback_plan =
-        fs::read_to_string(artifact_root.join("fallback-plan.md")).expect("fallback plan");
+        fs::read_to_string(artifact_root.join("04-fallback-plan.md")).expect("fallback plan");
     assert!(fallback_plan.contains("## Missing Authored Body"));
     assert!(fallback_plan.contains("`## Rollback Triggers`"));
 }

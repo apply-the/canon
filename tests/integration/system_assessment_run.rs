@@ -118,13 +118,14 @@ fn run_system_assessment_emits_an_as_is_packet_and_publishes_after_risk_approval
     assert!(json["approval_targets"].as_array().is_some_and(|targets| {
         targets.iter().any(|target| target.as_str() == Some("gate:risk"))
     }));
-    assert!(artifact_root.join("assessment-overview.md").exists());
-    assert!(artifact_root.join("coverage-map.md").exists());
-    assert!(artifact_root.join("component-view.md").exists());
-    assert!(artifact_root.join("integration-view.md").exists());
-    assert!(artifact_root.join("assessment-evidence.md").exists());
+    assert!(artifact_root.join("01-assessment-overview.md").exists());
+    assert!(artifact_root.join("02-coverage-map.md").exists());
+    assert!(artifact_root.join("05-component-view.md").exists());
+    assert!(artifact_root.join("08-integration-view.md").exists());
+    assert!(artifact_root.join("10-assessment-evidence.md").exists());
 
-    let coverage = fs::read_to_string(artifact_root.join("coverage-map.md")).expect("coverage map");
+    let coverage =
+        fs::read_to_string(artifact_root.join("02-coverage-map.md")).expect("coverage map");
     assert!(coverage.contains("## Assessed Views"));
 
     cli_command()
@@ -166,7 +167,7 @@ fn run_system_assessment_emits_an_as_is_packet_and_publishes_after_risk_approval
             .join("architecture")
             .join("assessments")
             .join(default_publish_leaf(run_id, "system-assessment"))
-            .join("assessment-overview.md")
+            .join("01-assessment-overview.md")
             .exists()
     );
 }
@@ -212,7 +213,7 @@ fn run_system_assessment_blocks_when_a_required_authored_section_is_missing() {
     assert_eq!(json["blocking_classification"], "artifact-blocked");
 
     let integration_view =
-        fs::read_to_string(artifact_root.join("integration-view.md")).expect("integration view");
+        fs::read_to_string(artifact_root.join("08-integration-view.md")).expect("integration view");
     assert!(integration_view.contains("## Missing Authored Body"));
     assert!(integration_view.contains("`## Trust And Failure Boundaries`"));
 }

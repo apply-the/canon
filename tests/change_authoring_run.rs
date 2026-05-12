@@ -151,7 +151,7 @@ fn change_run_completes_with_authored_sections_and_no_missing_marker() {
             .join("artifacts")
             .join(&summary.run_id)
             .join("change")
-            .join("implementation-plan.md"),
+            .join("04-implementation-plan.md"),
     )
     .expect("implementation plan");
     assert!(implementation_plan.contains("## Implementation Plan\n\nAdd bounded repository methods and preserve the public auth contract."));
@@ -164,7 +164,7 @@ fn change_run_completes_with_authored_sections_and_no_missing_marker() {
             .join("artifacts")
             .join(&summary.run_id)
             .join("change")
-            .join("decision-record.md"),
+            .join("06-decision-record.md"),
     )
     .expect("decision record");
     assert!(decision_record.contains("## Decision Drivers"));
@@ -195,7 +195,7 @@ fn change_run_blocks_with_missing_body_marker_when_required_heading_is_absent() 
             .join("artifacts")
             .join(&summary.run_id)
             .join("change")
-            .join("change-surface.md"),
+            .join("03-change-surface.md"),
     )
     .expect("change surface");
     assert!(change_surface.contains("## Missing Authored Body"));

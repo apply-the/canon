@@ -84,7 +84,7 @@ fn run_requirements_persists_a_run_contract_and_artifact_bundle() {
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/requirements/problem-statement.md"))
+            .is_some_and(|value| value.ends_with("/requirements/01-problem-statement.md"))
     );
     assert!(json["recommended_next_action"].is_null());
 
@@ -122,12 +122,12 @@ fn run_requirements_persists_a_run_contract_and_artifact_bundle() {
     );
 
     for artifact in [
-        "problem-statement.md",
-        "constraints.md",
-        "options.md",
-        "tradeoffs.md",
-        "scope-cuts.md",
-        "decision-checklist.md",
+        "01-problem-statement.md",
+        "02-constraints.md",
+        "03-options.md",
+        "04-tradeoffs.md",
+        "05-scope-cuts.md",
+        "06-decision-checklist.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -244,7 +244,7 @@ fn run_requirements_expands_directory_inputs_into_snapshotted_files() {
             .join("artifacts")
             .join(run_id)
             .join("requirements")
-            .join("problem-statement.md"),
+            .join("01-problem-statement.md"),
     )
     .expect("problem statement");
 

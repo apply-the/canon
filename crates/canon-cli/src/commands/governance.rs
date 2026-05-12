@@ -1356,7 +1356,7 @@ Preserve authored decision and option-analysis sections directly in the existing
         assert_eq!(response["packet_readiness"], json!("rejected"));
         assert_eq!(response["reason_code"], json!("rejected_packet"));
         assert!(response["missing_sections"].as_array().is_some_and(|sections| {
-            sections.iter().any(|section| section == "problem-statement.md")
+            sections.iter().any(|section| section == "01-problem-statement.md")
         }));
     }
 

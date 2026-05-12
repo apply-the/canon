@@ -123,7 +123,7 @@ fn discovery_run_completes_with_authored_sections_and_no_missing_marker() {
             .join("artifacts")
             .join(&summary.run_id)
             .join("discovery")
-            .join("problem-map.md"),
+            .join("01-problem-map.md"),
     )
     .expect("problem map");
     assert!(
@@ -154,7 +154,7 @@ fn discovery_run_blocks_with_missing_body_marker_when_required_heading_is_absent
             .join("artifacts")
             .join(&summary.run_id)
             .join("discovery")
-            .join("problem-map.md"),
+            .join("01-problem-map.md"),
     )
     .expect("problem map");
     assert!(problem_map.contains("## Missing Authored Body"));

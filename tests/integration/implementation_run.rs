@@ -260,17 +260,17 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
         )
     );
 
-    assert!(artifact_root.join("task-mapping.md").exists());
-    assert!(artifact_root.join("mutation-bounds.md").exists());
-    assert!(artifact_root.join("validation-hooks.md").exists());
+    assert!(artifact_root.join("01-task-mapping.md").exists());
+    assert!(artifact_root.join("02-mutation-bounds.md").exists());
+    assert!(artifact_root.join("05-validation-hooks.md").exists());
 
-    let task_mapping =
-        fs::read_to_string(artifact_root.join("task-mapping.md")).expect("task mapping artifact");
+    let task_mapping = fs::read_to_string(artifact_root.join("01-task-mapping.md"))
+        .expect("task mapping artifact");
     assert!(task_mapping.contains("## Task Mapping"));
     assert!(task_mapping.contains("Add bounded auth session repository helpers."));
     assert!(task_mapping.contains("## Bounded Changes"));
 
-    let implementation_notes = fs::read_to_string(artifact_root.join("implementation-notes.md"))
+    let implementation_notes = fs::read_to_string(artifact_root.join("03-implementation-notes.md"))
         .expect("implementation notes artifact");
     assert!(implementation_notes.contains("## Executed Changes"));
     assert!(implementation_notes.contains("## Candidate Frameworks"));
@@ -282,15 +282,15 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
             .contains("thread it through the revocation service without widening the public API")
     );
 
-    let completion_evidence = fs::read_to_string(artifact_root.join("completion-evidence.md"))
+    let completion_evidence = fs::read_to_string(artifact_root.join("04-completion-evidence.md"))
         .expect("completion evidence artifact");
     assert!(completion_evidence.contains("## Adoption Implications"));
 
-    let validation_hooks = fs::read_to_string(artifact_root.join("validation-hooks.md"))
+    let validation_hooks = fs::read_to_string(artifact_root.join("05-validation-hooks.md"))
         .expect("validation hooks artifact");
     assert!(validation_hooks.contains("## Ecosystem Health"));
 
-    let rollback_notes = fs::read_to_string(artifact_root.join("rollback-notes.md"))
+    let rollback_notes = fs::read_to_string(artifact_root.join("06-rollback-notes.md"))
         .expect("rollback notes artifact");
     assert!(rollback_notes.contains("## Rollback Steps"));
     assert!(rollback_notes.contains("Restore the last known-good audit ordering snapshot."));
@@ -417,7 +417,7 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
             .join("docs")
             .join("implementation")
             .join(default_publish_leaf(run_id, "implementation"))
-            .join("task-mapping.md")
+            .join("01-task-mapping.md")
             .exists()
     );
 }
@@ -463,7 +463,7 @@ fn implementation_run_emits_missing_body_marker_for_absent_canonical_heading() {
             .join("artifacts")
             .join(run_id)
             .join("implementation")
-            .join("rollback-notes.md"),
+            .join("06-rollback-notes.md"),
     )
     .expect("rollback notes artifact");
 
@@ -558,7 +558,7 @@ fn systemic_implementation_run_remains_recommendation_only_and_publishable() {
             .join("docs")
             .join("implementation")
             .join(default_publish_leaf(run_id, "implementation"))
-            .join("task-mapping.md")
+            .join("01-task-mapping.md")
             .exists()
     );
 }

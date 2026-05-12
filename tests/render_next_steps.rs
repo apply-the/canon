@@ -149,7 +149,7 @@ fn completed_renderers_do_not_force_evidence_follow_up() {
         "- None. The run result is already readable for run run-789.\n",
         "\n",
         "Possible Actions:\n",
-        "- Open the primary artifact at .canon/artifacts/run-789/requirements/problem-statement.md directly when your host supports it.\n",
+        "- Open the primary artifact at .canon/artifacts/run-789/requirements/01-problem-statement.md directly when your host supports it.\n",
         "- Use $canon-inspect-artifacts for the full emitted packet on run run-789.\n",
         "- Use $canon-inspect-evidence only if you need lineage or policy rationale for run run-789.\n"
     );
@@ -158,7 +158,7 @@ fn completed_renderers_do_not_force_evidence_follow_up() {
         "status-completed",
         "run-789",
         "",
-        ".canon/artifacts/run-789/requirements/problem-statement.md",
+        ".canon/artifacts/run-789/requirements/01-problem-statement.md",
     );
     assert_eq!(shell_output, expected);
 
@@ -166,7 +166,7 @@ fn completed_renderers_do_not_force_evidence_follow_up() {
         "status-completed",
         "run-789",
         "",
-        ".canon/artifacts/run-789/requirements/problem-statement.md",
+        ".canon/artifacts/run-789/requirements/01-problem-statement.md",
     ) {
         assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
     }
@@ -179,7 +179,7 @@ fn completed_renderers_handle_backlog_primary_artifacts_for_handoff() {
         "- None. The run result is already readable for run run-backlog.\n",
         "\n",
         "Possible Actions:\n",
-        "- Open the primary artifact at .canon/artifacts/run-backlog/backlog/backlog-overview.md directly when your host supports it.\n",
+        "- Open the primary artifact at .canon/artifacts/run-backlog/backlog/01-backlog-overview.md directly when your host supports it.\n",
         "- Use $canon-inspect-artifacts for the full emitted packet on run run-backlog.\n",
         "- Use $canon-inspect-evidence only if you need lineage or policy rationale for run run-backlog.\n"
     );
@@ -188,7 +188,7 @@ fn completed_renderers_handle_backlog_primary_artifacts_for_handoff() {
         "status-completed",
         "run-backlog",
         "",
-        ".canon/artifacts/run-backlog/backlog/backlog-overview.md",
+        ".canon/artifacts/run-backlog/backlog/01-backlog-overview.md",
     );
     assert_eq!(shell_output, expected);
 
@@ -196,7 +196,7 @@ fn completed_renderers_handle_backlog_primary_artifacts_for_handoff() {
         "status-completed",
         "run-backlog",
         "",
-        ".canon/artifacts/run-backlog/backlog/backlog-overview.md",
+        ".canon/artifacts/run-backlog/backlog/01-backlog-overview.md",
     ) {
         assert_eq!(powershell_output.replace("\r\n", "\n"), expected);
     }

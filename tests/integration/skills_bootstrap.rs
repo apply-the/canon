@@ -315,8 +315,8 @@ fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
         "skills install should materialize the current embedded runtime compatibility reference"
     );
     assert!(
-        installed.contains("expected_workspace_version = \"0.45.0\""),
-        "skills install should carry the 0.45.0 runtime compatibility expectation"
+        installed.contains("expected_workspace_version = \"0.46.0\""),
+        "skills install should carry the 0.46.0 runtime compatibility expectation"
     );
 }
 
@@ -685,7 +685,7 @@ fn discovery_preflight_rejects_inputs_under_canon_artifacts() {
         .join("artifacts")
         .join("seed-run")
         .join("discovery")
-        .join("decision-pressure-points.md");
+        .join("05-decision-pressure-points.md");
     std::fs::create_dir_all(generated_input.parent().expect("artifact parent"))
         .expect("artifact dir");
     std::fs::write(
@@ -733,7 +733,7 @@ fn discovery_preflight_rejects_inputs_under_canon_artifacts() {
             "--zone",
             "green",
             "--input",
-            ".canon/artifacts/seed-run/discovery/decision-pressure-points.md",
+            ".canon/artifacts/seed-run/discovery/05-decision-pressure-points.md",
         ])
         .env("PATH", path)
         .current_dir(workspace.path())

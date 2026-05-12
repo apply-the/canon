@@ -8,7 +8,7 @@ fn discovery_contract_uses_repo_surface_for_problem_map() {
     let problem_map = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "problem-map.md")
+        .find(|requirement| requirement.slug() == "problem-map.md")
         .expect("problem map requirement");
 
     assert_eq!(
@@ -30,7 +30,7 @@ fn discovery_contract_preserves_context_boundary_shape() {
     let context_boundary = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "context-boundary.md")
+        .find(|requirement| requirement.slug() == "context-boundary.md")
         .expect("context boundary requirement");
 
     assert_eq!(

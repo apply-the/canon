@@ -1,11 +1,12 @@
 {
   "entries": [
-    "constraints.md",
-    "decision-checklist.md",
-    "options.md",
-    "problem-statement.md",
-    "scope-cuts.md",
-    "tradeoffs.md"
+    "01-problem-statement.md",
+    "02-constraints.md",
+    "03-options.md",
+    "04-tradeoffs.md",
+    "05-scope-cuts.md",
+    "06-decision-checklist.md",
+    "07-prd.md"
   ],
   "target": "artifacts"
 }

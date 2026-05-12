@@ -89,7 +89,7 @@ fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
     let names = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
     assert_eq!(
         names,
@@ -108,7 +108,7 @@ fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
         .iter()
         .map(|requirement| {
             (
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
                 requirement.gates.clone(),
             )
@@ -169,7 +169,9 @@ fn system_shaping_architecture_gate_blocks_when_required_artifacts_are_missing()
     let contract = contract_for_mode(Mode::SystemShaping);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "domain-model.md")
+        .filter(|(file_name, _)| {
+            canon_engine::domain::artifact::artifact_slug(file_name) != "domain-model.md"
+        })
         .collect::<Vec<_>>();
 
     let gates = evaluate_system_shaping_gates(

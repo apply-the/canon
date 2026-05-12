@@ -218,16 +218,16 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/system-shaping/system-shape.md"))
+            .is_some_and(|value| value.ends_with("/system-shaping/01-system-shape.md"))
     );
 
     for artifact in [
-        "system-shape.md",
-        "domain-model.md",
-        "architecture-outline.md",
-        "capability-map.md",
-        "delivery-options.md",
-        "risk-hotspots.md",
+        "01-system-shape.md",
+        "02-domain-model.md",
+        "03-architecture-outline.md",
+        "04-capability-map.md",
+        "05-delivery-options.md",
+        "06-risk-hotspots.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -273,7 +273,7 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
     assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("System Shape"));
 
     let domain_model =
-        fs::read_to_string(artifact_root.join("domain-model.md")).expect("domain model");
+        fs::read_to_string(artifact_root.join("02-domain-model.md")).expect("domain model");
     assert!(domain_model.starts_with("# Domain Model\n\n## Summary\n\nIntent:"));
     assert!(domain_model.contains("## Candidate Bounded Contexts"));
     assert!(domain_model.contains("## Core And Supporting Domain Hypotheses"));
@@ -287,7 +287,7 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
         "domain-model.md should render canonical sections instead of dumping the full authored brief"
     );
 
-    let architecture_outline = fs::read_to_string(artifact_root.join("architecture-outline.md"))
+    let architecture_outline = fs::read_to_string(artifact_root.join("03-architecture-outline.md"))
         .expect("architecture outline");
     assert!(architecture_outline.contains("## Structural Options"));
     assert!(architecture_outline.contains(
@@ -306,7 +306,7 @@ fn run_system_shaping_persists_completed_artifacts_and_validation_evidence() {
     ));
 
     let risk_hotspots =
-        fs::read_to_string(artifact_root.join("risk-hotspots.md")).expect("risk hotspots");
+        fs::read_to_string(artifact_root.join("06-risk-hotspots.md")).expect("risk hotspots");
     assert!(risk_hotspots.contains("## Mitigation Status"));
     assert!(
         risk_hotspots
@@ -354,7 +354,7 @@ fn run_system_shaping_emits_missing_body_marker_for_absent_canonical_heading() {
             .join("artifacts")
             .join(run_id)
             .join("system-shaping")
-            .join("architecture-outline.md"),
+            .join("03-architecture-outline.md"),
     )
     .expect("architecture outline");
 

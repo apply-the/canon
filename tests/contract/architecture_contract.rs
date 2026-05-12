@@ -94,7 +94,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let names = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
     assert_eq!(
         names,
@@ -124,7 +124,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let overview = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "architecture-overview.md")
+        .find(|requirement| requirement.slug() == "architecture-overview.md")
         .expect("architecture overview requirement");
     assert_eq!(
         overview.required_sections,
@@ -143,7 +143,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let context_map = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "context-map.md")
+        .find(|requirement| requirement.slug() == "context-map.md")
         .expect("context map requirement");
     assert_eq!(
         context_map.required_sections,
@@ -162,7 +162,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let decisions = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "architecture-decisions.md")
+        .find(|requirement| requirement.slug() == "architecture-decisions.md")
         .expect("architecture decisions requirement");
     assert_eq!(
         decisions.required_sections,
@@ -180,7 +180,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let tradeoff_matrix = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "tradeoff-matrix.md")
+        .find(|requirement| requirement.slug() == "tradeoff-matrix.md")
         .expect("tradeoff matrix requirement");
     assert_eq!(
         tradeoff_matrix.required_sections,
@@ -198,7 +198,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let manifest = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "view-manifest.json")
+        .find(|requirement| requirement.slug() == "view-manifest.json")
         .expect("view manifest requirement");
     assert!(manifest.required_sections.is_empty());
     assert_eq!(manifest.gates, vec![GateKind::ReleaseReadiness]);
@@ -207,7 +207,7 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
     let component_view = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "component-view.md")
+        .find(|requirement| requirement.slug() == "component-view.md")
         .expect("component view requirement");
     assert!(!component_view.required);
 }
@@ -217,7 +217,9 @@ fn architecture_gate_blocks_when_required_decision_artifacts_are_missing() {
     let contract = contract_for_mode(Mode::Architecture);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "context-map.md")
+        .filter(|(file_name, _)| {
+            canon_engine::domain::artifact::artifact_slug(file_name) != "context-map.md"
+        })
         .collect::<Vec<_>>();
 
     let gates = evaluate_architecture_gates(

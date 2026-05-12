@@ -121,7 +121,9 @@ fn supply_chain_analysis_direct_run_exercises_service_summary_and_publish_paths(
             .contains("2 ecosystem set(s), 3 finding set(s), and 2 modernization slice set(s)")
     );
     assert!(
-        mode_result.primary_artifact_path.ends_with("supply-chain-analysis/analysis-overview.md")
+        mode_result
+            .primary_artifact_path
+            .ends_with("supply-chain-analysis/01-analysis-overview.md")
     );
 
     let published = service
@@ -132,8 +134,12 @@ fn supply_chain_analysis_direct_run_exercises_service_summary_and_publish_paths(
     assert!(published.published_files.iter().any(|path| path.ends_with("analysis-overview.md")));
     assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 
-    let published_overview =
-        workspace.path().join("docs").join("supply-chain").join(&leaf).join("analysis-overview.md");
+    let published_overview = workspace
+        .path()
+        .join("docs")
+        .join("supply-chain")
+        .join(&leaf)
+        .join("01-analysis-overview.md");
     assert!(published_overview.exists());
     let overview_contents = fs::read_to_string(published_overview).expect("published overview");
     assert!(overview_contents.contains("## Declared Scope"));
@@ -195,7 +201,7 @@ fn supply_chain_analysis_direct_run_exposes_blocked_gate_and_missing_body_marker
             .join("artifacts")
             .join(&summary.run_id)
             .join("supply-chain-analysis")
-            .join("license-compliance.md"),
+            .join("04-license-compliance.md"),
     )
     .expect("license compliance artifact");
     assert!(license.contains("## Missing Authored Body"));
@@ -235,7 +241,7 @@ fn supply_chain_analysis_direct_run_surfaces_missing_authored_decision_markers()
             .join("artifacts")
             .join(&summary.run_id)
             .join("supply-chain-analysis")
-            .join("analysis-overview.md"),
+            .join("01-analysis-overview.md"),
     )
     .expect("analysis overview");
     assert!(overview.contains("## Missing Authored Decision"));
@@ -268,7 +274,7 @@ fn supply_chain_analysis_direct_run_derives_coverage_gap_from_skipped_scanner_de
             .join("artifacts")
             .join(&summary.run_id)
             .join("supply-chain-analysis")
-            .join("policy-decisions.md"),
+            .join("06-policy-decisions.md"),
     )
     .expect("policy decisions artifact");
     assert!(policy.contains("Coverage gap derived from recorded scanner decisions"));

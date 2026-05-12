@@ -92,9 +92,9 @@ fn run_refactor_blocks_when_preservation_and_feature_audit_inputs_are_missing() 
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("refactor");
     let preserved_behavior =
-        fs::read_to_string(artifact_root.join("preserved-behavior.md")).expect("artifact");
+        fs::read_to_string(artifact_root.join("01-preserved-behavior.md")).expect("artifact");
     let no_feature_addition =
-        fs::read_to_string(artifact_root.join("no-feature-addition.md")).expect("artifact");
+        fs::read_to_string(artifact_root.join("06-no-feature-addition.md")).expect("artifact");
 
     assert_eq!(json["state"], "Blocked");
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
@@ -104,8 +104,8 @@ fn run_refactor_blocks_when_preservation_and_feature_audit_inputs_are_missing() 
             .as_str()
             .is_some_and(|value| value.contains("missing-context marker"))
     );
-    assert!(artifact_root.join("preserved-behavior.md").exists());
-    assert!(artifact_root.join("no-feature-addition.md").exists());
+    assert!(artifact_root.join("01-preserved-behavior.md").exists());
+    assert!(artifact_root.join("06-no-feature-addition.md").exists());
     assert!(preserved_behavior.contains("## Missing Authored Body"));
     assert!(preserved_behavior.contains("Preserved Behavior"));
     assert!(no_feature_addition.contains("## Missing Authored Body"));

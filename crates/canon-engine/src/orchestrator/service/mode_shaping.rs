@@ -1,5 +1,6 @@
 use super::EngineService;
 use super::*;
+use crate::domain::artifact::artifact_slug;
 
 impl EngineService {
     pub(super) fn run_system_shaping(
@@ -439,7 +440,7 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: match requirement.file_name.as_str() {
+                contents: match artifact_slug(&requirement.file_name) {
                     "view-manifest.json" => view_manifest_contents.clone(),
                     "packet-metadata.json" => packet_metadata_contents.clone(),
                     _ => render_architecture_artifact(
@@ -634,7 +635,7 @@ fn build_architecture_view_manifest(
         );
         let included = selected_artifact_names
             .iter()
-            .any(|file_name| file_name == markdown_artifact);
+            .any(|file_name| artifact_slug(file_name) == markdown_artifact);
 
         serde_json::json!({
             "view": view,
@@ -689,7 +690,9 @@ fn build_architecture_packet_metadata(
         "dynamic-view.md",
     ]
     .into_iter()
-    .filter(|file_name| selected_artifact_names.iter().any(|selected| selected == file_name))
+    .filter(|file_name| {
+        selected_artifact_names.iter().any(|selected| artifact_slug(selected) == *file_name)
+    })
     .map(|file_name| serde_json::Value::String(architecture_view_heading(file_name).to_string()))
     .collect::<Vec<_>>();
 
@@ -724,7 +727,7 @@ fn build_architecture_packet_metadata(
 }
 
 fn architecture_view_heading(file_name: &str) -> &'static str {
-    match file_name {
+    match artifact_slug(file_name) {
         "system-context.md" => "System Context",
         "container-view.md" => "Containers",
         "deployment-view.md" => "Deployment",

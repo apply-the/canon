@@ -97,7 +97,7 @@ fn discovery_contract_matches_spec_artifact_names_sections_and_gates() {
     let names = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
     assert_eq!(
         names,
@@ -113,7 +113,7 @@ fn discovery_contract_matches_spec_artifact_names_sections_and_gates() {
     let problem_map = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "problem-map.md")
+        .find(|requirement| requirement.slug() == "problem-map.md")
         .expect("problem map requirement");
     assert_eq!(
         problem_map.required_sections,
@@ -133,7 +133,9 @@ fn discovery_gate_blocks_when_bounded_problem_artifacts_are_missing() {
     let contract = contract_for_mode(Mode::Discovery);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "context-boundary.md")
+        .filter(|(file_name, _)| {
+            canon_engine::domain::artifact::artifact_slug(file_name) != "context-boundary.md"
+        })
         .collect::<Vec<_>>();
 
     let gates = evaluate_discovery_gates(
@@ -253,11 +255,11 @@ fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
     let actual_paths =
         entries.iter().map(|entry| entry.as_str().expect("artifact path")).collect::<Vec<_>>();
     let expected_paths = vec![
-        format!(".canon/artifacts/{run_id}/discovery/context-boundary.md"),
-        format!(".canon/artifacts/{run_id}/discovery/decision-pressure-points.md"),
-        format!(".canon/artifacts/{run_id}/discovery/exploration-options.md"),
-        format!(".canon/artifacts/{run_id}/discovery/problem-map.md"),
-        format!(".canon/artifacts/{run_id}/discovery/unknowns-and-assumptions.md"),
+        format!(".canon/artifacts/{run_id}/discovery/01-problem-map.md"),
+        format!(".canon/artifacts/{run_id}/discovery/02-unknowns-and-assumptions.md"),
+        format!(".canon/artifacts/{run_id}/discovery/03-context-boundary.md"),
+        format!(".canon/artifacts/{run_id}/discovery/04-exploration-options.md"),
+        format!(".canon/artifacts/{run_id}/discovery/05-decision-pressure-points.md"),
     ];
     assert_eq!(actual_paths, expected_paths);
 

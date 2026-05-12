@@ -1,3 +1,4 @@
+use crate::domain::artifact::artifact_slug;
 use crate::domain::run::BacklogPlanningContext;
 use crate::orchestrator::service::context_parse::truncate_context_excerpt;
 use crate::review::findings::{FindingCategory, ReviewFinding, ReviewPacket};
@@ -16,6 +17,7 @@ pub fn render_markdown(title: &str, summary: &str) -> String {
 }
 
 pub fn render_requirements_artifact(file_name: &str, idea_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     match file_name {
         "problem-statement.md" => format!(
             "# Problem Statement\n\n## Summary\n\n{idea_summary}\n\n## Problem\n\nThe team needs a bounded statement of work before AI-assisted generation expands the solution space.\n\n## Boundary\n\nThis run is limited to framing the problem, constraints, and decision surface for the proposed change.\n\n## Success Signal\n\nStakeholders can decide whether to proceed using explicit constraints, exclusions, and recorded tradeoffs.\n"
@@ -50,6 +52,7 @@ pub fn render_requirements_artifact_from_evidence(
     _critique_summary: &str,
     _denied_summary: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     match file_name {
         "problem-statement.md" => render_authored_artifact(
             "Problem Statement",
@@ -129,6 +132,7 @@ pub fn render_requirements_artifact_from_evidence(
 }
 
 pub fn render_discovery_artifact(file_name: &str, brief_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let problem =
         extract_authored_h2_section(brief_summary, "Problem Domain", &[]).unwrap_or_else(|| {
             "NOT CAPTURED - No `## Problem Domain` section was authored in the supplied brief."
@@ -214,6 +218,7 @@ pub fn render_system_shaping_artifact(
     _generation_summary: &str,
     _critique_summary: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = context_summary.to_lowercase();
     let intent = extract_marker(context_summary, &normalized, "intent");
     let constraint = extract_marker(context_summary, &normalized, "constraint")
@@ -312,6 +317,7 @@ pub fn render_architecture_artifact(
     generation_summary: &str,
     critique_summary: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = context_summary.to_lowercase();
     let decision_focus = extract_marker(context_summary, &normalized, "decision focus")
         .or_else(|| extract_authored_h2_section(context_summary, "Decision", &[]))
@@ -439,6 +445,7 @@ pub fn render_architecture_artifact(
 }
 
 pub fn architecture_artifact_enabled(file_name: &str, context_summary: &str) -> bool {
+    let file_name = artifact_slug(file_name);
     match file_name {
         "component-view.md" | "component-view.mmd" => {
             architecture_view_authored(file_name, context_summary)
@@ -785,6 +792,7 @@ fn is_matching_h2_heading(line: &str, marker: &str) -> bool {
 }
 
 fn architecture_view_heading(file_name: &str) -> (&'static str, &'static [&'static str]) {
+    let file_name = artifact_slug(file_name);
     match file_name {
         "system-context.md" | "system-context.mmd" => ("System Context", &[]),
         "container-view.md" | "container-view.mmd" => ("Containers", &[]),
@@ -800,6 +808,7 @@ fn architecture_view_heading(file_name: &str) -> (&'static str, &'static [&'stat
 }
 
 pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owner: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let system_slice = extract_marker(brief_summary, &normalized, "system slice")
         .unwrap_or("Map the bounded subsystem before change planning.".to_string());
@@ -895,6 +904,7 @@ pub fn render_change_artifact(file_name: &str, brief_summary: &str, default_owne
 }
 
 pub fn render_incident_artifact(file_name: &str, brief_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let incident_scope = extract_authored_section_or_marker(
         brief_summary,
@@ -987,6 +997,7 @@ pub fn render_incident_artifact(file_name: &str, brief_summary: &str) -> String 
 }
 
 pub fn render_security_assessment_artifact(file_name: &str, brief_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let assessment_scope = extract_authored_section_or_marker(
         brief_summary,
@@ -1087,6 +1098,7 @@ pub fn render_security_assessment_artifact(file_name: &str, brief_summary: &str)
 }
 
 pub fn render_system_assessment_artifact(file_name: &str, brief_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let assessment_objective = extract_authored_section_or_marker(
         brief_summary,
@@ -1247,6 +1259,7 @@ pub fn render_system_assessment_artifact(file_name: &str, brief_summary: &str) -
 }
 
 pub fn render_supply_chain_analysis_artifact(file_name: &str, brief_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let declared_scope = extract_authored_section_or_marker(
         brief_summary,
@@ -1406,6 +1419,7 @@ fn render_supply_chain_coverage_gaps_section(authored_source: &str) -> String {
 }
 
 pub fn render_migration_artifact(file_name: &str, brief_summary: &str) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let current_state = extract_authored_section_or_marker(
         brief_summary,
@@ -1509,6 +1523,7 @@ pub fn render_backlog_artifact(
     brief_summary: &str,
     planning_context: &BacklogPlanningContext,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let delivery_intent = extract_marker(brief_summary, &normalized, "delivery intent")
         .unwrap_or_else(|| planning_context.delivery_intent.clone());
@@ -1703,6 +1718,7 @@ pub fn render_implementation_artifact(
     brief_summary: &str,
     default_owner: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let task_mapping = extract_authored_section_or_marker(
         brief_summary,
@@ -1858,6 +1874,7 @@ pub fn render_refactor_artifact(
     brief_summary: &str,
     default_owner: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = brief_summary.to_lowercase();
     let preserved_behavior = extract_authored_section_or_marker(
         brief_summary,
@@ -2151,6 +2168,7 @@ pub fn render_review_artifact(
     _critique_summary: &str,
     _validation_summary: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = context_summary.to_lowercase();
     let review_target = extract_authored_section_or_marker(
         context_summary,
@@ -2240,6 +2258,7 @@ pub fn render_verification_artifact(
     _critique_summary: &str,
     _validation_summary: &str,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     let normalized = context_summary.to_lowercase();
     let claims_under_test = extract_authored_section_or_marker(
         context_summary,
@@ -2402,6 +2421,7 @@ pub fn render_pr_review_artifact(
     packet: &ReviewPacket,
     summary: &ReviewSummary,
 ) -> String {
+    let file_name = artifact_slug(file_name);
     match file_name {
         "pr-analysis.md" => format!(
             "# PR Analysis\n\n## Summary\n\nReviewing `{}` against `{}` across {} changed surface(s).\n\n## Evidence Posture\n\n- Review packet derived from governed diff inspection and critique evidence.\n- Artifact provenance remains linked from the run evidence bundle.\n\n## Scope Summary\n\n- Base ref: `{}`\n- Head ref: `{}`\n- Changed surface count: {}\n\n## Changed Modules\n\n{}\n\n## Inferred Intent\n\n{}\n\n## Surprising Surface Area\n\n{}\n",

@@ -95,9 +95,9 @@ mod tests {
             workspace.path().join("specs").join(default_publish_leaf(&run.run_id, "requirements"));
 
         assert_eq!(code, 0);
-        assert!(published_dir.join("problem-statement.md").exists());
-        assert!(published_dir.join("prd.md").exists());
-        assert!(published_dir.join("constraints.md").exists());
+        assert!(published_dir.join("01-problem-statement.md").exists());
+        assert!(published_dir.join("07-prd.md").exists());
+        assert!(published_dir.join("02-constraints.md").exists());
         assert!(published_dir.join("packet-metadata.json").exists());
     }
 
@@ -144,8 +144,8 @@ mod tests {
         .expect("publish should succeed");
 
         assert_eq!(code, 0);
-        assert!(workspace.path().join(&override_path).join("problem-statement.md").exists());
-        assert!(workspace.path().join(&override_path).join("prd.md").exists());
+        assert!(workspace.path().join(&override_path).join("01-problem-statement.md").exists());
+        assert!(workspace.path().join(&override_path).join("07-prd.md").exists());
         assert!(!workspace.path().join("specs").join(run.run_id).exists());
         assert!(workspace.path().join(&override_path).join("packet-metadata.json").exists());
     }

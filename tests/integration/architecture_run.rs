@@ -77,35 +77,35 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/architecture/architecture-overview.md"))
+            .is_some_and(|value| value.ends_with("/architecture/01-architecture-overview.md"))
     );
 
     for artifact in [
-        "architecture-overview.md",
-        "architecture-decisions.md",
-        "invariants.md",
-        "tradeoff-matrix.md",
-        "boundary-map.md",
-        "context-map.md",
-        "readiness-assessment.md",
-        "system-context.md",
-        "system-context.mmd",
-        "container-view.md",
-        "container-view.mmd",
-        "deployment-view.md",
-        "deployment-view.mmd",
-        "view-manifest.json",
-        "packet-metadata.json",
-        "component-view.md",
-        "component-view.mmd",
+        "01-architecture-overview.md",
+        "02-architecture-decisions.md",
+        "03-invariants.md",
+        "04-tradeoff-matrix.md",
+        "05-boundary-map.md",
+        "06-context-map.md",
+        "07-readiness-assessment.md",
+        "08-system-context.md",
+        "09-system-context.mmd",
+        "10-container-view.md",
+        "11-container-view.mmd",
+        "12-deployment-view.md",
+        "13-deployment-view.mmd",
+        "14-view-manifest.json",
+        "15-packet-metadata.json",
+        "16-component-view.md",
+        "17-component-view.mmd",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
             "{artifact} should exist in the architecture bundle"
         );
     }
-    assert!(!artifact_root.join("dynamic-view.md").exists());
-    assert!(!artifact_root.join("dynamic-view.mmd").exists());
+    assert!(!artifact_root.join("18-dynamic-view.md").exists());
+    assert!(!artifact_root.join("19-dynamic-view.mmd").exists());
 
     let status_output = cli_command()
         .current_dir(workspace.path())
@@ -124,7 +124,7 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     );
 
     let overview =
-        fs::read_to_string(artifact_root.join("architecture-overview.md")).expect("overview");
+        fs::read_to_string(artifact_root.join("01-architecture-overview.md")).expect("overview");
     assert!(overview.starts_with("# Architecture Overview\n\n## Summary\n\nDecision focus:"));
     assert!(overview.contains("## Included Views"));
     assert!(overview.contains("```mermaid"));
@@ -132,7 +132,7 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     assert!(overview.contains("Dynamic View: omitted"));
 
     let context_map =
-        fs::read_to_string(artifact_root.join("context-map.md")).expect("context map");
+        fs::read_to_string(artifact_root.join("06-context-map.md")).expect("context map");
     assert!(context_map.starts_with("# Context Map\n\n## Summary\n\nDecision focus:"));
     assert!(context_map.contains("## Bounded Contexts"));
     assert!(context_map.contains("## Shared Invariants"));
@@ -141,7 +141,7 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
         "context-map.md should render canonical sections instead of dumping the full authored brief"
     );
 
-    let decisions = fs::read_to_string(artifact_root.join("architecture-decisions.md"))
+    let decisions = fs::read_to_string(artifact_root.join("02-architecture-decisions.md"))
         .expect("architecture decisions");
     assert!(decisions.starts_with("# Architecture Decisions\n\n## Summary\n\nDecision focus:"));
     assert!(decisions.contains("## Decision"));
@@ -151,7 +151,7 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     assert!(!decisions.contains("# Architecture Brief"));
 
     let tradeoff_matrix =
-        fs::read_to_string(artifact_root.join("tradeoff-matrix.md")).expect("tradeoff matrix");
+        fs::read_to_string(artifact_root.join("04-tradeoff-matrix.md")).expect("tradeoff matrix");
     assert!(tradeoff_matrix.starts_with("# Tradeoff Matrix\n\n## Summary\n\nDecision focus:"));
     assert!(tradeoff_matrix.contains("## Options Considered"));
     assert!(tradeoff_matrix.contains("## Pros"));
@@ -160,7 +160,7 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     assert!(!tradeoff_matrix.contains("# Architecture Brief"));
 
     let view_manifest =
-        fs::read_to_string(artifact_root.join("view-manifest.json")).expect("view manifest");
+        fs::read_to_string(artifact_root.join("14-view-manifest.json")).expect("view manifest");
     assert!(view_manifest.contains("\"primary_artifact\": \"architecture-overview.md\""));
     assert!(view_manifest.contains("\"svg\": \"unsupported\""));
 }

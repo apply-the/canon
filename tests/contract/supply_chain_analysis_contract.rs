@@ -33,7 +33,7 @@ fn supply_chain_analysis_mode_uses_a_distinct_operational_packet_bundle() {
     let files = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
 
     assert_eq!(
@@ -59,7 +59,7 @@ fn supply_chain_analysis_artifacts_require_supply_chain_specific_sections() {
         .iter()
         .map(|requirement| {
             (
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
             )
         })
@@ -129,7 +129,9 @@ fn supply_chain_analysis_gate_blocks_when_core_review_artifacts_are_missing() {
     let contract = contract_for_mode(Mode::SupplyChainAnalysis);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "license-compliance.md")
+        .filter(|(file_name, _)| {
+            canon_engine::domain::artifact::artifact_slug(file_name) != "license-compliance.md"
+        })
         .collect::<Vec<_>>();
 
     let gates = evaluate_supply_chain_analysis_gates(

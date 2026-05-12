@@ -341,7 +341,7 @@ fn artifact_contents<'a>(
 ) -> Result<&'a str, EngineError> {
     artifacts
         .iter()
-        .find(|artifact| artifact.record.file_name == file_name)
+        .find(|artifact| artifact.record.slug() == file_name)
         .map(|artifact| artifact.contents.as_str())
         .ok_or_else(|| {
             EngineError::Validation(format!(
@@ -787,11 +787,9 @@ mod tests {
                 .expect("publish should support absolute override");
 
         assert_eq!(summary.published_to, absolute_destination.display().to_string());
-        assert!(absolute_destination.join("problem-statement.md").exists());
-        assert!(
-            summary.published_files.iter().any(|path| path
-                == &absolute_destination.join("problem-statement.md").display().to_string())
-        );
+        assert!(absolute_destination.join("01-problem-statement.md").exists());
+        assert!(summary.published_files.iter().any(|path| path
+            == &absolute_destination.join("01-problem-statement.md").display().to_string()));
         assert!(absolute_destination.join(PUBLISH_METADATA_FILE_NAME).exists());
     }
 
@@ -818,7 +816,7 @@ mod tests {
         assert_eq!(metadata.zone, "green");
         assert!(metadata.destination.starts_with("specs/"));
         assert!(
-            metadata.source_artifacts.iter().any(|path| path.ends_with("problem-statement.md"))
+            metadata.source_artifacts.iter().any(|path| path.ends_with("01-problem-statement.md"))
         );
         assert!(
             summary.published_files.iter().any(|path| path.ends_with(PUBLISH_METADATA_FILE_NAME))

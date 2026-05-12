@@ -291,7 +291,7 @@ fn architecture_contract_includes_readiness_assumption_sections() {
     let readiness = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "readiness-assessment.md")
+        .find(|requirement| requirement.slug() == "readiness-assessment.md")
         .expect("readiness requirement");
 
     assert_eq!(
@@ -325,7 +325,7 @@ fn architecture_run_materializes_readiness_assumptions_and_questions() {
             .join("artifacts")
             .join(&summary.run_id)
             .join("architecture")
-            .join("readiness-assessment.md"),
+            .join("07-readiness-assessment.md"),
     )
     .expect("readiness assessment");
 

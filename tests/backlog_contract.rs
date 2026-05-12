@@ -35,7 +35,7 @@ fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
     let names = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
     assert_eq!(
         names,
@@ -54,7 +54,7 @@ fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
     let overview = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "backlog-overview.md")
+        .find(|requirement| requirement.slug() == "backlog-overview.md")
         .expect("backlog overview requirement");
     assert_eq!(
         overview.required_sections,
@@ -102,12 +102,12 @@ fn backlog_closure_limited_packet_only_requires_overview_and_risks() {
     let overview = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "backlog-overview.md")
+        .find(|requirement| requirement.slug() == "backlog-overview.md")
         .expect("backlog overview requirement");
     let risks = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "planning-risks.md")
+        .find(|requirement| requirement.slug() == "planning-risks.md")
         .expect("planning risks requirement");
     let artifacts = vec![
         (overview.file_name.clone(), render_artifact(overview)),

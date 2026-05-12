@@ -120,7 +120,7 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
         .join("reviews")
         .join("prs")
         .join(default_publish_leaf(run_id, "pr-review"))
-        .join("conventional-comments.md");
+        .join("03-conventional-comments.md");
     let published_text = fs::read_to_string(published).expect("published conventional comments");
     assert!(
         workspace

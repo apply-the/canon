@@ -87,7 +87,7 @@ fn architecture_publish_uses_next_non_conflicting_adr_number_and_keeps_registry_
     let generated =
         adr_names.iter().find(|name| name.starts_with("ADR-0004-")).expect("generated adr number");
 
-    assert!(override_dir.join("architecture-overview.md").exists());
+    assert!(override_dir.join("01-architecture-overview.md").exists());
     assert!(publish_text.contains(&format!("docs/adr/{generated}")));
     assert!(!override_dir.join(generated).exists());
 }

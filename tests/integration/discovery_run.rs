@@ -77,7 +77,7 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/discovery/problem-map.md"))
+            .is_some_and(|value| value.ends_with("/discovery/01-problem-map.md"))
     );
 
     assert!(run_root.join("run.toml").exists(), "run manifest should exist");
@@ -98,11 +98,11 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
     assert!(run_root.join("evidence.toml").exists(), "evidence bundle should exist");
 
     for artifact in [
-        "problem-map.md",
-        "unknowns-and-assumptions.md",
-        "context-boundary.md",
-        "exploration-options.md",
-        "decision-pressure-points.md",
+        "01-problem-map.md",
+        "02-unknowns-and-assumptions.md",
+        "03-context-boundary.md",
+        "04-exploration-options.md",
+        "05-decision-pressure-points.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -111,8 +111,8 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
     }
 
     let problem_map =
-        fs::read_to_string(artifact_root.join("problem-map.md")).expect("problem map contents");
-    let boundary = fs::read_to_string(artifact_root.join("context-boundary.md"))
+        fs::read_to_string(artifact_root.join("01-problem-map.md")).expect("problem map contents");
+    let boundary = fs::read_to_string(artifact_root.join("03-context-boundary.md"))
         .expect("context boundary contents");
     assert!(problem_map.contains("## Repo Surface"));
     assert!(problem_map.contains("tests/integration/discovery_run.rs"));
@@ -265,7 +265,7 @@ fn run_discovery_reads_directory_backed_inputs_from_canon_input() {
             .join("artifacts")
             .join(run_id)
             .join("discovery")
-            .join("problem-map.md"),
+            .join("01-problem-map.md"),
     )
     .expect("problem map");
 

@@ -8,7 +8,7 @@ fn requirements_contract_uses_authored_problem_and_outcome_sections() {
     let problem_statement = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "problem-statement.md")
+        .find(|requirement| requirement.slug() == "problem-statement.md")
         .expect("problem statement requirement");
 
     assert_eq!(problem_statement.required_sections, vec!["Summary", "Problem", "Outcome"]);
@@ -21,7 +21,7 @@ fn requirements_contract_preserves_scope_cuts_release_readiness_shape() {
     let scope_cuts = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "scope-cuts.md")
+        .find(|requirement| requirement.slug() == "scope-cuts.md")
         .expect("scope cuts requirement");
 
     assert_eq!(scope_cuts.required_sections, vec!["Summary", "Scope Cuts", "Deferred Work"]);

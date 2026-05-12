@@ -115,20 +115,20 @@ fn run_security_assessment_emits_a_recommendation_only_packet_and_publishes_afte
             .iter()
             .any(|target| target.as_str() == Some("gate:risk")))
     );
-    assert!(artifact_root.join("assessment-overview.md").exists());
-    assert!(artifact_root.join("threat-model.md").exists());
-    assert!(artifact_root.join("risk-register.md").exists());
-    assert!(artifact_root.join("mitigations.md").exists());
-    assert!(artifact_root.join("assumptions-and-gaps.md").exists());
-    assert!(artifact_root.join("compliance-anchors.md").exists());
-    assert!(artifact_root.join("assessment-evidence.md").exists());
+    assert!(artifact_root.join("01-assessment-overview.md").exists());
+    assert!(artifact_root.join("02-threat-model.md").exists());
+    assert!(artifact_root.join("03-risk-register.md").exists());
+    assert!(artifact_root.join("04-mitigations.md").exists());
+    assert!(artifact_root.join("05-assumptions-and-gaps.md").exists());
+    assert!(artifact_root.join("06-compliance-anchors.md").exists());
+    assert!(artifact_root.join("07-assessment-evidence.md").exists());
 
     let threat_model =
-        fs::read_to_string(artifact_root.join("threat-model.md")).expect("threat model");
+        fs::read_to_string(artifact_root.join("02-threat-model.md")).expect("threat model");
     assert!(threat_model.contains("## Boundary Threats"));
 
     let compliance =
-        fs::read_to_string(artifact_root.join("compliance-anchors.md")).expect("compliance");
+        fs::read_to_string(artifact_root.join("06-compliance-anchors.md")).expect("compliance");
     assert!(compliance.contains("## Scope Limits"));
     assert!(!compliance.contains("## Missing Authored Body"));
 
@@ -174,7 +174,7 @@ fn run_security_assessment_emits_a_recommendation_only_packet_and_publishes_afte
             .join("docs")
             .join("security-assessments")
             .join(default_publish_leaf(run_id, "security-assessment"))
-            .join("assessment-overview.md")
+            .join("01-assessment-overview.md")
             .exists()
     );
 }
@@ -220,7 +220,7 @@ fn run_security_assessment_blocks_when_a_required_authored_section_is_missing() 
     assert_eq!(json["blocking_classification"], "artifact-blocked");
 
     let threat_model =
-        fs::read_to_string(artifact_root.join("threat-model.md")).expect("threat model");
+        fs::read_to_string(artifact_root.join("02-threat-model.md")).expect("threat model");
     assert!(threat_model.contains("## Missing Authored Body"));
     assert!(threat_model.contains("`## Boundary Threats`"));
 }
