@@ -152,14 +152,12 @@ Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/v$V
 Expand-Archive -Path $Archive -DestinationPath "$env:USERPROFILE\bin" -Force
 ```
 
-### Build From Source
+### Developing Canon
 
-If you already have Rust `1.95.0`, you can install Canon from this repository:
-
-```bash
-cargo +1.95.0 install --path crates/canon-cli --bin canon
-canon --help
-```
+If you want to build or install Canon from source while developing this
+repository, use [DEVELOPER.md](DEVELOPER.md) for local install paths and
+[CONTRIBUTING.md](CONTRIBUTING.md) for repository workflow, validation, and
+pull-request expectations.
 
 ## Use Canon
 

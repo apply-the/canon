@@ -94,23 +94,10 @@ Use `canon inspect clarity` before starting a run when the authored packet may
 still be shallow or when you need Canon to say explicitly that the packet
 already materially closes the decision.
 
-Supported today for file-backed modes:
-
-- `requirements`
-- `discovery`
-- `system-shaping`
-- `architecture`
-- `backlog`
-- `change`
-- `implementation`
-- `refactor`
-- `review`
-- `verification`
-- `incident`
-- `security-assessment`
-- `system-assessment`
-- `migration`
-- `supply-chain-analysis`
+`canon inspect clarity` currently works for every implemented file-backed mode
+listed in [Supported Today](#supported-today). In practice, that means all
+current modes except `pr-review`, which is diff-backed rather than
+file-backed.
 
 The clarity result surfaces a bounded summary, missing-context findings when
 present, explicit output-quality posture, evidence or downgrade reasons,
@@ -125,22 +112,22 @@ explicitly reroute the packet to `discovery`, `requirements`, or
 
 ## Supported Today
 
-- [`discovery`](#mode-discovery)
-- [`requirements`](#mode-requirements)
-- [`system-shaping`](#mode-system-shaping)
-- [`architecture`](#mode-architecture)
-- [`backlog`](#mode-backlog)
-- [`change`](#mode-change)
-- [`implementation`](#mode-implementation)
-- [`refactor`](#mode-refactor)
-- [`review`](#mode-review)
-- [`verification`](#mode-verification)
-- [`pr-review`](#mode-pr-review)
-- [`incident`](#mode-incident)
-- [`security-assessment`](#mode-security-assessment)
-- [`system-assessment`](#mode-system-assessment)
-- [`migration`](#mode-migration)
-- [`supply-chain-analysis`](#mode-supply-chain-analysis)
+- [`discovery`](#mode-discovery): explore an ambiguous problem space before you lock requirements or solution direction.
+- [`requirements`](#mode-requirements): define bounded requirements, scope cuts, tradeoffs, and expected outcomes.
+- [`system-shaping`](#mode-system-shaping): shape capability boundaries and structural options before detailed architecture or change work.
+- [`architecture`](#mode-architecture): make bounded structural decisions and capture the rationale behind them.
+- [`backlog`](#mode-backlog): decompose already-bounded upstream decisions into governed delivery slices.
+- [`change`](#mode-change): frame a bounded modification in an existing system while preserving explicit invariants.
+- [`implementation`](#mode-implementation): drive execution guidance for an approved slice of delivery work in an existing system.
+- [`refactor`](#mode-refactor): plan structural cleanup and code improvement without expanding feature scope.
+- [`review`](#mode-review): assess a non-PR packet or artifact set with findings-first acceptance criteria.
+- [`verification`](#mode-verification): challenge claims, evidence, contracts, or quality signals directly.
+- [`pr-review`](#mode-pr-review): review a real diff or worktree instead of a file-backed authored packet.
+- [`incident`](#mode-incident): capture incident framing, blast radius, containment, and follow-up actions.
+- [`security-assessment`](#mode-security-assessment): assess threats, risks, mitigations, and security gaps for an existing system.
+- [`system-assessment`](#mode-system-assessment): evaluate the current system state, architecture views, and observed or inferred findings.
+- [`migration`](#mode-migration): plan a bounded move from source to target with sequencing, compatibility, and fallback.
+- [`supply-chain-analysis`](#mode-supply-chain-analysis): examine dependencies, SBOM posture, vulnerabilities, licenses, and legacy risk.
 
 ## Input Binding Rules
 
@@ -291,115 +278,112 @@ for the packet.
 
 ## Mode Flows (Mermaid)
 
-This section summarizes the main Canon mode flows across two explicit axes:
+These diagrams show common entrypoints and typical handoffs, not one mandatory
+end-to-end Canon pipeline. Use the diagram that matches the question you are
+answering: choosing a mode family, moving through scoping and design, carrying
+bounded change into delivery, reviewing a packet or diff, or handling
+operational work.
 
-- `mode`: what kind of governed work is happening
-- `system_context`: whether the target system is `new` or `existing`
+`system_context` appears only on the modes that require it. Canon does not
+treat every mode as one linear sequence, and you can enter a later mode
+directly when the authored input is already ready for that mode.
 
-### 1) Decision Flow: Which Mode To Run
+### 1) Choose A Mode Family
 
 ```mermaid
 flowchart TD
-  A[You have a work objective] --> B{Is the problem still ambiguous?}
-  B -->|Yes| D[discovery]
-  B -->|No| C{Do you need requirements framing first?}
-  C -->|Yes| R[requirements]
-  C -->|No| E{Are you reviewing a real diff or worktree?}
-  E -->|Yes| PR[pr-review]
-  E -->|No| F{Do you need to challenge claims, evidence, or contracts?}
-  F -->|Yes| V[verification]
-  F -->|No| G{Do you need packet review for a non-PR artifact set?}
-  G -->|Yes| RV[review]
-  G -->|No| H{Is the main question structural capability design?}
-  H -->|Yes| I{System context}
-  I -->|new| SSN[system-shaping + system_context=new]
-  I -->|existing| SSE[system-shaping + system_context=existing]
-  SSN --> ARCN[architecture + system_context=new]
-  SSE --> ARCE[architecture + system_context=existing]
-  H -->|No| J{Do you need governed delivery decomposition from bounded decisions?}
-  J -->|Yes| BL[backlog + system_context=existing]
-  J -->|No| K{Is this a bounded modification in an existing system?}
-  K -->|Yes| CH[change + system_context=existing]
-  K -->|No| L{Execution mode needed?}
-  L -->|Implementation guidance| IMPL[implementation + system_context=existing]
-  L -->|Structural cleanup guidance| REFA[refactor + system_context=existing]
+  A[What is the next governed need?] --> B{Primary question}
+  B -->|Problem still ambiguous| D[discovery]
+  B -->|Need bounded scope and outcomes| R[requirements]
+  B -->|Need structural design or boundaries| SD[system-shaping or architecture]
+  B -->|Need bounded existing-system change or delivery| CD[change, backlog, implementation, or refactor]
+  B -->|Need review or assurance| RA[review, pr-review, or verification]
+  B -->|Need operational or assessment packet| OP[incident, security-assessment, system-assessment, migration, or supply-chain-analysis]
 ```
 
-### 2) End-to-End Flow For Implemented Modes
+### 2) Scoping And Design Handoffs
 
 ```mermaid
 flowchart LR
   D[discovery] --> R[requirements]
-  R --> SS[system-shaping]
-  R --> CH[change]
-  R --> ARC[architecture]
-  R --> BL[backlog]
+  R --> SS[system-shaping (new or existing)]
+  R --> CH[change (existing)]
+  R -. direct structural decision .-> ARC[architecture (new or existing)]
   SS --> ARC
-  SS --> BL[backlog]
   SS --> CH
+  SS --> BL[backlog (existing)]
   ARC --> CH
   ARC --> BL
-  BL --> IMPL[implementation]
-  CH --> IMPL
-  CH --> REFA[refactor]
-  IMPL --> RV[review]
-  REFA --> RV
-  IMPL --> PR[pr-review]
-  REFA --> PR
-  PR --> V[verification]
-  RV --> V
-  V --> PUB[canon publish]
 ```
 
-### 3) Approval Gate Flow For Execution Modes
+### 3) Change And Delivery Handoffs
+
+```mermaid
+flowchart LR
+  CH[change] --> IMPL[implementation]
+  CH --> REFA[refactor]
+  BL[backlog] --> IMPL
+  ARC[architecture] -. bounded execution slice .-> IMPL
+  IMPL -. packet review .-> REV[review]
+  REFA -. packet review .-> REV
+  IMPL -. diff review .-> PR[pr-review]
+  REFA -. diff review .-> PR
+```
+
+### 4) Review And Assurance Entry Points
+
+```mermaid
+flowchart TD
+  A[What is the review target?] --> B{Target}
+  B -->|Authored packet or artifact set| REV[review]
+  B -->|Diff or WORKTREE| PR[pr-review]
+  B -->|Claims, invariants, contracts, or evidence| VER[verification]
+  REV -. deeper claim challenge .-> VER
+  PR -. deeper claim challenge .-> VER
+```
+
+### 5) Operational And Assessment Modes
+
+```mermaid
+flowchart TD
+  A[Need a bounded operational or assessment packet] --> B{Scenario}
+  B -->|Active incident or outage| INC[incident (existing)]
+  B -->|Threats, risks, or mitigations| SEC[security-assessment (existing)]
+  B -->|As-is system coverage and gaps| SYS[system-assessment (existing)]
+  B -->|Transition or cutover| MIG[migration (existing)]
+  B -->|Dependency, SBOM, or legacy posture| SUP[supply-chain-analysis (existing)]
+  INC --> PKT[publishable recommendation-only packet]
+  SEC --> PKT
+  SYS --> PKT
+  MIG --> PKT
+  SUP --> PKT
+  PKT -. if systemic or red .-> RISK[optional risk approval]
+  PKT --> PUB[canon publish]
+```
+
+### 6) Gated Runtime Flow
+
+Use this lifecycle when a mode emits a readable packet but still requires
+explicit approval before completion.
 
 ```mermaid
 stateDiagram-v2
   [*] --> RunStarted: canon run
-  RunStarted --> AwaitingApproval: packet emitted, execution gate active
-  AwaitingApproval --> AwaitingApproval: canon approve (target resolved)
+  RunStarted --> AwaitingApproval: gated packet emitted
+  AwaitingApproval --> AwaitingApproval: canon approve
   AwaitingApproval --> Completed: canon resume
   Completed --> Published: canon publish
   Published --> [*]
 ```
 
-### 4) Operational Modes (Supported Today)
+### 7) Quick Legend
 
-```mermaid
-flowchart TD
-  A[Special operational need] --> B{Scenario type}
-  B -->|Incident or outage| INC[incident + system_context=existing]
-  B -->|Security risk assessment| SEC[security-assessment + system_context=existing]
-  B -->|As-is system assessment| SYS[system-assessment + system_context=existing]
-  B -->|Migration initiative| MIG[migration + system_context=existing]
-  B -->|Supply chain or legacy review| SUP[supply-chain-analysis + system_context=existing]
-
-  INC --> I1[Incident packet: frame, hypotheses, blast radius, containment, decisions, follow-up]
-  SEC --> S1[Security packet: scope, threats, risks, mitigations, gaps, compliance anchors, evidence]
-  SYS --> Y1[System packet: overview, ISO 42010 views, assets, risks, observed findings, inferred findings, assessment gaps, evidence]
-  MIG --> M1[Migration packet: source-target map, compatibility, sequencing, fallback, verification, decisions]
-  SUP --> U1[Supply chain packet: scope, SBOM, vulnerabilities, licenses, legacy posture, policy decisions, evidence]
-
-  I1 --> I2[Optional risk approval]
-  S1 --> S2[Optional risk approval]
-  Y1 --> Y2[Optional risk approval]
-  M1 --> M2[Optional risk approval]
-  U1 --> U2[Optional risk approval]
-  I2 --> IPUB[canon publish -> docs/incidents/<YYYY-MM-DD>-<descriptor>/]
-  S2 --> SPUB[canon publish -> docs/security-assessments/<YYYY-MM-DD>-<descriptor>/]
-  Y2 --> YPUB[canon publish -> docs/architecture/assessments/<YYYY-MM-DD>-<descriptor>/]
-  M2 --> MPUB[canon publish -> docs/migrations/<YYYY-MM-DD>-<descriptor>/]
-  U2 --> UPUB[canon publish -> docs/supply-chain/<YYYY-MM-DD>-<descriptor>/]
-```
-
-### 5) Quick Legend
-
-- `discovery` and `requirements` clarify problem boundaries before execution.
-- `system-shaping` and `architecture` handle structural design and decisions.
-- `change` defines bounded modification scope and preserved invariants.
-- `implementation` and `refactor` produce governed execution/preservation packets with approval gating.
-- `review`, `verification`, and `pr-review` challenge packet quality, evidence, and diff-level correctness.
-- `incident`, `security-assessment`, `system-assessment`, `migration`, and `supply-chain-analysis` produce recommendation-only operational packets with publishable approval-gated or blocked operational packets for review.
+- `discovery` and `requirements` clarify the problem and scope.
+- `system-shaping` and `architecture` settle structure, boundaries, and tradeoffs.
+- `change`, `backlog`, `implementation`, and `refactor` carry bounded existing-system work into planning or delivery.
+- `review`, `pr-review`, and `verification` challenge packets, diffs, or claims.
+- `incident`, `security-assessment`, `system-assessment`, `migration`, and `supply-chain-analysis` create operational or assessment packets.
+- These diagrams show common handoffs, not a mandatory global order.
 
 ## Mode: discovery
 
