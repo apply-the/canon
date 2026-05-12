@@ -196,13 +196,13 @@ fn summarize_requirements_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "problem-statement.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "problem-statement.md")?;
     let constraints_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "constraints.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "constraints.md");
     let scope_cuts_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "scope-cuts.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "scope-cuts.md");
     let decision_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "decision-checklist.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "decision-checklist.md");
 
     let problem = extract_context_section(&primary.contents, "Problem")
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
@@ -257,13 +257,11 @@ fn summarize_requirements_mode_result(
 }
 
 fn summarize_discovery_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
-    let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "problem-map.md")?;
-    let unknowns_artifact = artifacts
-        .iter()
-        .find(|artifact| artifact.record.file_name == "unknowns-and-assumptions.md");
+    let primary = artifacts.iter().find(|artifact| artifact.record.slug() == "problem-map.md")?;
+    let unknowns_artifact =
+        artifacts.iter().find(|artifact| artifact.record.slug() == "unknowns-and-assumptions.md");
     let boundary_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "context-boundary.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "context-boundary.md");
 
     let problem_domain = extract_context_section(&primary.contents, "Problem Domain")
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
@@ -321,16 +319,15 @@ fn summarize_discovery_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
 fn summarize_system_shaping_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
-    let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "system-shape.md")?;
+    let primary = artifacts.iter().find(|artifact| artifact.record.slug() == "system-shape.md")?;
     let domain_model =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "domain-model.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "domain-model.md");
     let capability_map =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "capability-map.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "capability-map.md");
     let delivery_options =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "delivery-options.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "delivery-options.md");
     let risk_hotspots =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "risk-hotspots.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "risk-hotspots.md");
 
     let system_shape = extract_context_section(&primary.contents, "System Shape")
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
@@ -402,22 +399,20 @@ fn summarize_architecture_mode_result(
 ) -> Option<ModeResultSummary> {
     let primary = artifacts
         .iter()
-        .find(|artifact| artifact.record.file_name == "architecture-overview.md")
+        .find(|artifact| artifact.record.slug() == "architecture-overview.md")
         .or_else(|| {
-            artifacts
-                .iter()
-                .find(|artifact| artifact.record.file_name == "architecture-decisions.md")
+            artifacts.iter().find(|artifact| artifact.record.slug() == "architecture-decisions.md")
         })?;
     let decisions_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "architecture-decisions.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "architecture-decisions.md");
     let invariants_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "invariants.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "invariants.md");
     let tradeoff_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "tradeoff-matrix.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "tradeoff-matrix.md");
     let boundary_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "boundary-map.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "boundary-map.md");
     let context_map_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "context-map.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "context-map.md");
 
     let decisions = decisions_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Decision"))
@@ -480,7 +475,7 @@ fn summarize_architecture_mode_result(
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: if primary.record.file_name == "architecture-overview.md" {
+        primary_artifact_title: if primary.record.slug() == "architecture-overview.md" {
             "Architecture Overview".to_string()
         } else {
             "Architecture Decisions".to_string()
@@ -497,13 +492,13 @@ fn summarize_architecture_mode_result(
 
 fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "change-surface.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "change-surface.md")?;
     let legacy_invariants_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "legacy-invariants.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "legacy-invariants.md");
     let validation_strategy_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "validation-strategy.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "validation-strategy.md");
     let system_slice_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "system-slice.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "system-slice.md");
 
     let (change_surface, change_surface_missing) = extract_result_section(
         &primary.contents,
@@ -636,11 +631,11 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
 
 fn summarize_backlog_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "backlog-overview.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "backlog-overview.md")?;
     let risks_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "planning-risks.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "planning-risks.md");
     let slices_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "delivery-slices.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "delivery-slices.md");
 
     let delivery_intent = extract_context_section(&primary.contents, "Delivery Intent")
         .or_else(|| extract_context_section(&primary.contents, "Summary"))
@@ -657,7 +652,7 @@ fn summarize_backlog_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mode
         .map(|section| count_markdown_entries(&section))
         .unwrap_or(0);
 
-    let full_packet = artifacts.iter().any(|artifact| artifact.record.file_name == "epic-tree.md");
+    let full_packet = artifacts.iter().any(|artifact| artifact.record.slug() == "epic-tree.md");
     let missing_context_markers = count_missing_context_markers([
         &delivery_intent,
         &posture,
@@ -706,11 +701,11 @@ fn summarize_backlog_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mode
 
 fn summarize_incident_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "incident-frame.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "incident-frame.md")?;
     let blast_radius_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "blast-radius-map.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "blast-radius-map.md");
     let containment_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "containment-plan.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "containment-plan.md");
 
     let incident_scope = extract_context_section(&primary.contents, "Incident Scope")
         .unwrap_or_else(|| "NOT CAPTURED - Incident scope section is missing.".to_string());
@@ -773,11 +768,11 @@ fn summarize_security_assessment_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "assessment-overview.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "assessment-overview.md")?;
     let threat_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "threat-model.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "threat-model.md");
     let risk_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "risk-register.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "risk-register.md");
 
     let assessment_scope = extract_context_section(&primary.contents, "Assessment Scope")
         .unwrap_or_else(|| "NOT CAPTURED - Assessment scope section is missing.".to_string());
@@ -842,13 +837,13 @@ fn summarize_system_assessment_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "assessment-overview.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "assessment-overview.md")?;
     let coverage_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "coverage-map.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "coverage-map.md");
     let inventory_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "asset-inventory.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "asset-inventory.md");
     let risk_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "risk-register.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "risk-register.md");
 
     let assessment_objective = extract_context_section(&primary.contents, "Assessment Objective")
         .unwrap_or_else(|| "NOT CAPTURED - Assessment objective section is missing.".to_string());
@@ -911,11 +906,11 @@ fn summarize_supply_chain_analysis_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "analysis-overview.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "analysis-overview.md")?;
     let vulnerability_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "vulnerability-triage.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "vulnerability-triage.md");
     let legacy_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "legacy-posture.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "legacy-posture.md");
 
     let declared_scope = extract_context_section(&primary.contents, "Declared Scope")
         .unwrap_or_else(|| "NOT CAPTURED - Declared scope section is missing.".to_string());
@@ -979,12 +974,11 @@ fn summarize_supply_chain_analysis_mode_result(
 fn summarize_implementation_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
-    let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "task-mapping.md")?;
+    let primary = artifacts.iter().find(|artifact| artifact.record.slug() == "task-mapping.md")?;
     let mutation_bounds_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "mutation-bounds.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "mutation-bounds.md");
     let validation_hooks_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "validation-hooks.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "validation-hooks.md");
 
     let (task_mapping, task_mapping_missing) = extract_result_section(
         &primary.contents,
@@ -1069,13 +1063,13 @@ fn summarize_implementation_mode_result(
 
 fn summarize_refactor_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "preserved-behavior.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "preserved-behavior.md")?;
     let scope_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "refactor-scope.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "refactor-scope.md");
     let contract_drift_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "contract-drift-check.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "contract-drift-check.md");
     let no_feature_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "no-feature-addition.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "no-feature-addition.md");
 
     let (preserved_behavior, preserved_missing) = extract_result_section(
         &primary.contents,
@@ -1183,11 +1177,11 @@ fn summarize_refactor_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mod
 
 fn summarize_migration_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "source-target-map.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "source-target-map.md")?;
     let compatibility_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "compatibility-matrix.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "compatibility-matrix.md");
     let fallback_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "fallback-plan.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "fallback-plan.md");
 
     let current_state = extract_context_section(&primary.contents, "Current State")
         .unwrap_or_else(|| "NOT CAPTURED - Current state section is missing.".to_string());
@@ -1254,11 +1248,11 @@ fn summarize_migration_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
 
 fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "review-disposition.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "review-disposition.md")?;
     let boundary_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "boundary-assessment.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "boundary-assessment.md");
     let missing_evidence_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "missing-evidence.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "missing-evidence.md");
 
     let final_disposition = extract_context_section(&primary.contents, "Final Disposition")
         .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
@@ -1354,13 +1348,13 @@ fn summarize_verification_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "verification-report.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "verification-report.md")?;
     let unresolved_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "unresolved-findings.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "unresolved-findings.md");
     let invariants_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "invariants-checklist.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "invariants-checklist.md");
     let adversarial_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "adversarial-review.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "adversarial-review.md");
 
     let verified_claims = extract_context_section(&primary.contents, "Verified Claims")
         .unwrap_or_else(|| "NOT CAPTURED - Verified claims section is missing.".to_string());
@@ -1467,9 +1461,9 @@ fn summarize_verification_mode_result(
 
 fn summarize_pr_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
     let primary =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "review-summary.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == "review-summary.md")?;
     let pr_analysis_artifact =
-        artifacts.iter().find(|artifact| artifact.record.file_name == "pr-analysis.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == "pr-analysis.md");
 
     let final_disposition = extract_context_section(&primary.contents, "Final Disposition")
         .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());

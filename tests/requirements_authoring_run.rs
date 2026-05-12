@@ -98,7 +98,7 @@ fn requirements_run_completes_with_authored_sections_and_no_missing_marker() {
             .join("artifacts")
             .join(&summary.run_id)
             .join("requirements")
-            .join("problem-statement.md"),
+            .join("01-problem-statement.md"),
     )
     .expect("problem statement");
     assert!(
@@ -132,7 +132,7 @@ fn requirements_run_blocks_with_missing_body_marker_when_required_heading_is_abs
             .join("artifacts")
             .join(&summary.run_id)
             .join("requirements")
-            .join("problem-statement.md"),
+            .join("01-problem-statement.md"),
     )
     .expect("problem statement");
     assert!(problem_statement.contains("## Missing Authored Body"));

@@ -73,7 +73,7 @@ fn verification_run_returns_completed_result_for_supported_claims() {
     assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Verification Report");
     assert_eq!(
         run_json["mode_result"]["primary_artifact_path"],
-        format!(".canon/artifacts/{run_id}/verification/verification-report.md")
+        format!(".canon/artifacts/{run_id}/verification/04-verification-report.md")
     );
     assert!(run_json["mode_result"]["headline"].as_str().is_some_and(|headline| {
         headline.contains("supported") && headline.contains("2 claim set(s)")

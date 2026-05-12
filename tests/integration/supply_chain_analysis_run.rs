@@ -127,11 +127,11 @@ fn run_supply_chain_analysis_emits_a_reviewable_packet_and_publishes_while_appro
             .iter()
             .any(|target| target.as_str() == Some("gate:risk")))
     );
-    assert!(artifact_root.join("analysis-overview.md").exists());
-    assert!(artifact_root.join("analysis-evidence.md").exists());
+    assert!(artifact_root.join("01-analysis-overview.md").exists());
+    assert!(artifact_root.join("07-analysis-evidence.md").exists());
 
-    let overview =
-        fs::read_to_string(artifact_root.join("analysis-overview.md")).expect("analysis overview");
+    let overview = fs::read_to_string(artifact_root.join("01-analysis-overview.md"))
+        .expect("analysis overview");
     assert!(overview.contains("## Declared Scope"));
 
     cli_command().current_dir(workspace.path()).args(["publish", run_id]).assert().success();
@@ -142,7 +142,7 @@ fn run_supply_chain_analysis_emits_a_reviewable_packet_and_publishes_while_appro
             .join("docs")
             .join("supply-chain")
             .join(default_publish_leaf(run_id, "supply-chain-analysis"))
-            .join("analysis-overview.md")
+            .join("01-analysis-overview.md")
             .exists()
     );
 
@@ -225,7 +225,7 @@ fn run_supply_chain_analysis_blocks_when_required_authored_sections_are_missing(
     assert_eq!(json["state"], "Blocked");
     assert_eq!(json["blocking_classification"], "artifact-blocked");
 
-    let license = fs::read_to_string(artifact_root.join("license-compliance.md"))
+    let license = fs::read_to_string(artifact_root.join("04-license-compliance.md"))
         .expect("license compliance");
     assert!(license.contains("## Missing Authored Body"));
     assert!(license.contains("`## Compatibility Classes`"));
@@ -272,7 +272,7 @@ fn run_supply_chain_analysis_records_a_derived_coverage_gap_for_skipped_scanners
             .join("artifacts")
             .join(run_id)
             .join("supply-chain-analysis")
-            .join("policy-decisions.md"),
+            .join("06-policy-decisions.md"),
     )
     .expect("policy decisions");
 

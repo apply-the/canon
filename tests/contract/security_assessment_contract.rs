@@ -33,7 +33,7 @@ fn security_assessment_mode_uses_a_distinct_security_packet_bundle() {
     let files = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
 
     assert_eq!(
@@ -59,7 +59,7 @@ fn security_assessment_artifacts_require_security_specific_sections() {
         .iter()
         .map(|requirement| {
             (
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
             )
         })
@@ -111,7 +111,9 @@ fn security_assessment_gate_blocks_when_core_review_artifacts_are_missing() {
     let contract = contract_for_mode(Mode::SecurityAssessment);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "mitigations.md")
+        .filter(|(file_name, _)| {
+            canon_engine::domain::artifact::artifact_slug(file_name) != "mitigations.md"
+        })
         .collect::<Vec<_>>();
 
     let gates = evaluate_security_assessment_gates(

@@ -33,7 +33,7 @@ fn system_assessment_mode_uses_a_distinct_assessment_packet_bundle() {
     let files = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
 
     assert_eq!(
@@ -62,7 +62,7 @@ fn system_assessment_artifacts_require_assessment_specific_sections() {
         .iter()
         .map(|requirement| {
             (
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
             )
         })
@@ -174,7 +174,9 @@ fn system_assessment_gate_blocks_when_coverage_map_is_missing() {
     let contract = contract_for_mode(Mode::SystemAssessment);
     let artifacts = valid_artifacts(&contract)
         .into_iter()
-        .filter(|(file_name, _)| file_name != "coverage-map.md")
+        .filter(|(file_name, _)| {
+            canon_engine::domain::artifact::artifact_slug(file_name) != "coverage-map.md"
+        })
         .collect::<Vec<_>>();
 
     let gates = evaluate_system_assessment_gates(

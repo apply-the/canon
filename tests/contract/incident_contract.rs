@@ -8,7 +8,7 @@ fn incident_mode_uses_a_distinct_containment_artifact_bundle() {
     let files = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
 
     assert_eq!(
@@ -33,7 +33,7 @@ fn incident_artifacts_require_containment_specific_sections() {
         .iter()
         .map(|requirement| {
             (
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
             )
         })

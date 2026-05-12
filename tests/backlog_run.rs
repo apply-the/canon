@@ -145,14 +145,14 @@ fn inspect_artifacts_lists_the_full_backlog_bundle() {
     let actual_paths =
         entries.iter().map(|entry| entry.as_str().expect("artifact path")).collect::<Vec<_>>();
     let expected_paths = vec![
-        format!(".canon/artifacts/{run_id}/backlog/acceptance-anchors.md"),
-        format!(".canon/artifacts/{run_id}/backlog/backlog-overview.md"),
-        format!(".canon/artifacts/{run_id}/backlog/capability-to-epic-map.md"),
-        format!(".canon/artifacts/{run_id}/backlog/delivery-slices.md"),
-        format!(".canon/artifacts/{run_id}/backlog/dependency-map.md"),
-        format!(".canon/artifacts/{run_id}/backlog/epic-tree.md"),
-        format!(".canon/artifacts/{run_id}/backlog/planning-risks.md"),
-        format!(".canon/artifacts/{run_id}/backlog/sequencing-plan.md"),
+        format!(".canon/artifacts/{run_id}/backlog/01-backlog-overview.md"),
+        format!(".canon/artifacts/{run_id}/backlog/02-epic-tree.md"),
+        format!(".canon/artifacts/{run_id}/backlog/03-capability-to-epic-map.md"),
+        format!(".canon/artifacts/{run_id}/backlog/04-dependency-map.md"),
+        format!(".canon/artifacts/{run_id}/backlog/05-delivery-slices.md"),
+        format!(".canon/artifacts/{run_id}/backlog/06-sequencing-plan.md"),
+        format!(".canon/artifacts/{run_id}/backlog/07-acceptance-anchors.md"),
+        format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
     ];
     assert_eq!(actual_paths, expected_paths);
 
@@ -227,7 +227,7 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
             .join("docs")
             .join("planning")
             .join(default_publish_leaf(&run_id, "backlog"))
-            .join("delivery-slices.md")
+            .join("05-delivery-slices.md")
             .exists()
     );
     assert!(
@@ -240,10 +240,10 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
             .exists()
     );
 
-    let slices = read_published_file(&workspace, &run_id, "delivery-slices.md");
-    let dependencies = read_published_file(&workspace, &run_id, "dependency-map.md");
-    let sequencing = read_published_file(&workspace, &run_id, "sequencing-plan.md");
-    let anchors = read_published_file(&workspace, &run_id, "acceptance-anchors.md");
+    let slices = read_published_file(&workspace, &run_id, "05-delivery-slices.md");
+    let dependencies = read_published_file(&workspace, &run_id, "04-dependency-map.md");
+    let sequencing = read_published_file(&workspace, &run_id, "06-sequencing-plan.md");
+    let anchors = read_published_file(&workspace, &run_id, "07-acceptance-anchors.md");
 
     assert!(slices.contains("## Dependency Links"));
     assert!(slices.contains("docs/changes/auth-session.md"));

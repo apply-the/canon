@@ -1,4 +1,6 @@
-use crate::domain::artifact::{ArtifactContract, ArtifactFormat, ArtifactRequirement};
+use crate::domain::artifact::{
+    ArtifactContract, ArtifactFormat, ArtifactRequirement, prefixed_artifact_name,
+};
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
 use crate::domain::run::{ClosureAssessment, ClosureDecompositionScope};
@@ -864,9 +866,18 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         ],
     };
 
+    let prefixed_files = files
+        .into_iter()
+        .enumerate()
+        .map(|(i, mut req)| {
+            req.file_name = prefixed_artifact_name(i + 1, &req.file_name);
+            req
+        })
+        .collect();
+
     ArtifactContract {
         version: 1,
-        artifact_requirements: files,
+        artifact_requirements: prefixed_files,
         required_verification_layers: vec![VerificationLayer::SelfCritique],
     }
 }
@@ -878,7 +889,10 @@ pub fn backlog_contract_for_closure(
     if matches!(closure_assessment.decomposition_scope, ClosureDecompositionScope::RiskOnlyPacket) {
         let mut filtered = contract.clone();
         filtered.artifact_requirements.retain(|requirement| {
-            matches!(requirement.file_name.as_str(), "backlog-overview.md" | "planning-risks.md")
+            matches!(
+                crate::domain::artifact::artifact_slug(&requirement.file_name),
+                "backlog-overview.md" | "planning-risks.md"
+            )
         });
         filtered
     } else {

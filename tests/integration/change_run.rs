@@ -76,7 +76,7 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/change/change-surface.md"))
+            .is_some_and(|value| value.ends_with("/change/03-change-surface.md"))
     );
     assert!(
         json["mode_result"]["headline"]
@@ -90,11 +90,11 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
         "change preservation gate should be persisted"
     );
     assert!(
-        artifact_root.join("legacy-invariants.md").exists(),
+        artifact_root.join("02-legacy-invariants.md").exists(),
         "legacy invariants artifact should exist"
     );
     assert!(
-        artifact_root.join("change-surface.md").exists(),
+        artifact_root.join("03-change-surface.md").exists(),
         "change surface artifact should exist"
     );
 
@@ -160,7 +160,7 @@ fn run_change_change_completes_when_context_is_fully_described() {
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/change/change-surface.md"))
+            .is_some_and(|value| value.ends_with("/change/03-change-surface.md"))
     );
     assert!(run_root.join("inputs").is_dir(), "input snapshot directory should exist");
     assert!(
@@ -169,12 +169,12 @@ fn run_change_change_completes_when_context_is_fully_described() {
     );
 
     for artifact in [
-        "system-slice.md",
-        "legacy-invariants.md",
-        "change-surface.md",
-        "implementation-plan.md",
-        "validation-strategy.md",
-        "decision-record.md",
+        "01-system-slice.md",
+        "02-legacy-invariants.md",
+        "03-change-surface.md",
+        "04-implementation-plan.md",
+        "05-validation-strategy.md",
+        "06-decision-record.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -215,19 +215,19 @@ fn run_change_change_completes_when_context_is_fully_described() {
         Some("Change Surface")
     );
 
-    let system_slice =
-        fs::read_to_string(artifact_root.join("system-slice.md")).expect("system slice artifact");
+    let system_slice = fs::read_to_string(artifact_root.join("01-system-slice.md"))
+        .expect("system slice artifact");
     assert!(system_slice.contains("## Domain Slice"));
 
-    let legacy_invariants = fs::read_to_string(artifact_root.join("legacy-invariants.md"))
+    let legacy_invariants = fs::read_to_string(artifact_root.join("02-legacy-invariants.md"))
         .expect("legacy invariants artifact");
     assert!(legacy_invariants.contains("## Domain Invariants"));
 
-    let change_surface = fs::read_to_string(artifact_root.join("change-surface.md"))
+    let change_surface = fs::read_to_string(artifact_root.join("03-change-surface.md"))
         .expect("change surface artifact");
     assert!(change_surface.contains("## Cross-Context Risks"));
 
-    let decision_record = fs::read_to_string(artifact_root.join("decision-record.md"))
+    let decision_record = fs::read_to_string(artifact_root.join("06-decision-record.md"))
         .expect("decision record artifact");
     assert!(decision_record.contains("## Boundary Tradeoffs"));
     assert!(decision_record.contains("## Decision Drivers"));
@@ -275,8 +275,8 @@ fn run_change_change_preserves_markdown_brief_structure() {
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
-    let system_slice =
-        fs::read_to_string(artifact_root.join("system-slice.md")).expect("system slice artifact");
+    let system_slice = fs::read_to_string(artifact_root.join("01-system-slice.md"))
+        .expect("system slice artifact");
     assert!(
         system_slice.contains("## Summary\n\n- Bounded slice: `Schema validation`"),
         "summary should be compact instead of repeating the whole brief"
@@ -304,7 +304,7 @@ fn run_change_change_preserves_markdown_brief_structure() {
         "summary should no longer inline the full brief"
     );
 
-    let legacy_invariants = fs::read_to_string(artifact_root.join("legacy-invariants.md"))
+    let legacy_invariants = fs::read_to_string(artifact_root.join("02-legacy-invariants.md"))
         .expect("legacy invariants artifact");
     assert!(
         legacy_invariants.contains("## Legacy Invariants\n\n- API compatibility must be maintained\n- Existing behavior and requirements must not change\n- Output format must remain unchanged"),
@@ -315,14 +315,14 @@ fn run_change_change_preserves_markdown_brief_structure() {
         "renderer should not prepend an extra bullet to an already bulleted section"
     );
 
-    let change_surface = fs::read_to_string(artifact_root.join("change-surface.md"))
+    let change_surface = fs::read_to_string(artifact_root.join("03-change-surface.md"))
         .expect("change surface artifact");
     assert!(
         change_surface.contains("## Change Surface\n\n- Public functions in schema validation module\n- Debug-level log statements only (non-intrusive)\n- No changes to function signatures or return types"),
         "change surface should preserve multi-line markdown bullets"
     );
 
-    let validation_strategy = fs::read_to_string(artifact_root.join("validation-strategy.md"))
+    let validation_strategy = fs::read_to_string(artifact_root.join("05-validation-strategy.md"))
         .expect("validation strategy artifact");
     assert!(
         validation_strategy.contains("## Validation Strategy\n\n- Unit tests using JUnit5 and Mockito\n- Verify debug logs are emitted for null arguments\n- Ensure no performance degradation\n- Confirm null argument handling remains correct"),

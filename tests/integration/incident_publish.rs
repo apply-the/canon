@@ -101,7 +101,7 @@ fn approval_gated_incident_packet_is_publishable_before_risk_approval() {
         .join("docs")
         .join("incidents")
         .join(default_publish_leaf(run_id, "incident"))
-        .join("follow-up-verification.md");
+        .join("06-follow-up-verification.md");
     let published_text = fs::read_to_string(published).expect("published follow-up verification");
     assert!(
         workspace

@@ -109,7 +109,9 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
             .contains("2 in-scope asset set(s), 2 threat set(s), and 1 rated risk set(s)")
     );
     assert!(
-        mode_result.primary_artifact_path.ends_with("security-assessment/assessment-overview.md")
+        mode_result
+            .primary_artifact_path
+            .ends_with("security-assessment/01-assessment-overview.md")
     );
 
     let pre_approval_publish = service
@@ -168,7 +170,7 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
         .join("docs")
         .join("security-assessments")
         .join(&leaf)
-        .join("assessment-overview.md");
+        .join("01-assessment-overview.md");
     assert!(published_overview.exists());
     let overview_contents = fs::read_to_string(published_overview).expect("published overview");
     assert!(overview_contents.contains("## Assessment Scope"));
@@ -207,7 +209,7 @@ fn security_assessment_direct_run_exposes_blocked_gate_and_missing_body_markers(
             .join("artifacts")
             .join(&summary.run_id)
             .join("security-assessment")
-            .join("threat-model.md"),
+            .join("02-threat-model.md"),
     )
     .expect("threat model");
     assert!(threat_model.contains("## Missing Authored Body"));

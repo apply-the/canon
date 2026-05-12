@@ -227,7 +227,7 @@ fn publish_accepts_last_alias_and_writes_default_destination() {
             .path()
             .join("specs")
             .join(default_publish_leaf(&run_id, "requirements"))
-            .join("problem-statement.md")
+            .join("01-problem-statement.md")
             .exists()
     );
 }
@@ -245,7 +245,7 @@ fn publish_accepts_short_id_prefix_and_explicit_destination() {
         .assert()
         .success();
 
-    assert!(workspace.path().join("docs/public/prd").join("problem-statement.md").exists());
+    assert!(workspace.path().join("docs/public/prd").join("01-problem-statement.md").exists());
 }
 
 #[test]
@@ -325,7 +325,7 @@ fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
             .join("docs")
             .join("implementation")
             .join(default_publish_leaf(run_id, "implementation"))
-            .join("task-mapping.md")
+            .join("01-task-mapping.md")
             .exists()
     );
 }
@@ -384,7 +384,7 @@ fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
             .join("docs")
             .join("planning")
             .join(default_publish_leaf(run_id, "backlog"))
-            .join("backlog-overview.md")
+            .join("01-backlog-overview.md")
             .exists()
     );
 

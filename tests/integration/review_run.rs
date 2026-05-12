@@ -67,11 +67,11 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("review");
 
     for artifact in [
-        "review-brief.md",
-        "boundary-assessment.md",
-        "missing-evidence.md",
-        "decision-impact.md",
-        "review-disposition.md",
+        "01-review-brief.md",
+        "02-boundary-assessment.md",
+        "03-missing-evidence.md",
+        "04-decision-impact.md",
+        "05-review-disposition.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -79,10 +79,10 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
         );
     }
 
-    let disposition = fs::read_to_string(artifact_root.join("review-disposition.md"))
+    let disposition = fs::read_to_string(artifact_root.join("05-review-disposition.md"))
         .expect("review disposition artifact");
-    let review_brief =
-        fs::read_to_string(artifact_root.join("review-brief.md")).expect("review brief artifact");
+    let review_brief = fs::read_to_string(artifact_root.join("01-review-brief.md"))
+        .expect("review brief artifact");
     assert!(
         disposition.contains("Status: ready-with-review-notes"),
         "review-disposition should record the completed review posture"
@@ -108,7 +108,7 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
     assert_eq!(entries.len(), 5);
     assert!(entries.iter().any(|entry| {
-        entry.as_str().is_some_and(|path| path.ends_with("/review/review-disposition.md"))
+        entry.as_str().is_some_and(|path| path.ends_with("/review/05-review-disposition.md"))
     }));
 
     let evidence_output = cli_command()
@@ -180,9 +180,9 @@ fn run_review_preserves_gate_target_and_packet_when_disposition_is_pending() {
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("review");
 
-    let disposition = fs::read_to_string(artifact_root.join("review-disposition.md"))
+    let disposition = fs::read_to_string(artifact_root.join("05-review-disposition.md"))
         .expect("review disposition artifact");
-    let missing_evidence = fs::read_to_string(artifact_root.join("missing-evidence.md"))
+    let missing_evidence = fs::read_to_string(artifact_root.join("03-missing-evidence.md"))
         .expect("missing evidence artifact");
     assert!(disposition.contains("Status: awaiting-disposition"));
     assert!(missing_evidence.contains("Status: missing-evidence-open"));

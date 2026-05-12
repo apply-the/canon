@@ -9,7 +9,7 @@ fn refactor_mode_uses_a_distinct_preservation_artifact_bundle() {
     let files = contract
         .artifact_requirements
         .iter()
-        .map(|requirement| requirement.file_name.as_str())
+        .map(|requirement| requirement.slug())
         .collect::<Vec<_>>();
 
     assert_eq!(
@@ -34,7 +34,7 @@ fn refactor_artifacts_require_preservation_specific_sections() {
         .iter()
         .map(|requirement| {
             (
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 requirement.required_sections.iter().map(String::as_str).collect::<Vec<_>>(),
                 requirement.gates.clone(),
             )

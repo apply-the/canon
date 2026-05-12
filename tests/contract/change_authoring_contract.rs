@@ -8,7 +8,7 @@ fn change_contract_uses_implementation_plan_heading() {
     let implementation_plan = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "implementation-plan.md")
+        .find(|requirement| requirement.slug() == "implementation-plan.md")
         .expect("implementation plan requirement");
 
     assert_eq!(
@@ -24,7 +24,7 @@ fn change_contract_uses_decision_record_heading() {
     let decision_record = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "decision-record.md")
+        .find(|requirement| requirement.slug() == "decision-record.md")
         .expect("decision record requirement");
 
     assert_eq!(

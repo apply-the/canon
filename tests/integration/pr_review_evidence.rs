@@ -183,7 +183,7 @@ fn pr_review_run_persists_invocation_evidence_and_independent_validation_paths()
         .stdout
         .clone();
     let evidence_markdown = String::from_utf8(evidence_markdown).expect("utf8 markdown");
-    let review_summary_path = format!(".canon/artifacts/{run_id}/pr-review/review-summary.md");
+    let review_summary_path = format!(".canon/artifacts/{run_id}/pr-review/08-review-summary.md");
     assert!(
         evidence_markdown.contains("## Readable Artifacts"),
         "markdown evidence output should foreground readable review artifacts"

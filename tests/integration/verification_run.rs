@@ -62,11 +62,11 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("verification");
 
     for artifact in [
-        "invariants-checklist.md",
-        "contract-matrix.md",
-        "adversarial-review.md",
-        "verification-report.md",
-        "unresolved-findings.md",
+        "01-invariants-checklist.md",
+        "02-contract-matrix.md",
+        "03-adversarial-review.md",
+        "04-verification-report.md",
+        "05-unresolved-findings.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -74,13 +74,13 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
         );
     }
 
-    let report = fs::read_to_string(artifact_root.join("verification-report.md"))
+    let report = fs::read_to_string(artifact_root.join("04-verification-report.md"))
         .expect("verification report artifact");
-    let contract = fs::read_to_string(artifact_root.join("contract-matrix.md"))
+    let contract = fs::read_to_string(artifact_root.join("02-contract-matrix.md"))
         .expect("contract matrix artifact");
-    let adversarial = fs::read_to_string(artifact_root.join("adversarial-review.md"))
+    let adversarial = fs::read_to_string(artifact_root.join("03-adversarial-review.md"))
         .expect("adversarial review artifact");
-    let unresolved = fs::read_to_string(artifact_root.join("unresolved-findings.md"))
+    let unresolved = fs::read_to_string(artifact_root.join("05-unresolved-findings.md"))
         .expect("unresolved findings artifact");
     assert!(report.contains("Status: supported"));
     assert!(report.contains("- rollback remains bounded and auditable"));
@@ -104,7 +104,7 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
     assert_eq!(entries.len(), 5);
     assert!(entries.iter().any(|entry| {
-        entry.as_str().is_some_and(|path| path.ends_with("/verification/verification-report.md"))
+        entry.as_str().is_some_and(|path| path.ends_with("/verification/04-verification-report.md"))
     }));
 
     let evidence_output = cli_command()
@@ -182,11 +182,11 @@ fn run_verification_surfaces_blocked_readiness_for_unresolved_findings() {
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("verification");
 
-    let report = fs::read_to_string(artifact_root.join("verification-report.md"))
+    let report = fs::read_to_string(artifact_root.join("04-verification-report.md"))
         .expect("verification report artifact");
-    let contract = fs::read_to_string(artifact_root.join("contract-matrix.md"))
+    let contract = fs::read_to_string(artifact_root.join("02-contract-matrix.md"))
         .expect("contract matrix artifact");
-    let unresolved = fs::read_to_string(artifact_root.join("unresolved-findings.md"))
+    let unresolved = fs::read_to_string(artifact_root.join("05-unresolved-findings.md"))
         .expect("unresolved findings artifact");
     assert!(report.contains("Status: unsupported"));
     assert!(report.contains("Rationale:"));

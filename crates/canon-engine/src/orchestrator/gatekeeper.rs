@@ -2,7 +2,7 @@ use time::OffsetDateTime;
 
 use crate::artifacts::contract::validate_release_bundle;
 use crate::domain::approval::ApprovalRecord;
-use crate::domain::artifact::ArtifactContract;
+use crate::domain::artifact::{ArtifactContract, artifact_slug};
 use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
@@ -636,7 +636,7 @@ fn operational_capture_gate(
         names
             .iter()
             .filter_map(|name| {
-                artifacts.iter().find(|(file_name, _)| file_name == name).and_then(
+                artifacts.iter().find(|(file_name, _)| artifact_slug(file_name) == *name).and_then(
                     |(file_name, contents)| {
                         if contents.contains("NOT CAPTURED") {
                             Some(format!(
@@ -693,7 +693,7 @@ fn change_preservation_gate(
         .artifact_requirements
         .iter()
         .filter(|requirement| {
-            matches!(requirement.file_name.as_str(), "legacy-invariants.md" | "change-surface.md")
+            matches!(requirement.slug(), "legacy-invariants.md" | "change-surface.md")
         })
         .flat_map(|requirement| {
             artifacts
@@ -824,7 +824,8 @@ pub fn evaluate_pr_review_gates(
 }
 
 fn exploration_gate(artifacts: &[(String, String)]) -> GateEvaluation {
-    let has_problem = artifacts.iter().any(|(file_name, _)| file_name == "problem-statement.md");
+    let has_problem =
+        artifacts.iter().any(|(file_name, _)| artifact_slug(file_name) == "problem-statement.md");
     let blockers = if has_problem {
         Vec::new()
     } else {
@@ -863,7 +864,7 @@ fn requirements_release_readiness_gate(
     let mut blockers = validate_release_bundle(contract, artifacts);
 
     if artifacts.iter().any(|(file_name, contents)| {
-        file_name == "problem-statement.md" && contents.contains("## Input:")
+        artifact_slug(file_name) == "problem-statement.md" && contents.contains("## Input:")
     }) {
         blockers.push(
             "requirements problem statement must synthesize the bounded need instead of replaying raw input labels"
@@ -935,7 +936,7 @@ fn implementation_readiness_gate(
         .iter()
         .filter(|requirement| {
             matches!(
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 "task-mapping.md"
                     | "mutation-bounds.md"
                     | "validation-hooks.md"
@@ -984,7 +985,7 @@ fn refactor_preservation_gate(
         .iter()
         .filter(|requirement| {
             matches!(
-                requirement.file_name.as_str(),
+                requirement.slug(),
                 "preserved-behavior.md" | "refactor-scope.md" | "no-feature-addition.md"
             )
         })
@@ -1314,7 +1315,7 @@ fn pr_review_architecture_gate(
         .artifact_requirements
         .iter()
         .filter(|requirement| {
-            matches!(requirement.file_name.as_str(), "boundary-check.md" | "contract-drift.md")
+            matches!(requirement.slug(), "boundary-check.md" | "contract-drift.md")
         })
         .flat_map(|requirement| {
             artifacts
@@ -1334,14 +1335,15 @@ fn pr_review_architecture_gate(
         .collect::<Vec<_>>();
 
     for (file_name, contents) in artifacts {
-        if file_name == "boundary-check.md" && contents.contains("Status: missing-boundary-review")
+        if artifact_slug(file_name) == "boundary-check.md"
+            && contents.contains("Status: missing-boundary-review")
         {
             blockers.push(
                 "boundary review is incomplete and cannot satisfy the architecture gate"
                     .to_string(),
             );
         }
-        if file_name == "contract-drift.md"
+        if artifact_slug(file_name) == "contract-drift.md"
             && contents.contains("Status: unsupported-contract-drift")
         {
             blockers.push("unsupported contract drift blocks the architecture gate".to_string());
@@ -1365,7 +1367,7 @@ fn review_disposition_gate_for_file(
     let mut blockers = contract
         .artifact_requirements
         .iter()
-        .filter(|requirement| requirement.file_name == file_name)
+        .filter(|requirement| artifact_slug(&requirement.file_name) == file_name)
         .flat_map(|requirement| {
             artifacts
                 .iter()
@@ -1385,7 +1387,7 @@ fn review_disposition_gate_for_file(
 
     let summary = artifacts
         .iter()
-        .find(|(artifact_file_name, _)| artifact_file_name == file_name)
+        .find(|(artifact_file_name, _)| artifact_slug(artifact_file_name) == file_name)
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
 
@@ -1428,12 +1430,12 @@ fn review_release_readiness_gate(
 
     let disposition = artifacts
         .iter()
-        .find(|(file_name, _)| file_name == "review-disposition.md")
+        .find(|(file_name, _)| artifact_slug(file_name) == "review-disposition.md")
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
     let missing_evidence = artifacts
         .iter()
-        .find(|(file_name, _)| file_name == "missing-evidence.md")
+        .find(|(file_name, _)| artifact_slug(file_name) == "missing-evidence.md")
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
 
@@ -1477,7 +1479,7 @@ fn pr_review_release_readiness_gate(
 
     let summary = artifacts
         .iter()
-        .find(|(file_name, _)| file_name == "review-summary.md")
+        .find(|(file_name, _)| artifact_slug(file_name) == "review-summary.md")
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
 
@@ -1529,12 +1531,12 @@ fn verification_release_readiness_gate(
 
     let unresolved_findings = artifacts
         .iter()
-        .find(|(file_name, _)| file_name == "unresolved-findings.md")
+        .find(|(file_name, _)| artifact_slug(file_name) == "unresolved-findings.md")
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
     let verdict = artifacts
         .iter()
-        .find(|(file_name, _)| file_name == "verification-report.md")
+        .find(|(file_name, _)| artifact_slug(file_name) == "verification-report.md")
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
 
@@ -1571,7 +1573,9 @@ fn named_artifact_gate(
     let mut blockers = contract
         .artifact_requirements
         .iter()
-        .filter(|requirement| names.iter().any(|name| requirement.file_name == *name))
+        .filter(|requirement| {
+            names.iter().any(|name| artifact_slug(&requirement.file_name) == *name)
+        })
         .flat_map(|requirement| {
             artifacts
                 .iter()
@@ -1603,7 +1607,9 @@ fn named_artifact_gate(
             .artifact_requirements
             .iter()
             .filter(|requirement| requirement.required)
-            .filter(|requirement| names.iter().any(|name| requirement.file_name == *name))
+            .filter(|requirement| {
+                names.iter().any(|name| artifact_slug(&requirement.file_name) == *name)
+            })
             .any(|requirement| {
                 !artifacts.iter().any(|(file_name, _)| file_name == &requirement.file_name)
             })
@@ -1631,7 +1637,9 @@ mod tests {
     };
     use crate::artifacts::contract::contract_for_mode;
     use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
-    use crate::domain::artifact::{ArtifactContract, ArtifactFormat, ArtifactRequirement};
+    use crate::domain::artifact::{
+        ArtifactContract, ArtifactFormat, ArtifactRequirement, artifact_slug,
+    };
     use crate::domain::execution::DeniedInvocation;
     use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
     use crate::domain::mode::Mode;
@@ -1840,7 +1848,7 @@ mod tests {
         let mut artifacts = valid_artifacts(&contract);
         let problem_statement = artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "problem-statement.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "problem-statement.md")
             .expect("problem statement artifact");
         problem_statement
             .1
@@ -1859,7 +1867,7 @@ mod tests {
     fn requirements_exploration_and_risk_block_without_problem_statement_or_owner() {
         let contract = contract_for_mode(Mode::Requirements);
         let mut artifacts = valid_artifacts(&contract);
-        artifacts.retain(|(file_name, _)| file_name != "problem-statement.md");
+        artifacts.retain(|(file_name, _)| artifact_slug(file_name) != "problem-statement.md");
 
         let evaluations = evaluate_requirements_gates(&contract, &artifacts, "   ", &[], true);
 
@@ -1996,7 +2004,7 @@ mod tests {
         let mut artifacts = valid_artifacts(&contract);
         artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "blast-radius-map.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "blast-radius-map.md")
             .expect("blast radius artifact")
             .1
             .push_str("\n\nNOT CAPTURED");
@@ -2049,7 +2057,7 @@ mod tests {
         let mut artifacts = valid_artifacts(&contract);
         artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "fallback-plan.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "fallback-plan.md")
             .expect("fallback plan artifact")
             .1
             .push_str("\n\nNOT CAPTURED");
@@ -2185,13 +2193,13 @@ mod tests {
 
         let boundary_check = artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "boundary-check.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "boundary-check.md")
             .expect("boundary-check artifact present");
         boundary_check.1.push_str("\n\nStatus: missing-boundary-review");
 
         let contract_drift = artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "contract-drift.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "contract-drift.md")
             .expect("contract-drift artifact present");
         contract_drift.1.push_str("\n\nStatus: unsupported-contract-drift");
 
@@ -2230,7 +2238,7 @@ mod tests {
         let mut artifacts = valid_artifacts(&contract);
         let review_summary = artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "review-summary.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "review-summary.md")
             .expect("review-summary artifact present");
         review_summary.1.push_str("\n\nStatus: awaiting-disposition");
 
@@ -2277,7 +2285,7 @@ mod tests {
         let mut artifacts = valid_artifacts(&contract);
         let review_summary = artifacts
             .iter_mut()
-            .find(|(file_name, _)| file_name == "review-summary.md")
+            .find(|(file_name, _)| artifact_slug(file_name) == "review-summary.md")
             .expect("review-summary artifact present");
         review_summary.1.push_str("\n\nStatus: awaiting-disposition");
 

@@ -108,7 +108,7 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
-    let expected_summary_path = format!(".canon/artifacts/{run_id}/pr-review/review-summary.md");
+    let expected_summary_path = format!(".canon/artifacts/{run_id}/pr-review/08-review-summary.md");
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Summary"));
     assert_eq!(
         json["mode_result"]["primary_artifact_path"].as_str(),
@@ -134,14 +134,14 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     for artifact in [
-        "pr-analysis.md",
-        "boundary-check.md",
-        "conventional-comments.md",
-        "duplication-check.md",
-        "contract-drift.md",
-        "missing-tests.md",
-        "decision-impact.md",
-        "review-summary.md",
+        "01-pr-analysis.md",
+        "02-boundary-check.md",
+        "03-conventional-comments.md",
+        "04-duplication-check.md",
+        "05-contract-drift.md",
+        "06-missing-tests.md",
+        "07-decision-impact.md",
+        "08-review-summary.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -150,19 +150,20 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     }
 
     let pr_analysis =
-        fs::read_to_string(artifact_root.join("pr-analysis.md")).expect("pr analysis artifact");
+        fs::read_to_string(artifact_root.join("01-pr-analysis.md")).expect("pr analysis artifact");
     assert!(
         pr_analysis.contains("src/reviewer.rs"),
         "pr-analysis should map the changed source file"
     );
-    let review_summary = fs::read_to_string(artifact_root.join("review-summary.md"))
+    let review_summary = fs::read_to_string(artifact_root.join("08-review-summary.md"))
         .expect("review summary artifact");
     assert!(
         review_summary.contains("Ready with review notes"),
         "review-summary should record a non-blocking disposition"
     );
-    let conventional_comments = fs::read_to_string(artifact_root.join("conventional-comments.md"))
-        .expect("conventional comments artifact");
+    let conventional_comments =
+        fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
+            .expect("conventional comments artifact");
     assert!(
         conventional_comments.contains("praise:"),
         "note-only review packets should emit a praise-style conventional comment"
@@ -238,16 +239,16 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     assert!(
-        artifact_root.join("pr-analysis.md").exists(),
+        artifact_root.join("01-pr-analysis.md").exists(),
         "pr-analysis should exist for worktree review"
     );
     assert!(
-        artifact_root.join("conventional-comments.md").exists(),
+        artifact_root.join("03-conventional-comments.md").exists(),
         "conventional-comments should exist for worktree review"
     );
 
     let pr_analysis =
-        fs::read_to_string(artifact_root.join("pr-analysis.md")).expect("pr analysis artifact");
+        fs::read_to_string(artifact_root.join("01-pr-analysis.md")).expect("pr analysis artifact");
     assert!(
         pr_analysis.contains("src/reviewer.rs"),
         "pr-analysis should detect the uncommitted change in src/reviewer.rs"

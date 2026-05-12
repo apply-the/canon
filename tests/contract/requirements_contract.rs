@@ -86,13 +86,13 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
     let actual_paths =
         entries.iter().map(|entry| entry.as_str().expect("artifact path")).collect::<Vec<_>>();
     let expected_paths = vec![
-        format!(".canon/artifacts/{run_id}/requirements/constraints.md"),
-        format!(".canon/artifacts/{run_id}/requirements/decision-checklist.md"),
-        format!(".canon/artifacts/{run_id}/requirements/options.md"),
-        format!(".canon/artifacts/{run_id}/requirements/prd.md"),
-        format!(".canon/artifacts/{run_id}/requirements/problem-statement.md"),
-        format!(".canon/artifacts/{run_id}/requirements/scope-cuts.md"),
-        format!(".canon/artifacts/{run_id}/requirements/tradeoffs.md"),
+        format!(".canon/artifacts/{run_id}/requirements/01-problem-statement.md"),
+        format!(".canon/artifacts/{run_id}/requirements/02-constraints.md"),
+        format!(".canon/artifacts/{run_id}/requirements/03-options.md"),
+        format!(".canon/artifacts/{run_id}/requirements/04-tradeoffs.md"),
+        format!(".canon/artifacts/{run_id}/requirements/05-scope-cuts.md"),
+        format!(".canon/artifacts/{run_id}/requirements/06-decision-checklist.md"),
+        format!(".canon/artifacts/{run_id}/requirements/07-prd.md"),
     ];
     assert_eq!(actual_paths, expected_paths);
 
@@ -103,8 +103,10 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         .success()
         .stdout(contains("# artifacts"))
         .stdout(contains(format!("Run ID: {run_id}")))
-        .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/prd.md")))
-        .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/problem-statement.md")));
+        .stdout(contains(format!(".canon/artifacts/{run_id}/requirements/07-prd.md")))
+        .stdout(contains(format!(
+            ".canon/artifacts/{run_id}/requirements/01-problem-statement.md"
+        )));
 
     let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
         .run_dir(&run_id)

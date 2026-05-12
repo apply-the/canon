@@ -38,7 +38,7 @@ fn change_contract_matches_domain_slice_sections_and_gates() {
     let system_slice = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "system-slice.md")
+        .find(|requirement| requirement.slug() == "system-slice.md")
         .expect("system slice requirement");
     assert_eq!(
         system_slice.required_sections,
@@ -48,7 +48,7 @@ fn change_contract_matches_domain_slice_sections_and_gates() {
     let legacy_invariants = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "legacy-invariants.md")
+        .find(|requirement| requirement.slug() == "legacy-invariants.md")
         .expect("legacy invariants requirement");
     assert_eq!(
         legacy_invariants.required_sections,
@@ -62,7 +62,7 @@ fn change_contract_matches_domain_slice_sections_and_gates() {
     let change_surface = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "change-surface.md")
+        .find(|requirement| requirement.slug() == "change-surface.md")
         .expect("change surface requirement");
     assert_eq!(
         change_surface.required_sections,
@@ -72,7 +72,7 @@ fn change_contract_matches_domain_slice_sections_and_gates() {
     let decision_record = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "decision-record.md")
+        .find(|requirement| requirement.slug() == "decision-record.md")
         .expect("decision record requirement");
     assert_eq!(
         decision_record.required_sections,
@@ -176,7 +176,7 @@ fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
         preservation_gate["blockers"]
             .as_array()
             .is_some_and(|blockers| blockers.iter().any(|blocker| blocker
-                == "legacy-invariants.md is missing required section `Legacy Invariants`")),
+                == "02-legacy-invariants.md is missing required section `Legacy Invariants`")),
         "status should expose the concrete gate blockers"
     );
 
@@ -340,22 +340,22 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
         workspace.path().join(".canon").join("artifacts").join(&run_id).join("change");
 
     fs::write(
-        artifact_root.join("system-slice.md"),
+        artifact_root.join("01-system-slice.md"),
         "# System Slice\n\n## Summary\n\nBound the affected subsystem.\n\n## System Slice\n\nauth session boundary and persistence layer.\n\n## Domain Slice\n\nSession lifecycle and cleanup semantics within the auth domain.\n\n## Excluded Areas\n\n- payment settlement\n",
     )
     .expect("system slice artifact");
     fs::write(
-        artifact_root.join("legacy-invariants.md"),
+        artifact_root.join("02-legacy-invariants.md"),
         "# Legacy Invariants\n\n## Summary\n\nPreserve revocation semantics.\n\n## Legacy Invariants\n\n- Session revocation remains eventually consistent.\n- Audit log ordering stays stable.\n\n## Domain Invariants\n\n- Revoked sessions must never become active again through cleanup retries.\n\n## Forbidden Normalization\n\n- Do not normalize away weird but required legacy timing.\n",
     )
     .expect("legacy invariants artifact");
     fs::write(
-        artifact_root.join("change-surface.md"),
+        artifact_root.join("03-change-surface.md"),
         "# Change Surface\n\n## Summary\n\nBound the affected modules.\n\n## Change Surface\n\n- session repository\n- auth service\n- token cleanup job\n\n## Ownership\n\n- maintainer\n\n## Cross-Context Risks\n\n- cleanup scheduling must not leak into adjacent notification flows.\n",
     )
     .expect("change surface artifact");
     fs::write(
-        artifact_root.join("decision-record.md"),
+        artifact_root.join("06-decision-record.md"),
         "# Decision Record\n\n## Summary\n\nKeep the change bounded.\n\n## Decision Record\n\nPrefer additive repository methods over interface churn.\n\n## Decision Drivers\n\n- Preserve operator expectations.\n- Keep the auth contract stable during the bounded repository change.\n\n## Options Considered\n\n- Option 1 keeps additive repository methods inside the auth boundary.\n- Option 2 broadens the slice into interface churn and cleanup normalization.\n\n## Decision Evidence\n\n- Existing operator workflows still depend on the current auth cleanup ordering.\n- Contract coverage already guards the preserved API surface.\n\n## Boundary Tradeoffs\n\n- keep cleanup logic inside the auth boundary even if it duplicates some scheduling code.\n\n## Recommendation\n\n- Keep the additive repository methods and defer broader normalization.\n\n## Why Not The Others\n\n- Broadening into interface churn would widen the bounded change surface.\n\n## Consequences\n\n- preserved surface remains explicit and reviewable.\n\n## Unresolved Questions\n\n- should the cleanup job roll out in the same slice?\n",
     )
     .expect("decision record artifact");

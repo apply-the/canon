@@ -238,7 +238,7 @@ fn governance_start_blocks_rejected_requirements_packets() {
     assert!(json["run_ref"].as_str().is_some_and(|value| !value.is_empty()));
     assert!(json["document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
     assert!(json["missing_sections"].as_array().is_some_and(|sections| {
-        sections.iter().any(|section| section == "problem-statement.md")
+        sections.iter().any(|section| section == "01-problem-statement.md")
     }));
 }
 

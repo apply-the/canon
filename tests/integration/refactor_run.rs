@@ -191,17 +191,17 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
         approval_targets.iter().any(|target| target.as_str() == Some("gate:execution")),
         "approval_targets should contain gate:execution, got: {approval_targets:?}"
     );
-    assert!(artifact_root.join("preserved-behavior.md").exists());
-    assert!(artifact_root.join("refactor-scope.md").exists());
-    assert!(artifact_root.join("no-feature-addition.md").exists());
+    assert!(artifact_root.join("01-preserved-behavior.md").exists());
+    assert!(artifact_root.join("02-refactor-scope.md").exists());
+    assert!(artifact_root.join("06-no-feature-addition.md").exists());
 
     let preserved_behavior =
-        fs::read_to_string(artifact_root.join("preserved-behavior.md")).expect("artifact");
+        fs::read_to_string(artifact_root.join("01-preserved-behavior.md")).expect("artifact");
     assert!(preserved_behavior.contains("## Preserved Behavior"));
     assert!(preserved_behavior.contains("audit ordering remain externally unchanged"));
 
     let structural_rationale =
-        fs::read_to_string(artifact_root.join("structural-rationale.md")).expect("artifact");
+        fs::read_to_string(artifact_root.join("03-structural-rationale.md")).expect("artifact");
     assert!(structural_rationale.contains("## Structural Rationale"));
     assert!(
         structural_rationale.contains(
@@ -210,7 +210,7 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
     );
 
     let no_feature_addition =
-        fs::read_to_string(artifact_root.join("no-feature-addition.md")).expect("artifact");
+        fs::read_to_string(artifact_root.join("06-no-feature-addition.md")).expect("artifact");
     assert!(no_feature_addition.contains("## Decision"));
     assert!(no_feature_addition.contains(
         "stop immediately if the surface expands or the packet starts to add feature semantics"
@@ -279,7 +279,7 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
             .join("docs")
             .join("refactors")
             .join(default_publish_leaf(run_id, "refactor"))
-            .join("preserved-behavior.md")
+            .join("01-preserved-behavior.md")
             .exists()
     );
 }
@@ -325,7 +325,7 @@ fn refactor_run_emits_missing_body_marker_for_absent_canonical_heading() {
             .join("artifacts")
             .join(run_id)
             .join("refactor")
-            .join("no-feature-addition.md"),
+            .join("06-no-feature-addition.md"),
     )
     .expect("artifact");
 
@@ -420,7 +420,7 @@ fn red_zone_refactor_run_remains_recommendation_only_and_publishable() {
             .join("docs")
             .join("refactors")
             .join(default_publish_leaf(run_id, "refactor"))
-            .join("preserved-behavior.md")
+            .join("01-preserved-behavior.md")
             .exists()
     );
 }

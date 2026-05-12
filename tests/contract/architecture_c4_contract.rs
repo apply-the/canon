@@ -10,7 +10,7 @@ fn architecture_contract_includes_pragmatic_c4_and_machine_readable_view_artifac
         contract
             .artifact_requirements
             .iter()
-            .find(|requirement| requirement.file_name == name)
+            .find(|requirement| requirement.slug() == name)
             .unwrap_or_else(|| panic!("missing C4 artifact requirement: {name}"))
     };
 

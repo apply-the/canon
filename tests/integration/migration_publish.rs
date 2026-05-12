@@ -101,7 +101,7 @@ fn blocked_migration_packet_is_publishable_with_honest_fallback_gaps() {
         .join("docs")
         .join("migrations")
         .join(default_publish_leaf(run_id, "migration"))
-        .join("fallback-plan.md");
+        .join("04-fallback-plan.md");
     let published_text = fs::read_to_string(published).expect("published fallback plan");
     assert!(
         workspace

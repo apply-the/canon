@@ -108,12 +108,12 @@ fn run_incident_emits_a_governed_containment_packet_and_publishes_after_risk_app
             .iter()
             .any(|target| target.as_str() == Some("gate:risk")))
     );
-    assert!(artifact_root.join("incident-frame.md").exists());
-    assert!(artifact_root.join("containment-plan.md").exists());
-    assert!(artifact_root.join("follow-up-verification.md").exists());
+    assert!(artifact_root.join("01-incident-frame.md").exists());
+    assert!(artifact_root.join("04-containment-plan.md").exists());
+    assert!(artifact_root.join("06-follow-up-verification.md").exists());
 
     let containment_plan =
-        fs::read_to_string(artifact_root.join("containment-plan.md")).expect("containment plan");
+        fs::read_to_string(artifact_root.join("04-containment-plan.md")).expect("containment plan");
     assert!(containment_plan.contains("## Immediate Actions\n\n- disable async retries"));
     assert!(
         containment_plan
@@ -164,7 +164,7 @@ fn run_incident_emits_a_governed_containment_packet_and_publishes_after_risk_app
             .join("docs")
             .join("incidents")
             .join(default_publish_leaf(run_id, "incident"))
-            .join("incident-frame.md")
+            .join("01-incident-frame.md")
             .exists()
     );
 }
@@ -209,7 +209,7 @@ fn run_incident_blocks_when_a_required_authored_section_is_missing() {
     assert_eq!(json["blocking_classification"], "artifact-blocked");
 
     let containment_plan =
-        fs::read_to_string(artifact_root.join("containment-plan.md")).expect("containment plan");
+        fs::read_to_string(artifact_root.join("04-containment-plan.md")).expect("containment plan");
     assert!(containment_plan.contains("## Missing Authored Body"));
     assert!(containment_plan.contains("`## Stop Conditions`"));
 }

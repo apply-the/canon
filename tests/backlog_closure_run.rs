@@ -132,8 +132,8 @@ fn closure_blocked_backlog_run_emits_only_risk_packet_artifacts() {
     let actual_paths =
         entries.iter().map(|entry| entry.as_str().expect("artifact path")).collect::<Vec<_>>();
     let expected_paths = vec![
-        format!(".canon/artifacts/{run_id}/backlog/backlog-overview.md"),
-        format!(".canon/artifacts/{run_id}/backlog/planning-risks.md"),
+        format!(".canon/artifacts/{run_id}/backlog/01-backlog-overview.md"),
+        format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
     ];
     assert_eq!(actual_paths, expected_paths);
     assert!(
@@ -200,8 +200,8 @@ fn downgraded_backlog_run_completes_with_a_risk_only_packet() {
     assert_eq!(
         actual_paths,
         vec![
-            format!(".canon/artifacts/{run_id}/backlog/backlog-overview.md"),
-            format!(".canon/artifacts/{run_id}/backlog/planning-risks.md"),
+            format!(".canon/artifacts/{run_id}/backlog/01-backlog-overview.md"),
+            format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
         ]
     );
 

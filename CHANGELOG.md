@@ -15,15 +15,22 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
-## [Unreleased]
+## [0.46.0] - 2026-05-12
 
 Delivered specs:
 
-- None recorded after `0.45.0`
+- `specs/046-ordered-artifact-filenames/`
 
 Highlights:
 
-- No additional released feature-spec delivery is recorded after `0.45.0`.
+- Artifact filenames emitted by `contract_for_mode()` now carry ordinal prefixes
+  (e.g., `01-problem-statement.md`, `02-constraints.md`) so that published
+  packets display in a deterministic, Confluence-tree-style reading order.
+- Added `artifact_slug()` utility and `slug()` methods on `ArtifactRequirement`
+  and `ArtifactRecord` for prefix-agnostic matching in gates, renderers, and
+  summarizers.
+- Bumped workspace version to `0.46.0` across all crates and assistant plugin
+  manifests.
 
 ## [0.45.0] - 2026-05-11
 

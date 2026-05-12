@@ -85,7 +85,7 @@ fn pr_review_contract_includes_conventional_comments_artifact() {
     let conventional_comments = contract
         .artifact_requirements
         .iter()
-        .find(|requirement| requirement.file_name == "conventional-comments.md")
+        .find(|requirement| requirement.slug() == "conventional-comments.md")
         .expect("conventional-comments artifact requirement");
 
     assert_eq!(
@@ -130,7 +130,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Summary");
     assert_eq!(
         run_json["mode_result"]["primary_artifact_path"],
-        format!(".canon/artifacts/{run_id}/pr-review/review-summary.md")
+        format!(".canon/artifacts/{run_id}/pr-review/08-review-summary.md")
     );
     assert!(
         run_json["mode_result"]["headline"]
@@ -149,7 +149,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .join("artifacts")
         .join(&run_id)
         .join("pr-review")
-        .join("review-summary.md");
+        .join("08-review-summary.md");
     let review_summary_text = fs::read_to_string(review_summary).expect("review summary");
     assert!(
         review_summary_text.contains("Must-fix findings require explicit disposition"),
@@ -166,7 +166,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .join("artifacts")
         .join(&run_id)
         .join("pr-review")
-        .join("conventional-comments.md");
+        .join("03-conventional-comments.md");
     let conventional_comments_text =
         fs::read_to_string(conventional_comments).expect("conventional comments artifact");
     assert!(

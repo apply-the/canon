@@ -1,7 +1,7 @@
 # Next Features
 
 The most recent delivered roadmap entry is
-`042-visual-artifact-generation`.
+`046-ordered-artifact-filenames`.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
@@ -50,6 +50,12 @@ explicitly instead of pretending they exist.
 Future roadmap entries can build on that base rather than reopening the
 question of whether architecture packets should have a single primary review
 entrypoint.
+
+Delivered work through `046` now prefixes every artifact filename with a
+two-digit ordinal (e.g., `01-problem-statement.md`, `02-constraints.md`) so
+that published packets display in a deterministic, Confluence-tree-style
+reading order. Gates, renderers, and summarizers match on the unprefixed slug;
+published file paths carry the ordinal prefix.
 
 This roadmap remains intentionally sparse: a macrofeature only moves forward
 once its bounds, artifact contract, and validation story are explicit.

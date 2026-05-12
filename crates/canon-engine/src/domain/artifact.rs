@@ -24,6 +24,32 @@ pub struct ArtifactRequirement {
     pub required: bool,
 }
 
+impl ArtifactRequirement {
+    /// Return the bare slug (without ordinal prefix) for this artifact.
+    pub fn slug(&self) -> &str {
+        artifact_slug(&self.file_name)
+    }
+}
+
+/// Strip the `NN-` ordinal prefix from an artifact filename, returning the bare slug.
+///
+/// For example, `"01-problem-statement.md"` returns `"problem-statement.md"`.
+/// If no two-digit-dash prefix is present the input is returned unchanged.
+pub fn artifact_slug(file_name: &str) -> &str {
+    let bytes = file_name.as_bytes();
+    if bytes.len() > 3 && bytes[0].is_ascii_digit() && bytes[1].is_ascii_digit() && bytes[2] == b'-'
+    {
+        &file_name[3..]
+    } else {
+        file_name
+    }
+}
+
+/// Build the prefixed artifact filename from a 1-based ordinal and a bare slug.
+pub fn prefixed_artifact_name(ordinal: usize, slug: &str) -> String {
+    format!("{ordinal:02}-{slug}")
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactContract {
     pub version: u32,
@@ -44,6 +70,11 @@ const fn default_artifact_required() -> bool {
 }
 
 impl ArtifactRecord {
+    /// Return the bare slug (without ordinal prefix) for this artifact.
+    pub fn slug(&self) -> &str {
+        artifact_slug(&self.file_name)
+    }
+
     pub fn validate_relative_path(&self, run_id: &str, mode: Mode) -> Result<(), String> {
         if self.file_name.trim().is_empty() {
             return Err("artifact file_name must not be empty".to_string());
