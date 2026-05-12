@@ -108,7 +108,7 @@ jobs:
         run: echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc' >> "$GITHUB_ENV"
 
       - name: Build release binary
-        run: cargo build --locked -p canon-cli --bin canon --release --target ${{ matrix.target }}
+        run: rustup run 1.95.0 cargo build --locked -p canon-cli --bin canon --release --target ${{ matrix.target }}
 
       - name: Package unix artifact
         if: matrix.packaging == 'unix'

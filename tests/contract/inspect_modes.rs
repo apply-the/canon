@@ -47,6 +47,8 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "security-assessment",
             "migration",
             "supply-chain-analysis",
+            "domain-language",
+            "domain-model",
         ])
     );
 }

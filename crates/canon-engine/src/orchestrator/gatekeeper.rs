@@ -109,6 +109,24 @@ pub struct SupplyChainAnalysisGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+pub struct DomainLanguageGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
+pub struct DomainModelGateContext<'a> {
+    pub owner: &'a str,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approvals: &'a [ApprovalRecord],
+    pub validation_independence_satisfied: bool,
+    pub evidence_complete: bool,
+}
+
 pub struct RefactorGateContext<'a> {
     pub owner: &'a str,
     pub risk: RiskClass,
@@ -1623,6 +1641,73 @@ fn named_artifact_gate(
         blockers,
         evaluated_at: OffsetDateTime::now_utc(),
     }
+}
+
+pub fn evaluate_domain_language_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: DomainLanguageGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &["language-overview.md", "domain-glossary.md", "preferred-language.md"],
+            "domain-language review requires scope, glossary, and preferred language evidence",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone domain-language work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "domain-language readiness requires persisted context, critique, and verification evidence",
+        ),
+    ]
+}
+
+pub fn evaluate_domain_model_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: DomainModelGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        named_artifact_gate(
+            GateKind::Architecture,
+            contract,
+            artifacts,
+            &[
+                "model-overview.md",
+                "concept-catalog.md",
+                "relationship-map.md",
+                "bounded-context-map.md",
+            ],
+            "domain-model review requires scope, concepts, relationships, and bounded context evidence",
+        ),
+        approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone domain-model work requires explicit approval before it can proceed",
+        ),
+        analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "domain-model readiness requires persisted context, critique, and verification evidence",
+        ),
+    ]
 }
 
 #[cfg(test)]

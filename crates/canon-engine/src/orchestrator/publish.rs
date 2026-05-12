@@ -69,6 +69,8 @@ pub fn publish_run(
             | Mode::Migration
             | Mode::SystemAssessment
             | Mode::SupplyChainAnalysis
+            | Mode::DomainLanguage
+            | Mode::DomainModel
     ) && matches!(
         state.state,
         RunState::AwaitingApproval | RunState::Blocked | RunState::Completed
@@ -573,6 +575,8 @@ fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::SecurityAssessment => "docs/security-assessments",
         Mode::Migration => "docs/migrations",
         Mode::SupplyChainAnalysis => "docs/supply-chain",
+        Mode::DomainLanguage => "docs/domain/language",
+        Mode::DomainModel => "docs/domain/model",
     }
 }
 

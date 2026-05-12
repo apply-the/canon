@@ -15,6 +15,34 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.47.0] - 2026-05-12
+
+Delivered specs:
+
+- `specs/047-domain-language-model-modes/`
+
+Highlights:
+
+- Added `domain-language` as a first-class governed Canon mode producing 10
+  artifacts for ubiquitous-language stabilization: language-overview, domain-glossary,
+  preferred-language, language-conflicts, contextual-meanings, business-language-rules,
+  code-and-api-vocabulary, downstream-language-guidance, language-decision-record,
+  and ai-provenance.
+- Added `domain-model` as a first-class governed Canon mode producing 13
+  artifacts for lightweight ontology concept modeling: model-overview, concept-catalog,
+  relationship-map, bounded-context-map, lifecycle-and-state-model, domain-invariants,
+  policy-and-constraint-rules, feature-impact-rules, code-data-alignment,
+  model-gaps-and-risks, downstream-model-guidance, domain-model.json, and ai-provenance.
+- Both modes support `canon inspect clarity`, `canon governance capabilities --json`,
+  canonical input binding (`canon-input/domain-language.md`, `canon-input/domain-model.md`),
+  and publish to `docs/domain/language/` and `docs/domain/model/` respectively.
+- `domain-model.json` provides a machine-readable concept model with schema_version,
+  concepts, relationships, invariants, and feature_impact_rules.
+- Both modes default to `recommendation-only` execution posture.
+- Added method TOML definitions, input templates, worked examples, and mode guide
+  documentation for both modes.
+- Bumped workspace version to `0.47.0` across all crates and assistant plugin manifests.
+
 ## [0.46.0] - 2026-05-12
 
 Delivered specs:

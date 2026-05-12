@@ -80,7 +80,15 @@ orchestrators.
 
 ## Quick Decision Rule
 
+- use `domain-language` when the ambiguity is still linguistic: terms differ
+  across stakeholders, docs, APIs, or code and the team needs one shared
+  vocabulary before downstream work
+- use `domain-model` when the vocabulary is mostly stable but the concepts,
+  relationships, invariants, or bounded contexts are still unclear
 - use `system-shaping` when the structure of a capability is not yet defined
+  and the domain framing is already credible enough to explore boundaries
+- use `architecture` when the key remaining work is a bounded structural
+  decision with explicit tradeoffs
 - use `backlog` when upstream scope is already bounded and the next need is
   governed delivery decomposition rather than execution guidance
 - use `change` when the structure is known and the task is bounded
@@ -128,6 +136,8 @@ explicitly reroute the packet to `discovery`, `requirements`, or
 - [`system-assessment`](#mode-system-assessment): evaluate the current system state, architecture views, and observed or inferred findings.
 - [`migration`](#mode-migration): plan a bounded move from source to target with sequencing, compatibility, and fallback.
 - [`supply-chain-analysis`](#mode-supply-chain-analysis): examine dependencies, SBOM posture, vulnerabilities, licenses, and legacy risk.
+- [`domain-language`](#mode-domain-language): stabilize the shared vocabulary of a product area before downstream design or change work.
+- [`domain-model`](#mode-domain-model): formalize domain concepts, relationships, invariants, and feature-impact rules before architecture or backlog decomposition.
 
 ## Input Binding Rules
 
@@ -146,6 +156,8 @@ convention:
 - `system-assessment`: `canon-input/system-assessment.md` or `canon-input/system-assessment/`
 - `migration`: `canon-input/migration.md` or `canon-input/migration/`
 - `supply-chain-analysis`: `canon-input/supply-chain-analysis.md` or `canon-input/supply-chain-analysis/`
+- `domain-language`: `canon-input/domain-language.md` or `canon-input/domain-language/`
+- `domain-model`: `canon-input/domain-model.md` or `canon-input/domain-model/`
 - `refactor`: `canon-input/refactor.md` or `canon-input/refactor/`
 - `review`: `canon-input/review.md` or `canon-input/review/`
 - `verification`: `canon-input/verification.md` or `canon-input/verification/`
@@ -295,6 +307,7 @@ flowchart TD
   A[What is the next governed need?] --> B{Primary question}
   B -->|Problem still ambiguous| D[discovery]
   B -->|Need bounded scope and outcomes| R[requirements]
+  B -->|Need shared vocabulary or concept framing| DF[domain-language or domain-model]
   B -->|Need structural design or boundaries| SD[system-shaping or architecture]
   B -->|Need bounded existing-system change or delivery| CD[change, backlog, implementation, or refactor]
   B -->|Need review or assurance| RA[review, pr-review, or verification]
@@ -305,16 +318,35 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  D[discovery] --> R[requirements]
+  D[discovery] --> DL[domain-language]
+  D --> R[requirements]
+  R --> DL
+  DL --> R
+  DL --> DM[domain-model]
+  DL --> SS[system-shaping (new or existing)]
+  DL --> CH[change (existing)]
+  DL --> BL[backlog (existing)]
   R --> SS[system-shaping (new or existing)]
   R --> CH[change (existing)]
   R -. direct structural decision .-> ARC[architecture (new or existing)]
+  DM --> SS
+  DM --> ARC
+  DM --> BL
+  DM --> CH
   SS --> ARC
   SS --> CH
   SS --> BL[backlog (existing)]
   ARC --> CH
   ARC --> BL
 ```
+
+Common domain-framing placements:
+
+- `discovery -> domain-language -> requirements`: when the problem is still ambiguous and even the language is unstable.
+- `requirements -> domain-language -> system-shaping -> architecture`: when the product need is bounded enough, but the domain terms and concept boundaries are not.
+- `system-assessment -> domain-language -> change`: when an existing system has inconsistent naming, overloaded concepts, or code and docs that talk past each other.
+- `domain-language -> backlog`: when you want epics and slices to inherit canonical terms instead of amplifying ambiguous ones.
+- `domain-language -> domain-model -> architecture` or `backlog`: when the vocabulary is stable, but structural choices or delivery decomposition still need a formal concept map.
 
 ### 3) Change And Delivery Handoffs
 
@@ -379,7 +411,8 @@ stateDiagram-v2
 ### 7) Quick Legend
 
 - `discovery` and `requirements` clarify the problem and scope.
-- `system-shaping` and `architecture` settle structure, boundaries, and tradeoffs.
+- `domain-language` and `domain-model` stabilize vocabulary, concepts, relationships, and invariants before structural or delivery decisions.
+- `system-shaping` and `architecture` settle structure, boundaries, and tradeoffs once the domain framing is credible enough.
 - `change`, `backlog`, `implementation`, and `refactor` carry bounded existing-system work into planning or delivery.
 - `review`, `pr-review`, and `verification` challenge packets, diffs, or claims.
 - `incident`, `security-assessment`, `system-assessment`, `migration`, and `supply-chain-analysis` create operational or assessment packets.
@@ -2013,4 +2046,213 @@ canon run \
   --zone yellow \
   --owner release-engineer \
   --input canon-input/supply-chain-analysis.md
+```
+
+## Mode: domain-language
+
+### Use It For
+
+Produce a governed ubiquitous-language packet that stabilizes the shared
+vocabulary of a product area before downstream requirements,
+system-shaping, architecture, backlog, or change work.
+
+### Input Shape
+
+A bounded domain-language brief or folder-backed packet.
+
+Domain-language is strongest when the packet authors these canonical H2
+sections directly: `## Domain Scope`, `## Language Maturity`,
+`## Upstream Sources`, `## Downstream Consumers`, `## Glossary Entries`,
+`## Source References`, `## Open Gaps`, `## Canonical Terms`,
+`## Deprecated Synonyms`, `## Migration Notes`, `## Conflict Inventory`,
+`## Resolution Status`, `## Escalation Triggers`,
+`## Context-Dependent Terms`, `## Disambiguation Rules`,
+`## Usage Examples`, `## Naming Conventions`, `## Domain Boundaries`,
+`## Enforcement Guidance`, `## Code Naming Patterns`,
+`## API Surface Terms`, `## Alignment Gaps`, `## Consumer Modes`,
+`## Handoff Expectations`, and `## Adoption Risks`.
+
+### Good Input Should Include
+
+- explicit domain scope and language maturity assessment
+- glossary entries with source references
+- canonical terms and deprecated synonyms with migration notes
+- conflict inventory with resolution status
+- context-dependent terms with disambiguation rules
+- code and API naming patterns with alignment gaps
+
+### Questions This Mode Answers
+
+- which terms are canonical and which are deprecated
+- where language conflicts exist and whether they are resolved
+- how code and API naming aligns with the domain vocabulary
+- what downstream modes and teams should consume this language packet
+
+### Questions This Mode Does Not Answer Well
+
+- what the formal domain model relationships are (use domain-model)
+- how to implement naming changes across the codebase (use change or refactor)
+- what the architecture boundaries should be (use architecture)
+- how to resolve business disagreements about terminology
+
+### What Canon Emits
+
+Domain-language produces a governed operational packet with these artifacts:
+
+- `language-overview.md`
+- `domain-glossary.md`
+- `preferred-language.md`
+- `language-conflicts.md`
+- `contextual-meanings.md`
+- `business-language-rules.md`
+- `code-and-api-vocabulary.md`
+- `downstream-language-guidance.md`
+- `language-decision-record.md`
+- `ai-provenance.md`
+
+Run and status summaries surface `language-overview.md` as the primary artifact
+and keep the packet's `recommendation-only` posture explicit.
+
+### Typical Handoff After This Mode
+
+- inspect the packet artifacts first when glossary completeness or conflict resolution is contested
+- approve `gate:risk` when a systemic or red-zone packet is credible enough for governed review
+- publish readable packets to `docs/domain/language/<YYYY-MM-DD>-<descriptor>/` for broader review
+- move to `requirements` when the product scope still needs to be bounded but the language now needs to stay consistent
+- move to `domain-model` when the next real step is formalizing concepts, relationships, and invariants
+- move to `system-shaping` or `architecture` when the vocabulary is stable enough for downstream structural work
+- move to `backlog` when you want epics and slices to inherit the canonical domain terms
+- move to `change` when naming or language drift has turned into a bounded existing-system modification
+
+### Example Input
+
+See [docs/templates/canon-input/domain-language.md](docs/templates/canon-input/domain-language.md)
+for the starter template and
+[docs/examples/canon-input/domain-language-order-fulfillment.md](docs/examples/canon-input/domain-language-order-fulfillment.md)
+for a populated single-file example.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode domain-language \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner domain-lead \
+  --input canon-input/domain-language.md
+```
+
+## Mode: domain-model
+
+### Use It For
+
+Produce a governed concept-model packet that formalizes domain concepts,
+relationships, invariants, and feature-impact rules before system-shaping,
+architecture, or backlog decomposition.
+
+### Input Shape
+
+A bounded domain-model brief or folder-backed packet.
+
+Domain-model is strongest when the packet authors these canonical H2
+sections directly: `## Domain Scope`, `## Model Maturity`,
+`## Upstream Sources`, `## Downstream Consumers`, `## Concepts`,
+`## Ownership Boundaries`, `## Open Gaps`, `## Relationships`,
+`## Cardinality Rules`, `## Boundary Crossings`, `## Bounded Contexts`,
+`## Context Relationships`, `## Integration Seams`,
+`## Entity Lifecycles`, `## State Transitions`, `## Invariant Guards`,
+`## Invariants`, `## Enforcement Points`, `## Violation Consequences`,
+`## Business Policies`, `## Constraint Rules`, `## Exception Handling`,
+`## Impact Rules`, `## Affected Concepts`, `## Downstream Effects`,
+`## Code Mapping`, `## Data Store Mapping`, `## Alignment Gaps`,
+`## Model Gaps`, `## Risk Signals`, `## Recommended Follow-Ups`,
+`## Consumer Modes`, `## Handoff Expectations`, and `## Adoption Risks`.
+
+### Good Input Should Include
+
+- explicit domain scope and model maturity assessment
+- concept catalog with ownership boundaries
+- relationships with cardinality rules and boundary crossings
+- bounded contexts with context relationships and integration seams
+- entity lifecycles with state transitions and invariant guards
+- domain invariants with enforcement points and violation consequences
+- feature-impact rules with affected concepts and downstream effects
+- code and data store mappings with alignment gaps
+
+### Questions This Mode Answers
+
+- what the core domain concepts are and who owns them
+- how concepts relate to each other across bounded contexts
+- which invariants must always hold and where they are enforced
+- how features impact domain concepts and what downstream effects to expect
+- where the code and data representations diverge from the domain model
+
+### Questions This Mode Does Not Answer Well
+
+- what the shared vocabulary should be (use domain-language first)
+- how to implement domain model changes in code (use change or implementation)
+- what the deployment or infrastructure architecture should be (use architecture)
+- how to certify correctness of the model
+
+### What Canon Emits
+
+Domain-model produces a governed operational packet with these artifacts:
+
+- `model-overview.md`
+- `concept-catalog.md`
+- `relationship-map.md`
+- `bounded-context-map.md`
+- `lifecycle-and-state-model.md`
+- `domain-invariants.md`
+- `policy-and-constraint-rules.md`
+- `feature-impact-rules.md`
+- `code-data-alignment.md`
+- `model-gaps-and-risks.md`
+- `downstream-model-guidance.md`
+- `domain-model.json`
+- `ai-provenance.md`
+
+Run and status summaries surface `model-overview.md` as the primary artifact
+and keep the packet's `recommendation-only` posture explicit.
+
+The `domain-model.json` artifact provides a machine-readable concept model
+with the following top-level schema:
+
+```json
+{
+  "schema_version": "1",
+  "domain_scope": "...",
+  "concepts": [],
+  "relationships": [],
+  "invariants": [],
+  "feature_impact_rules": []
+}
+```
+
+### Typical Handoff After This Mode
+
+- inspect the packet artifacts first when concept completeness, invariant coverage, or model gaps are contested
+- approve `gate:risk` when a systemic or red-zone packet is credible enough for governed review
+- publish readable packets to `docs/domain/model/<YYYY-MM-DD>-<descriptor>/` for broader review
+- move to `system-shaping` when bounded contexts and invariants are clear enough to shape capability boundaries
+- move to `architecture` when the next real step is structural decisions informed by the domain model
+- move to `backlog` when the model is stable enough for epic decomposition
+- move to `change` when domain-model gaps reveal bounded modifications needed in an existing system
+
+### Example Input
+
+See [docs/templates/canon-input/domain-model.md](docs/templates/canon-input/domain-model.md)
+for the starter template and
+[docs/examples/canon-input/domain-model-order-fulfillment.md](docs/examples/canon-input/domain-model-order-fulfillment.md)
+for a populated single-file example.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode domain-model \
+  --risk bounded-impact \
+  --zone yellow \
+  --owner architect \
+  --input canon-input/domain-model.md
 ```

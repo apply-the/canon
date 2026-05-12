@@ -1,13 +1,13 @@
 # Next Features
 
 The most recent delivered roadmap entry is
-`046-ordered-artifact-filenames`.
+`047-domain-language-model-modes`.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
 `refactor`, `review`, `verification`, `pr-review`, `incident`,
-`security-assessment`, `system-assessment`, `migration`, and
-`supply-chain-analysis`.
+`security-assessment`, `system-assessment`, `migration`,
+`supply-chain-analysis`, `domain-language`, and `domain-model`.
 
 Delivered work through `037` already covers the governed mode surface,
 publishable packet families, clarity and readiness honesty, the governance
@@ -56,6 +56,16 @@ two-digit ordinal (e.g., `01-problem-statement.md`, `02-constraints.md`) so
 that published packets display in a deterministic, Confluence-tree-style
 reading order. Gates, renderers, and summarizers match on the unprefixed slug;
 published file paths carry the ordinal prefix.
+
+Delivered work through `047` now adds two new first-class governed modes:
+`domain-language` for stabilizing shared vocabulary (10 artifacts including
+glossary, preferred language, conflicts, contextual meanings, and code/API
+vocabulary), and `domain-model` for formalizing lightweight ontology concept
+models (13 artifacts including concept catalog, relationship map, bounded
+context map, lifecycle/state model, domain invariants, feature-impact rules,
+and a machine-readable `domain-model.json` sidecar). Both modes support
+inspect clarity, governance adapter capabilities, canonical input binding,
+and publish to `docs/domain/language/` and `docs/domain/model/`.
 
 This roadmap remains intentionally sparse: a macrofeature only moves forward
 once its bounds, artifact contract, and validation story are explicit.

@@ -25,6 +25,8 @@ pub enum Mode {
     SecurityAssessment,
     Migration,
     SupplyChainAnalysis,
+    DomainLanguage,
+    DomainModel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -71,6 +73,8 @@ impl Mode {
             Self::SecurityAssessment => "security-assessment",
             Self::Migration => "migration",
             Self::SupplyChainAnalysis => "supply-chain-analysis",
+            Self::DomainLanguage => "domain-language",
+            Self::DomainModel => "domain-model",
         }
     }
 
@@ -92,6 +96,8 @@ impl Mode {
             Self::SecurityAssessment,
             Self::Migration,
             Self::SupplyChainAnalysis,
+            Self::DomainLanguage,
+            Self::DomainModel,
         ]
     }
 }
@@ -123,6 +129,8 @@ impl std::str::FromStr for Mode {
             "security-assessment" => Ok(Self::SecurityAssessment),
             "migration" => Ok(Self::Migration),
             "supply-chain-analysis" => Ok(Self::SupplyChainAnalysis),
+            "domain-language" => Ok(Self::DomainLanguage),
+            "domain-model" => Ok(Self::DomainModel),
             other => Err(format!("unsupported mode: {other}")),
         }
     }
@@ -136,9 +144,9 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     };
     use ImplementationDepth::Full;
     use Mode::{
-        Architecture as ArchitectureMode, Backlog, Change, Discovery, Implementation, Incident,
-        Migration, PrReview, Refactor, Requirements, Review, SecurityAssessment,
-        SupplyChainAnalysis, SystemAssessment, SystemShaping, Verification,
+        Architecture as ArchitectureMode, Backlog, Change, Discovery, DomainLanguage, DomainModel,
+        Implementation, Incident, Migration, PrReview, Refactor, Requirements, Review,
+        SecurityAssessment, SupplyChainAnalysis, SystemAssessment, SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -405,6 +413,49 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
                 "legacy posture",
                 "policy decisions",
                 "analysis evidence",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
+        },
+        ModeProfile {
+            mode: DomainLanguage,
+            purpose: "Stabilize the shared vocabulary of a product area before downstream requirements, architecture, or change work.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Risk, Architecture, ReleaseReadiness],
+            artifact_families: vec![
+                "language overview",
+                "domain glossary",
+                "preferred language",
+                "language conflicts",
+                "contextual meanings",
+                "business language rules",
+                "code and api vocabulary",
+                "downstream language guidance",
+                "language decision record",
+                "ai provenance",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
+        },
+        ModeProfile {
+            mode: DomainModel,
+            purpose: "Formalize domain concepts, relationships, invariants, and feature-impact rules before architecture or backlog decomposition.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Risk, Architecture, ReleaseReadiness],
+            artifact_families: vec![
+                "model overview",
+                "concept catalog",
+                "relationship map",
+                "bounded context map",
+                "lifecycle and state model",
+                "domain invariants",
+                "policy and constraint rules",
+                "feature impact rules",
+                "code data alignment",
+                "model gaps and risks",
+                "downstream model guidance",
+                "domain model json",
+                "ai provenance",
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },

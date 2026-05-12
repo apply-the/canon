@@ -26,7 +26,9 @@ pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
         | Mode::Requirements
         | Mode::Review
         | Mode::Verification
-        | Mode::PrReview => SystemContextRequirement::Optional,
+        | Mode::PrReview
+        | Mode::DomainLanguage
+        | Mode::DomainModel => SystemContextRequirement::Optional,
     }
 }
 

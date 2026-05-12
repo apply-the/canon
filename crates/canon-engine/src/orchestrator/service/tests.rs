@@ -254,6 +254,14 @@ fn canonical_mode_input_binding_is_defined_for_canonical_bound_modes() {
     assert_eq!(canonical_mode_input_binding(Mode::Backlog), Some(("backlog.md", "backlog")));
     assert_eq!(canonical_mode_input_binding(Mode::Incident), Some(("incident.md", "incident")));
     assert_eq!(
+        canonical_mode_input_binding(Mode::DomainLanguage),
+        Some(("domain-language.md", "domain-language"))
+    );
+    assert_eq!(
+        canonical_mode_input_binding(Mode::DomainModel),
+        Some(("domain-model.md", "domain-model"))
+    );
+    assert_eq!(
         canonical_mode_input_binding(Mode::Implementation),
         Some(("implementation.md", "implementation"))
     );
@@ -272,6 +280,16 @@ fn auto_bind_canonical_mode_inputs_supports_operational_file_backed_modes() {
     let canon_input = workspace.path().join("canon-input");
     std::fs::create_dir_all(&canon_input).expect("canon-input dir");
     std::fs::write(
+        canon_input.join("domain-language.md"),
+        "# Domain Language Brief\n\n## Domain Scope\n- ordering vocabulary\n",
+    )
+    .expect("domain-language file");
+    std::fs::write(
+        canon_input.join("domain-model.md"),
+        "# Domain Model Brief\n\n## Domain Scope\n- ordering model\n",
+    )
+    .expect("domain-model file");
+    std::fs::write(
         canon_input.join("incident.md"),
         "# Incident Brief\n\n## Incident Scope\n- payments\n",
     )
@@ -289,6 +307,14 @@ fn auto_bind_canonical_mode_inputs_supports_operational_file_backed_modes() {
 
     let service = EngineService::new(workspace.path());
 
+    assert_eq!(
+        service.auto_bind_canonical_mode_inputs(Mode::DomainLanguage, &[], &[]),
+        vec!["canon-input/domain-language.md".to_string()]
+    );
+    assert_eq!(
+        service.auto_bind_canonical_mode_inputs(Mode::DomainModel, &[], &[]),
+        vec!["canon-input/domain-model.md".to_string()]
+    );
     assert_eq!(
         service.auto_bind_canonical_mode_inputs(Mode::Incident, &[], &[]),
         vec!["canon-input/incident.md".to_string()]
