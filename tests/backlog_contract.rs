@@ -30,7 +30,7 @@ fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
 fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::Backlog);
 
-    assert_eq!(contract.artifact_requirements.len(), 8);
+    assert_eq!(contract.artifact_requirements.len(), 9);
 
     let names = contract
         .artifact_requirements
@@ -48,6 +48,7 @@ fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
             "sequencing-plan.md",
             "acceptance-anchors.md",
             "planning-risks.md",
+            "packet-metadata.json",
         ]
     );
 
@@ -109,9 +110,15 @@ fn backlog_closure_limited_packet_only_requires_overview_and_risks() {
         .iter()
         .find(|requirement| requirement.slug() == "planning-risks.md")
         .expect("planning risks requirement");
+    let packet_metadata = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.slug() == "packet-metadata.json")
+        .expect("packet metadata requirement");
     let artifacts = vec![
         (overview.file_name.clone(), render_artifact(overview)),
         (risks.file_name.clone(), render_artifact(risks)),
+        (packet_metadata.file_name.clone(), render_artifact(packet_metadata)),
     ];
 
     let gates = evaluate_backlog_gates(

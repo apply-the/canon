@@ -64,10 +64,13 @@ pub fn is_canonical_display_id(value: &str) -> bool {
 }
 
 // Mode names only describe the governed work type; system state stays explicit.
+/// Represents whether a governance run targets a new or an existing system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum SystemContext {
+    /// Work on a system that does not exist or is being created from scratch.
     New,
+    /// Work on a system with existing code, invariants, and users.
     Existing,
 }
 
@@ -398,9 +401,12 @@ impl ClassificationFieldProvenance {
     }
 }
 
+/// Tracks how governance classifications (Risk, Zone) were derived.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClassificationProvenance {
+    /// Provenance for the risk rating.
     pub risk: ClassificationFieldProvenance,
+    /// Provenance for the usage zone.
     pub zone: ClassificationFieldProvenance,
 }
 

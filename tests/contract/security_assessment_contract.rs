@@ -46,6 +46,7 @@ fn security_assessment_mode_uses_a_distinct_security_packet_bundle() {
             "assumptions-and-gaps.md",
             "compliance-anchors.md",
             "assessment-evidence.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -102,6 +103,7 @@ fn security_assessment_artifacts_require_security_specific_sections() {
                 "assessment-evidence.md",
                 vec!["Summary", "Source Inputs", "Independent Checks", "Deferred Verification",],
             ),
+            ("packet-metadata.json", vec![]),
         ]
     );
 }

@@ -20,6 +20,7 @@ fn incident_mode_uses_a_distinct_containment_artifact_bundle() {
             "containment-plan.md",
             "incident-decision-record.md",
             "follow-up-verification.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -76,6 +77,7 @@ fn incident_artifacts_require_containment_specific_sections() {
                 "follow-up-verification.md",
                 vec!["Summary", "Verification Checks", "Release Readiness", "Follow-Up Work"],
             ),
+            ("packet-metadata.json", vec![]),
         ]
     );
 }

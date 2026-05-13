@@ -50,6 +50,15 @@ pub fn prefixed_artifact_name(ordinal: usize, slug: &str) -> String {
     format!("{ordinal:02}-{slug}")
 }
 
+/// Return `true` if `file_name` refers to a packet sidecar rather than a body artifact.
+///
+/// Sidecars (`view-manifest.json` and `packet-metadata.json`) are emitted alongside
+/// body artifacts but are excluded from ordering, primary-artifact resolution, and
+/// consumer-facing packet listings.
+pub fn is_packet_sidecar(file_name: &str) -> bool {
+    matches!(artifact_slug(file_name), "view-manifest.json" | "packet-metadata.json")
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactContract {
     pub version: u32,
@@ -139,7 +148,7 @@ pub struct ArtifactProvenance {
 
 #[cfg(test)]
 mod tests {
-    use super::{ArtifactFormat, ArtifactRecord, ArtifactRequirement};
+    use super::{ArtifactFormat, ArtifactRecord, ArtifactRequirement, is_packet_sidecar};
     use crate::domain::mode::Mode;
 
     fn sample_record(relative_path: &str) -> ArtifactRecord {
@@ -199,5 +208,13 @@ mod tests {
         )
         .unwrap();
         assert!(!req.required);
+    }
+
+    #[test]
+    fn is_packet_sidecar_recognizes_architecture_sidecars() {
+        assert!(is_packet_sidecar("view-manifest.json"));
+        assert!(is_packet_sidecar("packet-metadata.json"));
+        assert!(is_packet_sidecar("15-packet-metadata.json"));
+        assert!(!is_packet_sidecar("container-view.mmd"));
     }
 }

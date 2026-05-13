@@ -103,7 +103,7 @@ fn supply_chain_analysis_direct_run_exercises_service_summary_and_publish_paths(
         .expect("supply chain run");
 
     assert_eq!(summary.state, "AwaitingApproval");
-    assert_eq!(summary.artifact_count, 7);
+    assert_eq!(summary.artifact_count, 8);
     assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
     assert!(summary.artifact_paths.iter().any(|path| path.ends_with("analysis-overview.md")));
     assert!(summary.artifact_paths.iter().any(|path| path.ends_with("analysis-evidence.md")));

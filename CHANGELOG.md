@@ -15,6 +15,34 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.49.0] - 2026-05-13
+
+Delivered specs:
+
+- `specs/049-logical-packet-ordering/`
+
+Highlights:
+
+- Extended Canon packet ordering from filename prefixes alone into a full
+  packet-order contract with required `primary_artifact` and `artifact_order`
+  metadata for new packets.
+- Added runtime `packet-metadata.json` emission across packet-emitting modes,
+  preserved reader-facing contiguous numbering, and kept runtime sidecars such
+  as `packet-metadata.json` and `view-manifest.json` outside the numbered
+  packet body.
+- Updated publish behavior to merge runtime ordering metadata into the
+  published `packet-metadata.json`, with optional `publish_order` and
+  `legacy_aliases` fields when compatibility or public ordering needs to stay
+  explicit.
+- Aligned status and summary surfaces so the primary artifact now resolves to
+  the packet's real `01-*` entry point instead of older late-packet slug
+  heuristics.
+- Updated mode documentation and domain packet templates so `domain-language`
+  and `domain-model` clearly distinguish vocabulary stabilization from concept
+  modeling and document their ordered packet sequences.
+- Bumped workspace version to `0.49.0` across all crates and assistant plugin
+  manifests.
+
 ## [0.48.0] - 2026-05-13
 
 Delivered specs:

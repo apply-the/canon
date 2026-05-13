@@ -3,22 +3,28 @@ use std::path::{Path, PathBuf};
 use crate::domain::mode::Mode;
 use crate::domain::run::is_canonical_display_id;
 
+/// Defines the canonical directory structure for Canon governance data within a repository.
 #[derive(Debug, Clone)]
 pub struct ProjectLayout {
+    /// The absolute path to the repository root.
     pub repo_root: PathBuf,
+    /// The absolute path to the `.canon` governance directory.
     pub canon_root: PathBuf,
 }
 
 impl ProjectLayout {
+    /// Creates a new `ProjectLayout` from a repository root.
     pub fn new(repo_root: impl AsRef<Path>) -> Self {
         let repo_root = repo_root.as_ref().to_path_buf();
         Self { canon_root: repo_root.join(".canon"), repo_root }
     }
 
+    /// Path to the sessions directory containing active run data.
     pub fn sessions_dir(&self) -> PathBuf {
         self.canon_root.join("sessions")
     }
 
+    /// Path to the artifacts directory containing published packets.
     pub fn artifacts_dir(&self) -> PathBuf {
         self.canon_root.join("artifacts")
     }

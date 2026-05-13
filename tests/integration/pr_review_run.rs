@@ -108,8 +108,8 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
-    let expected_summary_path = format!(".canon/artifacts/{run_id}/pr-review/08-review-summary.md");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Summary"));
+    let expected_summary_path = format!(".canon/artifacts/{run_id}/pr-review/01-pr-analysis.md");
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("PR Analysis"));
     assert_eq!(
         json["mode_result"]["primary_artifact_path"].as_str(),
         Some(expected_summary_path.as_str())
@@ -184,10 +184,7 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json output");
     assert_eq!(status_json["state"], "Completed");
-    assert_eq!(
-        status_json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Review Summary")
-    );
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("PR Analysis"));
     assert!(status_json["recommended_next_action"].is_null());
 }
 
@@ -231,7 +228,7 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Summary"));
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("PR Analysis"));
     assert_eq!(json["approval_targets"][0].as_str(), Some("gate:review-disposition"));
     assert_eq!(json["recommended_next_action"]["action"].as_str(), Some("inspect-artifacts"));
 

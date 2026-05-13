@@ -422,7 +422,7 @@ fn discovery_direct_run_persists_completed_artifacts_and_evidence() {
         .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
         .expect("inspect artifacts");
     let artifact_paths = artifact_names(&artifacts.entries);
-    assert_eq!(artifact_paths.len(), 5);
+    assert_eq!(artifact_paths.len(), 6);
     assert!(artifact_paths.iter().any(|path| path.ends_with("problem-map.md")));
 
     let evidence = service
@@ -555,7 +555,7 @@ fn incident_direct_run_produces_artifacts_and_completes_after_risk_approval() {
         .expect("incident run");
 
     assert_eq!(summary.state, "AwaitingApproval");
-    assert_eq!(summary.artifact_count, 6);
+    assert_eq!(summary.artifact_count, 7);
     assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
     assert_eq!(
         summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
@@ -646,7 +646,7 @@ fn migration_direct_run_produces_artifacts_and_completes_after_risk_approval() {
         .expect("migration run");
 
     assert_eq!(summary.state, "AwaitingApproval");
-    assert_eq!(summary.artifact_count, 6);
+    assert_eq!(summary.artifact_count, 7);
     assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
     assert_eq!(
         summary.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
@@ -739,7 +739,7 @@ fn backlog_direct_run_emits_full_packet_and_persists_planning_context() {
 
     assert_eq!(summary.state, "Completed");
     assert_eq!(summary.invocations_total, 4);
-    assert_eq!(summary.artifact_count, 8);
+    assert_eq!(summary.artifact_count, 9);
     assert!(summary.approval_targets.is_empty());
     assert!(
         summary.mode_result.as_ref().is_some_and(|result| {
@@ -753,7 +753,7 @@ fn backlog_direct_run_emits_full_packet_and_persists_planning_context() {
         .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
         .expect("inspect artifacts");
     let artifact_paths = artifact_names(&artifacts.entries);
-    assert_eq!(artifact_paths.len(), 8);
+    assert_eq!(artifact_paths.len(), 9);
     assert!(artifact_paths.iter().any(|path| path.ends_with("epic-tree.md")));
     assert!(artifact_paths.iter().any(|path| path.ends_with("delivery-slices.md")));
 
@@ -767,7 +767,7 @@ fn backlog_direct_run_emits_full_packet_and_persists_planning_context() {
     assert!(!evidence_entry.generation_paths.is_empty());
     assert!(!evidence_entry.validation_paths.is_empty());
     assert_eq!(evidence_entry.execution_posture, None);
-    assert_eq!(evidence_entry.artifact_provenance_links.len(), 8);
+    assert_eq!(evidence_entry.artifact_provenance_links.len(), 9);
 
     let context_toml = fs::read_to_string(find_run_context_toml(&workspace, &summary.run_id))
         .expect("context.toml");
@@ -875,7 +875,7 @@ fn pr_review_direct_run_handles_committed_and_worktree_diffs() {
         .expect("committed review run");
 
     assert_eq!(committed.state, "Completed");
-    assert_eq!(committed.artifact_count, 8);
+    assert_eq!(committed.artifact_count, 9);
     assert!(committed.artifact_paths.iter().any(|path| path.ends_with("pr-analysis.md")));
 
     let committed_status = service.status(&committed.run_id).expect("committed status");

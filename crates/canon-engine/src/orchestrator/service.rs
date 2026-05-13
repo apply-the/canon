@@ -22,7 +22,9 @@ use crate::artifacts::markdown::{
     render_verification_artifact,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
-use crate::domain::artifact::ArtifactRecord;
+use crate::domain::artifact::{
+    ArtifactRecord, ArtifactRequirement, artifact_slug, is_packet_sidecar,
+};
 use crate::domain::execution::{
     DeniedInvocation, EvidenceBundle, ExecutionPosture, GenerationPath, InvocationAttempt,
     InvocationRequest, MutationBounds, MutationExpansionPolicy, PolicyDecisionKind, ToolOutcome,
@@ -78,23 +80,33 @@ use next_action::*;
 use patch::*;
 use summarizers::*;
 
+/// Errors returned by the Orchestrator service.
 #[derive(Debug, Error)]
 pub enum EngineError {
+    /// Standard I/O error during file or directory operations.
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+    /// The specified inspection target (e.g. invalid run ID or mode) is not supported.
     #[error("unsupported inspect target: {0}")]
     UnsupportedInspectTarget(String),
+    /// A configuration or input validation check failed.
     #[error("validation failed: {0}")]
     Validation(String),
+    /// The requested `Mode` execution logic is not yet implemented.
     #[error("mode `{0}` is not implemented yet")]
     UnsupportedMode(String),
 }
 
+/// The specific domain of run state or configuration being inspected.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InspectTarget {
+    /// List all supported governance modes.
     Modes,
+    /// List available methods/capabilities.
     Methods,
+    /// List active governance policies.
     Policies,
+    /// Inspect the risk classification and usage zone for a given pattern.
     RiskZone {
         mode: Mode,
         risk: Option<RiskClass>,
@@ -117,18 +129,30 @@ pub enum InspectTarget {
     },
 }
 
+/// Request parameters for a new governed run, containing all governance and execution constraints.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunRequest {
+    /// The specific workflow mode (e.g., Change, Discovery).
     pub mode: Mode,
+    /// The risk classification of the proposed work.
     pub risk: RiskClass,
+    /// The operational zone (e.g., Red, Yellow, Green) for the run.
     pub zone: UsageZone,
+    /// Whether the work target is a new system or an existing one.
     pub system_context: Option<SystemContext>,
+    /// Metadata describing how the risk/zone was determined.
     pub classification: ClassificationProvenance,
+    /// The human or entity responsible for the run.
     pub owner: String,
+    /// Paths to input files containing requirements or specs.
     pub inputs: Vec<String>,
+    /// Raw input content provided directly.
     pub inline_inputs: Vec<String>,
+    /// Paths to exclude from analysis or mutation.
     pub excluded_paths: Vec<String>,
+    /// Custom policy root directory.
     pub policy_root: Option<String>,
+    /// Custom method root directory.
     pub method_root: Option<String>,
 }
 
@@ -361,49 +385,83 @@ pub struct ModeResultSummary {
     pub action_chips: Vec<ActionChip>,
 }
 
+/// A summary of a completed or in-progress run, suitable for display or API consumption.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RunSummary {
+    /// The human-readable run ID (e.g. `20240513-abcd`).
     pub run_id: String,
+    /// The unique machine-readable UUID for the run.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uuid: Option<String>,
+    /// The owner of the run.
     pub owner: String,
+    /// The governance mode name.
     pub mode: String,
+    /// The risk classification name.
     pub risk: String,
+    /// The governance zone name.
     pub zone: String,
+    /// The system context (New vs Existing) as a string.
     pub system_context: Option<String>,
+    /// Current execution state (e.g. Completed, Blocked).
     pub state: String,
+    /// Total number of artifacts emitted.
     pub artifact_count: usize,
+    /// Total number of tool invocations attempted.
     pub invocations_total: usize,
+    /// Number of invocations denied by policy.
     pub invocations_denied: usize,
+    /// Number of invocations waiting for manual approval.
     pub invocations_pending_approval: usize,
+    /// If blocked, the classification triggering the block.
     pub blocking_classification: Option<String>,
+    /// List of specific gates that are currently blocked.
     pub blocked_gates: Vec<GateInspectSummary>,
+    /// List of targets requiring approval (e.g. files, shell commands).
     pub approval_targets: Vec<String>,
+    /// Paths to all emitted artifacts.
     pub artifact_paths: Vec<String>,
+    /// High-level status of the run's closure.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure_status: Option<String>,
+    /// Scope of the decomposition if this is a parent run.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decomposition_scope: Option<String>,
+    /// Specific findings from the run's closure.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub closure_findings: Vec<ClosureFindingInspectSummary>,
+    /// Detailed notes regarding the closure.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure_notes: Option<String>,
+    /// List of actions that can be taken next.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub possible_actions: Vec<PossibleActionSummary>,
+    /// Detailed mode-specific result summary if available.
     pub mode_result: Option<ModeResultSummary>,
+    /// The single most important next step for the user.
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
 
+/// A snapshot of the runtime status of a run, focused on operational blockers and progress.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StatusSummary {
+    /// The run being tracked.
     pub run: String,
+    /// The human owner.
     pub owner: String,
+    /// Simplified state string.
     pub state: String,
+    /// System context of the run.
     pub system_context: Option<String>,
+    /// Total tool invocations attempted so far.
     pub invocations_total: usize,
+    /// Number of invocations waiting for approval.
     pub pending_invocation_approvals: usize,
+    /// Whether the 'Validation Independence' policy constraint is met.
     pub validation_independence_satisfied: bool,
+    /// If blocked, the classification triggering the block.
     pub blocking_classification: Option<String>,
+    /// List of gates currently preventing progress.
     pub blocked_gates: Vec<GateInspectSummary>,
     pub approval_targets: Vec<String>,
     pub artifact_paths: Vec<String>,
@@ -522,12 +580,14 @@ pub(super) struct AuthoredMutationPatch {
     changed_paths: Vec<String>,
 }
 
+/// The core orchestrator service responsible for governed run lifecycle and policy evaluation.
 #[derive(Debug, Clone)]
 pub struct EngineService {
     repo_root: PathBuf,
 }
 
 impl EngineService {
+    /// Creates a new `EngineService` anchored to a specific repository root.
     pub fn new(repo_root: impl AsRef<Path>) -> Self {
         Self { repo_root: repo_root.as_ref().to_path_buf() }
     }
@@ -553,24 +613,28 @@ impl EngineService {
         Ok(handle.run_id)
     }
 
+    /// Initializes a repository for Canon usage, ensuring required governance structures exist.
     pub fn init(&self, ai_tool: Option<AiTool>) -> Result<InitSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
         let summary = store.init_runtime_state(ai_tool.map(AiTool::materialization_target))?;
         Ok(Self::map_init_summary(summary))
     }
 
+    /// Installs repository-local skills suitable for the specified AI tool.
     pub fn skills_install(&self, ai_tool: AiTool) -> Result<SkillsSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
         let summary = store.install_skills(ai_tool.materialization_target())?;
         Ok(Self::map_skills_summary(summary))
     }
 
+    /// Updates existing repository-local skills to the latest versions.
     pub fn skills_update(&self, ai_tool: AiTool) -> Result<SkillsSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
         let summary = store.update_skills(ai_tool.materialization_target())?;
         Ok(Self::map_skills_summary(summary))
     }
 
+    /// Lists all discovered Canon skills and their support status.
     pub fn skills_list(&self) -> Vec<SkillEntry> {
         let store = WorkspaceStore::new(&self.repo_root);
         store
@@ -580,6 +644,8 @@ impl EngineService {
             .collect()
     }
 
+    /// Executes a managed run according to the provided request parameters.
+    /// This handles policy validation, risk classification, and artifact emission.
     pub fn run(&self, mut request: RunRequest) -> Result<RunSummary, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
         store.init_runtime_state(None)?;
@@ -2655,6 +2721,65 @@ impl EngineService {
         let value = output.stdout.trim();
         if value.is_empty() { None } else { Some(value.to_string()) }
     }
+}
+
+/// Return the canonical delivery order for a packet's body artifacts.
+///
+/// Sidecar artifacts (e.g. `view-manifest.json`, `packet-metadata.json`) are excluded;
+/// the returned slice contains only the files that form the readable body of the packet,
+/// in the order defined by the mode's [`ArtifactContract`].
+pub(super) fn packet_body_artifact_order(
+    artifact_requirements: &[ArtifactRequirement],
+) -> Vec<String> {
+    artifact_requirements
+        .iter()
+        .filter(|requirement| !is_packet_sidecar(&requirement.file_name))
+        .map(|requirement| requirement.file_name.clone())
+        .collect()
+}
+
+/// Serialize a `packet-metadata.json` sidecar for the given run.
+///
+/// The returned JSON string encodes:
+/// - `run_id` and `mode` for provenance;
+/// - `primary_artifact`: the first non-sidecar artifact in the contract order;
+/// - `artifact_order`: the full body-artifact sequence;
+/// - `legacy_aliases` (omitted when empty): a map from bare slug to prefixed filename
+///   enabling consumers to resolve unprefixed references.
+///
+/// Serialization is infallible because the payload contains only `String` values.
+pub(super) fn build_runtime_packet_metadata(
+    run_id: &str,
+    mode: Mode,
+    artifact_requirements: &[ArtifactRequirement],
+) -> String {
+    let artifact_order = packet_body_artifact_order(artifact_requirements);
+    let primary_artifact = artifact_order.first().cloned().unwrap_or_default();
+    let legacy_aliases = artifact_requirements
+        .iter()
+        .filter_map(|requirement| {
+            let slug = artifact_slug(&requirement.file_name);
+            (slug != requirement.file_name)
+                .then(|| (slug.to_string(), requirement.file_name.clone()))
+        })
+        .collect::<std::collections::BTreeMap<_, _>>();
+
+    let mut payload = serde_json::Map::new();
+    payload.insert("run_id".to_string(), serde_json::Value::String(run_id.to_string()));
+    payload.insert("mode".to_string(), serde_json::Value::String(mode.as_str().to_string()));
+    payload.insert("primary_artifact".to_string(), serde_json::Value::String(primary_artifact));
+    payload.insert(
+        "artifact_order".to_string(),
+        serde_json::Value::Array(
+            artifact_order.into_iter().map(serde_json::Value::String).collect(),
+        ),
+    );
+    if !legacy_aliases.is_empty() {
+        payload.insert("legacy_aliases".to_string(), serde_json::json!(legacy_aliases));
+    }
+
+    serde_json::to_string_pretty(&serde_json::Value::Object(payload))
+        .expect("packet metadata serialization is infallible for string-only payload")
 }
 
 fn collect_files_recursively(directory: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

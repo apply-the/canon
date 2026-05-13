@@ -46,6 +46,7 @@ fn supply_chain_analysis_mode_uses_a_distinct_operational_packet_bundle() {
             "legacy-posture.md",
             "policy-decisions.md",
             "analysis-evidence.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -120,6 +121,7 @@ fn supply_chain_analysis_artifacts_require_supply_chain_specific_sections() {
                 "analysis-evidence.md",
                 vec!["Summary", "Source Inputs", "Independent Checks", "Deferred Verification",],
             ),
+            ("packet-metadata.json", vec![]),
         ]
     );
 }

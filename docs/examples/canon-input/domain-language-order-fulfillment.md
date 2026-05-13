@@ -3,7 +3,7 @@
 System Surface: The order fulfillment domain for the existing e-commerce platform.
 Primary Upstream Mode: discovery
 Upstream Sources:
-- docs/discovery/R-20260501-FULFILLMENT/problem-map.md
+- docs/discovery/R-20260501-FULFILLMENT/01-problem-map.md
 - src/orders/domain.rs
 - docs/architecture/decisions/bounded-contexts.md
 Carried-Forward Decisions:

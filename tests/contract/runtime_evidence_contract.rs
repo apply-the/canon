@@ -179,7 +179,7 @@ fn closure_limited_backlog_evidence_surfaces_risk_only_packet_and_findings() {
         entry
     );
     assert_eq!(entry["closure_findings"][0]["category"].as_str(), Some("missing-exclusion"));
-    assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| paths.len() == 2));
+    assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| paths.len() == 3));
 }
 
 #[test]
@@ -230,5 +230,5 @@ fn incident_evidence_surface_keeps_recommendation_only_posture_and_artifact_link
     assert_eq!(entry["execution_posture"].as_str(), Some("recommendation-only"));
     assert!(entry["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
     assert!(entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
-    assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| paths.len() == 6));
+    assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| paths.len() == 7));
 }

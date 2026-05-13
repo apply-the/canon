@@ -100,7 +100,7 @@ fn run_incident_emits_a_governed_containment_packet_and_publishes_after_risk_app
         workspace.path().join(".canon").join("artifacts").join(run_id).join("incident");
 
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["artifact_count"], 6);
+    assert_eq!(json["artifact_count"], 7);
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Incident Frame"));
     assert!(

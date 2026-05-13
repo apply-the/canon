@@ -106,7 +106,7 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
     let inspect_json: serde_json::Value =
         serde_json::from_slice(&inspect_output).expect("inspect json");
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
-    assert_eq!(entries.len(), 5);
+    assert_eq!(entries.len(), 6);
     assert!(entries.iter().any(|entry| {
         entry.as_str().is_some_and(|path| path.ends_with("/review/05-review-disposition.md"))
     }));
@@ -141,10 +141,7 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
         serde_json::from_slice(&status_output).expect("status json");
     assert_eq!(status_json["state"], "Completed");
     assert_eq!(status_json["validation_independence_satisfied"], true);
-    assert_eq!(
-        status_json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Review Disposition")
-    );
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Brief"));
 }
 
 #[test]
@@ -199,7 +196,7 @@ fn run_review_preserves_gate_target_and_packet_when_disposition_is_pending() {
     let inspect_json: serde_json::Value =
         serde_json::from_slice(&inspect_output).expect("inspect json");
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
-    assert_eq!(entries.len(), 5);
+    assert_eq!(entries.len(), 6);
 
     let evidence_output = cli_command()
         .current_dir(workspace.path())

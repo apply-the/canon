@@ -365,6 +365,6 @@ fn inspect_invocations_and_evidence_capture_completed_backlog_runs() {
     assert!(
         evidence_entry["artifact_provenance_links"]
             .as_array()
-            .is_some_and(|paths| paths.len() == 8)
+            .is_some_and(|paths| paths.len() == 9)
     );
 }

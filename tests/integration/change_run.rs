@@ -72,11 +72,11 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
     assert_eq!(json["state"], "Blocked");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Change Surface"));
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("System Slice"));
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/change/03-change-surface.md"))
+            .is_some_and(|value| value.ends_with("/change/01-system-slice.md"))
     );
     assert!(
         json["mode_result"]["headline"]
@@ -109,10 +109,7 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json output");
     assert_eq!(status_json["state"], "Blocked");
-    assert_eq!(
-        status_json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Change Surface")
-    );
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("System Slice"));
 }
 
 #[test]
@@ -156,11 +153,11 @@ fn run_change_change_completes_when_context_is_fully_described() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
     assert_eq!(json["state"], "Completed");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Change Surface"));
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("System Slice"));
     assert!(
         json["mode_result"]["primary_artifact_path"]
             .as_str()
-            .is_some_and(|value| value.ends_with("/change/03-change-surface.md"))
+            .is_some_and(|value| value.ends_with("/change/01-system-slice.md"))
     );
     assert!(run_root.join("inputs").is_dir(), "input snapshot directory should exist");
     assert!(
@@ -210,10 +207,7 @@ fn run_change_change_completes_when_context_is_fully_described() {
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json output");
     assert_eq!(status_json["state"], "Completed");
-    assert_eq!(
-        status_json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Change Surface")
-    );
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("System Slice"));
 
     let system_slice = fs::read_to_string(artifact_root.join("01-system-slice.md"))
         .expect("system slice artifact");

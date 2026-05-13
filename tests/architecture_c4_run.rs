@@ -1,7 +1,7 @@
 use std::fs;
 
 use canon_engine::EngineService;
-use canon_engine::artifacts::contract::contract_for_mode;
+use canon_engine::artifacts::contract::{architecture_contract_for_context, contract_for_mode};
 use canon_engine::domain::approval::ApprovalDecision;
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
@@ -167,7 +167,8 @@ fn architecture_run_persists_overview_visual_sidecars_and_optional_deeper_views(
         .expect("gate approval");
     assert_eq!(approved.state, "Completed");
 
-    let contract = contract_for_mode(Mode::Architecture);
+    let contract =
+        architecture_contract_for_context(&contract_for_mode(Mode::Architecture), C4_BRIEF);
     assert_eq!(contract.artifact_requirements.len(), 19);
 
     let artifact_dir = workspace
@@ -234,7 +235,7 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
     assert!(!container_view.contains("## Options Considered"));
 
     let component_view =
-        fs::read_to_string(artifact_dir.join("16-component-view.md")).expect("component-view.md");
+        fs::read_to_string(artifact_dir.join("14-component-view.md")).expect("component-view.md");
     assert!(component_view.contains("# Component View"));
     assert!(component_view.contains("`metrics-emitter` pushes counters to `metrics-sink`."));
     assert!(!component_view.contains("## Missing Authored Body"));
@@ -247,14 +248,20 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
     assert!(!deployment_view.contains("## Missing Authored Body"));
 
     let dynamic_view =
-        fs::read_to_string(artifact_dir.join("18-dynamic-view.md")).expect("dynamic-view.md");
+        fs::read_to_string(artifact_dir.join("16-dynamic-view.md")).expect("dynamic-view.md");
     assert!(dynamic_view.contains("# Dynamic View"));
     assert!(dynamic_view.contains("publishes telemetry"));
 
     let view_manifest =
-        fs::read_to_string(artifact_dir.join("14-view-manifest.json")).expect("view-manifest.json");
-    assert!(view_manifest.contains("\"primary_artifact\": \"architecture-overview.md\""));
+        fs::read_to_string(artifact_dir.join("view-manifest.json")).expect("view-manifest.json");
+    assert!(view_manifest.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
     assert!(view_manifest.contains("\"render_targets\""));
+
+    let packet_metadata = fs::read_to_string(artifact_dir.join("packet-metadata.json"))
+        .expect("packet-metadata.json");
+    assert!(packet_metadata.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
+    assert!(packet_metadata.contains("\"artifact_order\""));
+    assert!(packet_metadata.contains("\"01-architecture-overview.md\""));
 
     let context_map =
         fs::read_to_string(artifact_dir.join("06-context-map.md")).expect("context-map.md");
@@ -302,6 +309,8 @@ fn architecture_run_emits_missing_body_marker_when_brief_omits_c4_sections() {
         );
     }
 
+    assert!(artifact_dir.join("view-manifest.json").exists());
+    assert!(artifact_dir.join("packet-metadata.json").exists());
     assert!(!artifact_dir.join("16-component-view.md").exists());
     assert!(!artifact_dir.join("17-component-view.mmd").exists());
     assert!(!artifact_dir.join("18-dynamic-view.md").exists());

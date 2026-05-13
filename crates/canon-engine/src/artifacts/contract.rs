@@ -1,13 +1,21 @@
 use crate::domain::artifact::{
-    ArtifactContract, ArtifactFormat, ArtifactRequirement, prefixed_artifact_name,
+    ArtifactContract, ArtifactFormat, ArtifactRequirement, artifact_slug, is_packet_sidecar,
+    prefixed_artifact_name,
 };
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
 use crate::domain::run::{ClosureAssessment, ClosureDecompositionScope};
 use crate::domain::verification::VerificationLayer;
 
+/// Return the full [`ArtifactContract`] for the given [`Mode`].
+///
+/// The contract lists every expected body artifact in canonical delivery order,
+/// the required Markdown sections each artifact must contain, and the gate kinds
+/// that must be satisfied before the artifact is accepted. Sidecar artifacts
+/// (`view-manifest.json`, `packet-metadata.json`) are appended last and excluded
+/// from ordering and primary-artifact resolution by [`is_packet_sidecar`].
 pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
-    let files = match mode {
+    let mut files = match mode {
         Mode::Requirements => vec![
             requirement(
                 "problem-statement.md",
@@ -600,18 +608,6 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 &[],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
             ),
-            requirement_with_format(
-                "view-manifest.json",
-                ArtifactFormat::Json,
-                &[],
-                &[GateKind::ReleaseReadiness],
-            ),
-            requirement_with_format(
-                "packet-metadata.json",
-                ArtifactFormat::Json,
-                &[],
-                &[GateKind::ReleaseReadiness],
-            ),
             optional_requirement(
                 "component-view.md",
                 &["Components"],
@@ -633,6 +629,18 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
                 ArtifactFormat::Markdown,
                 &[],
                 &[GateKind::Architecture, GateKind::ReleaseReadiness],
+            ),
+            requirement_with_format(
+                "view-manifest.json",
+                ArtifactFormat::Json,
+                &[],
+                &[GateKind::ReleaseReadiness],
+            ),
+            requirement_with_format(
+                "packet-metadata.json",
+                ArtifactFormat::Json,
+                &[],
+                &[GateKind::ReleaseReadiness],
             ),
         ],
         Mode::SystemAssessment => vec![
@@ -1005,11 +1013,29 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         ],
     };
 
+    if !files
+        .iter()
+        .any(|requirement| artifact_slug(&requirement.file_name) == "packet-metadata.json")
+    {
+        files.push(requirement_with_format(
+            "packet-metadata.json",
+            ArtifactFormat::Json,
+            &[],
+            &[GateKind::ReleaseReadiness],
+        ));
+    }
+
+    let mut reader_facing_index = 0;
     let prefixed_files = files
         .into_iter()
-        .enumerate()
-        .map(|(i, mut req)| {
-            req.file_name = prefixed_artifact_name(i + 1, &req.file_name);
+        .map(|mut req| {
+            let bare_name = artifact_slug(&req.file_name).to_string();
+            req.file_name = if is_packet_sidecar(&bare_name) {
+                bare_name
+            } else {
+                reader_facing_index += 1;
+                prefixed_artifact_name(reader_facing_index, &bare_name)
+            };
             req
         })
         .collect();
@@ -1031,12 +1057,39 @@ pub fn backlog_contract_for_closure(
             matches!(
                 crate::domain::artifact::artifact_slug(&requirement.file_name),
                 "backlog-overview.md" | "planning-risks.md"
-            )
+            ) || is_packet_sidecar(&requirement.file_name)
         });
         filtered
     } else {
         contract.clone()
     }
+}
+
+pub fn architecture_contract_for_context(
+    contract: &ArtifactContract,
+    context_summary: &str,
+) -> ArtifactContract {
+    let mut filtered = contract.clone();
+    filtered.artifact_requirements.retain(|requirement| {
+        requirement.required
+            || crate::artifacts::markdown::architecture_artifact_enabled(
+                &requirement.file_name,
+                context_summary,
+            )
+    });
+
+    let mut reader_facing_index = 0;
+    for requirement in &mut filtered.artifact_requirements {
+        let bare_name = artifact_slug(&requirement.file_name).to_string();
+        requirement.file_name = if is_packet_sidecar(&bare_name) {
+            bare_name
+        } else {
+            reader_facing_index += 1;
+            prefixed_artifact_name(reader_facing_index, &bare_name)
+        };
+    }
+
+    filtered
 }
 
 pub fn validate_artifact(requirement: &ArtifactRequirement, contents: &str) -> Vec<String> {
@@ -1119,5 +1172,45 @@ fn optional_requirement_with_format(
         required_sections: required_sections.iter().map(ToString::to_string).collect(),
         gates: gates.to_vec(),
         required: false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{architecture_contract_for_context, contract_for_mode};
+    use crate::domain::mode::Mode;
+
+    #[test]
+    fn architecture_contract_for_context_excludes_unmentioned_optional_views() {
+        let contract = contract_for_mode(Mode::Architecture);
+
+        let filtered = architecture_contract_for_context(
+            &contract,
+            "# Architecture Brief\n\nDecision focus: bounded analytics CLI.\nConstraint: preserve Canon runtime contracts.\n",
+        );
+
+        let slugs = filtered
+            .artifact_requirements
+            .iter()
+            .map(|requirement| requirement.slug())
+            .collect::<Vec<_>>();
+
+        assert!(!slugs.contains(&"component-view.md"));
+        assert!(!slugs.contains(&"component-view.mmd"));
+        assert!(!slugs.contains(&"dynamic-view.md"));
+        assert!(!slugs.contains(&"dynamic-view.mmd"));
+        assert_eq!(slugs.last(), Some(&"packet-metadata.json"));
+        assert!(
+            filtered
+                .artifact_requirements
+                .iter()
+                .any(|requirement| requirement.file_name == "view-manifest.json")
+        );
+        assert!(
+            filtered
+                .artifact_requirements
+                .iter()
+                .any(|requirement| requirement.file_name == "packet-metadata.json")
+        );
     }
 }

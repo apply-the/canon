@@ -1,26 +1,43 @@
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+/// The various types of adapters that provide execution capabilities to Canon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AdapterKind {
+    /// Local filesystem operations.
     Filesystem,
+    /// Arbitrary shell command execution.
     Shell,
+    /// Integration with GitHub Copilot CLI.
     CopilotCli,
+    /// Model Context Protocol (MCP) tool invocation via stdio.
     McpStdio,
 }
 
+/// Specific types of actions an adapter can perform.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CapabilityKind {
+    /// Reading files or metadata from the repository.
     ReadRepository,
+    /// Inspecting git diffs or changes.
     InspectDiff,
+    /// Reading Canon-specific artifacts.
     ReadArtifact,
+    /// Emitting or publishing a governance artifact.
     EmitArtifact,
+    /// Executing an arbitrary shell command.
     RunCommand,
+    /// Generating text or code content.
     GenerateContent,
+    /// Proposing a set of workspace edits.
     ProposeWorkspaceEdit,
+    /// Performing a quality critique of content.
     CritiqueContent,
+    /// Validating a claim with a specific tool.
     ValidateWithTool,
+    /// Invoking a structured tool (e.g., via MCP).
     InvokeStructuredTool,
+    /// Performing a bounded mutation (refactor, fix).
     ExecuteBoundedTransformation,
 }
 

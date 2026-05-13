@@ -109,3 +109,10 @@ gates = [
     "ReleaseReadiness",
 ]
 required = true
+
+[[artifact_requirements]]
+file_name = "packet-metadata.json"
+format = "Json"
+required_sections = []
+gates = ["ReleaseReadiness"]
+required = true

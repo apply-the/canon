@@ -312,6 +312,11 @@ impl EngineService {
                 .collect::<Vec<_>>()
                 .join(" ")
         };
+        let packet_metadata_contents = build_runtime_packet_metadata(
+            &run_id,
+            request.mode,
+            &artifact_contract.artifact_requirements,
+        );
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
@@ -335,14 +340,17 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_requirements_artifact_from_evidence(
-                    &requirement.file_name,
-                    &brief_summary,
-                    &context_summary,
-                    &generation_output.summary,
-                    &critique_output.summary,
-                    &denied_summary,
-                ),
+                contents: match artifact_slug(&requirement.file_name) {
+                    "packet-metadata.json" => packet_metadata_contents.clone(),
+                    _ => render_requirements_artifact_from_evidence(
+                        &requirement.file_name,
+                        &brief_summary,
+                        &context_summary,
+                        &generation_output.summary,
+                        &critique_output.summary,
+                        &denied_summary,
+                    ),
+                },
             })
             .collect::<Vec<_>>();
 

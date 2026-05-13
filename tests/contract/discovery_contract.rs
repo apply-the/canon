@@ -92,7 +92,7 @@ fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
 fn discovery_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::Discovery);
 
-    assert_eq!(contract.artifact_requirements.len(), 5);
+    assert_eq!(contract.artifact_requirements.len(), 6);
 
     let names = contract
         .artifact_requirements
@@ -107,6 +107,7 @@ fn discovery_contract_matches_spec_artifact_names_sections_and_gates() {
             "context-boundary.md",
             "exploration-options.md",
             "decision-pressure-points.md",
+            "packet-metadata.json",
         ]
     );
 
@@ -260,6 +261,7 @@ fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
         format!(".canon/artifacts/{run_id}/discovery/03-context-boundary.md"),
         format!(".canon/artifacts/{run_id}/discovery/04-exploration-options.md"),
         format!(".canon/artifacts/{run_id}/discovery/05-decision-pressure-points.md"),
+        format!(".canon/artifacts/{run_id}/discovery/packet-metadata.json"),
     ];
     assert_eq!(actual_paths, expected_paths);
 

@@ -84,7 +84,7 @@ fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
 fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::SystemShaping);
 
-    assert_eq!(contract.artifact_requirements.len(), 6);
+    assert_eq!(contract.artifact_requirements.len(), 7);
 
     let names = contract
         .artifact_requirements
@@ -100,6 +100,7 @@ fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
             "capability-map.md",
             "delivery-options.md",
             "risk-hotspots.md",
+            "packet-metadata.json",
         ]
     );
 
@@ -160,6 +161,7 @@ fn system_shaping_contract_matches_spec_artifact_names_sections_and_gates() {
                 vec!["Summary", "Hotspots", "Mitigation Status", "Unresolved Risks"],
                 vec![GateKind::Risk, GateKind::ReleaseReadiness],
             ),
+            ("packet-metadata.json", vec![], vec![GateKind::ReleaseReadiness],),
         ]
     );
 }

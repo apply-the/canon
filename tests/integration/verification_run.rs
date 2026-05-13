@@ -102,7 +102,7 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
     let inspect_json: serde_json::Value =
         serde_json::from_slice(&inspect_output).expect("inspect json");
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
-    assert_eq!(entries.len(), 5);
+    assert_eq!(entries.len(), 6);
     assert!(entries.iter().any(|entry| {
         entry.as_str().is_some_and(|path| path.ends_with("/verification/04-verification-report.md"))
     }));
@@ -139,7 +139,7 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
     assert_eq!(status_json["validation_independence_satisfied"], true);
     assert_eq!(
         status_json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Verification Report")
+        Some("Invariants Checklist")
     );
     assert!(
         status_json["mode_result"]["headline"]
@@ -209,7 +209,7 @@ fn run_verification_surfaces_blocked_readiness_for_unresolved_findings() {
     let inspect_json: serde_json::Value =
         serde_json::from_slice(&inspect_output).expect("inspect json");
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
-    assert_eq!(entries.len(), 5);
+    assert_eq!(entries.len(), 6);
 
     let evidence_output = cli_command()
         .current_dir(workspace.path())

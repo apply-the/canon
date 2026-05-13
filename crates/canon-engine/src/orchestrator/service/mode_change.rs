@@ -1,6 +1,36 @@
 use super::EngineService;
 use super::*;
 
+/// Render a single artifact for a `change`-family mode (`change`, `implementation`, `refactor`).
+///
+/// If `file_name` resolves to the `packet-metadata.json` sidecar the pre-built
+/// `packet_metadata_contents` string is returned verbatim. For all other filenames
+/// the appropriate Markdown renderer is selected by `mode`. Returns
+/// [`EngineError::UnsupportedMode`] for any mode outside the change family.
+fn render_change_like_artifact(
+    mode: Mode,
+    file_name: &str,
+    packet_metadata_contents: &str,
+    evidence_backed_summary: &str,
+    brief_summary: &str,
+    default_owner: &str,
+) -> Result<String, EngineError> {
+    if artifact_slug(file_name) == "packet-metadata.json" {
+        return Ok(packet_metadata_contents.to_string());
+    }
+
+    match mode {
+        Mode::Change => {
+            Ok(render_change_artifact(file_name, evidence_backed_summary, default_owner))
+        }
+        Mode::Implementation => {
+            Ok(render_implementation_artifact(file_name, brief_summary, default_owner))
+        }
+        Mode::Refactor => Ok(render_refactor_artifact(file_name, brief_summary, default_owner)),
+        other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
+    }
+}
+
 impl EngineService {
     pub(super) fn run_change(
         &self,
@@ -420,28 +450,23 @@ impl EngineService {
             generation_output.summary, validation_summary, mutation_attempt.outcome.summary
         );
         let default_owner = self.resolve_owner("");
+        let packet_metadata_contents = build_runtime_packet_metadata(
+            &run_id,
+            request.mode,
+            &artifact_contract.artifact_requirements,
+        );
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
             .map(|requirement| {
-                let contents = match request.mode {
-                    Mode::Change => render_change_artifact(
-                        &requirement.file_name,
-                        &evidence_backed_summary,
-                        &default_owner,
-                    ),
-                    Mode::Implementation => render_implementation_artifact(
-                        &requirement.file_name,
-                        &brief_summary,
-                        &default_owner,
-                    ),
-                    Mode::Refactor => render_refactor_artifact(
-                        &requirement.file_name,
-                        &brief_summary,
-                        &default_owner,
-                    ),
-                    other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
-                };
+                let contents = render_change_like_artifact(
+                    request.mode,
+                    &requirement.file_name,
+                    &packet_metadata_contents,
+                    &evidence_backed_summary,
+                    &brief_summary,
+                    &default_owner,
+                )?;
 
                 Ok(PersistedArtifact {
                     record: ArtifactRecord {
@@ -641,5 +666,78 @@ impl EngineService {
                 artifact_count: bundle.artifacts.len(),
             },
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_change_like_artifact;
+    use crate::EngineError;
+    use crate::domain::mode::Mode;
+
+    #[test]
+    fn render_change_like_artifact_returns_packet_metadata_verbatim() {
+        let rendered = render_change_like_artifact(
+            Mode::Change,
+            "packet-metadata.json",
+            "{\"primary_artifact\":\"01-system-slice.md\"}",
+            "change summary",
+            "brief summary",
+            "Owner <owner@example.com>",
+        )
+        .expect("packet metadata should render");
+
+        assert_eq!(rendered, "{\"primary_artifact\":\"01-system-slice.md\"}");
+    }
+
+    #[test]
+    fn render_change_like_artifact_dispatches_supported_modes() {
+        let owner = "Owner <owner@example.com>";
+        let change = render_change_like_artifact(
+            Mode::Change,
+            "01-system-slice.md",
+            "{}",
+            "# Change Brief\n\n## Change Surface\n- auth service",
+            "# Change Brief\n\n## Change Surface\n- auth service",
+            owner,
+        )
+        .expect("change artifact");
+        let implementation = render_change_like_artifact(
+            Mode::Implementation,
+            "01-implementation-plan.md",
+            "{}",
+            "implementation summary",
+            "# Implementation Brief\n\n## Summary\nBounded implementation plan.",
+            owner,
+        )
+        .expect("implementation artifact");
+        let refactor = render_change_like_artifact(
+            Mode::Refactor,
+            "01-preserved-behavior.md",
+            "{}",
+            "refactor summary",
+            "# Refactor Brief\n\n## Summary\nPreserve behavior while simplifying structure.",
+            owner,
+        )
+        .expect("refactor artifact");
+
+        assert!(change.contains("System Slice"));
+        assert!(!implementation.trim().is_empty());
+        assert!(refactor.contains("Preserved Behavior"));
+    }
+
+    #[test]
+    fn render_change_like_artifact_rejects_unsupported_modes() {
+        let error = render_change_like_artifact(
+            Mode::Review,
+            "01-system-slice.md",
+            "{}",
+            "change summary",
+            "brief summary",
+            "Owner <owner@example.com>",
+        )
+        .expect_err("unsupported modes should be rejected");
+
+        assert!(matches!(error, EngineError::UnsupportedMode(mode) if mode == "review"));
     }
 }
