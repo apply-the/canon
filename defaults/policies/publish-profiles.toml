@@ -1,0 +1,99 @@
+# Default publish-profile promotion policy.
+#
+# Each entry maps a Canon mode to the default promotion state and
+# update strategy used when publishing with the `project-memory` profile.
+#
+# Operators may override this file in their repository under
+# `.canon/policies/publish-profiles.toml`.
+
+contract_version = "0.1.0"
+
+[[profiles]]
+mode = "system-shaping"
+default_promotion_state = "auto"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "architecture"
+default_promotion_state = "auto-if-approved"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "requirements"
+default_promotion_state = "auto"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "discovery"
+default_promotion_state = "auto"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "change"
+default_promotion_state = "auto-if-approved"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "backlog"
+default_promotion_state = "auto"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "implementation"
+default_promotion_state = "auto-if-approved"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "refactor"
+default_promotion_state = "auto-if-approved"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "verification"
+default_promotion_state = "evidence-only"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "review"
+default_promotion_state = "evidence-only"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "pr-review"
+default_promotion_state = "evidence-only"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "incident"
+default_promotion_state = "pending-index"
+default_update_strategy = "proposal-files"
+
+[[profiles]]
+mode = "security-assessment"
+default_promotion_state = "evidence-only"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "migration"
+default_promotion_state = "auto-if-approved"
+default_update_strategy = "proposal-files"
+
+[[profiles]]
+mode = "supply-chain-analysis"
+default_promotion_state = "evidence-only"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "system-assessment"
+default_promotion_state = "evidence-only"
+default_update_strategy = "append-only-index"
+
+[[profiles]]
+mode = "domain-language"
+default_promotion_state = "auto"
+default_update_strategy = "managed-blocks"
+
+[[profiles]]
+mode = "domain-model"
+default_promotion_state = "auto"
+default_update_strategy = "managed-blocks"

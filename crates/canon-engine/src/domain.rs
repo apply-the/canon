@@ -6,5 +6,6 @@ pub mod gate;
 pub mod method;
 pub mod mode;
 pub mod policy;
+pub mod publish_profile;
 pub mod run;
 pub mod verification;

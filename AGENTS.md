@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-11
+Auto-generated from all feature plans. Last updated: 2026-05-13
 
 ## Governing Constitution
 
@@ -66,6 +66,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-11
 - repository files only: hidden host package folders, shared assistant metadata under `assistant/`, docs under `docs/`, validation scripts under `scripts/`, and Spec Kit artifacts under `specs/044-assistant-plugin-packages/`. (044-assistant-plugin-packages)
 - Rust 1.95.0, Edition 2024, plus Markdown/JSON/YAML repository docs and metadata + Existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` surfaces (045-mode-publish-alignment)
 - Local filesystem under `.canon/` for runtime artifacts plus repository files under `docs/`, `assistant/`, `.agents/`, `defaults/`, `tests/`, and release metadata surfaces (045-mode-publish-alignment)
+- Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time` (048-project-memory-promotion-policy)
+- Local filesystem under `.canon/` (TOML manifests, Markdown artifacts) (048-project-memory-promotion-policy)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -124,8 +126,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 048-project-memory-promotion-policy: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
+- 048-project-memory-promotion-policy: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 045-mode-publish-alignment: Added Rust 1.95.0, Edition 2024, plus Markdown/JSON/YAML repository docs and metadata + Existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` surfaces
-- 044-assistant-plugin-packages: Added Rust 1.95.0 workspace plus JSON, Markdown, Bash, and SVG repository assets. + existing workspace crates and dev dependencies including `serde_json`; no new external crates are planned.
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

@@ -1166,6 +1166,21 @@ impl EngineService {
         publish_run(&self.repo_root, &canonical, to.as_deref(), adr)
     }
 
+    pub fn publish_with_profile(
+        &self,
+        run: &str,
+        profile: crate::domain::publish_profile::PublishProfile,
+        to: Option<PathBuf>,
+    ) -> Result<PublishSummary, EngineError> {
+        let canonical = self.resolve_run(run)?;
+        crate::orchestrator::publish::publish_run_with_profile(
+            &self.repo_root,
+            &canonical,
+            profile,
+            to.as_deref(),
+        )
+    }
+
     pub(super) fn refresh_run_state(
         &self,
         store: &WorkspaceStore,

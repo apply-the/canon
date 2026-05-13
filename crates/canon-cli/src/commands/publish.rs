@@ -4,7 +4,13 @@ use crate::app::PublishCommand;
 use crate::error::CliResult;
 
 pub fn execute(service: &EngineService, command: PublishCommand) -> CliResult<i32> {
-    let summary = service.publish(&command.run_id, command.to, command.adr)?;
+    let summary = if let Some(ref profile_name) = command.profile {
+        let profile: canon_engine::domain::publish_profile::PublishProfile =
+            profile_name.parse().map_err(|e: String| canon_engine::EngineError::Validation(e))?;
+        service.publish_with_profile(&command.run_id, profile, command.to)?
+    } else {
+        service.publish(&command.run_id, command.to, command.adr)?
+    };
 
     println!("Published run {}", summary.run_id);
     println!("Mode: {}", summary.mode);
@@ -88,9 +94,11 @@ mod tests {
             .run(requirements_request(RiskClass::LowImpact, UsageZone::Green))
             .expect("requirements run should succeed");
 
-        let code =
-            execute(&service, PublishCommand { run_id: run.run_id.clone(), to: None, adr: false })
-                .expect("publish should succeed");
+        let code = execute(
+            &service,
+            PublishCommand { run_id: run.run_id.clone(), to: None, adr: false, profile: None },
+        )
+        .expect("publish should succeed");
         let published_dir =
             workspace.path().join("specs").join(default_publish_leaf(&run.run_id, "requirements"));
 
@@ -115,8 +123,11 @@ mod tests {
             .run(requirements_request(RiskClass::SystemicImpact, UsageZone::Yellow))
             .expect("requirements run should start");
 
-        let error = execute(&service, PublishCommand { run_id: run.run_id, to: None, adr: false })
-            .expect_err("publish should fail for approval-gated run");
+        let error = execute(
+            &service,
+            PublishCommand { run_id: run.run_id, to: None, adr: false, profile: None },
+        )
+        .expect_err("publish should fail for approval-gated run");
 
         assert!(error.to_string().contains("cannot publish run"));
     }
@@ -139,6 +150,7 @@ mod tests {
                 run_id: run.run_id.clone(),
                 to: Some(override_path.clone()),
                 adr: false,
+                profile: None,
             },
         )
         .expect("publish should succeed");
@@ -159,8 +171,11 @@ mod tests {
         let service = EngineService::new(workspace.path());
         let run = service.run(architecture_request()).expect("architecture run should succeed");
 
-        let code = execute(&service, PublishCommand { run_id: run.run_id, to: None, adr: false })
-            .expect("publish should succeed");
+        let code = execute(
+            &service,
+            PublishCommand { run_id: run.run_id, to: None, adr: false, profile: None },
+        )
+        .expect("publish should succeed");
 
         let adr_dir = workspace.path().join("docs").join("adr");
         let adr_name = fs::read_dir(&adr_dir)
@@ -174,5 +189,34 @@ mod tests {
 
         assert_eq!(code, 0);
         assert!(adr_name.starts_with("ADR-0001-"));
+    }
+
+    #[test]
+    fn execute_publishes_project_memory_profile_to_canonical_surface() {
+        let workspace = tempdir().expect("create temp workspace");
+        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
+            .expect("write idea file");
+
+        let service = EngineService::new(workspace.path());
+        let run = service
+            .run(requirements_request(RiskClass::LowImpact, UsageZone::Green))
+            .expect("requirements run should succeed");
+
+        let code = execute(
+            &service,
+            PublishCommand {
+                run_id: run.run_id,
+                to: None,
+                adr: false,
+                profile: Some("project-memory".to_string()),
+            },
+        )
+        .expect("profile publish should succeed");
+
+        assert_eq!(code, 0);
+        assert!(workspace.path().join("docs/project/product-context.md").exists());
+        assert!(
+            workspace.path().join("docs/project/product-context.packet-metadata.json").exists()
+        );
     }
 }

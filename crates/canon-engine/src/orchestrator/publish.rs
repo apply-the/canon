@@ -7,6 +7,9 @@ use time::format_description::well_known::Rfc3339;
 
 use crate::EngineError;
 use crate::domain::mode::Mode;
+use crate::domain::publish_profile::{
+    LineageMetadata, PromotionState, PublishProfile, UpdateStrategy,
+};
 use crate::domain::run::RunState;
 use crate::persistence::manifests::RunManifest;
 use crate::persistence::slug::slugify;
@@ -14,6 +17,7 @@ use crate::persistence::store::{PersistedArtifact, WorkspaceStore};
 
 const ADR_REGISTRY_DIRECTORY: &str = "docs/adr";
 const PUBLISH_METADATA_FILE_NAME: &str = "packet-metadata.json";
+const PROFILE_METADATA_FILE_SUFFIX: &str = ".packet-metadata.json";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct GeneratedAdr {
@@ -50,6 +54,14 @@ struct PublishMetadata {
     descriptor: String,
     destination: String,
     source_artifacts: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    profile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    promotion_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    update_strategy: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    lineage: Option<LineageMetadata>,
 }
 
 pub fn publish_run(
@@ -142,6 +154,10 @@ pub fn publish_run(
         descriptor: publish_descriptor(&manifest),
         destination: display_path(repo_root, &destination),
         source_artifacts,
+        profile: None,
+        promotion_state: None,
+        update_strategy: None,
+        lineage: None,
     };
     let metadata_contents = serde_json::to_vec_pretty(&metadata).map_err(|error| {
         EngineError::Validation(format!("failed to serialize publish metadata: {error}"))
@@ -163,6 +179,482 @@ pub fn publish_run(
         published_to: display_path(repo_root, &destination),
         published_files,
     })
+}
+
+/// Publish a run using a named profile. The profile determines the promotion
+/// state, update strategy, and lineage metadata for project-memory promotion.
+pub fn publish_run_with_profile(
+    repo_root: &Path,
+    run_id: &str,
+    profile: PublishProfile,
+    destination_override: Option<&Path>,
+) -> Result<PublishSummary, EngineError> {
+    let store = WorkspaceStore::new(repo_root);
+    let manifest = store.load_run_manifest(run_id)?;
+    let state = store.load_run_state(run_id)?;
+
+    let promotion = evaluate_promotion_policy(manifest.mode, &state.state, &manifest);
+
+    // Under project-memory profile, evidence-only and manual states skip
+    // stable/pending surfaces entirely but still permit evidence publication.
+    if promotion == PromotionState::Manual {
+        return Err(EngineError::Validation(format!(
+            "run `{run_id}` requires manual promotion; publish with `canon publish` instead of profile `{}`",
+            profile.as_str()
+        )));
+    }
+
+    let contract = store.load_artifact_contract(run_id).map_err(|error| {
+        EngineError::Validation(format!(
+            "run `{run_id}` has no publishable artifact contract: {error}"
+        ))
+    })?;
+    let artifacts =
+        store.load_persisted_artifacts(run_id, manifest.mode, &contract).map_err(|error| {
+            EngineError::Validation(format!("run `{run_id}` has no publishable artifacts: {error}"))
+        })?;
+
+    if artifacts.is_empty() {
+        return Err(EngineError::Validation(format!(
+            "run `{run_id}` has no publishable artifacts"
+        )));
+    }
+
+    let strategy = default_update_strategy_for(manifest.mode);
+
+    let destination = match destination_override {
+        Some(path) if path.is_absolute() => path.to_path_buf(),
+        Some(path) => repo_root.join(path),
+        None => resolve_profile_destination(repo_root, &manifest, &promotion),
+    };
+
+    let source_artifacts = artifacts
+        .iter()
+        .map(|a| source_artifact_path(&manifest.run_id, manifest.mode, &a.record.file_name))
+        .collect::<Vec<_>>();
+
+    let publish_timestamp = OffsetDateTime::now_utc().format(&Rfc3339).map_err(|error| {
+        EngineError::Validation(format!("failed to format publish timestamp: {error}"))
+    })?;
+
+    let lineage = LineageMetadata {
+        contract_version: "0.1.0".to_string(),
+        source_run: manifest.run_id.clone(),
+        mode: manifest.mode.as_str().to_string(),
+        profile: profile.as_str().to_string(),
+        promotion_state: promotion.as_str().to_string(),
+        approval_state: format!("{:?}", state.state),
+        readiness: if state.state == RunState::Completed {
+            "complete".to_string()
+        } else {
+            "partial".to_string()
+        },
+        published_at: publish_timestamp.clone(),
+        update_strategy: strategy.as_str().to_string(),
+        source_artifacts: source_artifacts.clone(),
+    };
+
+    let mut published_files = Vec::with_capacity(artifacts.len() + 2);
+
+    let published_to_path = if destination_override.is_some() {
+        if destination.exists() && !destination.is_dir() {
+            return Err(EngineError::Validation(format!(
+                "publish destination `{}` must be a directory",
+                destination.display()
+            )));
+        }
+        fs::create_dir_all(&destination)?;
+
+        match strategy {
+            UpdateStrategy::ManagedBlocks => {
+                for artifact in &artifacts {
+                    let target = destination.join(&artifact.record.file_name);
+                    write_managed_block(&target, &manifest.run_id, &artifact.contents)?;
+                    published_files.push(display_path(repo_root, &target));
+                }
+            }
+            UpdateStrategy::ProposalFiles => {
+                for artifact in &artifacts {
+                    let proposal_path = write_proposal_file(
+                        &destination,
+                        &artifact.record.file_name,
+                        &artifact.contents,
+                        &lineage,
+                    )?;
+                    published_files.push(display_path(repo_root, &proposal_path));
+                }
+            }
+            UpdateStrategy::AppendOnlyIndex => {
+                let index_path = destination.join("index.md");
+                let entry = format!(
+                    "## {}\n\n- Run: `{}`\n- Promotion: `{}`\n- Published: `{}`\n\n",
+                    publish_descriptor(&manifest),
+                    manifest.run_id,
+                    promotion.as_str(),
+                    publish_timestamp,
+                );
+                append_index_entry(&index_path, &entry)?;
+                published_files.push(display_path(repo_root, &index_path));
+                let evidence_dir = destination.join(&manifest.run_id);
+                for path in write_supporting_evidence_bundle(&evidence_dir, &artifacts)? {
+                    published_files.push(display_path(repo_root, &path));
+                }
+            }
+        }
+
+        destination.clone()
+    } else {
+        let surface = destination;
+        match strategy {
+            UpdateStrategy::ManagedBlocks => {
+                let bundle = render_project_memory_surface(&artifacts);
+                write_managed_block(&surface, &manifest.run_id, &bundle)?;
+                published_files.push(display_path(repo_root, &surface));
+                surface.clone()
+            }
+            UpdateStrategy::ProposalFiles => {
+                let bundle = render_project_memory_surface(&artifacts);
+                let proposal_path = write_surface_proposal_file(&surface, &bundle, &lineage)?;
+                published_files.push(display_path(repo_root, &proposal_path));
+                proposal_path
+            }
+            UpdateStrategy::AppendOnlyIndex => {
+                let evidence_dir = resolve_profile_evidence_root(repo_root, &manifest);
+                let entry = render_project_memory_index_entry(
+                    &manifest,
+                    &promotion,
+                    &publish_timestamp,
+                    &display_path(repo_root, &evidence_dir),
+                );
+                append_index_entry(&surface, &entry)?;
+                published_files.push(display_path(repo_root, &surface));
+                for path in write_supporting_evidence_bundle(&evidence_dir, &artifacts)? {
+                    published_files.push(display_path(repo_root, &path));
+                }
+                surface.clone()
+            }
+        }
+    };
+
+    let metadata_path = profile_metadata_path(&published_to_path);
+    if let Some(parent) = metadata_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let metadata = PublishMetadata {
+        run_id: manifest.run_id.clone(),
+        mode: manifest.mode.as_str().to_string(),
+        risk: manifest.risk.as_str().to_string(),
+        zone: manifest.zone.as_str().to_string(),
+        publish_timestamp,
+        descriptor: publish_descriptor(&manifest),
+        destination: display_path(repo_root, &published_to_path),
+        source_artifacts,
+        profile: Some(profile.as_str().to_string()),
+        promotion_state: Some(promotion.as_str().to_string()),
+        update_strategy: Some(strategy.as_str().to_string()),
+        lineage: Some(lineage),
+    };
+    let metadata_contents = serde_json::to_vec_pretty(&metadata).map_err(|error| {
+        EngineError::Validation(format!("failed to serialize publish metadata: {error}"))
+    })?;
+    fs::write(&metadata_path, metadata_contents)?;
+    published_files.push(display_path(repo_root, &metadata_path));
+
+    Ok(PublishSummary {
+        run_id: run_id.to_string(),
+        mode: manifest.mode.as_str().to_string(),
+        published_to: display_path(repo_root, &published_to_path),
+        published_files,
+    })
+}
+
+/// Evaluate the promotion policy for a given mode and run state.
+pub fn evaluate_promotion_policy(
+    mode: Mode,
+    run_state: &RunState,
+    _manifest: &RunManifest,
+) -> PromotionState {
+    match (mode, run_state) {
+        // Completed runs for analysis and shaping modes auto-promote.
+        (
+            Mode::SystemShaping
+            | Mode::Discovery
+            | Mode::Requirements
+            | Mode::DomainLanguage
+            | Mode::DomainModel
+            | Mode::Backlog,
+            RunState::Completed,
+        ) => PromotionState::Auto,
+
+        // Approval-gated modes promote only when completed.
+        (
+            Mode::Architecture
+            | Mode::Change
+            | Mode::Implementation
+            | Mode::Refactor
+            | Mode::Migration,
+            RunState::Completed,
+        ) => PromotionState::AutoIfApproved,
+        (
+            Mode::Architecture
+            | Mode::Change
+            | Mode::Implementation
+            | Mode::Refactor
+            | Mode::Migration,
+            _,
+        ) => PromotionState::PendingIndex,
+
+        // Evidence/review modes always publish evidence only.
+        (
+            Mode::Verification
+            | Mode::Review
+            | Mode::PrReview
+            | Mode::SecurityAssessment
+            | Mode::SupplyChainAnalysis
+            | Mode::SystemAssessment,
+            _,
+        ) => PromotionState::EvidenceOnly,
+
+        // Incident defaults to pending index (manual review expected).
+        (Mode::Incident, RunState::Completed) => PromotionState::PendingIndex,
+        (Mode::Incident, _) => PromotionState::Manual,
+
+        // Non-completed analysis modes go to pending.
+        (_, _) => PromotionState::PendingIndex,
+    }
+}
+
+fn default_update_strategy_for(mode: Mode) -> UpdateStrategy {
+    match mode {
+        Mode::SystemShaping
+        | Mode::Architecture
+        | Mode::Requirements
+        | Mode::Discovery
+        | Mode::Change
+        | Mode::Implementation
+        | Mode::Refactor
+        | Mode::DomainLanguage
+        | Mode::DomainModel => UpdateStrategy::ManagedBlocks,
+        Mode::Incident | Mode::Migration => UpdateStrategy::ProposalFiles,
+        Mode::Verification
+        | Mode::Review
+        | Mode::PrReview
+        | Mode::SecurityAssessment
+        | Mode::SupplyChainAnalysis
+        | Mode::SystemAssessment
+        | Mode::Backlog => UpdateStrategy::AppendOnlyIndex,
+    }
+}
+
+fn resolve_profile_destination(
+    repo_root: &Path,
+    manifest: &RunManifest,
+    promotion: &PromotionState,
+) -> PathBuf {
+    repo_root.join(canonical_project_memory_surface(manifest.mode, *promotion))
+}
+
+fn canonical_project_memory_surface(mode: Mode, promotion: PromotionState) -> &'static str {
+    if promotion.targets_stable_surface() {
+        stable_project_memory_surface(mode)
+    } else if promotion.targets_pending_surface() {
+        pending_project_memory_surface(mode)
+    } else {
+        evidence_project_memory_surface(mode)
+    }
+}
+
+fn stable_project_memory_surface(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Discovery => "docs/project/overview.md",
+        Mode::Requirements => "docs/project/product-context.md",
+        Mode::SystemShaping | Mode::Architecture => "docs/project/architecture-map.md",
+        Mode::Change | Mode::Migration => "docs/project/decision-index.md",
+        Mode::Backlog | Mode::Implementation | Mode::Refactor => "docs/project/delivery-map.md",
+        Mode::DomainLanguage => "docs/project/domain-language.md",
+        Mode::DomainModel => "docs/project/domain-model.md",
+        Mode::Verification
+        | Mode::Review
+        | Mode::PrReview
+        | Mode::Incident
+        | Mode::SecurityAssessment
+        | Mode::SupplyChainAnalysis
+        | Mode::SystemAssessment => "docs/project/operational-context.md",
+    }
+}
+
+fn pending_project_memory_surface(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Incident => "docs/project/open-risks.md",
+        Mode::Verification | Mode::Review | Mode::PrReview => "docs/project/audit-log.md",
+        _ => "docs/project/pending-decisions.md",
+    }
+}
+
+fn evidence_project_memory_surface(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Review | Mode::PrReview | Mode::Verification => "docs/project/audit-log.md",
+        Mode::Incident
+        | Mode::SecurityAssessment
+        | Mode::SupplyChainAnalysis
+        | Mode::SystemAssessment => "docs/project/open-risks.md",
+        _ => "docs/project/audit-log.md",
+    }
+}
+
+fn render_project_memory_surface(artifacts: &[PersistedArtifact]) -> String {
+    if artifacts.len() == 1 {
+        return artifacts[0].contents.trim().to_string();
+    }
+
+    artifacts
+        .iter()
+        .map(|artifact| {
+            let stem = Path::new(&artifact.record.file_name)
+                .file_stem()
+                .and_then(|value| value.to_str())
+                .unwrap_or(&artifact.record.file_name);
+            format!("## {}\n\n{}", titleize_slug(stem), artifact.contents.trim())
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n")
+}
+
+fn render_project_memory_index_entry(
+    manifest: &RunManifest,
+    promotion: &PromotionState,
+    published_at: &str,
+    evidence_path: &str,
+) -> String {
+    format!(
+        "## {}\n\n- Run: `{}`\n- Mode: `{}`\n- Promotion: `{}`\n- Published: `{}`\n- Evidence: `{}`\n\n",
+        manifest.title.as_deref().unwrap_or_else(|| manifest.mode.as_str()),
+        manifest.run_id,
+        manifest.mode.as_str(),
+        promotion.as_str(),
+        published_at,
+        evidence_path,
+    )
+}
+
+fn resolve_profile_evidence_root(repo_root: &Path, manifest: &RunManifest) -> PathBuf {
+    repo_root.join("docs/evidence").join(manifest.mode.as_str()).join(&manifest.run_id)
+}
+
+fn write_supporting_evidence_bundle(
+    destination: &Path,
+    artifacts: &[PersistedArtifact],
+) -> Result<Vec<PathBuf>, EngineError> {
+    fs::create_dir_all(destination)?;
+    let mut written = Vec::with_capacity(artifacts.len());
+    for artifact in artifacts {
+        let target = destination.join(&artifact.record.file_name);
+        fs::write(&target, &artifact.contents)?;
+        written.push(target);
+    }
+    Ok(written)
+}
+
+fn write_surface_proposal_file(
+    target: &Path,
+    content: &str,
+    lineage: &LineageMetadata,
+) -> Result<PathBuf, EngineError> {
+    let stem = target.file_stem().and_then(|value| value.to_str()).unwrap_or("proposal");
+    let ext = target.extension().and_then(|value| value.to_str()).unwrap_or("md");
+    let proposal_path = target.with_file_name(format!("{stem}.proposal.{ext}"));
+
+    let header = format!(
+        "<!-- Canon proposal from run {} ({}) -->\n<!-- promotion_state: {} | strategy: {} -->\n\n",
+        lineage.source_run, lineage.mode, lineage.promotion_state, lineage.update_strategy,
+    );
+
+    if let Some(parent) = proposal_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&proposal_path, format!("{header}{content}"))?;
+    Ok(proposal_path)
+}
+
+fn profile_metadata_path(target: &Path) -> PathBuf {
+    if target.extension().is_none() {
+        return target.join(PUBLISH_METADATA_FILE_NAME);
+    }
+
+    let stem = target.file_stem().and_then(|value| value.to_str()).unwrap_or("packet");
+    target.with_file_name(format!("{stem}{PROFILE_METADATA_FILE_SUFFIX}"))
+}
+
+/// Insert or replace a Canon-managed block inside a document. Content outside
+/// the managed range is preserved.
+pub fn write_managed_block(
+    target: &Path,
+    block_id: &str,
+    content: &str,
+) -> Result<(), EngineError> {
+    let start_marker = format!("<!-- canon:managed-block:{block_id}:start -->");
+    let end_marker = format!("<!-- canon:managed-block:{block_id}:end -->");
+
+    let existing = if target.exists() { fs::read_to_string(target)? } else { String::new() };
+
+    let new_block = format!("{start_marker}\n{content}\n{end_marker}");
+
+    let updated = if let Some(start_pos) = existing.find(&start_marker) {
+        if let Some(end_pos) = existing.find(&end_marker) {
+            let before = &existing[..start_pos];
+            let after = &existing[end_pos + end_marker.len()..];
+            format!("{before}{new_block}{after}")
+        } else {
+            // Start marker found but no end marker: append end marker.
+            let before = &existing[..start_pos];
+            let after = &existing[start_pos + start_marker.len()..];
+            format!("{before}{new_block}{after}")
+        }
+    } else if existing.is_empty() {
+        new_block
+    } else {
+        // No existing block: append.
+        format!("{existing}\n\n{new_block}\n")
+    };
+
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(target, updated)?;
+    Ok(())
+}
+
+/// Emit a proposal file alongside the stable target.
+pub fn write_proposal_file(
+    destination: &Path,
+    file_name: &str,
+    content: &str,
+    lineage: &LineageMetadata,
+) -> Result<PathBuf, EngineError> {
+    let stem = Path::new(file_name).file_stem().and_then(|s| s.to_str()).unwrap_or(file_name);
+    let ext = Path::new(file_name).extension().and_then(|s| s.to_str()).unwrap_or("md");
+    let proposal_name = format!("{stem}.proposal.{ext}");
+    let proposal_path = destination.join(&proposal_name);
+
+    let header = format!(
+        "<!-- Canon proposal from run {} ({}) -->\n<!-- promotion_state: {} | strategy: {} -->\n\n",
+        lineage.source_run, lineage.mode, lineage.promotion_state, lineage.update_strategy,
+    );
+
+    fs::create_dir_all(destination)?;
+    fs::write(&proposal_path, format!("{header}{content}"))?;
+    Ok(proposal_path)
+}
+
+/// Append an entry to an index or audit surface without rewriting existing
+/// entries.
+pub fn append_index_entry(target: &Path, entry: &str) -> Result<(), EngineError> {
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let existing = if target.exists() { fs::read_to_string(target)? } else { String::new() };
+    fs::write(target, format!("{existing}{entry}"))?;
+    Ok(())
 }
 
 fn adr_export_enabled(mode: Mode, requested: bool) -> Result<bool, EngineError> {
@@ -595,50 +1087,10 @@ mod tests {
     use crate::domain::artifact::{ArtifactFormat, ArtifactRecord};
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
-    use crate::domain::run::{ClassificationProvenance, SystemContext};
-    use crate::orchestrator::service::{EngineService, RunRequest};
+    use crate::domain::publish_profile::{PromotionState, UpdateStrategy};
+    use crate::domain::run::{ClassificationProvenance, RunState, SystemContext};
     use crate::persistence::manifests::RunManifest;
     use crate::persistence::store::PersistedArtifact;
-
-    fn complete_requirements_brief() -> &'static str {
-        "# Requirements Brief\n\n## Problem\n\nPublish engine unit test coverage.\n\n## Outcome\n\nPublish functions are exercised under full artifact contracts.\n\n## Constraints\n\n- Keep output local-first.\n\n## Non-Negotiables\n\n- Artifacts must persist under .canon/.\n\n## Options\n\n1. Publish to default path.\n\n## Recommended Path\n\nPublish to the default mode directory.\n\n## Tradeoffs\n\n- Simpler path at cost of flexibility.\n\n## Consequences\n\n- Reviewers can inspect the packet.\n\n## Out of Scope\n\n- No hosted publishing.\n\n## Deferred Work\n\n- Remote destinations deferred.\n\n## Decision Checklist\n\n- [x] Scope is explicit.\n\n## Open Questions\n\n- None at this time.\n"
-    }
-
-    fn requirements_request() -> RunRequest {
-        RunRequest {
-            mode: Mode::Requirements,
-            risk: RiskClass::LowImpact,
-            zone: UsageZone::Green,
-            system_context: None,
-            classification: ClassificationProvenance::explicit(),
-            owner: "Owner <owner@example.com>".to_string(),
-            inputs: vec!["idea.md".to_string()],
-            inline_inputs: Vec::new(),
-            excluded_paths: Vec::new(),
-            policy_root: None,
-            method_root: None,
-        }
-    }
-
-    fn architecture_request() -> RunRequest {
-        RunRequest {
-            mode: Mode::Architecture,
-            risk: RiskClass::BoundedImpact,
-            zone: UsageZone::Yellow,
-            system_context: Some(SystemContext::Existing),
-            classification: ClassificationProvenance::explicit(),
-            owner: "Owner <owner@example.com>".to_string(),
-            inputs: vec!["architecture.md".to_string()],
-            inline_inputs: Vec::new(),
-            excluded_paths: Vec::new(),
-            policy_root: None,
-            method_root: None,
-        }
-    }
-
-    fn architecture_brief() -> &'static str {
-        "# Architecture Brief\n\nDecision focus: map boundaries and tradeoffs for governed analysis-mode expansion.\nConstraint: preserve Canon persistence, evidence, and approval behavior.\n\n## Decision\nUse a dedicated context map to make architecture boundaries reviewable.\n\n## Options\n- Keep domain boundaries implicit in existing prose.\n- Add a dedicated `context-map.md` artifact.\n\n## Constraints\n- Preserve run identity and approval behavior.\n- Keep non-target modes unchanged.\n\n## Candidate Boundaries\n- Runtime Governance\n- Artifact Authoring\n\n## Invariants\n- Evidence remains linked to the run.\n- Risk review stays explicit.\n\n## Evaluation Criteria\n- Ownership clarity\n- Seam visibility.\n\n## Decision Drivers\n- Reviewers need the chosen direction and rationale without consulting chat history.\n- The packet must remain critique-first when authored context is weak.\n\n## Options Considered\n- Keep the current generic decision summary.\n- Preserve authored decision and option-analysis sections directly in the existing artifacts.\n\n## Pros\n- The emitted packet records the chosen option and rejected alternatives explicitly.\n- Reviewers can reuse the packet outside the originating conversation.\n\n## Cons\n- The authored brief must carry more explicit decision content.\n\n## Recommendation\nPreserve authored decision and option-analysis sections directly in the existing architecture decision artifacts.\n\n## Why Not The Others\n- The generic summary shape hides rejected alternatives.\n- A new artifact family would widen scope beyond this slice.\n\n## Consequences\n- Architecture reviewers can inspect a durable ADR without reopening the run history.\n\n## Bounded Contexts\n- Runtime Governance: owns approvals, run state, and evidence linkage.\n- Artifact Authoring: owns packet structure and authored-body fidelity.\n\n## Context Relationships\n- Artifact Authoring consumes gate and lineage outcomes from Runtime Governance.\n\n## Integration Seams\n- `mode_shaping` hands rendered artifacts to gate evaluation and summarization.\n\n## Anti-Corruption Candidates\n- Renderer helpers should remain isolated from governance-specific state semantics.\n\n## Ownership Boundaries\n- Governance code owns gate evaluation.\n- Rendering code owns authored markdown fidelity.\n\n## Shared Invariants\n- Every artifact remains bound to one run id.\n- Approval-gated architecture runs cannot skip risk review.\n\n## System Context\n- System: `canon-engine` governs analysis packets and durable evidence.\n- External actors:\n  - architect-reviewer: reads architecture packets.\n  - copilot-cli-adapter: generates and critiques packet content.\n\n## Containers\n- `canon-cli` (Rust CLI): entrypoint for run and inspect commands.\n- `canon-engine` (Rust library): orchestrates generation, critique, gates, and rendering.\n- `.canon/` (filesystem): persists run manifests, artifacts, and evidence.\n\n## Deployment\n- `canon-cli` runs on developer laptops and CI runners.\n- `canon-engine` shares the same Rust process boundary as the CLI.\n- `.canon/` remains the local runtime store on the active workspace filesystem.\n\n## Components\n- `mode_shaping`: runs architecture orchestration.\n- `gatekeeper`: validates contract and policy gates.\n- `markdown renderer`: emits reviewable architecture artifacts.\n"
-    }
 
     fn sample_manifest(run_id: &str) -> RunManifest {
         RunManifest {
@@ -682,6 +1134,33 @@ mod tests {
             },
             contents: contents.to_string(),
         }
+    }
+
+    #[test]
+    fn render_project_memory_surface_returns_trimmed_single_artifact() {
+        let artifact = markdown_artifact(
+            "R-test",
+            Mode::Requirements,
+            "product-context.md",
+            "\n# Product Context\n\nBounded summary.\n\n",
+        );
+
+        let rendered = super::render_project_memory_surface(&[artifact]);
+
+        assert_eq!(rendered, "# Product Context\n\nBounded summary.");
+        assert!(!rendered.contains("## Product Context"));
+    }
+
+    #[test]
+    fn profile_metadata_path_uses_directory_and_file_conventions() {
+        assert_eq!(
+            super::profile_metadata_path(Path::new("docs/project/custom-dest")),
+            Path::new("docs/project/custom-dest/packet-metadata.json")
+        );
+        assert_eq!(
+            super::profile_metadata_path(Path::new("docs/project/open-risks.proposal.md")),
+            Path::new("docs/project/open-risks.proposal.packet-metadata.json")
+        );
     }
 
     #[test]
@@ -745,6 +1224,10 @@ mod tests {
                     ".canon/artifacts/R-20260422-deadbeef/requirements/problem-statement.md"
                         .to_string(),
                 ],
+                profile: None,
+                promotion_state: None,
+                update_strategy: None,
+                lineage: None,
             })
             .expect("metadata json"),
         )
@@ -753,77 +1236,6 @@ mod tests {
         assert_eq!(
             resolve_destination(workspace.path(), &manifest, None),
             workspace.path().join("specs").join("2026-04-22-publish-scope--abcd1234")
-        );
-    }
-
-    #[test]
-    fn publish_run_rejects_destination_that_is_an_existing_file() {
-        let workspace = tempdir().expect("temp workspace");
-        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
-            .expect("write input");
-
-        let service = EngineService::new(workspace.path());
-        let run = service.run(requirements_request()).expect("completed run");
-        let destination_file = workspace.path().join("published.txt");
-        fs::write(&destination_file, "not a directory").expect("write file destination");
-
-        let error =
-            super::publish_run(workspace.path(), &run.run_id, Some(&destination_file), false)
-                .expect_err("publish should reject file destination");
-
-        assert!(error.to_string().contains("must be a directory"));
-    }
-
-    #[test]
-    fn publish_run_supports_absolute_override_outside_repo_root() {
-        let workspace = tempdir().expect("temp workspace");
-        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
-            .expect("write input");
-
-        let external = tempdir().expect("external destination");
-        let absolute_destination = external.path().join("published-packet");
-
-        let service = EngineService::new(workspace.path());
-        let run = service.run(requirements_request()).expect("completed run");
-
-        let summary =
-            super::publish_run(workspace.path(), &run.run_id, Some(&absolute_destination), false)
-                .expect("publish should support absolute override");
-
-        assert_eq!(summary.published_to, absolute_destination.display().to_string());
-        assert!(absolute_destination.join("01-problem-statement.md").exists());
-        assert!(summary.published_files.iter().any(|path| path
-            == &absolute_destination.join("01-problem-statement.md").display().to_string()));
-        assert!(absolute_destination.join(PUBLISH_METADATA_FILE_NAME).exists());
-    }
-
-    #[test]
-    fn publish_run_writes_metadata_sidecar_for_default_destinations() {
-        let workspace = tempdir().expect("temp workspace");
-        fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
-            .expect("write input");
-
-        let service = EngineService::new(workspace.path());
-        let run = service.run(requirements_request()).expect("completed run");
-
-        let summary = super::publish_run(workspace.path(), &run.run_id, None, false)
-            .expect("publish should succeed");
-        let metadata_path =
-            workspace.path().join(summary.published_to.clone()).join(PUBLISH_METADATA_FILE_NAME);
-        let metadata: PublishMetadata =
-            serde_json::from_slice(&fs::read(&metadata_path).expect("read metadata sidecar"))
-                .expect("metadata json");
-
-        assert_eq!(metadata.run_id, run.run_id);
-        assert_eq!(metadata.mode, "requirements");
-        assert_eq!(metadata.risk, "low-impact");
-        assert_eq!(metadata.zone, "green");
-        assert!(metadata.destination.starts_with("specs/"));
-        assert!(
-            metadata.source_artifacts.iter().any(|path| path.ends_with("01-problem-statement.md"))
-        );
-        assert!(
-            summary.published_files.iter().any(|path| path.ends_with(PUBLISH_METADATA_FILE_NAME))
         );
     }
 
@@ -837,22 +1249,6 @@ mod tests {
                 .expect("requirements default policy")
         );
         assert!(super::adr_export_enabled(Mode::Incident, true).is_err());
-    }
-
-    #[test]
-    fn publish_run_generates_and_reports_architecture_adr_in_process() {
-        let workspace = tempdir().expect("temp workspace");
-        fs::write(workspace.path().join("architecture.md"), architecture_brief())
-            .expect("write architecture brief");
-
-        let service = EngineService::new(workspace.path());
-        let run = service.run(architecture_request()).expect("completed architecture run");
-
-        let summary = super::publish_run(workspace.path(), &run.run_id, None, false)
-            .expect("publish should succeed");
-
-        assert!(summary.published_files.iter().any(|path| path.starts_with("docs/adr/ADR-0001-")));
-        assert!(workspace.path().join("docs").join("adr").exists());
     }
 
     #[test]
@@ -914,6 +1310,40 @@ mod tests {
     }
 
     #[test]
+    fn build_change_adr_reports_missing_decision_section() {
+        let manifest = manifest_for(Mode::Change, "R-20260422-change-missing");
+        let artifacts = vec![
+            markdown_artifact(
+                &manifest.run_id,
+                manifest.mode,
+                "change-surface.md",
+                "# Change Surface\n\n## Change Surface\n\n- session repository\n",
+            ),
+            markdown_artifact(
+                &manifest.run_id,
+                manifest.mode,
+                "implementation-plan.md",
+                "# Implementation Plan\n\n## Implementation Plan\n\nAdd bounded repository methods.\n",
+            ),
+            markdown_artifact(
+                &manifest.run_id,
+                manifest.mode,
+                "decision-record.md",
+                "# Decision Record\n\n## Consequences\n\n- preserved surface remains explicit\n",
+            ),
+        ];
+
+        let error = super::build_change_adr(
+            &manifest,
+            &artifacts,
+            "docs/changes/2026-04-22-change-missing",
+        )
+        .expect_err("missing decision section should fail");
+
+        assert!(error.to_string().contains("missing a decision section"));
+    }
+
+    #[test]
     fn build_migration_adr_maps_migration_packet_sections() {
         let manifest = manifest_for(Mode::Migration, "R-20260422-migrate1");
         let artifacts = vec![
@@ -952,6 +1382,40 @@ mod tests {
         assert!(adr.alternatives.as_deref().is_some_and(|value| {
             value.contains("Option 1 keeps dual-write through the cutover window.")
         }));
+    }
+
+    #[test]
+    fn build_migration_adr_reports_missing_decision_section() {
+        let manifest = manifest_for(Mode::Migration, "R-20260422-migrate-missing");
+        let artifacts = vec![
+            markdown_artifact(
+                &manifest.run_id,
+                manifest.mode,
+                "source-target-map.md",
+                "# Source-Target Map\n\n## Current State\n\n- auth-v1\n\n## Target State\n\n- auth-v2\n\n## Transition Boundaries\n\n- login only\n",
+            ),
+            markdown_artifact(
+                &manifest.run_id,
+                manifest.mode,
+                "compatibility-matrix.md",
+                "# Compatibility Matrix\n\n## Options Matrix\n\n- dual-write\n",
+            ),
+            markdown_artifact(
+                &manifest.run_id,
+                manifest.mode,
+                "decision-record.md",
+                "# Decision Record\n\n## Tradeoff Analysis\n\n- bounded dual-write\n",
+            ),
+        ];
+
+        let error = super::build_migration_adr(
+            &manifest,
+            &artifacts,
+            "docs/migrations/2026-04-22-migration-missing",
+        )
+        .expect_err("missing migration decision section should fail");
+
+        assert!(error.to_string().contains("missing a decision section"));
     }
 
     #[test]
@@ -1029,13 +1493,22 @@ mod tests {
         slug_only.title = None;
         slug_only.slug = Some("durable-decision".to_string());
         assert_eq!(super::fallback_adr_title(&slug_only), "Durable Decision");
+        assert_eq!(super::titleize_slug(""), "");
         assert_eq!(super::normalize_adr_title_line("- keep dual-write"), "keep dual-write");
+
+        let mut no_short_id = sample_manifest("run-12345678");
+        no_short_id.short_id = None;
+        assert_eq!(super::short_id_fragment(&no_short_id), "12345678");
 
         let registry = tempdir().expect("registry tempdir");
         assert_eq!(super::next_adr_number(registry.path()).expect("empty registry"), 1);
         fs::write(registry.path().join("ADR-0002-existing.md"), "# ADR 0002\n")
             .expect("write adr 2");
         fs::write(registry.path().join("notes.txt"), "ignore\n").expect("write other file");
+        fs::write(registry.path().join("ADR-0005"), "missing separator\n")
+            .expect("write malformed adr without suffix");
+        fs::write(registry.path().join("ADR-00x4-bad.md"), "bad digits\n")
+            .expect("write malformed adr digits");
         assert_eq!(super::next_adr_number(registry.path()).expect("numbered registry"), 3);
     }
 
@@ -1108,5 +1581,373 @@ mod tests {
         )
         .expect("migration adr export");
         assert!(migration_adr.display_path.starts_with("docs/adr/ADR-0004-"));
+    }
+
+    #[test]
+    fn evaluate_promotion_policy_maps_completed_analysis_to_auto() {
+        let manifest = sample_manifest("R-test");
+        for mode in [
+            Mode::SystemShaping,
+            Mode::Discovery,
+            Mode::Requirements,
+            Mode::DomainLanguage,
+            Mode::DomainModel,
+            Mode::Backlog,
+        ] {
+            let mut m = manifest.clone();
+            m.mode = mode;
+            assert_eq!(
+                super::evaluate_promotion_policy(mode, &RunState::Completed, &m),
+                PromotionState::Auto,
+                "expected Auto for completed {mode:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn evaluate_promotion_policy_maps_completed_gated_to_auto_if_approved() {
+        let manifest = sample_manifest("R-test");
+        for mode in [
+            Mode::Architecture,
+            Mode::Change,
+            Mode::Implementation,
+            Mode::Refactor,
+            Mode::Migration,
+        ] {
+            let mut m = manifest.clone();
+            m.mode = mode;
+            assert_eq!(
+                super::evaluate_promotion_policy(mode, &RunState::Completed, &m),
+                PromotionState::AutoIfApproved,
+                "expected AutoIfApproved for completed {mode:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn evaluate_promotion_policy_maps_non_completed_gated_to_pending() {
+        let manifest = sample_manifest("R-test");
+        for mode in [Mode::Architecture, Mode::Change] {
+            let mut m = manifest.clone();
+            m.mode = mode;
+            assert_eq!(
+                super::evaluate_promotion_policy(mode, &RunState::AwaitingApproval, &m),
+                PromotionState::PendingIndex,
+            );
+        }
+    }
+
+    #[test]
+    fn evaluate_promotion_policy_maps_evidence_modes_to_evidence_only() {
+        let manifest = sample_manifest("R-test");
+        for mode in [
+            Mode::Verification,
+            Mode::Review,
+            Mode::PrReview,
+            Mode::SecurityAssessment,
+            Mode::SupplyChainAnalysis,
+            Mode::SystemAssessment,
+        ] {
+            let mut m = manifest.clone();
+            m.mode = mode;
+            assert_eq!(
+                super::evaluate_promotion_policy(mode, &RunState::Completed, &m),
+                PromotionState::EvidenceOnly,
+            );
+        }
+    }
+
+    #[test]
+    fn evaluate_promotion_policy_maps_incident_states() {
+        let manifest = sample_manifest("R-test");
+        let mut m = manifest.clone();
+        m.mode = Mode::Incident;
+        assert_eq!(
+            super::evaluate_promotion_policy(Mode::Incident, &RunState::Completed, &m),
+            PromotionState::PendingIndex,
+        );
+        assert_eq!(
+            super::evaluate_promotion_policy(Mode::Incident, &RunState::AwaitingApproval, &m),
+            PromotionState::Manual,
+        );
+    }
+
+    #[test]
+    fn default_update_strategy_for_modes() {
+        assert_eq!(
+            super::default_update_strategy_for(Mode::Architecture),
+            UpdateStrategy::ManagedBlocks
+        );
+        assert_eq!(
+            super::default_update_strategy_for(Mode::Migration),
+            UpdateStrategy::ProposalFiles
+        );
+        assert_eq!(
+            super::default_update_strategy_for(Mode::Incident),
+            UpdateStrategy::ProposalFiles
+        );
+        assert_eq!(
+            super::default_update_strategy_for(Mode::Review),
+            UpdateStrategy::AppendOnlyIndex
+        );
+    }
+
+    #[test]
+    fn write_managed_block_inserts_and_replaces() {
+        let workspace = tempdir().expect("temp workspace");
+        let target = workspace.path().join("doc.md");
+
+        super::write_managed_block(&target, "test-block", "initial content").expect("first write");
+        let first = fs::read_to_string(&target).expect("read first");
+        assert!(first.contains("<!-- canon:managed-block:test-block:start -->"));
+        assert!(first.contains("initial content"));
+        assert!(first.contains("<!-- canon:managed-block:test-block:end -->"));
+
+        super::write_managed_block(&target, "test-block", "updated content").expect("second write");
+        let second = fs::read_to_string(&target).expect("read second");
+        assert!(second.contains("updated content"));
+        assert!(!second.contains("initial content"));
+    }
+
+    #[test]
+    fn write_managed_block_preserves_curated_content() {
+        let workspace = tempdir().expect("temp workspace");
+        let target = workspace.path().join("curated.md");
+        let curated = "# My Document\n\nHuman-authored context.\n\n<!-- canon:managed-block:test:start -->\nold Canon data\n<!-- canon:managed-block:test:end -->\n\nMore human content.\n";
+        fs::write(&target, curated).expect("write curated");
+
+        super::write_managed_block(&target, "test", "new Canon data").expect("update block");
+        let result = fs::read_to_string(&target).expect("read result");
+        assert!(result.contains("Human-authored context."));
+        assert!(result.contains("new Canon data"));
+        assert!(result.contains("More human content."));
+        assert!(!result.contains("old Canon data"));
+    }
+
+    #[test]
+    fn write_proposal_file_emits_sidecar() {
+        let workspace = tempdir().expect("temp workspace");
+        let dest = workspace.path().join("proposals");
+        let lineage = super::LineageMetadata {
+            contract_version: "0.1.0".into(),
+            source_run: "R-test".into(),
+            mode: "architecture".into(),
+            profile: "project-memory".into(),
+            promotion_state: "pending-index".into(),
+            approval_state: "AwaitingApproval".into(),
+            readiness: "partial".into(),
+            published_at: "2026-05-13T00:00:00Z".into(),
+            update_strategy: "proposal-files".into(),
+            source_artifacts: vec!["artifact.md".into()],
+        };
+
+        let path = super::write_proposal_file(
+            &dest,
+            "decision-record.md",
+            "# Proposal\nContent",
+            &lineage,
+        )
+        .expect("write proposal");
+        assert!(path.ends_with("decision-record.proposal.md"));
+        let content = fs::read_to_string(&path).expect("read proposal");
+        assert!(content.contains("Canon proposal from run R-test"));
+        assert!(content.contains("# Proposal\nContent"));
+    }
+
+    #[test]
+    fn append_index_entry_creates_and_appends() {
+        let workspace = tempdir().expect("temp workspace");
+        let target = workspace.path().join("index.md");
+
+        super::append_index_entry(&target, "- Entry 1\n").expect("first append");
+        let first = fs::read_to_string(&target).expect("read first");
+        assert!(first.contains("- Entry 1"));
+
+        super::append_index_entry(&target, "- Entry 2\n").expect("second append");
+        let second = fs::read_to_string(&target).expect("read second");
+        assert!(second.contains("- Entry 1"));
+        assert!(second.contains("- Entry 2"));
+    }
+
+    #[test]
+    fn resolve_profile_destination_routes_by_promotion_state() {
+        let repo_root = Path::new("/repo");
+        let stable_manifest = sample_manifest("R-20260422-abcd1234");
+        let pending_manifest = manifest_for(Mode::Architecture, "R-20260422-bcde2345");
+        let evidence_manifest = manifest_for(Mode::Review, "R-20260422-cdef3456");
+
+        let stable =
+            super::resolve_profile_destination(repo_root, &stable_manifest, &PromotionState::Auto);
+        assert_eq!(stable, Path::new("/repo/docs/project/product-context.md"));
+
+        let pending = super::resolve_profile_destination(
+            repo_root,
+            &pending_manifest,
+            &PromotionState::PendingIndex,
+        );
+        assert_eq!(pending, Path::new("/repo/docs/project/pending-decisions.md"));
+
+        let evidence = super::resolve_profile_destination(
+            repo_root,
+            &evidence_manifest,
+            &PromotionState::EvidenceOnly,
+        );
+        assert_eq!(evidence, Path::new("/repo/docs/project/audit-log.md"));
+    }
+
+    #[test]
+    fn canonical_project_memory_surface_map_covers_all_modes() {
+        let expected = [
+            (
+                Mode::Discovery,
+                "docs/project/overview.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Requirements,
+                "docs/project/product-context.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::SystemShaping,
+                "docs/project/architecture-map.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Architecture,
+                "docs/project/architecture-map.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::SystemAssessment,
+                "docs/project/operational-context.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/open-risks.md",
+            ),
+            (
+                Mode::Change,
+                "docs/project/decision-index.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Backlog,
+                "docs/project/delivery-map.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::PrReview,
+                "docs/project/operational-context.md",
+                "docs/project/audit-log.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Implementation,
+                "docs/project/delivery-map.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Refactor,
+                "docs/project/delivery-map.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Verification,
+                "docs/project/operational-context.md",
+                "docs/project/audit-log.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Review,
+                "docs/project/operational-context.md",
+                "docs/project/audit-log.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::Incident,
+                "docs/project/operational-context.md",
+                "docs/project/open-risks.md",
+                "docs/project/open-risks.md",
+            ),
+            (
+                Mode::SecurityAssessment,
+                "docs/project/operational-context.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/open-risks.md",
+            ),
+            (
+                Mode::Migration,
+                "docs/project/decision-index.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::SupplyChainAnalysis,
+                "docs/project/operational-context.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/open-risks.md",
+            ),
+            (
+                Mode::DomainLanguage,
+                "docs/project/domain-language.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+            (
+                Mode::DomainModel,
+                "docs/project/domain-model.md",
+                "docs/project/pending-decisions.md",
+                "docs/project/audit-log.md",
+            ),
+        ];
+
+        assert_eq!(expected.len(), Mode::all().len());
+
+        for (mode, stable, pending, evidence) in expected {
+            assert_eq!(
+                super::stable_project_memory_surface(mode),
+                stable,
+                "stable surface mismatch for {}",
+                mode.as_str()
+            );
+            assert_eq!(
+                super::pending_project_memory_surface(mode),
+                pending,
+                "pending surface mismatch for {}",
+                mode.as_str()
+            );
+            assert_eq!(
+                super::evidence_project_memory_surface(mode),
+                evidence,
+                "evidence surface mismatch for {}",
+                mode.as_str()
+            );
+        }
+    }
+
+    #[test]
+    fn publish_metadata_backward_compatible_deserialization() {
+        let legacy_json = r#"{
+            "run_id": "R-test",
+            "mode": "requirements",
+            "risk": "low-impact",
+            "zone": "green",
+            "publish_timestamp": "2026-05-13T00:00:00Z",
+            "descriptor": "test",
+            "destination": "specs/test",
+            "source_artifacts": ["artifact.md"]
+        }"#;
+        let metadata: PublishMetadata =
+            serde_json::from_str(legacy_json).expect("legacy metadata should parse");
+        assert!(metadata.profile.is_none());
+        assert!(metadata.promotion_state.is_none());
+        assert!(metadata.lineage.is_none());
     }
 }
