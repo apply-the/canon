@@ -721,7 +721,7 @@ fn domain_language_direct_run_exercises_service_summary_and_publish_paths() {
         .expect("domain-language run");
 
     assert_eq!(summary.state, "AwaitingApproval");
-    assert_eq!(summary.artifact_count, 10);
+    assert_eq!(summary.artifact_count, 11);
     assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
     assert!(summary.artifact_paths.iter().any(|path| path.ends_with("language-overview.md")));
     assert!(
@@ -860,7 +860,7 @@ fn domain_model_direct_run_exercises_service_summary_json_and_publish_paths() {
         .expect("domain-model run");
 
     assert_eq!(summary.state, "AwaitingApproval");
-    assert_eq!(summary.artifact_count, 13);
+    assert_eq!(summary.artifact_count, 14);
     assert!(summary.approval_targets.iter().any(|target| target == "gate:risk"));
     assert!(summary.artifact_paths.iter().any(|path| path.ends_with("model-overview.md")));
     assert!(summary.artifact_paths.iter().any(|path| path.ends_with("domain-model.json")));

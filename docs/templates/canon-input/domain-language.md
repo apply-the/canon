@@ -3,10 +3,14 @@
 System Surface: The bounded product area or domain whose vocabulary this packet stabilizes.
 Primary Upstream Mode: discovery | requirements | direct
 Upstream Sources:
-- docs/discovery/<RUN_ID>/problem-map.md
+- docs/discovery/<RUN_ID>/01-problem-map.md
 Carried-Forward Decisions:
 - Existing language constraints carried into this language packet.
 Excluded Upstream Scope: Adjacent domain vocabularies and implementation naming patterns that remain out of scope.
+
+Published Canon packets use ordered filenames. When this packet cites an
+upstream Canon artifact, prefer the emitted ordered path rather than an
+unprefixed alias.
 
 ## Domain Scope
 - Name the bounded domain or product area whose language is being stabilized.

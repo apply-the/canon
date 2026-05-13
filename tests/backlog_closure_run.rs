@@ -134,6 +134,7 @@ fn closure_blocked_backlog_run_emits_only_risk_packet_artifacts() {
     let expected_paths = vec![
         format!(".canon/artifacts/{run_id}/backlog/01-backlog-overview.md"),
         format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
+        format!(".canon/artifacts/{run_id}/backlog/packet-metadata.json"),
     ];
     assert_eq!(actual_paths, expected_paths);
     assert!(
@@ -178,7 +179,7 @@ fn downgraded_backlog_run_completes_with_a_risk_only_packet() {
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
     assert_eq!(json["mode"].as_str(), Some("backlog"));
     assert_eq!(json["state"].as_str(), Some("Completed"));
-    assert_eq!(json["artifact_count"].as_u64(), Some(2));
+    assert_eq!(json["artifact_count"].as_u64(), Some(3));
     assert!(json["mode_result"]["headline"].as_str().is_some_and(|headline| {
         headline.contains("closure-limited") || headline.contains("planning risks")
     }));
@@ -202,6 +203,7 @@ fn downgraded_backlog_run_completes_with_a_risk_only_packet() {
         vec![
             format!(".canon/artifacts/{run_id}/backlog/01-backlog-overview.md"),
             format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
+            format!(".canon/artifacts/{run_id}/backlog/packet-metadata.json"),
         ]
     );
 

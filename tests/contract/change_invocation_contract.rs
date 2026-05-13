@@ -193,7 +193,7 @@ fn broad_change_change_surface_escalates_mutation_before_completion() {
     assert_eq!(json["blocking_classification"], "approval-gated");
     assert_eq!(json["recommended_next_action"]["action"], "inspect-artifacts");
     assert!(
-        json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
+        json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
         "scope-broadening escalation should still expose the bounded artifact packet"
     );
 

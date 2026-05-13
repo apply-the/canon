@@ -100,7 +100,7 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
         workspace.path().join(".canon").join("artifacts").join(run_id).join("migration");
 
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["artifact_count"], 6);
+    assert_eq!(json["artifact_count"], 7);
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Source-Target Map"));
     assert!(

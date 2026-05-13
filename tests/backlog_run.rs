@@ -153,6 +153,7 @@ fn inspect_artifacts_lists_the_full_backlog_bundle() {
         format!(".canon/artifacts/{run_id}/backlog/06-sequencing-plan.md"),
         format!(".canon/artifacts/{run_id}/backlog/07-acceptance-anchors.md"),
         format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
+        format!(".canon/artifacts/{run_id}/backlog/packet-metadata.json"),
     ];
     assert_eq!(actual_paths, expected_paths);
 

@@ -119,7 +119,7 @@ fn run_supply_chain_analysis_emits_a_reviewable_packet_and_publishes_while_appro
         .join("supply-chain-analysis");
 
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["artifact_count"], 7);
+    assert_eq!(json["artifact_count"], 8);
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Analysis Overview"));
     assert!(

@@ -20,6 +20,7 @@ fn migration_mode_uses_a_distinct_compatibility_artifact_bundle() {
             "fallback-plan.md",
             "migration-verification-report.md",
             "decision-record.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -88,6 +89,7 @@ fn migration_artifacts_require_compatibility_specific_sections() {
                     "Approval Notes",
                 ],
             ),
+            ("packet-metadata.json", vec![]),
         ]
     );
 }

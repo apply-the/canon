@@ -153,6 +153,12 @@ impl EngineService {
             ),
         };
 
+        let packet_metadata_contents = build_runtime_packet_metadata(
+            &run_id,
+            request.mode,
+            &artifact_contract.artifact_requirements,
+        );
+
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
@@ -176,12 +182,15 @@ impl EngineService {
                         disposition: crate::domain::execution::EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_system_shaping_artifact(
-                    &requirement.file_name,
-                    &context_summary,
-                    &generation_output.summary,
-                    &critique_output.summary,
-                ),
+                contents: match artifact_slug(&requirement.file_name) {
+                    "packet-metadata.json" => packet_metadata_contents.clone(),
+                    _ => render_system_shaping_artifact(
+                        &requirement.file_name,
+                        &context_summary,
+                        &generation_output.summary,
+                        &critique_output.summary,
+                    ),
+                },
             })
             .collect::<Vec<_>>();
 
@@ -333,6 +342,10 @@ impl EngineService {
             invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
         let context_summary =
             self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
+        artifact_contract = crate::artifacts::contract::architecture_contract_for_context(
+            &artifact_contract,
+            &context_summary,
+        );
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -399,13 +412,6 @@ impl EngineService {
         let selected_artifact_names = artifact_contract
             .artifact_requirements
             .iter()
-            .filter(|requirement| {
-                requirement.required
-                    || crate::artifacts::markdown::architecture_artifact_enabled(
-                        &requirement.file_name,
-                        &context_summary,
-                    )
-            })
             .map(|requirement| requirement.file_name.clone())
             .collect::<Vec<_>>();
 
@@ -417,9 +423,6 @@ impl EngineService {
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
-            .filter(|requirement| {
-                selected_artifact_names.iter().any(|file_name| file_name == &requirement.file_name)
-            })
             .map(|requirement| PersistedArtifact {
                 record: ArtifactRecord {
                     file_name: requirement.file_name.clone(),
@@ -620,6 +623,11 @@ fn build_architecture_view_manifest(
     selected_artifact_names: &[String],
     context_summary: &str,
 ) -> String {
+    let primary_artifact = architecture_packet_body_artifacts(selected_artifact_names)
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| "architecture-overview.md".to_string());
+
     let views = [
         ("system-context", "System Context", true, "system-context.md", "system-context.mmd"),
         ("container", "Container View", true, "container-view.md", "container-view.mmd"),
@@ -629,13 +637,24 @@ fn build_architecture_view_manifest(
     ]
     .into_iter()
     .map(|(view, title, required, markdown_artifact, mermaid_artifact)| {
+        let emitted_markdown = selected_architecture_artifact_name(
+            selected_artifact_names,
+            markdown_artifact,
+        );
+        let emitted_mermaid = selected_architecture_artifact_name(
+            selected_artifact_names,
+            mermaid_artifact,
+        );
         let authored = crate::artifacts::markdown::architecture_view_authored(
             markdown_artifact,
             context_summary,
         );
-        let included = selected_artifact_names
-            .iter()
-            .any(|file_name| artifact_slug(file_name) == markdown_artifact);
+        let included = emitted_markdown.is_some();
+        let artifacts = [emitted_markdown, emitted_mermaid]
+            .into_iter()
+            .flatten()
+            .map(|file_name| serde_json::Value::String(file_name.to_string()))
+            .collect::<Vec<_>>();
 
         serde_json::json!({
             "view": view,
@@ -643,11 +662,7 @@ fn build_architecture_view_manifest(
             "required": required,
             "authored": authored,
             "included": included,
-            "artifacts": if included {
-                serde_json::json!([markdown_artifact, mermaid_artifact])
-            } else {
-                serde_json::json!([])
-            },
+            "artifacts": artifacts,
             "reason": if authored {
                 serde_json::Value::Null
             } else if required {
@@ -666,7 +681,7 @@ fn build_architecture_view_manifest(
     .collect::<Vec<_>>();
 
     serde_json::to_string_pretty(&serde_json::json!({
-        "primary_artifact": "architecture-overview.md",
+        "primary_artifact": primary_artifact,
         "render_targets": {
             "mermaid_source": "generated",
             "svg": "unsupported",
@@ -682,6 +697,10 @@ fn build_architecture_packet_metadata(
     selected_artifact_names: &[String],
     context_summary: &str,
 ) -> String {
+    let artifact_order = architecture_packet_body_artifacts(selected_artifact_names);
+    let primary_artifact =
+        artifact_order.first().cloned().unwrap_or_else(|| "architecture-overview.md".to_string());
+
     let included_views = [
         "system-context.md",
         "container-view.md",
@@ -700,7 +719,8 @@ fn build_architecture_packet_metadata(
         "packet_kind": "architecture-visual-packet",
         "run_id": run_id,
         "mode": "architecture",
-        "primary_artifact": "architecture-overview.md",
+        "primary_artifact": primary_artifact,
+        "artifact_order": artifact_order,
         "artifact_count": selected_artifact_names.len(),
         "included_views": included_views,
         "render_targets": {
@@ -724,6 +744,26 @@ fn build_architecture_packet_metadata(
         },
     }))
     .expect("serialize architecture packet metadata")
+}
+
+fn architecture_packet_body_artifacts(selected_artifact_names: &[String]) -> Vec<String> {
+    selected_artifact_names
+        .iter()
+        .filter(|file_name| {
+            !matches!(artifact_slug(file_name), "view-manifest.json" | "packet-metadata.json")
+        })
+        .cloned()
+        .collect()
+}
+
+fn selected_architecture_artifact_name<'a>(
+    selected_artifact_names: &'a [String],
+    bare_name: &str,
+) -> Option<&'a str> {
+    selected_artifact_names
+        .iter()
+        .find(|file_name| artifact_slug(file_name) == bare_name)
+        .map(String::as_str)
 }
 
 fn architecture_view_heading(file_name: &str) -> &'static str {

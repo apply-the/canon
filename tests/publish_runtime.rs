@@ -181,6 +181,8 @@ fn publish_run_writes_metadata_sidecar_for_default_destinations() {
     assert_eq!(metadata["mode"], "requirements");
     assert_eq!(metadata["risk"], "low-impact");
     assert_eq!(metadata["zone"], "green");
+    assert_eq!(metadata["primary_artifact"], "01-problem-statement.md");
+    assert_eq!(metadata["artifact_order"][0], "01-problem-statement.md");
     assert!(metadata["destination"].as_str().is_some_and(|value| value.starts_with("specs/")));
     assert!(
         metadata["source_artifacts"].as_array().expect("source artifacts array").iter().any(
@@ -260,6 +262,8 @@ fn publish_run_with_profile_promotes_completed_requirements() {
     assert_eq!(metadata["profile"], "project-memory");
     assert_eq!(metadata["promotion_state"], "auto");
     assert_eq!(metadata["update_strategy"], "managed-blocks");
+    assert_eq!(metadata["primary_artifact"], "01-problem-statement.md");
+    assert_eq!(metadata["artifact_order"][0], "01-problem-statement.md");
     assert_eq!(metadata["lineage"]["contract_version"], "0.1.0");
     assert_eq!(metadata["lineage"]["mode"], "requirements");
     assert_eq!(metadata["lineage"]["readiness"], "complete");
@@ -293,6 +297,7 @@ fn publish_run_with_profile_uses_append_only_index_for_review() {
         serde_json::from_slice(&fs::read(&metadata_path).expect("read")).expect("parse");
     assert_eq!(metadata["promotion_state"], "evidence-only");
     assert_eq!(metadata["update_strategy"], "append-only-index");
+    assert_eq!(metadata["primary_artifact"], "01-review-brief.md");
 }
 
 #[test]
@@ -329,6 +334,7 @@ fn publish_run_with_profile_uses_proposal_files_for_incident() {
         serde_json::from_slice(&fs::read(&metadata_path).expect("read")).expect("parse");
     assert_eq!(metadata["promotion_state"], "pending-index");
     assert_eq!(metadata["update_strategy"], "proposal-files");
+    assert_eq!(metadata["primary_artifact"], "01-incident-frame.md");
 }
 
 #[test]

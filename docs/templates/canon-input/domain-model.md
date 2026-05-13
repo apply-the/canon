@@ -3,10 +3,14 @@
 System Surface: The bounded product area or domain whose concepts this packet formalizes.
 Primary Upstream Mode: domain-language | architecture | direct
 Upstream Sources:
-- docs/domain/language/<RUN_ID>/domain-glossary.md
+- docs/domain/language/<RUN_ID>/02-domain-glossary.md
 Carried-Forward Decisions:
 - Existing domain constraints carried into this model packet.
 Excluded Upstream Scope: Implementation details, data schemas, and API contracts that remain out of scope.
+
+Published Canon packets use ordered filenames. Prefer the emitted `01-*`,
+`02-*`, and later packet paths when this model references upstream Canon
+artifacts.
 
 ## Domain Scope
 - Name the bounded domain or product area whose concepts are being formalized.

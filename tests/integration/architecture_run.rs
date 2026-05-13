@@ -94,10 +94,10 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
         "11-container-view.mmd",
         "12-deployment-view.md",
         "13-deployment-view.mmd",
-        "14-view-manifest.json",
-        "15-packet-metadata.json",
-        "16-component-view.md",
-        "17-component-view.mmd",
+        "14-component-view.md",
+        "15-component-view.mmd",
+        "view-manifest.json",
+        "packet-metadata.json",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -122,6 +122,42 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
         status_json["mode_result"]["primary_artifact_title"].as_str(),
         Some("Architecture Overview")
     );
+
+    let inspect_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "artifacts", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let inspect_json: serde_json::Value =
+        serde_json::from_slice(&inspect_output).expect("inspect json");
+    let inspect_entries = inspect_json["entries"].as_array().expect("inspect entries");
+    let inspect_paths = inspect_entries
+        .iter()
+        .map(|entry| entry.as_str().expect("inspect path"))
+        .collect::<Vec<_>>();
+    let expected_inspect_paths = vec![
+        format!(".canon/artifacts/{run_id}/architecture/01-architecture-overview.md"),
+        format!(".canon/artifacts/{run_id}/architecture/02-architecture-decisions.md"),
+        format!(".canon/artifacts/{run_id}/architecture/03-invariants.md"),
+        format!(".canon/artifacts/{run_id}/architecture/04-tradeoff-matrix.md"),
+        format!(".canon/artifacts/{run_id}/architecture/05-boundary-map.md"),
+        format!(".canon/artifacts/{run_id}/architecture/06-context-map.md"),
+        format!(".canon/artifacts/{run_id}/architecture/07-readiness-assessment.md"),
+        format!(".canon/artifacts/{run_id}/architecture/08-system-context.md"),
+        format!(".canon/artifacts/{run_id}/architecture/09-system-context.mmd"),
+        format!(".canon/artifacts/{run_id}/architecture/10-container-view.md"),
+        format!(".canon/artifacts/{run_id}/architecture/11-container-view.mmd"),
+        format!(".canon/artifacts/{run_id}/architecture/12-deployment-view.md"),
+        format!(".canon/artifacts/{run_id}/architecture/13-deployment-view.mmd"),
+        format!(".canon/artifacts/{run_id}/architecture/14-component-view.md"),
+        format!(".canon/artifacts/{run_id}/architecture/15-component-view.mmd"),
+        format!(".canon/artifacts/{run_id}/architecture/view-manifest.json"),
+        format!(".canon/artifacts/{run_id}/architecture/packet-metadata.json"),
+    ];
+    assert_eq!(inspect_paths, expected_inspect_paths);
 
     let overview =
         fs::read_to_string(artifact_root.join("01-architecture-overview.md")).expect("overview");
@@ -160,9 +196,15 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
     assert!(!tradeoff_matrix.contains("# Architecture Brief"));
 
     let view_manifest =
-        fs::read_to_string(artifact_root.join("14-view-manifest.json")).expect("view manifest");
-    assert!(view_manifest.contains("\"primary_artifact\": \"architecture-overview.md\""));
+        fs::read_to_string(artifact_root.join("view-manifest.json")).expect("view manifest");
+    assert!(view_manifest.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
     assert!(view_manifest.contains("\"svg\": \"unsupported\""));
+
+    let packet_metadata =
+        fs::read_to_string(artifact_root.join("packet-metadata.json")).expect("packet metadata");
+    assert!(packet_metadata.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
+    assert!(packet_metadata.contains("\"artifact_order\""));
+    assert!(packet_metadata.contains("\"01-architecture-overview.md\""));
 }
 
 #[test]

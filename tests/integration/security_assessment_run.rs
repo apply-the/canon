@@ -107,7 +107,7 @@ fn run_security_assessment_emits_a_recommendation_only_packet_and_publishes_afte
         workspace.path().join(".canon").join("artifacts").join(run_id).join("security-assessment");
 
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["artifact_count"], 7);
+    assert_eq!(json["artifact_count"], 8);
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Assessment Overview"));
     assert!(

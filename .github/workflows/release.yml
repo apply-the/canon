@@ -99,16 +99,34 @@ jobs:
       - if: matrix.install_linux_cross
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross qemu-user unzip
 
+      - if: runner.os == 'macOS'
+        name: Remove Homebrew rustup shims
+        run: |
+          brew uninstall --ignore-dependencies rustup 2>/dev/null || true
+          brew uninstall --ignore-dependencies rustup-init 2>/dev/null || true
+          rm -f "$HOME/.cargo/bin/rustup"
+          hash -r
+
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.95.0
           targets: ${{ matrix.target }}
 
+      - if: runner.os != 'Windows'
+        name: Ensure Cargo bin is on PATH
+        shell: bash
+        run: echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> "$GITHUB_PATH"
+
+      - if: runner.os == 'Windows'
+        name: Ensure Cargo bin is on PATH
+        shell: pwsh
+        run: Add-Content -Path $env:GITHUB_PATH -Value (Join-Path $env:CARGO_HOME 'bin')
+
       - if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: echo 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc' >> "$GITHUB_ENV"
 
       - name: Build release binary
-        run: rustup run 1.95.0 cargo build --locked -p canon-cli --bin canon --release --target ${{ matrix.target }}
+        run: cargo build --locked -p canon-cli --bin canon --release --target ${{ matrix.target }}
 
       - name: Package unix artifact
         if: matrix.packaging == 'unix'

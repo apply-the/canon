@@ -65,15 +65,15 @@ fn verification_run_returns_completed_result_for_supported_claims() {
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
         "completed verification runs should not advertise approval targets"
     );
-    assert_eq!(run_json["artifact_count"], 5);
+    assert_eq!(run_json["artifact_count"], 6);
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 5),
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
         "verification runs should expose the full verification packet"
     );
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Verification Report");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Invariants Checklist");
     assert_eq!(
         run_json["mode_result"]["primary_artifact_path"],
-        format!(".canon/artifacts/{run_id}/verification/04-verification-report.md")
+        format!(".canon/artifacts/{run_id}/verification/01-invariants-checklist.md")
     );
     assert!(run_json["mode_result"]["headline"].as_str().is_some_and(|headline| {
         headline.contains("supported") && headline.contains("2 claim set(s)")
@@ -99,7 +99,7 @@ fn verification_run_returns_completed_result_for_supported_claims() {
         .clone();
     let status_json: serde_json::Value = serde_json::from_slice(&status_output).expect("status");
     assert_eq!(status_json["state"], "Completed");
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Verification Report");
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Invariants Checklist");
     assert!(status_json["recommended_next_action"].is_null());
 }
 
@@ -141,10 +141,10 @@ fn verification_run_blocks_when_unresolved_findings_remain() {
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
         "blocked verification runs should not advertise approval targets"
     );
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Verification Report");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Invariants Checklist");
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 5),
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
         "blocked verification runs should still expose the readable verification packet"
     );
     assert!(

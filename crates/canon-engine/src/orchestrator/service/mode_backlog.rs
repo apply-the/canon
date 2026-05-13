@@ -191,6 +191,11 @@ impl EngineService {
             &validation_summary,
             &context_summary,
         );
+        let packet_metadata_contents = build_runtime_packet_metadata(
+            &run_id,
+            request.mode,
+            &artifact_contract.artifact_requirements,
+        );
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
@@ -215,11 +220,14 @@ impl EngineService {
                         disposition: EvidenceDisposition::Supporting,
                     }),
                 },
-                contents: render_backlog_artifact(
-                    &requirement.file_name,
-                    &evidence_backed_summary,
-                    &planning_context,
-                ),
+                contents: match artifact_slug(&requirement.file_name) {
+                    "packet-metadata.json" => packet_metadata_contents.clone(),
+                    _ => render_backlog_artifact(
+                        &requirement.file_name,
+                        &evidence_backed_summary,
+                        &planning_context,
+                    ),
+                },
             })
             .collect::<Vec<_>>();
 

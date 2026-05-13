@@ -2,18 +2,29 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{Display, IntoStaticStr};
 use time::OffsetDateTime;
 
+/// The various types of governance gates that can block or permit a run.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum GateKind {
+    /// Basic problem space exploration.
     Exploration,
+    /// Preserving existing behavior during change.
     ChangePreservation,
+    /// Architectural review and design consistency.
     Architecture,
+    /// Risk classification and zone enforcement.
     Risk,
+    /// Mutation or execution safety.
     Execution,
+    /// Final review and sign-off.
     ReviewDisposition,
+    /// Readiness for distribution or release.
     ReleaseReadiness,
+    /// Readiness for implementation work.
     ImplementationReadiness,
+    /// Containment of a live incident.
     IncidentContainment,
+    /// Safety of data or system migration.
     MigrationSafety,
 }
 
@@ -45,12 +56,18 @@ impl std::str::FromStr for GateKind {
     }
 }
 
+/// The current status of a specific governance gate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GateStatus {
+    /// Not yet evaluated.
     Pending,
+    /// The gate criteria were met.
     Passed,
+    /// The gate criteria failed, blocking progress.
     Blocked,
+    /// The gate is waiting for a human to provide approval.
     NeedsApproval,
+    /// The gate failure was acknowledged and bypass was permitted.
     Overridden,
 }
 

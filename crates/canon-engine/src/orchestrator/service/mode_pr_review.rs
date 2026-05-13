@@ -167,6 +167,12 @@ impl EngineService {
             ),
         };
 
+        let packet_metadata_contents = build_runtime_packet_metadata(
+            &run_id,
+            request.mode,
+            &artifact_contract.artifact_requirements,
+        );
+
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
@@ -190,11 +196,14 @@ impl EngineService {
                             crate::domain::execution::EvidenceDisposition::NeedsDisposition,
                     }),
                 },
-                contents: render_pr_review_artifact(
-                    &requirement.file_name,
-                    &review_packet,
-                    &review_summary,
-                ),
+                contents: match artifact_slug(&requirement.file_name) {
+                    "packet-metadata.json" => packet_metadata_contents.clone(),
+                    _ => render_pr_review_artifact(
+                        &requirement.file_name,
+                        &review_packet,
+                        &review_summary,
+                    ),
+                },
             })
             .collect::<Vec<_>>();
 

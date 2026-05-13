@@ -1,13 +1,15 @@
 use super::{
     ClarificationQuestionSummary, EngineService, GateInspectSummary, ModeResultSummary,
     RecommendedActionSummary, ResultActionSummary, RunRequest, apply_execution_posture_summary,
-    approved_execution_mutation_rationale, build_action_chips_for, canonical_mode_input_binding,
-    capability_tag, execution_continuation_pending, extract_change_surface_entries,
-    preserve_multiline_summary, recommend_next_action, resolved_execution_posture_label,
+    approved_execution_mutation_rationale, build_action_chips_for, build_runtime_packet_metadata,
+    canonical_mode_input_binding, capability_tag, execution_continuation_pending,
+    extract_change_surface_entries, packet_body_artifact_order, preserve_multiline_summary,
+    recommend_next_action, resolved_execution_posture_label,
     resolved_execution_posture_label_for_mode, run_state_from_gates, set_execution_posture,
     set_post_approval_execution_consumed,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
+use crate::domain::artifact::{ArtifactFormat, ArtifactRequirement};
 use crate::domain::execution::ExecutionPosture;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::mode::Mode;
@@ -176,6 +178,80 @@ fn build_action_chips_for_emits_full_frontend_contract_fields() {
         approve_chip.text_fallback,
         "Approve target gate:execution for run run-123: `canon approve --run run-123 --target gate:execution --by <BY> --decision <DECISION> --rationale <RATIONALE>`."
     );
+}
+
+#[test]
+fn packet_body_artifact_order_excludes_runtime_sidecars() {
+    let requirements = vec![
+        ArtifactRequirement {
+            file_name: "01-problem-statement.md".to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: Vec::new(),
+            gates: vec![GateKind::Exploration],
+            required: true,
+        },
+        ArtifactRequirement {
+            file_name: "view-manifest.json".to_string(),
+            format: ArtifactFormat::Json,
+            required_sections: Vec::new(),
+            gates: vec![GateKind::ReleaseReadiness],
+            required: true,
+        },
+        ArtifactRequirement {
+            file_name: "packet-metadata.json".to_string(),
+            format: ArtifactFormat::Json,
+            required_sections: Vec::new(),
+            gates: vec![GateKind::ReleaseReadiness],
+            required: true,
+        },
+    ];
+
+    assert_eq!(
+        packet_body_artifact_order(&requirements),
+        vec!["01-problem-statement.md".to_string()]
+    );
+}
+
+#[test]
+fn build_runtime_packet_metadata_emits_order_and_legacy_aliases() {
+    let requirements = vec![
+        ArtifactRequirement {
+            file_name: "01-problem-statement.md".to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: Vec::new(),
+            gates: vec![GateKind::Exploration],
+            required: true,
+        },
+        ArtifactRequirement {
+            file_name: "02-scope-cuts.md".to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: Vec::new(),
+            gates: vec![GateKind::Exploration],
+            required: true,
+        },
+        ArtifactRequirement {
+            file_name: "packet-metadata.json".to_string(),
+            format: ArtifactFormat::Json,
+            required_sections: Vec::new(),
+            gates: vec![GateKind::ReleaseReadiness],
+            required: true,
+        },
+    ];
+
+    let metadata: serde_json::Value = serde_json::from_str(&build_runtime_packet_metadata(
+        "R-test",
+        Mode::Requirements,
+        &requirements,
+    ))
+    .expect("packet metadata json");
+
+    assert_eq!(metadata["run_id"], "R-test");
+    assert_eq!(metadata["mode"], "requirements");
+    assert_eq!(metadata["primary_artifact"], "01-problem-statement.md");
+    assert_eq!(metadata["artifact_order"][0], "01-problem-statement.md");
+    assert_eq!(metadata["artifact_order"][1], "02-scope-cuts.md");
+    assert_eq!(metadata["legacy_aliases"]["problem-statement.md"], "01-problem-statement.md");
+    assert_eq!(metadata["legacy_aliases"]["scope-cuts.md"], "02-scope-cuts.md");
 }
 
 #[test]

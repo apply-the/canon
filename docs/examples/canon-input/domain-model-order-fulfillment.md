@@ -3,8 +3,8 @@
 System Surface: The order fulfillment domain for the existing e-commerce platform.
 Primary Upstream Mode: domain-language
 Upstream Sources:
-- docs/domain/language/2026-05-01-order-fulfillment/domain-glossary.md
-- docs/domain/language/2026-05-01-order-fulfillment/preferred-language.md
+- docs/domain/language/2026-05-01-order-fulfillment/02-domain-glossary.md
+- docs/domain/language/2026-05-01-order-fulfillment/03-preferred-language.md
 - src/orders/domain.rs
 Carried-Forward Decisions:
 - Canonical terms from the domain-language packet are adopted without modification.

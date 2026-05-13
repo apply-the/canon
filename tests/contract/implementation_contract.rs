@@ -21,6 +21,7 @@ fn implementation_mode_uses_a_distinct_bounded_execution_artifact_bundle() {
             "completion-evidence.md",
             "validation-hooks.md",
             "rollback-notes.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -82,6 +83,7 @@ fn implementation_artifacts_require_execution_specific_sections() {
                 vec!["Summary", "Rollback Triggers", "Rollback Steps"],
                 vec![GateKind::Risk, GateKind::ReleaseReadiness],
             ),
+            ("packet-metadata.json", vec![], vec![GateKind::ReleaseReadiness],),
         ]
     );
 }

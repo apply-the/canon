@@ -303,17 +303,24 @@ pub struct PersistedRunBundle {
     pub invocations: Vec<crate::persistence::invocations::PersistedInvocation>,
 }
 
+/// Provides unified access to the repository's governance state, policies, and artifacts.
+///
+/// `WorkspaceStore` is the primary interface for reading and writing persisted Canon data,
+/// including the materialization of embedded skills and method definitions.
 #[derive(Debug, Clone)]
 pub struct WorkspaceStore {
+    /// The directory layout for this repository.
     pub layout: ProjectLayout,
     filesystem: FilesystemAdapter,
 }
 
 impl WorkspaceStore {
+    /// Creates a new `WorkspaceStore` anchored to the given repository root.
     pub fn new(repo_root: impl AsRef<Path>) -> Self {
         Self { layout: ProjectLayout::new(repo_root), filesystem: FilesystemAdapter }
     }
 
+    /// Initializes or repairs the `.canon` runtime state, optionally materializing skills.
     pub fn init_runtime_state(
         &self,
         skill_target: Option<SkillMaterializationTarget>,
@@ -667,9 +674,11 @@ impl WorkspaceStore {
             return Ok(Vec::new());
         }
 
+        let mut mode_dirs = fs::read_dir(run_artifacts_root)?.collect::<Result<Vec<_>, _>>()?;
+        mode_dirs.sort_by_key(|entry| entry.file_name());
+
         let mut entries = Vec::new();
-        for mode_dir in fs::read_dir(run_artifacts_root)? {
-            let mode_dir = mode_dir?;
+        for mode_dir in mode_dirs {
             let mode_name = mode_dir.file_name().to_string_lossy().into_owned();
             let mode = mode_name.parse::<Mode>().map_err(|error| {
                 Error::new(
@@ -691,7 +700,6 @@ impl WorkspaceStore {
             }
         }
 
-        entries.sort();
         Ok(entries)
     }
 

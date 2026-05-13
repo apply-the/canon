@@ -112,12 +112,12 @@ fn architecture_contract_matches_spec_artifact_names_sections_and_gates() {
             "container-view.mmd",
             "deployment-view.md",
             "deployment-view.mmd",
-            "view-manifest.json",
-            "packet-metadata.json",
             "component-view.md",
             "component-view.mmd",
             "dynamic-view.md",
             "dynamic-view.mmd",
+            "view-manifest.json",
+            "packet-metadata.json",
         ]
     );
 

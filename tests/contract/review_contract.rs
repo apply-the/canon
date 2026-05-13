@@ -70,15 +70,15 @@ fn review_run_returns_completed_result_for_evidence_bounded_package() {
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
         "completed review runs should not advertise approval targets"
     );
-    assert_eq!(run_json["artifact_count"], 5);
+    assert_eq!(run_json["artifact_count"], 6);
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 5),
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
         "review runs should expose the full review packet"
     );
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Disposition");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Brief");
     assert_eq!(
         run_json["mode_result"]["primary_artifact_path"],
-        format!(".canon/artifacts/{run_id}/review/05-review-disposition.md")
+        format!(".canon/artifacts/{run_id}/review/01-review-brief.md")
     );
     assert!(run_json["mode_result"]["headline"].as_str().is_some_and(|headline| {
         headline.contains("ready-with-review-notes") && headline.contains("evidence-bounded")
@@ -95,7 +95,7 @@ fn review_run_returns_completed_result_for_evidence_bounded_package() {
         .clone();
     let status_json: serde_json::Value = serde_json::from_slice(&status_output).expect("status");
     assert_eq!(status_json["state"], "Completed");
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Review Disposition");
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Review Brief");
     assert!(status_json["recommended_next_action"].is_null());
 }
 
@@ -132,11 +132,11 @@ fn review_run_requires_explicit_disposition_for_evidence_gaps() {
     let run_id = run_json["run_id"].as_str().expect("run id");
     assert_eq!(run_json["state"], "AwaitingApproval");
     assert_eq!(run_json["blocking_classification"], "approval-gated");
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Disposition");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Brief");
     assert_eq!(run_json["approval_targets"][0], "gate:review-disposition");
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 5),
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
         "approval-gated review runs should still expose the readable review packet"
     );
 

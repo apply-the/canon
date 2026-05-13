@@ -93,6 +93,7 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
         format!(".canon/artifacts/{run_id}/requirements/05-scope-cuts.md"),
         format!(".canon/artifacts/{run_id}/requirements/06-decision-checklist.md"),
         format!(".canon/artifacts/{run_id}/requirements/07-prd.md"),
+        format!(".canon/artifacts/{run_id}/requirements/packet-metadata.json"),
     ];
     assert_eq!(actual_paths, expected_paths);
 

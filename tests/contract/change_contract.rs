@@ -159,12 +159,12 @@ fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
         "blocked artifact runs should not imply approval targets when none exist"
     );
-    assert_eq!(run_json["artifact_count"], 6);
+    assert_eq!(run_json["artifact_count"], 7);
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 6),
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
         "blocked change runs should expose all readable artifact paths"
     );
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Change Surface");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "System Slice");
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
 
     let blocked_gates = run_json["blocked_gates"].as_array().expect("blocked gates");
@@ -196,7 +196,7 @@ fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
         status_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
         "blocked artifact runs should not advertise approval targets"
     );
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Change Surface");
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "System Slice");
     assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
 
     cli_command()
@@ -205,7 +205,7 @@ fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
         .assert()
         .success()
         .stdout(contains("## Result"))
-        .stdout(contains("Change Surface"))
+        .stdout(contains("01-system-slice.md"))
         .stdout(contains("missing-context marker"));
 }
 

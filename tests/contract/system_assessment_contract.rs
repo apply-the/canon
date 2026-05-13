@@ -49,6 +49,7 @@ fn system_assessment_mode_uses_a_distinct_assessment_packet_bundle() {
             "integration-view.md",
             "risk-register.md",
             "assessment-evidence.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -165,6 +166,7 @@ fn system_assessment_artifacts_require_assessment_specific_sections() {
                     "Evidence Sources",
                 ],
             ),
+            ("packet-metadata.json", vec![]),
         ]
     );
 }

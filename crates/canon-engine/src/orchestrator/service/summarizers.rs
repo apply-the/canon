@@ -5,6 +5,8 @@
 
 use std::collections::BTreeMap;
 
+use serde::Deserialize;
+
 use crate::domain::mode::Mode;
 use crate::domain::run::RunState;
 use crate::persistence::store::PersistedArtifact;
@@ -15,6 +17,37 @@ use super::context_parse::{
     extract_labeled_usize, extract_result_section, truncate_context_excerpt,
 };
 use super::{ActionChip, ModeResultSummary, ResultActionSummary};
+
+#[derive(Debug, Deserialize)]
+struct PacketMetadataPrimaryArtifact {
+    primary_artifact: String,
+}
+
+/// Resolve the primary body artifact from a packet's artifact slice.
+///
+/// The function first reads the `primary_artifact` field from the
+/// `packet-metadata.json` sidecar (if present and parseable), then falls back to
+/// a linear scan for an artifact whose slug matches `fallback_slug`. Returns `None`
+/// when neither lookup succeeds.
+fn packet_primary_artifact<'a>(
+    artifacts: &'a [PersistedArtifact],
+    fallback_slug: &str,
+) -> Option<&'a PersistedArtifact> {
+    let metadata_primary = artifacts
+        .iter()
+        .find(|artifact| artifact.record.slug() == "packet-metadata.json")
+        .and_then(|artifact| {
+            serde_json::from_str::<PacketMetadataPrimaryArtifact>(&artifact.contents)
+                .ok()
+                .map(|metadata| metadata.primary_artifact)
+        });
+
+    metadata_primary
+        .and_then(|file_name| {
+            artifacts.iter().find(|artifact| artifact.record.file_name == file_name)
+        })
+        .or_else(|| artifacts.iter().find(|artifact| artifact.record.slug() == fallback_slug))
+}
 
 // ── Mode-result dispatch ──────────────────────────────────────────────────────
 
@@ -493,7 +526,8 @@ fn summarize_architecture_mode_result(
 }
 
 fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
-    let primary =
+    let primary_artifact = packet_primary_artifact(artifacts, "system-slice.md")?;
+    let summary_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "change-surface.md")?;
     let legacy_invariants_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "legacy-invariants.md");
@@ -503,7 +537,7 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
         artifacts.iter().find(|artifact| artifact.record.slug() == "system-slice.md");
 
     let (change_surface, change_surface_missing) = extract_result_section(
-        &primary.contents,
+        &summary_artifact.contents,
         "Change Surface",
         "Missing Authored Body",
         "NOT CAPTURED - Change surface section is missing.",
@@ -564,7 +598,7 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
         .unwrap_or_else(|| {
             ("NOT CAPTURED - Domain invariants section is missing.".to_string(), true)
         });
-    let (cross_context_risks, cross_context_risks_missing) = Some(primary)
+    let (cross_context_risks, cross_context_risks_missing) = Some(summary_artifact)
         .map(|artifact| {
             extract_result_section(
                 &artifact.contents,
@@ -620,11 +654,11 @@ fn summarize_change_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: "Change Surface".to_string(),
-        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_title: "System Slice".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary_artifact.record.relative_path),
         primary_artifact_action: primary_artifact_action_for(&format!(
             ".canon/{}",
-            primary.record.relative_path
+            primary_artifact.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&change_surface, 320),
         action_chips: Vec::new(),
@@ -1249,16 +1283,18 @@ fn summarize_migration_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
 }
 
 fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
-    let primary =
+    let primary_artifact = packet_primary_artifact(artifacts, "review-brief.md")?;
+    let summary_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "review-disposition.md")?;
     let boundary_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "boundary-assessment.md");
     let missing_evidence_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "missing-evidence.md");
 
-    let final_disposition = extract_context_section(&primary.contents, "Final Disposition")
-        .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
-    let accepted_risks = extract_context_section(&primary.contents, "Accepted Risks")
+    let final_disposition =
+        extract_context_section(&summary_artifact.contents, "Final Disposition")
+            .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
+    let accepted_risks = extract_context_section(&summary_artifact.contents, "Accepted Risks")
         .unwrap_or_else(|| "NOT CAPTURED - Accepted risks section is missing.".to_string());
     let boundary_findings = boundary_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Boundary Findings"))
@@ -1318,16 +1354,16 @@ fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
     let artifact_packet_summary = if missing_context_markers == 0 {
         if no_boundary_expansion {
             format!(
-                "Primary artifact records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, no boundary expansion beyond the authored review target, and {accepted_risk_count} accepted-risk or review-note set(s)."
+                "Review packet records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, no boundary expansion beyond the authored review target, and {accepted_risk_count} accepted-risk or review-note set(s)."
             )
         } else {
             format!(
-                "Primary artifact records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, {boundary_count} boundary finding set(s), and {accepted_risk_count} accepted-risk or review-note set(s)."
+                "Review packet records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, {boundary_count} boundary finding set(s), and {accepted_risk_count} accepted-risk or review-note set(s)."
             )
         }
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Boundary findings: {boundary_count}; accepted risks: {accepted_risk_count}."
+            "Review packet is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Boundary findings: {boundary_count}; accepted risks: {accepted_risk_count}."
         )
     };
 
@@ -1335,11 +1371,11 @@ fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: "Review Disposition".to_string(),
-        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_title: "Review Brief".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary_artifact.record.relative_path),
         primary_artifact_action: primary_artifact_action_for(&format!(
             ".canon/{}",
-            primary.record.relative_path
+            primary_artifact.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&rationale, 320),
         action_chips: Vec::new(),
@@ -1349,7 +1385,8 @@ fn summarize_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeR
 fn summarize_verification_mode_result(
     artifacts: &[PersistedArtifact],
 ) -> Option<ModeResultSummary> {
-    let primary =
+    let primary_artifact = packet_primary_artifact(artifacts, "invariants-checklist.md")?;
+    let summary_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "verification-report.md")?;
     let unresolved_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "unresolved-findings.md");
@@ -1358,11 +1395,11 @@ fn summarize_verification_mode_result(
     let adversarial_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "adversarial-review.md");
 
-    let verified_claims = extract_context_section(&primary.contents, "Verified Claims")
+    let verified_claims = extract_context_section(&summary_artifact.contents, "Verified Claims")
         .unwrap_or_else(|| "NOT CAPTURED - Verified claims section is missing.".to_string());
-    let rejected_claims = extract_context_section(&primary.contents, "Rejected Claims")
+    let rejected_claims = extract_context_section(&summary_artifact.contents, "Rejected Claims")
         .unwrap_or_else(|| "NOT CAPTURED - Rejected claims section is missing.".to_string());
-    let overall_verdict = extract_context_section(&primary.contents, "Overall Verdict")
+    let overall_verdict = extract_context_section(&summary_artifact.contents, "Overall Verdict")
         .unwrap_or_else(|| "NOT CAPTURED - Overall verdict section is missing.".to_string());
     let open_findings = unresolved_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Open Findings"))
@@ -1433,16 +1470,16 @@ fn summarize_verification_mode_result(
     let artifact_packet_summary = if missing_context_markers == 0 {
         if no_direct_contradiction {
             format!(
-                "Primary artifact records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and explicit no-direct-contradiction posture."
+                "Verification packet records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and explicit no-direct-contradiction posture."
             )
         } else {
             format!(
-                "Primary artifact records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and {contradiction_count} contradiction set(s)."
+                "Verification packet records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and {contradiction_count} contradiction set(s)."
             )
         }
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Claim sets: {claim_count}; open findings: {open_finding_count}."
+            "Verification packet is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Claim sets: {claim_count}; open findings: {open_finding_count}."
         )
     };
 
@@ -1450,11 +1487,11 @@ fn summarize_verification_mode_result(
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: "Verification Report".to_string(),
-        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_title: "Invariants Checklist".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary_artifact.record.relative_path),
         primary_artifact_action: primary_artifact_action_for(&format!(
             ".canon/{}",
-            primary.record.relative_path
+            primary_artifact.record.relative_path
         )),
         result_excerpt: truncate_context_excerpt(&overall_verdict, 320),
         action_chips: Vec::new(),
@@ -1462,18 +1499,21 @@ fn summarize_verification_mode_result(
 }
 
 fn summarize_pr_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
-    let primary =
+    let primary_artifact = packet_primary_artifact(artifacts, "pr-analysis.md")?;
+    let summary_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "review-summary.md")?;
     let pr_analysis_artifact =
         artifacts.iter().find(|artifact| artifact.record.slug() == "pr-analysis.md");
 
-    let final_disposition = extract_context_section(&primary.contents, "Final Disposition")
-        .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
-    let severity = extract_context_section(&primary.contents, "Severity")
+    let final_disposition =
+        extract_context_section(&summary_artifact.contents, "Final Disposition")
+            .unwrap_or_else(|| "NOT CAPTURED - Final disposition section is missing.".to_string());
+    let severity = extract_context_section(&summary_artifact.contents, "Severity")
         .unwrap_or_else(|| "NOT CAPTURED - Severity section is missing.".to_string());
-    let must_fix_findings = extract_context_section(&primary.contents, "Must-Fix Findings")
-        .unwrap_or_else(|| "NOT CAPTURED - Must-fix findings section is missing.".to_string());
-    let accepted_risks = extract_context_section(&primary.contents, "Accepted Risks")
+    let must_fix_findings =
+        extract_context_section(&summary_artifact.contents, "Must-Fix Findings")
+            .unwrap_or_else(|| "NOT CAPTURED - Must-fix findings section is missing.".to_string());
+    let accepted_risks = extract_context_section(&summary_artifact.contents, "Accepted Risks")
         .unwrap_or_else(|| "NOT CAPTURED - Accepted risks section is missing.".to_string());
     let changed_modules = pr_analysis_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Changed Modules"))
@@ -1538,11 +1578,11 @@ fn summarize_pr_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
         format!(
-            "Primary artifact records `{disposition_status}` disposition with `{overall_severity}` severity across {changed_surface_count} changed surface(s), {must_fix_count} must-fix finding(s), and {review_note_count} review note(s)."
+            "PR review packet records `{disposition_status}` disposition with `{overall_severity}` severity across {changed_surface_count} changed surface(s), {must_fix_count} must-fix finding(s), and {review_note_count} review note(s)."
         )
     } else {
         format!(
-            "Primary artifact is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Changed surfaces: {changed_surface_count}; must-fix findings: {must_fix_count}; review notes: {review_note_count}."
+            "PR review packet is readable, but the packet still carries {missing_context_markers} missing-context marker(s). Changed surfaces: {changed_surface_count}; must-fix findings: {must_fix_count}; review notes: {review_note_count}."
         )
     };
     let result_excerpt = if rationale.contains("NOT CAPTURED") {
@@ -1555,11 +1595,11 @@ fn summarize_pr_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<Mo
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: "Review Summary".to_string(),
-        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_title: "PR Analysis".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary_artifact.record.relative_path),
         primary_artifact_action: primary_artifact_action_for(&format!(
             ".canon/{}",
-            primary.record.relative_path
+            primary_artifact.record.relative_path
         )),
         result_excerpt,
         action_chips: Vec::new(),
@@ -1895,6 +1935,10 @@ mod tests {
     #[test]
     fn summarize_review_mode_result_surfaces_evidence_bounded_posture() {
         let artifacts = vec![
+            make_artifact(
+                "review-brief.md",
+                "## Review Target\n\n- bounded package only\n\n## Evidence Basis\n\n- packet is grounded in authored evidence.",
+            ),
             make_artifact(
                 "review-disposition.md",
                 "## Final Disposition\n\nStatus: ready-with-review-notes\n\nRationale: bounded review packet is ready for inspection.\n\n## Accepted Risks\n\n- residual review notes remain bounded to this package.",

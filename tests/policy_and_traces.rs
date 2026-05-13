@@ -216,7 +216,7 @@ fn downgraded_backlog_run_persists_trace_stream_and_risk_only_evidence_refs() {
         .expect("backlog run");
 
     assert_eq!(summary.state, "Completed");
-    assert_eq!(summary.artifact_count, 2);
+    assert_eq!(summary.artifact_count, 3);
 
     let trace_path =
         workspace.path().join(".canon").join("traces").join(format!("{}.jsonl", summary.run_id));
@@ -232,11 +232,13 @@ fn downgraded_backlog_run_persists_trace_stream_and_risk_only_evidence_refs() {
         .load_evidence_bundle(&summary.run_id)
         .expect("evidence bundle load")
         .expect("evidence bundle");
-    assert_eq!(evidence.artifact_refs.len(), 2);
+    assert_eq!(evidence.artifact_refs.len(), 3);
     assert!(
-        evidence.artifact_refs.iter().all(
-            |path| path.ends_with("backlog-overview.md") || path.ends_with("planning-risks.md")
-        ),
+        evidence.artifact_refs.iter().all(|path| {
+            path.ends_with("backlog-overview.md")
+                || path.ends_with("planning-risks.md")
+                || path.ends_with("packet-metadata.json")
+        }),
         "downgraded backlog evidence should only reference the risk-only packet: {:?}",
         evidence.artifact_refs
     );
@@ -397,7 +399,7 @@ fn blocked_migration_run_persists_traces_and_operational_status_surfaces() {
         other => panic!("expected evidence entry, got {other:?}"),
     };
     assert_eq!(evidence_entry.execution_posture.as_deref(), Some("recommendation-only"));
-    assert_eq!(evidence_entry.artifact_provenance_links.len(), 6);
+    assert_eq!(evidence_entry.artifact_provenance_links.len(), 7);
 
     let status = service.status(&summary.run_id).expect("status");
     assert_eq!(status.state, "Blocked");

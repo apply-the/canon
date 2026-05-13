@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -6,6 +7,7 @@ use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
 use crate::EngineError;
+use crate::domain::artifact::{artifact_slug, is_packet_sidecar};
 use crate::domain::mode::Mode;
 use crate::domain::publish_profile::{
     LineageMetadata, PromotionState, PublishProfile, UpdateStrategy,
@@ -54,6 +56,14 @@ struct PublishMetadata {
     descriptor: String,
     destination: String,
     source_artifacts: Vec<String>,
+    #[serde(default)]
+    primary_artifact: String,
+    #[serde(default)]
+    artifact_order: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    publish_order: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    legacy_aliases: Option<BTreeMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     profile: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -62,6 +72,22 @@ struct PublishMetadata {
     update_strategy: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     lineage: Option<LineageMetadata>,
+}
+
+/// Metadata sidecar persisted alongside every packet as `packet-metadata.json`.
+///
+/// Consumers use this file to reconstruct the canonical artifact sequence without
+/// inspecting raw filenames or relying on filesystem ordering.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+struct RuntimePacketMetadata {
+    #[serde(default)]
+    primary_artifact: String,
+    #[serde(default)]
+    artifact_order: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    publish_order: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    legacy_aliases: Option<BTreeMap<String, String>>,
 }
 
 pub fn publish_run(
@@ -134,11 +160,15 @@ pub fn publish_run(
             source_artifact_path(&manifest.run_id, manifest.mode, &artifact.record.file_name)
         })
         .collect::<Vec<_>>();
+    let packet_metadata = runtime_packet_metadata(&artifacts);
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 1);
-    for artifact in artifacts {
+    for artifact in &artifacts {
+        if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+            continue;
+        }
         let destination_path = destination.join(&artifact.record.file_name);
-        fs::write(&destination_path, artifact.contents)?;
+        fs::write(&destination_path, &artifact.contents)?;
         published_files.push(display_path(repo_root, &destination_path));
     }
 
@@ -154,6 +184,10 @@ pub fn publish_run(
         descriptor: publish_descriptor(&manifest),
         destination: display_path(repo_root, &destination),
         source_artifacts,
+        primary_artifact: packet_metadata.primary_artifact,
+        artifact_order: packet_metadata.artifact_order,
+        publish_order: packet_metadata.publish_order,
+        legacy_aliases: packet_metadata.legacy_aliases,
         profile: None,
         promotion_state: None,
         update_strategy: None,
@@ -232,6 +266,7 @@ pub fn publish_run_with_profile(
         .iter()
         .map(|a| source_artifact_path(&manifest.run_id, manifest.mode, &a.record.file_name))
         .collect::<Vec<_>>();
+    let packet_metadata = runtime_packet_metadata(&artifacts);
 
     let publish_timestamp = OffsetDateTime::now_utc().format(&Rfc3339).map_err(|error| {
         EngineError::Validation(format!("failed to format publish timestamp: {error}"))
@@ -268,6 +303,9 @@ pub fn publish_run_with_profile(
         match strategy {
             UpdateStrategy::ManagedBlocks => {
                 for artifact in &artifacts {
+                    if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+                        continue;
+                    }
                     let target = destination.join(&artifact.record.file_name);
                     write_managed_block(&target, &manifest.run_id, &artifact.contents)?;
                     published_files.push(display_path(repo_root, &target));
@@ -275,6 +313,9 @@ pub fn publish_run_with_profile(
             }
             UpdateStrategy::ProposalFiles => {
                 for artifact in &artifacts {
+                    if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+                        continue;
+                    }
                     let proposal_path = write_proposal_file(
                         &destination,
                         &artifact.record.file_name,
@@ -349,6 +390,10 @@ pub fn publish_run_with_profile(
         descriptor: publish_descriptor(&manifest),
         destination: display_path(repo_root, &published_to_path),
         source_artifacts,
+        primary_artifact: packet_metadata.primary_artifact,
+        artifact_order: packet_metadata.artifact_order,
+        publish_order: packet_metadata.publish_order,
+        legacy_aliases: packet_metadata.legacy_aliases,
         profile: Some(profile.as_str().to_string()),
         promotion_state: Some(promotion.as_str().to_string()),
         update_strategy: Some(strategy.as_str().to_string()),
@@ -503,11 +548,16 @@ fn evidence_project_memory_surface(mode: Mode) -> &'static str {
 }
 
 fn render_project_memory_surface(artifacts: &[PersistedArtifact]) -> String {
-    if artifacts.len() == 1 {
-        return artifacts[0].contents.trim().to_string();
+    let visible_artifacts = artifacts
+        .iter()
+        .filter(|artifact| !is_packet_sidecar(&artifact.record.file_name))
+        .collect::<Vec<_>>();
+
+    if visible_artifacts.len() == 1 {
+        return visible_artifacts[0].contents.trim().to_string();
     }
 
-    artifacts
+    visible_artifacts
         .iter()
         .map(|artifact| {
             let stem = Path::new(&artifact.record.file_name)
@@ -518,6 +568,47 @@ fn render_project_memory_surface(artifacts: &[PersistedArtifact]) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n\n")
+}
+
+/// Resolve the [`RuntimePacketMetadata`] for a packet.
+///
+/// If a `packet-metadata.json` sidecar is present and parseable it is used directly;
+/// otherwise the metadata is inferred from the artifact listing via
+/// [`infer_runtime_packet_metadata`].
+fn runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePacketMetadata {
+    artifacts
+        .iter()
+        .find(|artifact| artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME)
+        .and_then(|artifact| serde_json::from_str::<RuntimePacketMetadata>(&artifact.contents).ok())
+        .unwrap_or_else(|| infer_runtime_packet_metadata(artifacts))
+}
+
+/// Derive [`RuntimePacketMetadata`] from the artifact listing when no sidecar is present.
+///
+/// Sidecars are excluded from the order; prefixed filenames are mapped to their bare
+/// slug aliases so legacy consumers can still resolve unprefixed artifact names.
+fn infer_runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePacketMetadata {
+    let artifact_order = artifacts
+        .iter()
+        .filter(|artifact| !is_packet_sidecar(&artifact.record.file_name))
+        .map(|artifact| artifact.record.file_name.clone())
+        .collect::<Vec<_>>();
+    let primary_artifact = artifact_order.first().cloned().unwrap_or_default();
+    let legacy_aliases = artifacts
+        .iter()
+        .filter_map(|artifact| {
+            let slug = artifact_slug(&artifact.record.file_name);
+            (!is_packet_sidecar(&artifact.record.file_name) && slug != artifact.record.file_name)
+                .then(|| (slug.to_string(), artifact.record.file_name.clone()))
+        })
+        .collect::<BTreeMap<_, _>>();
+
+    RuntimePacketMetadata {
+        primary_artifact,
+        artifact_order,
+        publish_order: None,
+        legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
+    }
 }
 
 fn render_project_memory_index_entry(
@@ -1136,6 +1227,23 @@ mod tests {
         }
     }
 
+    fn json_artifact(
+        run_id: &str,
+        mode: Mode,
+        file_name: &str,
+        contents: &str,
+    ) -> PersistedArtifact {
+        PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: file_name.to_string(),
+                relative_path: format!(".canon/artifacts/{run_id}/{}/{file_name}", mode.as_str()),
+                format: ArtifactFormat::Json,
+                provenance: None,
+            },
+            contents: contents.to_string(),
+        }
+    }
+
     #[test]
     fn render_project_memory_surface_returns_trimmed_single_artifact() {
         let artifact = markdown_artifact(
@@ -1149,6 +1257,65 @@ mod tests {
 
         assert_eq!(rendered, "# Product Context\n\nBounded summary.");
         assert!(!rendered.contains("## Product Context"));
+    }
+
+    #[test]
+    fn infer_runtime_packet_metadata_ignores_sidecars_and_maps_legacy_aliases() {
+        let artifacts = vec![
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "01-problem-statement.md",
+                "# Problem Statement\n\nBounded summary.",
+            ),
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "02-scope-cuts.md",
+                "# Scope Cuts\n\nBounded summary.",
+            ),
+            json_artifact("R-test", Mode::Requirements, "view-manifest.json", "{\"views\":[]}"),
+        ];
+
+        let metadata = super::infer_runtime_packet_metadata(&artifacts);
+
+        assert_eq!(metadata.primary_artifact, "01-problem-statement.md");
+        assert_eq!(
+            metadata.artifact_order,
+            vec!["01-problem-statement.md".to_string(), "02-scope-cuts.md".to_string(),]
+        );
+        assert_eq!(
+            metadata
+                .legacy_aliases
+                .as_ref()
+                .and_then(|aliases| aliases.get("problem-statement.md")),
+            Some(&"01-problem-statement.md".to_string())
+        );
+    }
+
+    #[test]
+    fn runtime_packet_metadata_falls_back_to_inferred_order_when_sidecar_is_unparseable() {
+        let artifacts = vec![
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "01-problem-statement.md",
+                "# Problem Statement\n\nBounded summary.",
+            ),
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "02-scope-cuts.md",
+                "# Scope Cuts\n\nBounded summary.",
+            ),
+            json_artifact("R-test", Mode::Requirements, PUBLISH_METADATA_FILE_NAME, "{not-json}"),
+        ];
+
+        let metadata = super::runtime_packet_metadata(&artifacts);
+
+        assert_eq!(metadata.primary_artifact, "01-problem-statement.md");
+        assert_eq!(metadata.artifact_order.len(), 2);
+        assert!(metadata.legacy_aliases.is_some());
     }
 
     #[test]
@@ -1221,9 +1388,13 @@ mod tests {
                 descriptor: "publish-scope".to_string(),
                 destination: "specs/2026-04-22-publish-scope".to_string(),
                 source_artifacts: vec![
-                    ".canon/artifacts/R-20260422-deadbeef/requirements/problem-statement.md"
+                    ".canon/artifacts/R-20260422-deadbeef/requirements/01-problem-statement.md"
                         .to_string(),
                 ],
+                primary_artifact: "01-problem-statement.md".to_string(),
+                artifact_order: vec!["01-problem-statement.md".to_string()],
+                publish_order: None,
+                legacy_aliases: None,
                 profile: None,
                 promotion_state: None,
                 update_strategy: None,
@@ -1946,6 +2117,8 @@ mod tests {
         }"#;
         let metadata: PublishMetadata =
             serde_json::from_str(legacy_json).expect("legacy metadata should parse");
+        assert!(metadata.primary_artifact.is_empty());
+        assert!(metadata.artifact_order.is_empty());
         assert!(metadata.profile.is_none());
         assert!(metadata.promotion_state.is_none());
         assert!(metadata.lineage.is_none());

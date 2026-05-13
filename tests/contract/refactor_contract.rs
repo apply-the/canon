@@ -21,6 +21,7 @@ fn refactor_mode_uses_a_distinct_preservation_artifact_bundle() {
             "regression-evidence.md",
             "contract-drift-check.md",
             "no-feature-addition.md",
+            "packet-metadata.json",
         ]
     );
 }
@@ -74,6 +75,7 @@ fn refactor_artifacts_require_preservation_specific_sections() {
                 vec!["Summary", "Feature Audit", "Decision"],
                 vec![GateKind::ChangePreservation, GateKind::ReleaseReadiness],
             ),
+            ("packet-metadata.json", vec![], vec![GateKind::ReleaseReadiness],),
         ]
     );
 }

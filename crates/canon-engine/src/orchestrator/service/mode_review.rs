@@ -1,6 +1,44 @@
 use super::EngineService;
 use super::*;
 
+/// Render a single artifact for a `review`-family mode (`review`, `verification`).
+///
+/// If `file_name` resolves to the `packet-metadata.json` sidecar the pre-built
+/// `packet_metadata_contents` string is returned verbatim. For all other filenames
+/// the appropriate Markdown renderer is selected by `mode`. Returns
+/// [`EngineError::UnsupportedMode`] for any mode outside the review family.
+fn render_review_like_artifact(
+    mode: Mode,
+    file_name: &str,
+    packet_metadata_contents: &str,
+    context_summary: &str,
+    generation_summary: &str,
+    critique_summary: &str,
+    validation_summary: &str,
+) -> Result<String, EngineError> {
+    if artifact_slug(file_name) == "packet-metadata.json" {
+        return Ok(packet_metadata_contents.to_string());
+    }
+
+    match mode {
+        Mode::Review => Ok(render_review_artifact(
+            file_name,
+            context_summary,
+            generation_summary,
+            critique_summary,
+            validation_summary,
+        )),
+        Mode::Verification => Ok(render_verification_artifact(
+            file_name,
+            context_summary,
+            generation_summary,
+            critique_summary,
+            validation_summary,
+        )),
+        other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
+    }
+}
+
 impl EngineService {
     pub(super) fn run_review(
         &self,
@@ -218,6 +256,12 @@ impl EngineService {
             ),
         };
 
+        let packet_metadata_contents = build_runtime_packet_metadata(
+            &run_id,
+            request.mode,
+            &artifact_contract.artifact_requirements,
+        );
+
         let artifact_disposition = match request.mode {
             Mode::Review => crate::domain::execution::EvidenceDisposition::NeedsDisposition,
             Mode::Verification => crate::domain::execution::EvidenceDisposition::Supporting,
@@ -226,46 +270,42 @@ impl EngineService {
         let artifacts = artifact_contract
             .artifact_requirements
             .iter()
-            .map(|requirement| PersistedArtifact {
-                record: ArtifactRecord {
-                    file_name: requirement.file_name.clone(),
-                    relative_path: format!(
-                        "artifacts/{}/{}/{}",
-                        run_id,
-                        request.mode.as_str(),
-                        requirement.file_name
-                    ),
-                    format: requirement.format,
-                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
-                        request_ids: vec![
-                            context_request.request_id.clone(),
-                            generation_request.request_id.clone(),
-                            critique_request.request_id.clone(),
-                            validation_request.request_id.clone(),
-                        ],
-                        evidence_bundle: Some(evidence_path.clone()),
-                        disposition: artifact_disposition,
-                    }),
-                },
-                contents: match request.mode {
-                    Mode::Review => render_review_artifact(
-                        &requirement.file_name,
-                        &context_summary,
-                        &generation_output.summary,
-                        &critique_output.summary,
-                        &validation_summary,
-                    ),
-                    Mode::Verification => render_verification_artifact(
-                        &requirement.file_name,
-                        &context_summary,
-                        &generation_output.summary,
-                        &critique_output.summary,
-                        &validation_summary,
-                    ),
-                    _ => unreachable!("unsupported review-like mode"),
-                },
+            .map(|requirement| {
+                let contents = render_review_like_artifact(
+                    request.mode,
+                    &requirement.file_name,
+                    &packet_metadata_contents,
+                    &context_summary,
+                    &generation_output.summary,
+                    &critique_output.summary,
+                    &validation_summary,
+                )?;
+
+                Ok(PersistedArtifact {
+                    record: ArtifactRecord {
+                        file_name: requirement.file_name.clone(),
+                        relative_path: format!(
+                            "artifacts/{}/{}/{}",
+                            run_id,
+                            request.mode.as_str(),
+                            requirement.file_name
+                        ),
+                        format: requirement.format,
+                        provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                            request_ids: vec![
+                                context_request.request_id.clone(),
+                                generation_request.request_id.clone(),
+                                critique_request.request_id.clone(),
+                                validation_request.request_id.clone(),
+                            ],
+                            evidence_bundle: Some(evidence_path.clone()),
+                            disposition: artifact_disposition,
+                        }),
+                    },
+                    contents,
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, EngineError>>()?;
 
         let approvals = Vec::new();
         let gate_inputs = artifacts
@@ -416,5 +456,71 @@ impl EngineService {
                 artifact_count: bundle.artifacts.len(),
             },
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_review_like_artifact;
+    use crate::EngineError;
+    use crate::domain::mode::Mode;
+
+    #[test]
+    fn render_review_like_artifact_returns_packet_metadata_verbatim() {
+        let rendered = render_review_like_artifact(
+            Mode::Review,
+            "packet-metadata.json",
+            "{\"primary_artifact\":\"01-review-brief.md\"}",
+            "context",
+            "generation",
+            "critique",
+            "validation",
+        )
+        .expect("packet metadata should render");
+
+        assert_eq!(rendered, "{\"primary_artifact\":\"01-review-brief.md\"}");
+    }
+
+    #[test]
+    fn render_review_like_artifact_dispatches_supported_modes() {
+        let review = render_review_like_artifact(
+            Mode::Review,
+            "01-review-brief.md",
+            "{}",
+            "# Review Input\n\nEvidence is bounded.",
+            "Review generation summary.",
+            "Review critique summary.",
+            "Review validation summary.",
+        )
+        .expect("review artifact");
+        let verification = render_review_like_artifact(
+            Mode::Verification,
+            "01-invariants-checklist.md",
+            "{}",
+            "# Verification Input\n\nClaims are bounded.",
+            "Verification generation summary.",
+            "Verification critique summary.",
+            "Verification validation summary.",
+        )
+        .expect("verification artifact");
+
+        assert!(review.contains("Review Brief"));
+        assert!(verification.contains("Invariants Checklist"));
+    }
+
+    #[test]
+    fn render_review_like_artifact_rejects_unsupported_modes() {
+        let error = render_review_like_artifact(
+            Mode::Change,
+            "01-review-brief.md",
+            "{}",
+            "context",
+            "generation",
+            "critique",
+            "validation",
+        )
+        .expect_err("unsupported modes should be rejected");
+
+        assert!(matches!(error, EngineError::UnsupportedMode(mode) if mode == "change"));
     }
 }

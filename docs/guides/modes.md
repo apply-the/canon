@@ -257,8 +257,11 @@ ADR projection is mode-bound rather than keyword-driven:
 Without `--to`, Canon uses a structured default leaf like
 `<YYYY-MM-DD>-<descriptor>/` under the mode's existing family root and writes
 `packet-metadata.json` beside the published artifacts so run identity, mode,
-risk, zone, publish timestamp, and source artifact lineage remain recoverable
-outside `.canon/`.
+risk, zone, publish timestamp, source artifact lineage, and ordered packet
+fields such as `primary_artifact` and `artifact_order` remain recoverable
+outside `.canon/`. When publish needs an explicit public ordering or a
+compatibility bridge, the same sidecar may also include `publish_order` and
+`legacy_aliases`.
 
 Publishing is allowed for runs whose state is `Completed`. `incident`,
 `security-assessment`, `system-assessment`, `migration`, and
@@ -2154,19 +2157,24 @@ sections directly: `## Domain Scope`, `## Language Maturity`,
 
 Domain-language produces a governed operational packet with these artifacts:
 
-- `language-overview.md`
-- `domain-glossary.md`
-- `preferred-language.md`
-- `language-conflicts.md`
-- `contextual-meanings.md`
-- `business-language-rules.md`
-- `code-and-api-vocabulary.md`
-- `downstream-language-guidance.md`
-- `language-decision-record.md`
-- `ai-provenance.md`
+- `01-language-overview.md`
+- `02-domain-glossary.md`
+- `03-preferred-language.md`
+- `04-language-conflicts.md`
+- `05-contextual-meanings.md`
+- `06-business-language-rules.md`
+- `07-code-and-api-vocabulary.md`
+- `08-downstream-language-guidance.md`
+- `09-language-decision-record.md`
+- `10-ai-provenance.md`
+- `packet-metadata.json`
 
-Run and status summaries surface `language-overview.md` as the primary artifact
-and keep the packet's `recommendation-only` posture explicit.
+Run and status summaries surface `01-language-overview.md` as the primary
+artifact and keep the packet's `recommendation-only` posture explicit.
+
+Stay in `domain-language` while the hard problem is shared meaning. Move to
+`domain-model` only after the vocabulary is stable enough that the next real
+question is concepts, relationships, ownership boundaries, or invariants.
 
 ### Typical Handoff After This Mode
 
@@ -2253,22 +2261,27 @@ sections directly: `## Domain Scope`, `## Model Maturity`,
 
 Domain-model produces a governed operational packet with these artifacts:
 
-- `model-overview.md`
-- `concept-catalog.md`
-- `relationship-map.md`
-- `bounded-context-map.md`
-- `lifecycle-and-state-model.md`
-- `domain-invariants.md`
-- `policy-and-constraint-rules.md`
-- `feature-impact-rules.md`
-- `code-data-alignment.md`
-- `model-gaps-and-risks.md`
-- `downstream-model-guidance.md`
-- `domain-model.json`
-- `ai-provenance.md`
+- `01-model-overview.md`
+- `02-concept-catalog.md`
+- `03-relationship-map.md`
+- `04-bounded-context-map.md`
+- `05-lifecycle-and-state-model.md`
+- `06-domain-invariants.md`
+- `07-policy-and-constraint-rules.md`
+- `08-feature-impact-rules.md`
+- `09-code-data-alignment.md`
+- `10-model-gaps-and-risks.md`
+- `11-downstream-model-guidance.md`
+- `12-domain-model.json`
+- `13-ai-provenance.md`
+- `packet-metadata.json`
 
-Run and status summaries surface `model-overview.md` as the primary artifact
-and keep the packet's `recommendation-only` posture explicit.
+Run and status summaries surface `01-model-overview.md` as the primary
+artifact and keep the packet's `recommendation-only` posture explicit.
+
+Use `domain-model` only after the language is credible enough to reuse without
+reopening glossary debates. If teams are still arguing about what words mean,
+run `domain-language` first.
 
 The `domain-model.json` artifact provides a machine-readable concept model
 with the following top-level schema:

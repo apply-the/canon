@@ -112,7 +112,7 @@ fn run_system_assessment_emits_an_as_is_packet_and_publishes_after_risk_approval
         workspace.path().join(".canon").join("artifacts").join(run_id).join("system-assessment");
 
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["artifact_count"], 10);
+    assert_eq!(json["artifact_count"], 11);
     assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
     assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Assessment Overview"));
     assert!(json["approval_targets"].as_array().is_some_and(|targets| {
