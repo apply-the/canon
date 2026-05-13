@@ -15,6 +15,36 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.48.0] - 2026-05-13
+
+Delivered specs:
+
+- `specs/048-project-memory-promotion-policy/`
+
+Highlights:
+
+- Added `project-memory` publish profile for promoting governed output into
+  project-visible knowledge surfaces with policy-aware routing onto named
+  Canon-owned surfaces such as `docs/project/product-context.md`,
+  `docs/project/architecture-map.md`, `docs/project/delivery-map.md`,
+  `docs/project/audit-log.md`, and `docs/project/open-risks.md`.
+- Introduced six Canon-owned promotion states (`auto`, `auto-if-approved`,
+  `pending-index`, `index-only`, `evidence-only`, `manual`) that determine
+  whether a packet updates stable memory, pending surfaces, evidence-only
+  surfaces, or requires manual handling.
+- Added file-adjacent metadata sidecars (`<surface>.packet-metadata.json`) with
+  full producer-owned traceability fields (contract_version, source_run, mode,
+  profile, promotion_state, approval_state, readiness, published_at,
+  update_strategy, source_artifacts).
+- Implemented non-destructive update strategies: managed-block updates that
+  preserve human-authored content, proposal-file emission for unsafe targets,
+  and append-only index updates.
+- Published versioned shared contract brief for cross-repo consumer consumption
+  at `docs/integration/project-memory-promotion-contract.md`.
+- Added `--profile project-memory` argument to `canon publish` CLI command.
+- Bumped workspace version to `0.48.0` across all crates and assistant plugin
+  manifests.
+
 ## [0.47.0] - 2026-05-12
 
 Delivered specs:

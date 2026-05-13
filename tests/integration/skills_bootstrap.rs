@@ -315,8 +315,8 @@ fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
         "skills install should materialize the current embedded runtime compatibility reference"
     );
     assert!(
-        installed.contains("expected_workspace_version = \"0.47.0\""),
-        "skills install should carry the 0.47.0 runtime compatibility expectation"
+        installed.contains("expected_workspace_version = \"0.48.0\""),
+        "skills install should carry the 0.48.0 runtime compatibility expectation"
     );
 }
 

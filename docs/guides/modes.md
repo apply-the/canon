@@ -288,6 +288,61 @@ Default publish targets by mode:
 Use `--to <PATH>` when the default destination is not the right public home
 for the packet.
 
+### Project-Memory Publish Profile
+
+In addition to the default publish behavior above, Canon supports a
+`project-memory` publish profile for promoting governed output into
+project-visible knowledge surfaces:
+
+```bash
+canon publish <RUN_ID> --profile project-memory
+```
+
+The `project-memory` profile evaluates a promotion policy based on the run's
+mode and state, then applies one of three non-destructive update strategies:
+
+**Promotion states** (Canon-owned vocabulary):
+
+| State | Meaning | Target surface |
+|-------|---------|----------------|
+| `auto` | Output is promoted automatically | The mode's canonical stable surface such as `docs/project/product-context.md`, `docs/project/architecture-map.md`, or `docs/project/delivery-map.md` |
+| `auto-if-approved` | Promoted only when approval is complete | The same canonical stable surface the mode would use under `auto` |
+| `pending-index` | Updates pending or audit surfaces only | A named pending or risk surface such as `docs/project/pending-decisions.md` or `docs/project/open-risks.md` |
+| `index-only` | Records in index surfaces without stable mutation | A named audit-style surface such as `docs/project/audit-log.md` |
+| `evidence-only` | Updates evidence output only | A named audit or risk surface plus `docs/evidence/<mode>/<RUN_ID>/` support material |
+| `manual` | Requires explicit manual action | Rejected by profile |
+
+**Update strategies** (Canon-owned vocabulary):
+
+| Strategy | Behavior |
+|----------|----------|
+| `managed-blocks` | Replaces only Canon-managed ranges; preserves curated text |
+| `proposal-files` | Emits `.proposal.md` sidecar instead of overwriting |
+| `append-only-index` | Appends to an index without rewriting existing entries |
+
+The default canonical surface map is currently:
+
+- `discovery` -> `docs/project/overview.md`
+- `requirements` -> `docs/project/product-context.md`
+- `system-shaping`, `architecture` -> `docs/project/architecture-map.md`
+- `change`, `migration` -> `docs/project/decision-index.md`
+- `backlog`, `implementation`, `refactor` -> `docs/project/delivery-map.md`
+- `domain-language` -> `docs/project/domain-language.md`
+- `domain-model` -> `docs/project/domain-model.md`
+- `review`, `pr-review`, `verification` -> `docs/project/audit-log.md` plus `docs/evidence/<mode>/<RUN_ID>/`
+- `incident`, `security-assessment`, `supply-chain-analysis`, `system-assessment` -> `docs/project/open-risks.md` plus `docs/evidence/<mode>/<RUN_ID>/`
+
+Each published output includes a metadata sidecar alongside the emitted
+surface. Canon's current implementation names these sidecars as
+`<surface>.packet-metadata.json` for file-backed surfaces and
+`packet-metadata.json` only for explicit directory overrides. Each sidecar
+records `contract_version`, `source_run`, `mode`, `profile`,
+`promotion_state`, `approval_state`, `readiness`, `published_at`,
+`update_strategy`, and `source_artifacts`.
+
+The stable consumer contract for this feature is at
+`docs/integration/project-memory-promotion-contract.md`.
+
 ## Mode Flows (Mermaid)
 
 These diagrams show common entrypoints and typical handoffs, not one mandatory

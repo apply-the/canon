@@ -250,6 +250,10 @@ pub struct PublishCommand {
     /// Export a durable ADR entry when the mode supports it
     #[arg(long, default_value_t = false)]
     pub adr: bool,
+
+    /// Publish profile to use (e.g., "project-memory")
+    #[arg(long)]
+    pub profile: Option<String>,
 }
 
 #[derive(Debug, Parser)]
@@ -559,7 +563,7 @@ mod tests {
         let publish_cli = Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public"]);
         assert_command!(
             publish_cli.command,
-            Command::Publish(PublishCommand { run_id, to, adr })
+            Command::Publish(PublishCommand { run_id, to, adr, .. })
                 if run_id == "run-123"
                     && to == Some(std::path::PathBuf::from("docs/public"))
                     && !adr
@@ -569,7 +573,7 @@ mod tests {
             Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public", "--adr"]);
         assert_command!(
             publish_adr_cli.command,
-            Command::Publish(PublishCommand { run_id, to, adr })
+            Command::Publish(PublishCommand { run_id, to, adr, .. })
                 if run_id == "run-123"
                     && to == Some(std::path::PathBuf::from("docs/public"))
                     && adr
@@ -881,6 +885,7 @@ mod tests {
                         run_id: "run-missing".to_string(),
                         to: None,
                         adr: false,
+                        profile: None,
                     }),
                 },
                 repo_root,
