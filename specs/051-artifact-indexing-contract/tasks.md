@@ -1,0 +1,193 @@
+---
+description: "Task list for artifact indexing contract implementation"
+---
+
+# Tasks: Artifact Indexing Contract
+
+**Input**: Design documents from `/specs/051-artifact-indexing-contract/`
+**Prerequisites**: plan.md, spec.md
+
+**Validation**: Layered validation is mandatory because this slice changes a
+Canon-owned downstream contract and producer-side metadata behavior.
+
+**Organization**: Tasks are grouped by user story so each contract increment can
+be reviewed and validated independently.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (`US1`, `US2`, `US3`)
+- Include exact file paths in descriptions
+
+## Phase 0: Governance & Artifacts
+
+**Purpose**: Establish the artifacts that authorize implementation
+
+- [ ] T001 Bump Canon workspace version from `0.50.0` to `0.51.0` in `/Users/rt/workspace/apply-the/canon/Cargo.toml` and update `/Users/rt/workspace/apply-the/canon/CHANGELOG.md`
+- [ ] T002 Create `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/decision-log.md`
+- [ ] T003 Create `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+- [ ] T004 Record reviewer expectations and approval gates for the contract change in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/decision-log.md`
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Prepare the supporting contract artifacts and validation scaffolds
+
+- [ ] T005 Create `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/research.md`, `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/data-model.md`, and `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/quickstart.md`
+- [ ] T006 [P] Draft feature-local derived contract docs in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/contracts/evidence-block-metadata-contract.md`, explicitly labeling them as non-normative mirrors of the stable Canon contract
+- [ ] T007 [P] Prepare validation scenarios and evidence capture sections in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Shared metadata primitives and publish-path guards
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [ ] T008 Extend shared artifact-indexing metadata primitives in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
+- [ ] T009 [P] Align artifact-class helpers and validation support in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs`
+- [ ] T010 [P] Establish stable contract examples in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [ ] T011 Implement publish-path guards for ambiguous or unsupported indexing vocabulary in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/publish.rs`
+- [ ] T012 Add shared test fixtures for artifact-indexing metadata validation in `/Users/rt/workspace/apply-the/canon/tests/unit/artifact_indexing_fixtures.rs`
+
+**Checkpoint**: Shared Canon metadata and publish-path guards are in place
+
+---
+
+## Phase 3: User Story 1 - Publish One Indexable Contract Surface (Priority: P1) 🎯 MVP
+
+**Goal**: Publish one stable Canon-owned contract that defines indexable artifact classes and minimum metadata
+
+**Independent Test**: A maintainer can inspect the Canon docs and producer-side metadata output and identify indexable artifact classes plus required fields without reading source code
+
+### Validation for User Story 1
+
+- [ ] T013 [P] [US1] Add unit coverage for required and optional artifact-indexing metadata in `/Users/rt/workspace/apply-the/canon/tests/unit/artifact_indexing_metadata.rs`
+- [ ] T014 [P] [US1] Add publish-path integration coverage for artifact indexing projection in `/Users/rt/workspace/apply-the/canon/tests/integration/artifact_indexing_publish.rs`
+- [ ] T015 [US1] Record contract-surface decisions in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/decision-log.md`
+
+### Implementation for User Story 1
+
+- [ ] T016 [P] [US1] Codify required and optional indexing metadata in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
+- [ ] T017 [US1] Align publish metadata serialization and stable sidecar output in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/publish.rs`
+- [ ] T018 [US1] Extend the stable normative contract in `/Users/rt/workspace/apply-the/canon/docs/integration/project-memory-promotion-contract.md` and align the feature-local derived view in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [ ] T019 [US1] Capture MVP validation evidence in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+
+**Checkpoint**: User Story 1 is independently valid as a stable contract surface
+
+---
+
+## Phase 4: User Story 2 - Clarify Safety-Net And Evidence Semantics (Priority: P1)
+
+**Goal**: Remove or define ambiguous artifact vocabulary and make evidence-block metadata explicit
+
+**Independent Test**: Contract docs and publish output no longer leave `safety-net packets` ambiguous, and evidence blocks carry explicit producer and source metadata
+
+### Validation for User Story 2
+
+- [ ] T020 [P] [US2] Add vocabulary-resolution, metadata-carrier discovery, and excluded-artifact coverage in `/Users/rt/workspace/apply-the/canon/tests/integration/artifact_indexing_vocabulary.rs`
+- [ ] T021 [P] [US2] Add evidence-block metadata coverage in `/Users/rt/workspace/apply-the/canon/tests/contract/evidence_block_metadata.rs`
+- [ ] T022 [US2] Record vocabulary and evidence-block decisions in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/decision-log.md`
+
+### Implementation for User Story 2
+
+- [ ] T023 [P] [US2] Resolve `safety-net packets` vocabulary, document at least one explicitly non-indexable artifact class, and define the metadata carrier and discovery rule in `/Users/rt/workspace/apply-the/canon/docs/integration/project-memory-promotion-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [ ] T024 [US2] Align evidence-block metadata definitions in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
+- [ ] T025 [US2] Ensure publish output enforces the clarified evidence metadata in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/publish.rs`
+- [ ] T026 [US2] Capture validation evidence in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+
+**Checkpoint**: User Stories 1 and 2 both work independently and ambiguity is removed
+
+---
+
+## Phase 5: User Story 3 - Version Metadata Without Expanding Canon Scope (Priority: P2)
+
+**Goal**: Freeze additive-versus-breaking compatibility rules while preserving Canon as a semantic producer only
+
+**Independent Test**: Maintainers can determine from docs and tests whether a metadata change is additive-compatible or requires a new contract line
+
+### Validation for User Story 3
+
+- [ ] T027 [P] [US3] Add compatibility-rule coverage in `/Users/rt/workspace/apply-the/canon/tests/contract/artifact_indexing_versioning.rs`
+- [ ] T028 [US3] Record compatibility-boundary decisions in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/decision-log.md`
+
+### Implementation for User Story 3
+
+- [ ] T029 [P] [US3] Document contract-line compatibility rules in `/Users/rt/workspace/apply-the/canon/docs/integration/project-memory-promotion-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [ ] T030 [US3] Align artifact validation helpers with compatibility expectations in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs`
+- [ ] T031 [US3] Preserve the producer-only boundary in publish-path metadata handling in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/publish.rs`
+- [ ] T032 [US3] Capture versioning validation evidence in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+
+**Checkpoint**: All user stories are independently functional and version-safe
+
+---
+
+## Phase 6: Verification & Compliance
+
+**Purpose**: Cross-cutting validation, documentation, and release closeout
+
+- [ ] T033 [P] Update downstream-facing docs in `/Users/rt/workspace/apply-the/canon/docs/integration/project-memory-promotion-contract.md`, `/Users/rt/workspace/apply-the/canon/README.md`, and `/Users/rt/workspace/apply-the/canon/AGENTS.md` if touched by the stabilized contract
+- [ ] T034 [P] Refresh `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/quickstart.md` and `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+- [ ] T035 Run `cargo fmt --all` in `/Users/rt/workspace/apply-the/canon`
+- [ ] T036 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` in `/Users/rt/workspace/apply-the/canon`
+- [ ] T037 Run `cargo test --no-run --all-targets`, focused publish-path validation, and `cargo nextest run --workspace --all-features` in `/Users/rt/workspace/apply-the/canon`, then record outcomes in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+- [ ] T038 Perform an independent maintainer comparison review against existing Canon artifact-producing specs and record findings in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+- [ ] T039 Verify at least 95% coverage for every modified file and record the result in `/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/validation-report.md`
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Governance & Artifacts (Phase 0)**: MUST complete first
+- **Setup (Phase 1)**: Depends on Phase 0
+- **Foundational (Phase 2)**: Depends on Phase 1 and BLOCKS all user stories
+- **User Stories (Phases 3-5)**: Depend on Phase 2
+- **Verification & Compliance (Phase 6)**: Depends on all desired user stories
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Delivers the stable contract MVP
+- **User Story 2 (P1)**: Depends on the shared metadata primitives from Phase 2 and builds on the US1 contract surface
+- **User Story 3 (P2)**: Depends on the final artifact vocabulary and metadata surface from US1 and US2
+
+### Within Each User Story
+
+- Validation tasks and failing checks before implementation
+- Contract text and decision logging before producer-side code lands
+- Metadata primitives before publish-path integration
+- Evidence capture before story sign-off
+
+### Parallel Opportunities
+
+- T006 and T007 can run in parallel after Phase 0
+- T009 and T010 can run in parallel after T008 starts
+- Validation tasks marked [P] can run in parallel within each story
+- T033 and T034 can run in parallel once implementation stabilizes
+
+---
+
+## Implementation Strategy
+
+### MVP First
+
+1. Complete Phases 0 and 1
+2. Complete Phase 2
+3. Complete Phase 3
+4. Stop and validate the stable contract surface before expanding ambiguity or versioning work
+
+### Incremental Delivery
+
+1. Land the stable indexable artifact contract
+2. Remove vocabulary ambiguity and clarify evidence metadata
+3. Freeze additive-versus-breaking versioning rules
+4. Finish with docs, lint, tests, and coverage
+
+## Notes
+
+- The first task is the version bump, as requested
+- The final task is modified-file coverage verification at 95% or higher, as requested
+- Canon remains a semantic producer only throughout this implementation

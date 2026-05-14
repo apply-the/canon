@@ -31,6 +31,8 @@ Canon publish policy or turning Canon into the delivery orchestrator.
 - `specs/050-project-memory-control/contracts/governed-stage-ref-contract.md`
 - `specs/050-project-memory-control/contracts/promotion-event-contract.md`
 - `specs/050-project-memory-control/contracts/evidence-ref-contract.md`
+- `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md` (derived, non-normative)
+- `specs/051-artifact-indexing-contract/contracts/evidence-block-metadata-contract.md` (derived, non-normative)
 
 ## Default Targets
 
@@ -48,6 +50,33 @@ Canon publish policy or turning Canon into the delivery orchestrator.
   promotion
 - `index`: append-only or summary surfaces for visibility without stable
   overwrite
+
+## Indexable Artifact Classes
+
+- `managed-surface`: stable or pending repo-visible project-memory documents
+  updated through Canon-managed blocks
+- `proposal-artifact`: proposal files emitted instead of mutating a stable
+  project-memory target
+- `evidence-bundle`: readable evidence artifacts published under
+  `docs/evidence/` or another evidence-facing destination
+- `index-surface`: append-only index or summary surfaces used for visibility
+  without stable overwrite
+
+## Metadata Carrier And Discovery Rules
+
+- `managed-surface` uses the `managed-surface-envelope` carrier:
+  read the `project-memory:managed` start marker for `producer`, `source_ref`,
+  and `contract_version`, then read the adjacent
+  `<surface>.packet-metadata.json` sidecar for the full promoted lineage
+  envelope.
+- `proposal-artifact`, `evidence-bundle`, and `index-surface` use the
+  `packet-metadata-sidecar` carrier:
+  read `packet-metadata.json` for packet roots or `<surface>.packet-metadata.json`
+  adjacent to the published surface for canonical indexing metadata.
+- If an artifact class is not listed here, it is outside the stable V1
+  indexing contract and consumers MUST NOT infer its metadata carrier.
+- `safety-net packets` is not a Canon V1 artifact class and MUST NOT be used as
+  consumer-facing contract vocabulary.
 
 ## Managed Block Format
 

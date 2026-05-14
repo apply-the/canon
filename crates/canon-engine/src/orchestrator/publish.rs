@@ -12,7 +12,7 @@ use crate::domain::artifact::{artifact_slug, is_packet_sidecar};
 use crate::domain::mode::Mode;
 use crate::domain::publish_profile::{
     CANON_PRODUCER, LineageMetadata, ManagedBlockDescriptor, PROJECT_MEMORY_CONTRACT_VERSION,
-    PromotionState, PublishProfile, UpdateStrategy,
+    PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile, UpdateStrategy,
 };
 use crate::domain::run::RunState;
 use crate::persistence::manifests::RunManifest;
@@ -20,7 +20,6 @@ use crate::persistence::slug::slugify;
 use crate::persistence::store::{PersistedArtifact, WorkspaceStore};
 
 const ADR_REGISTRY_DIRECTORY: &str = "docs/adr";
-const PUBLISH_METADATA_FILE_NAME: &str = "packet-metadata.json";
 const PROFILE_METADATA_FILE_SUFFIX: &str = ".packet-metadata.json";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,7 +165,7 @@ pub fn publish_run(
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 1);
     for artifact in &artifacts {
-        if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+        if artifact_slug(&artifact.record.file_name) == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME {
             continue;
         }
         let destination_path = destination.join(&artifact.record.file_name);
@@ -174,7 +173,7 @@ pub fn publish_run(
         published_files.push(display_path(repo_root, &destination_path));
     }
 
-    let metadata_path = destination.join(PUBLISH_METADATA_FILE_NAME);
+    let metadata_path = destination.join(PROJECT_MEMORY_PACKET_METADATA_FILE_NAME);
     let metadata = PublishMetadata {
         run_id: manifest.run_id.clone(),
         mode: manifest.mode.as_str().to_string(),
@@ -306,7 +305,9 @@ pub fn publish_run_with_profile(
         match strategy {
             UpdateStrategy::ManagedBlocks => {
                 for artifact in &artifacts {
-                    if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+                    if artifact_slug(&artifact.record.file_name)
+                        == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
+                    {
                         continue;
                     }
                     let target = destination.join(&artifact.record.file_name);
@@ -316,7 +317,9 @@ pub fn publish_run_with_profile(
             }
             UpdateStrategy::ProposalFiles => {
                 for artifact in &artifacts {
-                    if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+                    if artifact_slug(&artifact.record.file_name)
+                        == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
+                    {
                         continue;
                     }
                     let proposal_path = write_proposal_file(
@@ -581,7 +584,9 @@ fn render_project_memory_surface(artifacts: &[PersistedArtifact]) -> String {
 fn runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePacketMetadata {
     artifacts
         .iter()
-        .find(|artifact| artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME)
+        .find(|artifact| {
+            artifact_slug(&artifact.record.file_name) == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
+        })
         .and_then(|artifact| serde_json::from_str::<RuntimePacketMetadata>(&artifact.contents).ok())
         .unwrap_or_else(|| infer_runtime_packet_metadata(artifacts))
 }
@@ -675,7 +680,7 @@ fn write_surface_proposal_file(
 
 fn profile_metadata_path(target: &Path) -> PathBuf {
     if target.extension().is_none() {
-        return target.join(PUBLISH_METADATA_FILE_NAME);
+        return target.join(PROJECT_MEMORY_PACKET_METADATA_FILE_NAME);
     }
 
     let stem = target.file_stem().and_then(|value| value.to_str()).unwrap_or("packet");
@@ -779,7 +784,7 @@ fn content_digest_for_artifacts(artifacts: &[PersistedArtifact]) -> String {
     let mut hasher = Sha256::new();
 
     for artifact in artifacts {
-        if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+        if artifact_slug(&artifact.record.file_name) == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME {
             continue;
         }
         hasher.update(artifact.record.file_name.as_bytes());
@@ -1173,7 +1178,7 @@ fn short_id_fragment(manifest: &RunManifest) -> String {
 }
 
 fn existing_destination_matches_run(destination: &Path, run_id: &str) -> bool {
-    let metadata_path = destination.join(PUBLISH_METADATA_FILE_NAME);
+    let metadata_path = destination.join(PROJECT_MEMORY_PACKET_METADATA_FILE_NAME);
     fs::read_to_string(metadata_path)
         .ok()
         .and_then(|raw| serde_json::from_str::<PublishMetadata>(&raw).ok())
@@ -1222,13 +1227,13 @@ mod tests {
     use time::OffsetDateTime;
     use time::format_description::well_known::Rfc3339;
 
-    use super::{
-        PUBLISH_METADATA_FILE_NAME, PublishMetadata, default_publish_directory, resolve_destination,
-    };
+    use super::{PublishMetadata, default_publish_directory, resolve_destination};
     use crate::domain::artifact::{ArtifactFormat, ArtifactRecord};
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
-    use crate::domain::publish_profile::{PromotionState, UpdateStrategy};
+    use crate::domain::publish_profile::{
+        PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, UpdateStrategy,
+    };
     use crate::domain::run::{ClassificationProvenance, RunState, SystemContext};
     use crate::persistence::manifests::RunManifest;
     use crate::persistence::store::PersistedArtifact;
@@ -1358,7 +1363,12 @@ mod tests {
                 "02-scope-cuts.md",
                 "# Scope Cuts\n\nBounded summary.",
             ),
-            json_artifact("R-test", Mode::Requirements, PUBLISH_METADATA_FILE_NAME, "{not-json}"),
+            json_artifact(
+                "R-test",
+                Mode::Requirements,
+                PROJECT_MEMORY_PACKET_METADATA_FILE_NAME,
+                "{not-json}",
+            ),
         ];
 
         let metadata = super::runtime_packet_metadata(&artifacts);
@@ -1428,7 +1438,7 @@ mod tests {
         let collision_path = workspace.path().join("specs").join("2026-04-22-publish-scope");
         fs::create_dir_all(&collision_path).expect("collision dir");
         fs::write(
-            collision_path.join(PUBLISH_METADATA_FILE_NAME),
+            collision_path.join(PROJECT_MEMORY_PACKET_METADATA_FILE_NAME),
             serde_json::to_vec_pretty(&PublishMetadata {
                 run_id: "R-20260422-deadbeef".to_string(),
                 mode: "requirements".to_string(),
@@ -2076,7 +2086,7 @@ mod tests {
             markdown_artifact(
                 "R-test",
                 Mode::Requirements,
-                PUBLISH_METADATA_FILE_NAME,
+                PROJECT_MEMORY_PACKET_METADATA_FILE_NAME,
                 "{\"ignored\":true}\n",
             ),
         ];
