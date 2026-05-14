@@ -286,6 +286,7 @@ fn skills_install_for_codex_works_without_canon_dir() {
 #[test]
 fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
     let workspace = TempDir::new().expect("temp dir");
+    let workspace_version = env!("CARGO_PKG_VERSION");
 
     let mut command = cli_command();
     command
@@ -315,8 +316,8 @@ fn skills_install_for_codex_carries_current_runtime_compatibility_reference() {
         "skills install should materialize the current embedded runtime compatibility reference"
     );
     assert!(
-        installed.contains("expected_workspace_version = \"0.50.0\""),
-        "skills install should carry the 0.50.0 runtime compatibility expectation"
+        installed.contains(&format!("expected_workspace_version = \"{workspace_version}\"")),
+        "skills install should carry the current runtime compatibility expectation"
     );
 }
 

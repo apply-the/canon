@@ -15,6 +15,26 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.51.0] - 2026-05-14
+
+Delivered specs:
+
+- `specs/051-artifact-indexing-contract/`
+
+Highlights:
+
+- Extended the stable project-memory promotion contract with an artifact-indexing
+  clarification layer instead of introducing a second normative contract surface.
+- Defined explicit metadata-carrier and discovery rules for supported artifact
+  classes, keeping managed-block lineage and packet sidecars as the canonical
+  V1 carriers.
+- Resolved ambiguous artifact vocabulary for downstream consumers and required
+  explicit documentation of non-indexable artifact classes.
+- Added independent comparison review and modified-file coverage closeout to the
+  feature delivery plan.
+- Bumped workspace version to `0.51.0` across all crates and assistant plugin
+  manifests.
+
 ## [0.50.0] - 2026-05-13
 
 Delivered specs:

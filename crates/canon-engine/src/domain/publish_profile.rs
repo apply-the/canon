@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub const PROJECT_MEMORY_CONTRACT_VERSION: &str = "v1";
 pub const CANON_PRODUCER: &str = "canon";
 pub const PROJECT_MEMORY_MANAGED_BLOCK_MARKER: &str = "project-memory:managed";
+pub const PROJECT_MEMORY_PACKET_METADATA_FILE_NAME: &str = "packet-metadata.json";
 pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "contract_version",
     "producer",
@@ -22,6 +23,97 @@ pub const OPTIONAL_V1_LINEAGE_FIELDS: &[&str] = &[
     "packet_readiness",
     "promotion_profile",
 ];
+
+/// Canon-owned metadata carrier families for indexable artifact classes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ArtifactMetadataCarrier {
+    /// Metadata is discovered from the managed block marker family and the
+    /// adjacent surface metadata sidecar for the same repo-visible document.
+    ManagedSurfaceEnvelope,
+    /// Metadata is discovered from a `packet-metadata.json` or
+    /// `<surface>.packet-metadata.json` sidecar adjacent to the published
+    /// artifact or surface.
+    PacketMetadataSidecar,
+}
+
+impl ArtifactMetadataCarrier {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ManagedSurfaceEnvelope => "managed-surface-envelope",
+            Self::PacketMetadataSidecar => "packet-metadata-sidecar",
+        }
+    }
+
+    pub fn discovery_rule(self) -> &'static str {
+        match self {
+            Self::ManagedSurfaceEnvelope => {
+                "Read the project-memory managed-block start marker for producer attribution and use the adjacent <surface>.packet-metadata.json sidecar for the full promoted lineage envelope."
+            }
+            Self::PacketMetadataSidecar => {
+                "Read packet-metadata.json for packet roots or <surface>.packet-metadata.json adjacent to the published surface to discover the canonical indexing metadata."
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for ArtifactMetadataCarrier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Supported V1 artifact classes that downstream consumers may index.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum IndexableArtifactClass {
+    /// Stable or pending repo-visible project-memory documents updated through
+    /// Canon-managed blocks.
+    ManagedSurface,
+    /// Proposal files emitted instead of mutating a stable project-memory
+    /// target.
+    ProposalArtifact,
+    /// Evidence bundles emitted under `docs/evidence/` or another readable
+    /// evidence-facing destination.
+    EvidenceBundle,
+    /// Append-only index or summary surfaces used for visibility without stable
+    /// overwrite.
+    IndexSurface,
+}
+
+impl IndexableArtifactClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ManagedSurface => "managed-surface",
+            Self::ProposalArtifact => "proposal-artifact",
+            Self::EvidenceBundle => "evidence-bundle",
+            Self::IndexSurface => "index-surface",
+        }
+    }
+
+    pub fn metadata_carrier(self) -> ArtifactMetadataCarrier {
+        match self {
+            Self::ManagedSurface => ArtifactMetadataCarrier::ManagedSurfaceEnvelope,
+            Self::ProposalArtifact | Self::EvidenceBundle | Self::IndexSurface => {
+                ArtifactMetadataCarrier::PacketMetadataSidecar
+            }
+        }
+    }
+
+    pub fn discovery_rule(self) -> &'static str {
+        self.metadata_carrier().discovery_rule()
+    }
+
+    pub fn all() -> &'static [IndexableArtifactClass] {
+        &[Self::ManagedSurface, Self::ProposalArtifact, Self::EvidenceBundle, Self::IndexSurface]
+    }
+}
+
+impl std::fmt::Display for IndexableArtifactClass {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
 
 /// A publish profile determines how Canon routes governed output into
 /// project-visible surfaces.
@@ -283,6 +375,45 @@ mod tests {
     }
 
     #[test]
+    fn indexable_artifact_classes_have_stable_carriers_and_rules() {
+        let managed_surface = IndexableArtifactClass::ManagedSurface;
+        assert_eq!(managed_surface.as_str(), "managed-surface");
+        assert_eq!(
+            managed_surface.metadata_carrier(),
+            ArtifactMetadataCarrier::ManagedSurfaceEnvelope
+        );
+        assert!(managed_surface.discovery_rule().contains("managed-block"));
+
+        let packet_backed = [
+            IndexableArtifactClass::ProposalArtifact,
+            IndexableArtifactClass::EvidenceBundle,
+            IndexableArtifactClass::IndexSurface,
+        ];
+
+        for artifact_class in packet_backed {
+            assert_eq!(
+                artifact_class.metadata_carrier(),
+                ArtifactMetadataCarrier::PacketMetadataSidecar
+            );
+            assert!(
+                artifact_class.discovery_rule().contains(PROJECT_MEMORY_PACKET_METADATA_FILE_NAME)
+            );
+        }
+    }
+
+    #[test]
+    fn indexable_artifact_class_inventory_is_explicit() {
+        let actual = IndexableArtifactClass::all()
+            .iter()
+            .map(|artifact_class| artifact_class.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            actual,
+            vec!["managed-surface", "proposal-artifact", "evidence-bundle", "index-surface",]
+        );
+    }
+
+    #[test]
     fn lineage_metadata_serde_round_trip() {
         let meta = LineageMetadata {
             contract_version: PROJECT_MEMORY_CONTRACT_VERSION.into(),
@@ -409,5 +540,13 @@ mod tests {
             assert_eq!(strategy.as_str(), expected);
             assert_eq!(strategy.to_string(), expected);
         }
+    }
+
+    #[test]
+    fn metadata_carrier_serde_round_trip() {
+        let json = serde_json::to_string(&ArtifactMetadataCarrier::PacketMetadataSidecar).unwrap();
+        assert_eq!(json, "\"packet-metadata-sidecar\"");
+        let back: ArtifactMetadataCarrier = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, ArtifactMetadataCarrier::PacketMetadataSidecar);
     }
 }
