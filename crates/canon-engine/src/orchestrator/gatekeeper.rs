@@ -2,7 +2,7 @@ use time::OffsetDateTime;
 
 use crate::artifacts::contract::validate_release_bundle;
 use crate::domain::approval::ApprovalRecord;
-use crate::domain::artifact::{ArtifactContract, artifact_slug};
+use crate::domain::artifact::{ArtifactContract, REVIEW_SUMMARY_ARTIFACT_SLUG, artifact_slug};
 use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
@@ -1497,7 +1497,7 @@ fn pr_review_release_readiness_gate(
 
     let summary = artifacts
         .iter()
-        .find(|(file_name, _)| artifact_slug(file_name) == "review-summary.md")
+        .find(|(file_name, _)| artifact_slug(file_name) == REVIEW_SUMMARY_ARTIFACT_SLUG)
         .map(|(_, contents)| contents.as_str())
         .unwrap_or_default();
 

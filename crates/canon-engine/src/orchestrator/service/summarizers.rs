@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
+use crate::domain::artifact::{PR_ANALYSIS_ARTIFACT_SLUG, REVIEW_SUMMARY_ARTIFACT_SLUG};
 use crate::domain::mode::Mode;
 use crate::domain::run::RunState;
 use crate::persistence::store::PersistedArtifact;
@@ -1499,11 +1500,11 @@ fn summarize_verification_mode_result(
 }
 
 fn summarize_pr_review_mode_result(artifacts: &[PersistedArtifact]) -> Option<ModeResultSummary> {
-    let primary_artifact = packet_primary_artifact(artifacts, "pr-analysis.md")?;
+    let primary_artifact = packet_primary_artifact(artifacts, PR_ANALYSIS_ARTIFACT_SLUG)?;
     let summary_artifact =
-        artifacts.iter().find(|artifact| artifact.record.slug() == "review-summary.md")?;
+        artifacts.iter().find(|artifact| artifact.record.slug() == REVIEW_SUMMARY_ARTIFACT_SLUG)?;
     let pr_analysis_artifact =
-        artifacts.iter().find(|artifact| artifact.record.slug() == "pr-analysis.md");
+        artifacts.iter().find(|artifact| artifact.record.slug() == PR_ANALYSIS_ARTIFACT_SLUG);
 
     let final_disposition =
         extract_context_section(&summary_artifact.contents, "Final Disposition")

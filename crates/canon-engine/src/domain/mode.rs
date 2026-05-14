@@ -30,6 +30,26 @@ pub enum Mode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum GovernedExpertiseKind {
+    DomainLanguage,
+    DomainModel,
+}
+
+impl GovernedExpertiseKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DomainLanguage => "domain-language",
+            Self::DomainModel => "domain-model",
+        }
+    }
+
+    pub fn all() -> &'static [GovernedExpertiseKind] {
+        &[Self::DomainLanguage, Self::DomainModel]
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModeEmphasis {
     AnalysisHeavy,
     ExecutionHeavy,
@@ -78,6 +98,14 @@ impl Mode {
         }
     }
 
+    pub fn governed_expertise_kind(self) -> Option<GovernedExpertiseKind> {
+        match self {
+            Self::DomainLanguage => Some(GovernedExpertiseKind::DomainLanguage),
+            Self::DomainModel => Some(GovernedExpertiseKind::DomainModel),
+            _ => None,
+        }
+    }
+
     pub fn all() -> &'static [Mode] {
         &[
             Self::Discovery,
@@ -103,6 +131,12 @@ impl Mode {
 }
 
 impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl fmt::Display for GovernedExpertiseKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
@@ -460,4 +494,96 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{GovernedExpertiseKind, Mode};
+
+    #[test]
+    fn mode_string_inventory_round_trips_and_display_is_stable() {
+        let cases = [
+            (Mode::Requirements, "requirements", None),
+            (Mode::Discovery, "discovery", None),
+            (Mode::SystemShaping, "system-shaping", None),
+            (Mode::Change, "change", None),
+            (Mode::Backlog, "backlog", None),
+            (Mode::Architecture, "architecture", None),
+            (Mode::SystemAssessment, "system-assessment", None),
+            (Mode::Implementation, "implementation", None),
+            (Mode::Refactor, "refactor", None),
+            (Mode::Verification, "verification", None),
+            (Mode::Review, "review", None),
+            (Mode::PrReview, "pr-review", None),
+            (Mode::Incident, "incident", None),
+            (Mode::SecurityAssessment, "security-assessment", None),
+            (Mode::Migration, "migration", None),
+            (Mode::SupplyChainAnalysis, "supply-chain-analysis", None),
+            (Mode::DomainLanguage, "domain-language", Some(GovernedExpertiseKind::DomainLanguage)),
+            (Mode::DomainModel, "domain-model", Some(GovernedExpertiseKind::DomainModel)),
+        ];
+
+        assert_eq!(
+            Mode::all(),
+            &[
+                Mode::Discovery,
+                Mode::Requirements,
+                Mode::SystemShaping,
+                Mode::Architecture,
+                Mode::SystemAssessment,
+                Mode::Change,
+                Mode::Backlog,
+                Mode::PrReview,
+                Mode::Implementation,
+                Mode::Refactor,
+                Mode::Verification,
+                Mode::Review,
+                Mode::Incident,
+                Mode::SecurityAssessment,
+                Mode::Migration,
+                Mode::SupplyChainAnalysis,
+                Mode::DomainLanguage,
+                Mode::DomainModel,
+            ]
+        );
+
+        for (mode, expected, expertise_kind) in cases {
+            assert_eq!(mode.as_str(), expected);
+            assert_eq!(mode.to_string(), expected);
+            assert_eq!(expected.parse::<Mode>().unwrap(), mode);
+            assert_eq!(mode.governed_expertise_kind(), expertise_kind);
+        }
+
+        assert_eq!("unknown-mode".parse::<Mode>().unwrap_err(), "unsupported mode: unknown-mode");
+    }
+
+    #[test]
+    fn governed_expertise_kind_classifies_supported_modes() {
+        assert_eq!(
+            Mode::DomainLanguage.governed_expertise_kind(),
+            Some(GovernedExpertiseKind::DomainLanguage)
+        );
+        assert_eq!(
+            Mode::DomainModel.governed_expertise_kind(),
+            Some(GovernedExpertiseKind::DomainModel)
+        );
+        assert_eq!(Mode::Requirements.governed_expertise_kind(), None);
+        assert_eq!(Mode::Review.governed_expertise_kind(), None);
+    }
+
+    #[test]
+    fn governed_expertise_kind_inventory_is_stable() {
+        assert_eq!(
+            GovernedExpertiseKind::all(),
+            &[GovernedExpertiseKind::DomainLanguage, GovernedExpertiseKind::DomainModel,]
+        );
+
+        for (kind, expected) in [
+            (GovernedExpertiseKind::DomainLanguage, "domain-language"),
+            (GovernedExpertiseKind::DomainModel, "domain-model"),
+        ] {
+            assert_eq!(kind.as_str(), expected);
+            assert_eq!(kind.to_string(), expected);
+        }
+    }
 }

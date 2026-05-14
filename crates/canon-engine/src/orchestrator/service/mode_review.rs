@@ -1,5 +1,6 @@
 use super::EngineService;
 use super::*;
+use crate::domain::artifact::RUNTIME_PACKET_METADATA_FILE_NAME;
 
 /// Render a single artifact for a `review`-family mode (`review`, `verification`).
 ///
@@ -16,7 +17,7 @@ fn render_review_like_artifact(
     critique_summary: &str,
     validation_summary: &str,
 ) -> Result<String, EngineError> {
-    if artifact_slug(file_name) == "packet-metadata.json" {
+    if artifact_slug(file_name) == RUNTIME_PACKET_METADATA_FILE_NAME {
         return Ok(packet_metadata_contents.to_string());
     }
 
