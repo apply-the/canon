@@ -1,34 +1,14 @@
 <!--
 Sync Impact Report
-Version change: template -> 1.0.0
+Version change: 1.0.0 -> 1.1.0
 Modified principles:
-- template principle slot 1 -> I. Method over prompting
-- template principle slot 2 -> II. Artifact-first engineering
-- template principle slot 3 -> III. Separation of generation and validation
-- template principle slot 4 -> IV. Risk-aware execution
-- template principle slot 5 -> V. Mode-driven workflows
-- Added VI. Decision traceability
-- Added VII. Invariants before implementation
-- Added VIII. Bounded context awareness
-- Added IX. Progressive autonomy
-- Added X. Layered verification
+- None
 Added sections:
-- Non-Goals
-- Definition of Done
+- Language Rules
 Removed sections:
 - None
 Templates requiring updates:
-- ✅ .specify/templates/plan-template.md
-- ✅ .specify/templates/spec-template.md
-- ✅ .specify/templates/tasks-template.md
-- ✅ .specify/templates/checklist-template.md
-- ✅ .specify/templates/agent-file-template.md
-- ✅ .agents/skills/speckit-specify/SKILL.md
-- ✅ .agents/skills/speckit-plan/SKILL.md
-- ✅ .agents/skills/speckit-tasks/SKILL.md
-- ✅ .agents/skills/speckit-implement/SKILL.md
-- ✅ .agents/skills/speckit-clarify/SKILL.md
-- ✅ README.md
+- None
 Follow-up TODOs:
 - None
 -->
@@ -161,6 +141,28 @@ A task is complete only when all of the following are true:
 AI must not be asked "what can you generate?" It must be constrained to answer
 "what is allowed to exist?"
 
+## Language Rules
+
+Language-specific implementation rules MAY tighten repository behavior beyond
+the generic process rules above when they remove avoidable failure classes.
+Those rules are constitutionally binding when they are published in an
+AI-visible repository reference.
+
+For Rust code in this repository, the normative language rules live in
+`.agents/skills/canon-shared/references/rust-language-rules.md` and the
+embedded mirror under
+`defaults/embedded-skills/canon-shared/references/rust-language-rules.md`.
+
+Compliance expectations are mandatory:
+
+- Rust code outside `main.rs`, `#[cfg(test)]` modules, and files under
+  `tests/` MUST NOT introduce panic-prone control flow; failures and invariant
+  breaks MUST surface as explicit error values or equivalent blocked states.
+- Rust `main.rs` entrypoints MAY panic when immediate process termination is
+  the deliberate CLI behavior, but explicit exits remain preferred when
+  practical.
+- Test code MAY use panicking helpers freely.
+
 ## Governance
 
 This constitution supersedes undocumented prompt conventions and conflicting
@@ -190,4 +192,4 @@ Compliance review expectations are mandatory:
 - no work may be marked complete until validation evidence is recorded and
   independently reviewed when required
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-03-26
+**Version**: 1.1.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-05-13

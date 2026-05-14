@@ -264,9 +264,9 @@ fn publish_run_with_profile_promotes_completed_requirements() {
     assert_eq!(metadata["update_strategy"], "managed-blocks");
     assert_eq!(metadata["primary_artifact"], "01-problem-statement.md");
     assert_eq!(metadata["artifact_order"][0], "01-problem-statement.md");
-    assert_eq!(metadata["lineage"]["contract_version"], "0.1.0");
+    assert_eq!(metadata["lineage"]["contract_version"], "v1");
     assert_eq!(metadata["lineage"]["mode"], "requirements");
-    assert_eq!(metadata["lineage"]["readiness"], "complete");
+    assert_eq!(metadata["lineage"]["packet_readiness"], "complete");
 }
 
 #[test]

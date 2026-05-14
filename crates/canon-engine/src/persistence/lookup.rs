@@ -138,7 +138,7 @@ pub fn resolve(layout: &ProjectLayout, query: &LookupQuery) -> Result<RunHandle,
 fn unique_or_error(needle: &str, mut matches: Vec<RunHandle>) -> Result<RunHandle, LookupError> {
     match matches.len() {
         0 => Err(LookupError::NotFound { query: needle.to_string() }),
-        1 => Ok(matches.pop().expect("len == 1")),
+        1 => matches.pop().ok_or_else(|| LookupError::NotFound { query: needle.to_string() }),
         _ => {
             let mut ids: Vec<String> = matches.into_iter().map(|h| h.run_id).collect();
             ids.sort();

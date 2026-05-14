@@ -1,283 +1,125 @@
 # Project Memory Promotion Contract
 
-> **Promoted from**: `specs/048-project-memory-promotion-policy/contracts/boundline-project-memory-promotion-contract.md`
->
-> This is the stable Canon integration document. The authoritative feature-local
-> source remains the file referenced above. Future revisions follow the
-> versioning and change policy defined in this contract.
-
 ## Contract Identity
 
-- `contract_version`: `0.1.0`
 - `owner`: `canon`
-- `known_consumers`:
-  - `boundline`
-- `authoritative_source`: `specs/048-project-memory-promotion-policy/contracts/boundline-project-memory-promotion-contract.md`
+- `current_contract_line`: `v1`
 - `stable_doc`: `docs/integration/project-memory-promotion-contract.md`
+- `primary_consumer`: `boundline`
 
 ## Purpose
 
-Define the Canon-owned producer contract for promoting governed packet output
-into project-visible knowledge surfaces that consumers can rely on without
-redefining Canon publish semantics or turning Canon into the delivery
-orchestrator.
+Define the Canon-owned producer semantics for repo-visible project memory and
+evidence publication so consumers can rely on Canon output without redefining
+Canon publish policy or turning Canon into the delivery orchestrator.
 
-## Scope
+## Authority And Sync Rules
 
-This contract defines:
+- This stable document is the normative source for ownership, compatibility,
+  target classes, and publish-policy semantics.
+- Feature-local contracts may elaborate this contract with examples and
+  supporting shapes, but they do not supersede it.
+- If a conflict appears between this stable document and a feature-local brief,
+  this stable document wins and the feature-local brief must be realigned in
+  the same change before merge.
+- Consumers may rely on Canon contracts but may not redefine Canon promotion
+  semantics.
 
-- Canon publish-profile expectations for project memory and evidence promotion.
-- Canon-owned promotion states and their meanings.
-- Canon-owned lineage metadata required on promoted outputs.
-- Canon-owned non-destructive update strategies for project-visible documents.
-- Consumer-visible compatibility and versioning rules.
+## Supporting Shape Briefs
 
-This contract does not define:
+- `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md`
+- `specs/050-project-memory-control/contracts/governed-stage-ref-contract.md`
+- `specs/050-project-memory-control/contracts/promotion-event-contract.md`
+- `specs/050-project-memory-control/contracts/evidence-ref-contract.md`
 
-- Consumer delivery-path selection.
-- Consumer stage-planner behavior.
-- Consumer assurance-profile logic.
-- Consumer governed-stage orchestration policy.
-- Canon execution as a delivery orchestrator.
+## Default Targets
 
-## Ownership Boundary
+- `docs/project/` for stable or pending project-memory surfaces
+- `docs/evidence/` for readable evidence summaries and mixed-producer evidence
+  blocks
 
-### Canon Owns
+## Target Classes
 
-- publish profiles
-- promotion policy
-- promotion states and their semantics
-- lineage metadata shape
-- document update strategies
-- pending, audit, and evidence publication behavior
+- `stable`: policy-eligible managed updates to stable repo-visible knowledge
+- `pending`: visible but not yet stable project-memory surfaces
+- `proposal`: proposal artifacts used when safe stable publication is not
+  credible
+- `evidence`: readable evidence summaries without stable project-memory
+  promotion
+- `index`: append-only or summary surfaces for visibility without stable
+  overwrite
 
-### Consumers Own
+## Managed Block Format
 
-- delivery paths
-- stage planner
-- assurance profiles
-- governed stage orchestration
-- session projection and next-action selection
-- consumption of Canon refs and promoted knowledge
+```md
+<!-- project-memory:managed:start producer="canon|boundline" source_ref="..." contract_version="v1" -->
+...
+<!-- project-memory:managed:end -->
+```
 
-### Boundary Rules
+- `producer`, `source_ref`, and `contract_version` are mandatory marker fields.
+- Boundline-managed blocks may contribute readable evidence text and
+  attribution metadata for `producer="boundline"` content.
+- Only Canon-owned shapes define `promotion_state`, `approval_state`,
+  `packet_readiness`, and target-routing semantics.
 
-- Consumers MUST NOT redefine Canon promotion semantics.
-- Canon MUST NOT become the delivery orchestrator.
-- Canon-produced project memory remains a promoted projection of governed
-  output, not a replacement for `.canon/` runtime state.
-- Consumers may consume Canon-promoted knowledge, but they remain responsible
-  for deciding when to continue, stop, confirm, or replan.
+## Promotion State Expectations
 
-## Shared Surface Model
+- Stable managed-block updates are reserved for completed and policy-eligible
+  knowledge.
+- `blocked` means approval, readiness, or another Canon policy prerequisite is
+  missing; stable targets are forbidden and Canon routes to pending, proposal,
+  or evidence surfaces instead.
+- `conflicting` means Canon detects contradictory or overlapping candidate
+  knowledge that requires human resolution; stable targets are forbidden and
+  Canon routes to proposal, pending, or evidence surfaces instead.
+- `pending` remains visible but not yet stable.
+- `index-only` and `evidence-only` outputs never overwrite stable
+  project-memory surfaces.
 
-### Stable Project Memory Surfaces
-
-- `docs/project/overview.md`
-- `docs/project/product-context.md`
-- `docs/project/domain-language.md`
-- `docs/project/domain-model.md`
-- `docs/project/architecture-map.md`
-- `docs/project/decision-index.md`
-- `docs/project/delivery-map.md`
-- `docs/project/operational-context.md`
-
-### Evidence And Index Surfaces
-
-- `docs/evidence/`
-- `docs/project/pending-decisions.md`
-- `docs/project/open-risks.md`
-- `docs/project/audit-log.md`
-
-### Current Canon Default Routing
-
-- Canon's current `project-memory` implementation resolves to one canonical
-  stable, pending, risk, or audit surface rather than to a dated packet
-  directory.
-- Stable and pending publication target the named `docs/project/*.md`
-  surfaces above.
-- Evidence-bearing publication may also emit supporting artifacts under
-  `docs/evidence/<mode>/<RUN_ID>/` while keeping the consumer-facing surface in
-  the named `docs/project/*.md` files.
-
-## Publish Profile Contract
-
-- Canon MUST define a `project-memory` publish profile.
-- The `project-memory` publish profile may update stable project memory,
-  evidence summaries, or index surfaces depending on the promotion policy.
-- The profile MUST preserve governed artifacts under `.canon/` and treat
-  project-visible output as a projection, not a new source of runtime truth.
-
-## Promotion Policy States
-
-Canon owns the allowed promotion-state vocabulary.
-
-### `auto`
-
-- Eligible output is promoted automatically to the target stable surface.
-- Consumers may treat the target as stable project memory.
-
-### `auto-if-approved`
-
-- Output is promoted automatically only when approval state and readiness meet
-  Canon policy.
-- Consumers may not infer approval; they must read the emitted metadata.
-- Canon's current implementation emits `approval_state` as the serialized
-  `RunState` label.
-- Consumers may treat `auto-if-approved` as stable only when metadata reports
-  `approval_state = Completed` and `readiness = complete`; otherwise they MUST
-  keep it non-authoritative.
-
-### `pending-index`
-
-- Canon updates pending or audit surfaces only.
-- Consumers MUST treat the result as visible but not yet stable project
-  memory.
-
-### `index-only`
-
-- Canon records the event in index or audit surfaces without mutating stable
-  project-memory targets.
-- Consumers MUST NOT treat the result as accepted project knowledge.
-
-### `evidence-only`
-
-- Canon updates evidence-facing output without promoting the result into stable
-  project-memory documents.
-- Consumers may use the evidence for assurance or review, but not as stable
-  architectural or product truth by default.
-
-### `manual`
-
-- Canon records the promotion candidate, but stable publication requires an
-  explicit manual action.
-- Consumers must not assume a stable projection exists until it does.
-
-## Lineage Metadata Contract
-
-Promoted outputs or their sidecars MUST preserve enough metadata for consumers
-to recover source lineage without reopening `.canon/`.
-
-### Required Semantic Fields
+## Required V1 Lineage Fields
 
 - `contract_version`
-- `source_run`
-- `mode`
-- `promotion_state`
-
-### Conditional Decision Fields
-
-- `approval_state`
-- `readiness`
-
-`approval_state` and `readiness` MUST be present when the promotion state
-cannot be interpreted safely without approval or completion metadata,
-including Canon's current `auto-if-approved` state.
-
-### Optional Producer Provenance Fields
-
-- `profile`
-- `published_at`
-- `update_strategy`
+- `producer`
+- `source_ref`
 - `source_artifacts`
+- `promotion_state`
+- `promoted_at`
+- `content_digest`
 
-Canon's current implementation emits these provenance fields, but consumers
-MUST NOT rely on them as the minimum semantic gate for understanding whether a
-surface is compatible, pending, evidence-only, or stable.
+## Optional V1 Lineage Fields
 
-### Minimum Orchestration Contract
+- `mode`
+- `stage`
+- `owner`
+- `risk`
+- `zone`
+- `approval_state`
+- `packet_readiness`
+- `promotion_profile`
 
-- Boundline and any future framework-neutral consumer validate the minimum
-  orchestration contract formed by the required semantic fields plus the
-  conditional decision fields.
-- Optional producer provenance fields may be preserved, surfaced, or reused
-  when available, but their absence alone MUST NOT make an otherwise
-  interpretable surface incompatible.
-- A framework-specific adapter may enforce stricter provenance requirements,
-  but that stricter validation lives above this shared consumer contract.
+## Standalone JSON Shape Identifier
 
-### Metadata Rules
+When Canon or a consumer serializes one of the shared JSON contract shapes
+outside this document, the payload should include a stable `kind` field such as
+`project_memory_promotion`, `governed_stage_ref`, `promotion_event`, or
+`evidence_ref` so embedded payloads and logs remain self-describing.
 
-- Metadata MAY live in `packet-metadata.json`, document front matter, managed
-  blocks, or another Canon-defined durable sidecar, but Canon owns the shape.
-- Canon's current implementation emits file-adjacent metadata sidecars as
-  `<surface>.packet-metadata.json` for file-backed surfaces and retains
-  `packet-metadata.json` only for explicit directory overrides.
-- Consumers may ignore optional producer provenance fields they do not yet use,
-  but they MUST preserve the meanings of the required semantic and conditional
-  decision fields.
-- Consumers MUST tolerate additive metadata fields they do not yet understand.
-- Canon MUST NOT remove or silently repurpose required semantic fields,
-  conditional decision fields, or the meaning of any emitted provenance field
-  without a contract-version change.
+`kind` is recommended in V1. It is not a required V1 lineage field yet because
+the current producer and consumer implementations do not validate it. Promote it
+to required status only in the next compatible contract minor after validation is
+wired on both sides.
 
-## Non-Destructive Update Strategies
+## Compatibility Policy
 
-Canon owns the strategy vocabulary for modifying project-visible documents.
-
-### `managed-blocks`
-
-- Canon updates only explicitly managed ranges inside a curated document.
-- Human-authored content outside the managed range MUST be preserved.
-
-### `proposal-files`
-
-- Canon emits a proposal artifact when safe in-place promotion is not credible.
-- Consumers may surface the proposal, but proposal existence is not equivalent
-  to accepted project memory.
-
-### `append-only-index`
-
-- Canon appends entries to index or audit surfaces without rewriting existing
-  historical entries.
-- Consumers may use these surfaces for visibility, not as stable replacement
-  for the canonical project-memory document.
-
-## Shared Alignment Points
-
-The Canon owner-side spec and the consumer integration-side spec must stay
-aligned on:
-
-- stage taxonomy and mode-to-stage mapping
-- target surface categories (`docs/project`, `docs/evidence`, pending/index)
-- promotion-state vocabulary and semantics
-- lineage metadata field names and meanings
-- update-strategy vocabulary and meanings
-- compatibility window and pre-1.0 change policy
-
-## Compatibility Rules
-
-- Consumers MUST treat the Canon contract brief as the source of truth for
-  promotion semantics.
-- The current pre-stable contract line is `0.1.x`; consumers MAY ignore
-  additive fields they do not understand within that line, but they MUST NOT
-  claim compatibility with `0.2.0+`, `1.x`, or malformed `contract_version`
-  values unless they have been updated to do so.
-- Consumers MUST reject or explicitly degrade behavior when `contract_version`
-  falls outside their documented supported line.
-
-## Pre-1.0 Change Policy
-
-- While the contract remains `0.x`, Canon may introduce incompatible changes by
-  publishing a new minor `contract_version`.
-- Changes to promotion states, required metadata fields, update-strategy
-  meanings, or target surfaces MUST be reflected in the authoritative contract
-  brief and this stable integration-doc path.
-- Known consumers must not claim compatibility with a new minor or major
-  contract version until their integration specs and acceptance criteria are
-  updated.
-
-## Deprecation And Grace Periods
-
-- No compatibility grace period is guaranteed while `contract_version` remains
-  `0.x`.
-- Canon may replace or remove fields, states, or strategies in a new minor
-  contract version instead of carrying a deprecated path.
-- Consumers must treat any unsupported minor or major line as requiring an
-  explicit update before reuse.
+- Additive V1 changes are backward-compatible.
+- Removing or renaming required fields is breaking.
+- Breaking changes require a new major contract line.
+- Canon supports the previous minor published contract revision for one full
+  minor release cycle.
 
 ## Non-Goals
 
-- Making Canon the orchestrator for bounded delivery work.
-- Allowing consumers to redefine Canon publish or promotion semantics.
-- Replacing `.canon/` runtime artifacts with project-visible projections.
+- Making Canon the orchestrator for bounded delivery work
+- Allowing consumers to redefine Canon publish or promotion semantics
+- Replacing `.canon/` runtime artifacts with repo-visible projections

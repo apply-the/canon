@@ -70,6 +70,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-13
 - Local filesystem under `.canon/` (TOML manifests, Markdown artifacts) (048-project-memory-promotion-policy)
 - Rust 1.95.0, Edition 2024 + existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time` (049-logical-packet-ordering)
 - local filesystem under `.canon/` plus repo-visible published packet directories and docs (049-logical-packet-ordering)
+- Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `thiserror`, (050-project-memory-control)
+- local filesystem under `.canon/` plus repo-visible docs under (050-project-memory-control)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -128,8 +130,8 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 050-project-memory-control: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `thiserror`,
 - 049-logical-packet-ordering: Added Rust 1.95.0, Edition 2024 + existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
-- 048-project-memory-promotion-policy: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 - 048-project-memory-promotion-policy: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 
 <!-- MANUAL ADDITIONS START -->
@@ -150,4 +152,13 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - Skill validation commands:
   - `/bin/bash scripts/validate-canon-skills.sh`
   - `pwsh -File scripts/validate-canon-skills.ps1` when PowerShell is available
+
+## Rust Language Rules
+
+- AI-visible Rust language rules live in
+  `.agents/skills/canon-shared/references/rust-language-rules.md`.
+- Rust code outside `main.rs`, `#[cfg(test)]`, and files under `tests/` MUST
+  NOT introduce panic-prone control flow such as `unwrap`, `expect`,
+  `panic!`, `todo!`, `unimplemented!`, `unreachable!`, or assert-family
+  runtime guards; use explicit error propagation instead.
 <!-- MANUAL ADDITIONS END -->

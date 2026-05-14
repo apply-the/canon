@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
@@ -10,7 +11,8 @@ use crate::EngineError;
 use crate::domain::artifact::{artifact_slug, is_packet_sidecar};
 use crate::domain::mode::Mode;
 use crate::domain::publish_profile::{
-    LineageMetadata, PromotionState, PublishProfile, UpdateStrategy,
+    CANON_PRODUCER, LineageMetadata, ManagedBlockDescriptor, PROJECT_MEMORY_CONTRACT_VERSION,
+    PromotionState, PublishProfile, UpdateStrategy,
 };
 use crate::domain::run::RunState;
 use crate::persistence::manifests::RunManifest;
@@ -273,20 +275,21 @@ pub fn publish_run_with_profile(
     })?;
 
     let lineage = LineageMetadata {
-        contract_version: "0.1.0".to_string(),
-        source_run: manifest.run_id.clone(),
-        mode: manifest.mode.as_str().to_string(),
-        profile: profile.as_str().to_string(),
-        promotion_state: promotion.as_str().to_string(),
-        approval_state: format!("{:?}", state.state),
-        readiness: if state.state == RunState::Completed {
-            "complete".to_string()
-        } else {
-            "partial".to_string()
-        },
-        published_at: publish_timestamp.clone(),
-        update_strategy: strategy.as_str().to_string(),
+        contract_version: PROJECT_MEMORY_CONTRACT_VERSION.to_string(),
+        producer: CANON_PRODUCER.to_string(),
+        source_ref: format!("canon-run:{}", manifest.run_id),
         source_artifacts: source_artifacts.clone(),
+        promotion_state: promotion.as_str().to_string(),
+        promoted_at: publish_timestamp.clone(),
+        content_digest: content_digest_for_artifacts(&artifacts),
+        mode: Some(manifest.mode.as_str().to_string()),
+        stage: None,
+        owner: Some(manifest.owner.clone()),
+        risk: Some(manifest.risk.as_str().to_string()),
+        zone: Some(manifest.zone.as_str().to_string()),
+        approval_state: Some(format!("{:?}", state.state)),
+        packet_readiness: Some(packet_readiness_for(&state.state).to_string()),
+        promotion_profile: Some(profile.as_str().to_string()),
     };
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 2);
@@ -656,8 +659,11 @@ fn write_surface_proposal_file(
     let proposal_path = target.with_file_name(format!("{stem}.proposal.{ext}"));
 
     let header = format!(
-        "<!-- Canon proposal from run {} ({}) -->\n<!-- promotion_state: {} | strategy: {} -->\n\n",
-        lineage.source_run, lineage.mode, lineage.promotion_state, lineage.update_strategy,
+        "<!-- Canon proposal from {} ({}) -->\n<!-- promotion_state: {} | profile: {} -->\n\n",
+        lineage.source_ref,
+        lineage.mode.as_deref().unwrap_or("unknown-mode"),
+        lineage.promotion_state,
+        lineage.promotion_profile.as_deref().unwrap_or("unknown-profile"),
     );
 
     if let Some(parent) = proposal_path.parent() {
@@ -683,22 +689,36 @@ pub fn write_managed_block(
     block_id: &str,
     content: &str,
 ) -> Result<(), EngineError> {
-    let start_marker = format!("<!-- canon:managed-block:{block_id}:start -->");
-    let end_marker = format!("<!-- canon:managed-block:{block_id}:end -->");
+    let descriptor = ManagedBlockDescriptor::canon(block_id.to_string());
+    let start_marker = descriptor.start_marker();
+    let end_marker = ManagedBlockDescriptor::end_marker();
+    let legacy_start_marker = format!("<!-- canon:managed-block:{block_id}:start -->");
+    let legacy_end_marker = format!("<!-- canon:managed-block:{block_id}:end -->");
 
     let existing = if target.exists() { fs::read_to_string(target)? } else { String::new() };
 
     let new_block = format!("{start_marker}\n{content}\n{end_marker}");
 
-    let updated = if let Some(start_pos) = existing.find(&start_marker) {
-        if let Some(end_pos) = existing.find(&end_marker) {
+    let updated = if let Some(start_pos) = existing.find("<!-- project-memory:managed:start") {
+        if let Some(end_offset) = existing[start_pos..].find(end_marker) {
+            let end_pos = start_pos + end_offset;
             let before = &existing[..start_pos];
             let after = &existing[end_pos + end_marker.len()..];
             format!("{before}{new_block}{after}")
         } else {
-            // Start marker found but no end marker: append end marker.
+            // Start marker found but no end marker: replace the managed suffix.
             let before = &existing[..start_pos];
-            let after = &existing[start_pos + start_marker.len()..];
+            let after = &existing[start_pos + "<!-- project-memory:managed:start".len()..];
+            format!("{before}{new_block}{after}")
+        }
+    } else if let Some(start_pos) = existing.find(&legacy_start_marker) {
+        if let Some(end_pos) = existing.find(&legacy_end_marker) {
+            let before = &existing[..start_pos];
+            let after = &existing[end_pos + legacy_end_marker.len()..];
+            format!("{before}{new_block}{after}")
+        } else {
+            let before = &existing[..start_pos];
+            let after = &existing[start_pos + legacy_start_marker.len()..];
             format!("{before}{new_block}{after}")
         }
     } else if existing.is_empty() {
@@ -728,8 +748,11 @@ pub fn write_proposal_file(
     let proposal_path = destination.join(&proposal_name);
 
     let header = format!(
-        "<!-- Canon proposal from run {} ({}) -->\n<!-- promotion_state: {} | strategy: {} -->\n\n",
-        lineage.source_run, lineage.mode, lineage.promotion_state, lineage.update_strategy,
+        "<!-- Canon proposal from {} ({}) -->\n<!-- promotion_state: {} | profile: {} -->\n\n",
+        lineage.source_ref,
+        lineage.mode.as_deref().unwrap_or("unknown-mode"),
+        lineage.promotion_state,
+        lineage.promotion_profile.as_deref().unwrap_or("unknown-profile"),
     );
 
     fs::create_dir_all(destination)?;
@@ -746,6 +769,33 @@ pub fn append_index_entry(target: &Path, entry: &str) -> Result<(), EngineError>
     let existing = if target.exists() { fs::read_to_string(target)? } else { String::new() };
     fs::write(target, format!("{existing}{entry}"))?;
     Ok(())
+}
+
+fn packet_readiness_for(state: &RunState) -> &'static str {
+    if *state == RunState::Completed { "complete" } else { "partial" }
+}
+
+fn content_digest_for_artifacts(artifacts: &[PersistedArtifact]) -> String {
+    let mut hasher = Sha256::new();
+
+    for artifact in artifacts {
+        if artifact_slug(&artifact.record.file_name) == PUBLISH_METADATA_FILE_NAME {
+            continue;
+        }
+        hasher.update(artifact.record.file_name.as_bytes());
+        hasher.update([0]);
+        hasher.update(artifact.contents.as_bytes());
+        hasher.update([0]);
+    }
+
+    let digest = hasher.finalize();
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        use std::fmt::Write as _;
+        let _ = write!(&mut hex, "{byte:02x}");
+    }
+
+    format!("sha256:{hex}")
 }
 
 fn adr_export_enabled(mode: Mode, requested: bool) -> Result<bool, EngineError> {
@@ -1870,9 +1920,11 @@ mod tests {
 
         super::write_managed_block(&target, "test-block", "initial content").expect("first write");
         let first = fs::read_to_string(&target).expect("read first");
-        assert!(first.contains("<!-- canon:managed-block:test-block:start -->"));
+        assert!(first.contains(
+            "<!-- project-memory:managed:start producer=\"canon\" source_ref=\"test-block\" contract_version=\"v1\" -->"
+        ));
         assert!(first.contains("initial content"));
-        assert!(first.contains("<!-- canon:managed-block:test-block:end -->"));
+        assert!(first.contains("<!-- project-memory:managed:end -->"));
 
         super::write_managed_block(&target, "test-block", "updated content").expect("second write");
         let second = fs::read_to_string(&target).expect("read second");
@@ -1884,7 +1936,7 @@ mod tests {
     fn write_managed_block_preserves_curated_content() {
         let workspace = tempdir().expect("temp workspace");
         let target = workspace.path().join("curated.md");
-        let curated = "# My Document\n\nHuman-authored context.\n\n<!-- canon:managed-block:test:start -->\nold Canon data\n<!-- canon:managed-block:test:end -->\n\nMore human content.\n";
+        let curated = "# My Document\n\nHuman-authored context.\n\n<!-- project-memory:managed:start producer=\"canon\" source_ref=\"test\" contract_version=\"v1\" -->\nold Canon data\n<!-- project-memory:managed:end -->\n\nMore human content.\n";
         fs::write(&target, curated).expect("write curated");
 
         super::write_managed_block(&target, "test", "new Canon data").expect("update block");
@@ -1896,20 +1948,39 @@ mod tests {
     }
 
     #[test]
+    fn write_managed_block_replaces_legacy_canon_marker() {
+        let workspace = tempdir().expect("temp workspace");
+        let target = workspace.path().join("legacy.md");
+        let legacy = "<!-- canon:managed-block:test:start -->\nold Canon data\n<!-- canon:managed-block:test:end -->\n";
+        fs::write(&target, legacy).expect("write legacy");
+
+        super::write_managed_block(&target, "test", "new Canon data").expect("migrate block");
+        let result = fs::read_to_string(&target).expect("read migrated");
+        assert!(result.contains("project-memory:managed:start"));
+        assert!(!result.contains("canon:managed-block"));
+        assert!(result.contains("new Canon data"));
+    }
+
+    #[test]
     fn write_proposal_file_emits_sidecar() {
         let workspace = tempdir().expect("temp workspace");
         let dest = workspace.path().join("proposals");
         let lineage = super::LineageMetadata {
-            contract_version: "0.1.0".into(),
-            source_run: "R-test".into(),
-            mode: "architecture".into(),
-            profile: "project-memory".into(),
-            promotion_state: "pending-index".into(),
-            approval_state: "AwaitingApproval".into(),
-            readiness: "partial".into(),
-            published_at: "2026-05-13T00:00:00Z".into(),
-            update_strategy: "proposal-files".into(),
+            contract_version: "v1".into(),
+            producer: "canon".into(),
+            source_ref: "canon-run:R-test".into(),
             source_artifacts: vec!["artifact.md".into()],
+            promotion_state: "pending-index".into(),
+            promoted_at: "2026-05-13T00:00:00Z".into(),
+            content_digest: "sha256:abc123".into(),
+            mode: Some("architecture".into()),
+            stage: None,
+            owner: None,
+            risk: None,
+            zone: None,
+            approval_state: Some("AwaitingApproval".into()),
+            packet_readiness: Some("partial".into()),
+            promotion_profile: Some("project-memory".into()),
         };
 
         let path = super::write_proposal_file(
@@ -1921,8 +1992,32 @@ mod tests {
         .expect("write proposal");
         assert!(path.ends_with("decision-record.proposal.md"));
         let content = fs::read_to_string(&path).expect("read proposal");
-        assert!(content.contains("Canon proposal from run R-test"));
+        assert!(content.contains("Canon proposal from canon-run:R-test"));
         assert!(content.contains("# Proposal\nContent"));
+    }
+
+    #[test]
+    fn content_digest_for_artifacts_is_stable_for_same_inputs() {
+        let artifacts = vec![
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "product-context.md",
+                "# Product Context\n\nBounded summary.\n",
+            ),
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "delivery-map.md",
+                "# Delivery Map\n\nBounded sequence.\n",
+            ),
+        ];
+
+        let first = super::content_digest_for_artifacts(&artifacts);
+        let second = super::content_digest_for_artifacts(&artifacts);
+
+        assert_eq!(first, second);
+        assert!(first.starts_with("sha256:"));
     }
 
     #[test]

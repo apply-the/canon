@@ -15,6 +15,27 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.50.0] - 2026-05-13
+
+Delivered specs:
+
+- `specs/050-project-memory-control/`
+
+Highlights:
+
+- Published the stable owner-side project-memory and delivery-control contract
+  under `docs/integration/project-memory-promotion-contract.md`, with aligned
+  feature-local supporting shapes for governed stage refs, promotion events,
+  and evidence refs.
+- Clarified Canon-owned target mapping for `docs/project/` and `docs/evidence/`,
+  preserved producer-neutral managed blocks, and kept Canon as the producer of
+  promotion policy while Boundline remains the consumer and orchestrator.
+- Froze the lean V1 lineage set, documented additive-versus-breaking
+  compatibility rules, and added self-describing `kind` fields to shared JSON
+  contract examples without making them a required V1 validation field yet.
+- Bumped workspace version to `0.50.0` across all crates, assistant plugin
+  manifests, and runtime-compatibility references.
+
 ## [0.49.0] - 2026-05-13
 
 Delivered specs:

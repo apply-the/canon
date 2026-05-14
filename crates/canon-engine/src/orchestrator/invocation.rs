@@ -80,10 +80,8 @@ pub fn evaluate_request_policy(
     }
 
     if matches!(request.capability, canon_adapters::CapabilityKind::ExecuteBoundedTransformation)
-        && execution_mutation_profile_id(request.mode.as_str()).is_some()
+        && let Some(profile_id) = execution_mutation_profile_id(request.mode.as_str())
     {
-        let profile_id = execution_mutation_profile_id(request.mode.as_str())
-            .expect("profile id should exist for execution mutation modes");
         match classify_change_mutation_scope(&request.requested_scope) {
             ChangeMutationScopeStatus::Missing => {
                 decision.kind = PolicyDecisionKind::Deny;
