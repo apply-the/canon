@@ -134,7 +134,7 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
     );
 
     assert!(published_text.contains("## Conventional Comments"));
-    assert!(published_text.contains("praise:"));
+    assert!(published_text.contains("praise(scope:"));
     assert!(published_text.contains("src/reviewer.rs"));
     assert!(!published_text.contains("line "));
 }

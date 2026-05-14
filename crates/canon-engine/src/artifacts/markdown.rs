@@ -1,7 +1,9 @@
 use crate::domain::artifact::artifact_slug;
 use crate::domain::run::BacklogPlanningContext;
 use crate::orchestrator::service::context_parse::truncate_context_excerpt;
-use crate::review::findings::{FindingCategory, ReviewFinding, ReviewPacket};
+use crate::review::findings::{
+    ConventionalCommentScope, FindingCategory, ReviewFinding, ReviewPacket,
+};
 use crate::review::summary::{ReviewSummary, summary_severity_label};
 
 struct AuthoredSectionSpec<'a> {
@@ -2459,7 +2461,7 @@ pub fn render_pr_review_artifact(
             },
         ),
         "conventional-comments.md" => format!(
-            "# Conventional Comments\n\n## Summary\n\nReviewer-facing conventional comments derived from {} persisted finding(s) for `{}` against `{}`.\n\n## Evidence Posture\n\n- Comment kinds are deterministically mapped from persisted review findings.\n- Entries remain surface-scoped and do not fabricate line-level anchors.\n- Approval posture remains anchored by `review-summary.md`.\n\n## Conventional Comments\n\n{}\n\n## Traceability\n\n- Review summary status: `{}`\n- Changed surfaces: {}\n- Source packet: `review-summary.md` and `pr-analysis.md`\n",
+            "# Conventional Comments\n\n## Summary\n\nReviewer-facing conventional comments derived from {} persisted finding(s) for `{}` against `{}`.\n\n## Evidence Posture\n\n- Comment kinds are deterministically mapped from persisted review findings.\n- Each entry carries an explicit scope: `pr` (whole-PR), `file` (multi-type surfaces), or `surface` (single-type surface group).\n- Scope is derived deterministically from the finding's changed surfaces and does not fabricate line-level anchors.\n- Approval posture remains anchored by `review-summary.md`.\n\n## Conventional Comments\n\n{}\n\n## Traceability\n\n- Review summary status: `{}`\n- Changed surfaces: {}\n- Source packet: `review-summary.md` and `pr-analysis.md`\n",
             packet.findings.len(),
             packet.head_ref,
             packet.base_ref,
@@ -2694,27 +2696,35 @@ fn render_findings(findings: &[&ReviewFinding], empty_message: &str) -> String {
 
 fn render_conventional_comments(packet: &ReviewPacket) -> String {
     if packet.findings.is_empty() {
-        return "- thought: No findings were recorded for this review packet.".to_string();
+        return "- thought(scope:pr): No findings were recorded for this review packet."
+            .to_string();
     }
 
-    packet
-        .findings
-        .iter()
-        .map(|finding| {
-            format!(
-                "- {}: {}\n  - Why: {}\n  - Surfaces: {}",
-                finding.conventional_comment_kind(),
-                finding.title,
-                finding.details,
-                if finding.changed_surfaces.is_empty() {
-                    "none".to_string()
-                } else {
-                    finding.changed_surfaces.join(", ")
-                }
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
+    packet.findings.iter().map(render_conventional_comment_entry).collect::<Vec<_>>().join("\n")
+}
+
+fn render_conventional_comment_entry(finding: &ReviewFinding) -> String {
+    let scope = finding.scope.as_str();
+    let surfaces = if finding.changed_surfaces.is_empty() {
+        "none".to_string()
+    } else {
+        finding.changed_surfaces.join(", ")
+    };
+    let scope_detail = match finding.scope {
+        ConventionalCommentScope::Pr => String::new(),
+        ConventionalCommentScope::File | ConventionalCommentScope::Surface => {
+            format!("\n  - Scope surfaces: {surfaces}")
+        }
+    };
+    format!(
+        "- {}(scope:{}): {}\n  - Why: {}\n  - Surfaces: {}{}",
+        finding.conventional_comment_kind(),
+        scope,
+        finding.title,
+        finding.details,
+        surfaces,
+        scope_detail,
+    )
 }
 
 fn ownership_breaks(packet: &ReviewPacket) -> String {
@@ -3023,7 +3033,9 @@ mod tests {
         render_review_artifact, render_system_shaping_artifact, render_verification_artifact,
     };
     use crate::domain::run::{BacklogGranularity, BacklogPlanningContext, ClosureAssessment};
-    use crate::review::findings::{FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket};
+    use crate::review::findings::{
+        ConventionalCommentScope, FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket,
+    };
     use crate::review::summary::{ReviewDisposition, ReviewSummary};
 
     fn sample_backlog_planning_context() -> BacklogPlanningContext {
@@ -3179,6 +3191,7 @@ mod tests {
                     severity: FindingSeverity::MustFix,
                     title: "Contract-facing files changed".to_string(),
                     details: "Compatibility drift needs explicit reviewer acceptance.".to_string(),
+                    scope: ConventionalCommentScope::Surface,
                     changed_surfaces: vec!["contracts/public-api.json".to_string()],
                 },
                 ReviewFinding {
@@ -3186,6 +3199,7 @@ mod tests {
                     severity: FindingSeverity::Note,
                     title: "Decision note".to_string(),
                     details: "A broader acceptance note should be recorded.".to_string(),
+                    scope: ConventionalCommentScope::Surface,
                     changed_surfaces: vec!["contracts/public-api.json".to_string()],
                 },
             ],
@@ -3211,12 +3225,97 @@ mod tests {
         assert!(contract.contains(
             "Compatibility risk remains explicit until reviewer disposition is recorded."
         ));
-        assert!(conventional_comments.contains("issue:"));
-        assert!(conventional_comments.contains("thought:"));
+        assert!(conventional_comments.contains("issue(scope:"));
+        assert!(conventional_comments.contains("thought(scope:"));
         assert!(conventional_comments.contains("contracts/public-api.json"));
         assert!(summary.contains("Overall severity: must-fix"));
         assert!(summary.contains("Status: accepted-with-approval"));
         assert!(summary.contains("- Decision note"));
+    }
+
+    #[test]
+    fn render_conventional_comments_includes_scope_annotation() {
+        let packet = ReviewPacket::from_diff(
+            "main",
+            "HEAD",
+            vec!["contracts/public-api.json".to_string()],
+            "@@ -1 +1 @@\n-a\n+b\n",
+        );
+        let summary = crate::review::summary::ReviewSummary::from_packet(&packet, false);
+        let output = render_pr_review_artifact("conventional-comments.md", &packet, &summary);
+        // Each entry should carry a scope annotation in the kind label.
+        assert!(output.contains("scope:"), "scope annotation missing from output:\n{output}");
+    }
+
+    #[test]
+    fn render_conventional_comments_pr_scope_when_no_surfaces() {
+        let packet = ReviewPacket {
+            base_ref: "main".to_string(),
+            head_ref: "HEAD".to_string(),
+            changed_surfaces: vec![],
+            inferred_intent: "No surfaces detected.".to_string(),
+            surprising_surface_area: vec![],
+            findings: vec![ReviewFinding {
+                category: FindingCategory::DuplicationCheck,
+                severity: FindingSeverity::Note,
+                title: "PR-level note".to_string(),
+                details: "No surfaces, applies at PR level.".to_string(),
+                scope: ConventionalCommentScope::Pr,
+                changed_surfaces: vec![],
+            }],
+        };
+        let summary = crate::review::summary::ReviewSummary::from_packet(&packet, false);
+        let output = render_pr_review_artifact("conventional-comments.md", &packet, &summary);
+        assert!(output.contains("scope:pr"), "expected scope:pr in output:\n{output}");
+        // No scope surfaces line for Pr scope.
+        assert!(
+            !output.contains("Scope surfaces:"),
+            "unexpected Scope surfaces line for Pr scope:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_conventional_comments_surface_scope_lists_surfaces() {
+        use crate::review::findings::ConventionalCommentScope;
+        let packet = ReviewPacket {
+            base_ref: "main".to_string(),
+            head_ref: "HEAD".to_string(),
+            changed_surfaces: vec!["contracts/api.json".to_string()],
+            inferred_intent: "Contract change.".to_string(),
+            surprising_surface_area: vec![],
+            findings: vec![ReviewFinding {
+                category: FindingCategory::ContractDrift,
+                severity: FindingSeverity::MustFix,
+                title: "Contract drift".to_string(),
+                details: "API surface drifted.".to_string(),
+                scope: ConventionalCommentScope::Surface,
+                changed_surfaces: vec!["contracts/api.json".to_string()],
+            }],
+        };
+        let summary = crate::review::summary::ReviewSummary::from_packet(&packet, false);
+        let output = render_pr_review_artifact("conventional-comments.md", &packet, &summary);
+        assert!(output.contains("scope:surface"), "expected scope:surface in output:\n{output}");
+        assert!(
+            output.contains("Scope surfaces: contracts/api.json"),
+            "expected Scope surfaces in output:\n{output}"
+        );
+    }
+
+    #[test]
+    fn conventional_comments_evidence_posture_mentions_scope_model() {
+        let packet = ReviewPacket::from_diff(
+            "main",
+            "HEAD",
+            vec!["src/lib.rs".to_string(), "tests/lib_test.rs".to_string()],
+            "@@ -1 +1 @@\n-a\n+b\n",
+        );
+        let summary = crate::review::summary::ReviewSummary::from_packet(&packet, false);
+        let output = render_pr_review_artifact("conventional-comments.md", &packet, &summary);
+        assert!(output.contains("scope"), "evidence posture should mention scope:\n{output}");
+        assert!(
+            !output.contains("Entries remain surface-scoped"),
+            "old posture text should be updated:\n{output}"
+        );
     }
 
     #[test]
