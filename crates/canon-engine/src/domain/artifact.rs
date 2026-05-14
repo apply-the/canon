@@ -5,7 +5,18 @@ use serde::{Deserialize, Serialize};
 use crate::domain::execution::EvidenceDisposition;
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
+use crate::domain::publish_profile::ExpertiseInputMetadata;
 use crate::domain::verification::VerificationLayer;
+
+pub const VIEW_MANIFEST_FILE_NAME: &str = "view-manifest.json";
+pub const RUNTIME_PACKET_METADATA_FILE_NAME: &str = "packet-metadata.json";
+pub const PR_ANALYSIS_ARTIFACT_SLUG: &str = "pr-analysis.md";
+pub const REVIEW_SUMMARY_ARTIFACT_SLUG: &str = "review-summary.md";
+pub const CONVENTIONAL_COMMENTS_ARTIFACT_SLUG: &str = "conventional-comments.md";
+pub const REPOSITORY_METADATA_DIRECTORY_NAME: &str = ".git";
+pub const CANON_RUNTIME_DIRECTORY_NAME: &str = ".canon";
+pub const BUILD_OUTPUT_DIRECTORY_NAME: &str = "target";
+pub const DEPENDENCY_DIRECTORY_NAME: &str = "node_modules";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArtifactFormat {
@@ -56,7 +67,39 @@ pub fn prefixed_artifact_name(ordinal: usize, slug: &str) -> String {
 /// body artifacts but are excluded from ordering, primary-artifact resolution, and
 /// consumer-facing packet listings.
 pub fn is_packet_sidecar(file_name: &str) -> bool {
-    matches!(artifact_slug(file_name), "view-manifest.json" | "packet-metadata.json")
+    matches!(artifact_slug(file_name), VIEW_MANIFEST_FILE_NAME | RUNTIME_PACKET_METADATA_FILE_NAME)
+}
+
+pub fn is_special_repository_directory(name: &str) -> bool {
+    matches!(
+        name,
+        REPOSITORY_METADATA_DIRECTORY_NAME
+            | CANON_RUNTIME_DIRECTORY_NAME
+            | BUILD_OUTPUT_DIRECTORY_NAME
+            | DEPENDENCY_DIRECTORY_NAME
+    )
+}
+
+pub fn should_skip_repo_scan_directory(name: &str) -> bool {
+    name.starts_with('.') || matches!(name, BUILD_OUTPUT_DIRECTORY_NAME | DEPENDENCY_DIRECTORY_NAME)
+}
+
+/// Metadata sidecar persisted alongside every packet as `packet-metadata.json`.
+///
+/// Consumers use this file to reconstruct the canonical artifact sequence without
+/// inspecting raw filenames or relying on filesystem ordering.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct RuntimePacketMetadata {
+    #[serde(default)]
+    pub primary_artifact: String,
+    #[serde(default)]
+    pub artifact_order: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub publish_order: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub legacy_aliases: Option<std::collections::BTreeMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub expertise_input: Option<ExpertiseInputMetadata>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -148,7 +191,10 @@ pub struct ArtifactProvenance {
 
 #[cfg(test)]
 mod tests {
-    use super::{ArtifactFormat, ArtifactRecord, ArtifactRequirement, is_packet_sidecar};
+    use super::{
+        ArtifactFormat, ArtifactRecord, ArtifactRequirement, RUNTIME_PACKET_METADATA_FILE_NAME,
+        VIEW_MANIFEST_FILE_NAME, is_packet_sidecar,
+    };
     use crate::domain::mode::Mode;
 
     fn sample_record(relative_path: &str) -> ArtifactRecord {
@@ -212,8 +258,8 @@ mod tests {
 
     #[test]
     fn is_packet_sidecar_recognizes_architecture_sidecars() {
-        assert!(is_packet_sidecar("view-manifest.json"));
-        assert!(is_packet_sidecar("packet-metadata.json"));
+        assert!(is_packet_sidecar(VIEW_MANIFEST_FILE_NAME));
+        assert!(is_packet_sidecar(RUNTIME_PACKET_METADATA_FILE_NAME));
         assert!(is_packet_sidecar("15-packet-metadata.json"));
         assert!(!is_packet_sidecar("container-view.mmd"));
     }

@@ -1,5 +1,6 @@
 use super::EngineService;
 use super::*;
+use crate::domain::artifact::RUNTIME_PACKET_METADATA_FILE_NAME;
 
 /// Render a single artifact for a `change`-family mode (`change`, `implementation`, `refactor`).
 ///
@@ -15,7 +16,7 @@ fn render_change_like_artifact(
     brief_summary: &str,
     default_owner: &str,
 ) -> Result<String, EngineError> {
-    if artifact_slug(file_name) == "packet-metadata.json" {
+    if artifact_slug(file_name) == RUNTIME_PACKET_METADATA_FILE_NAME {
         return Ok(packet_metadata_contents.to_string());
     }
 

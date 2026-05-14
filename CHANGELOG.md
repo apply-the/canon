@@ -15,6 +15,22 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.52.0] - 2026-05-14
+
+Delivered specs:
+
+- `specs/052-governed-expertise-inputs/`
+
+Highlights:
+
+- Added the governed expertise-input contract that classifies Canon
+  `domain-language` and `domain-model` output through a stable
+  `expertise_input` metadata carrier.
+- Kept Canon artifact-first by reusing existing publication semantics while
+  leaving runtime-role selection to Boundline.
+- Bumped workspace version to `0.52.0` across all crates and assistant plugin
+  manifests.
+
 ## [0.51.0] - 2026-05-14
 
 Delivered specs:

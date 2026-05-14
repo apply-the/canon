@@ -1,9 +1,14 @@
+use std::collections::BTreeSet;
+
 use serde::{Deserialize, Serialize};
+
+use crate::domain::mode::{GovernedExpertiseKind, Mode};
 
 pub const PROJECT_MEMORY_CONTRACT_VERSION: &str = "v1";
 pub const CANON_PRODUCER: &str = "canon";
 pub const PROJECT_MEMORY_MANAGED_BLOCK_MARKER: &str = "project-memory:managed";
 pub const PROJECT_MEMORY_PACKET_METADATA_FILE_NAME: &str = "packet-metadata.json";
+pub const GOVERNED_EXPERTISE_INPUT_CONTRACT_VERSION: &str = "v1";
 pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "contract_version",
     "producer",
@@ -115,9 +120,91 @@ impl std::fmt::Display for IndexableArtifactClass {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PublicationTargetClass {
+    Stable,
+    Pending,
+    Proposal,
+    Evidence,
+    Index,
+}
+
+impl PublicationTargetClass {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Stable => "stable",
+            Self::Pending => "pending",
+            Self::Proposal => "proposal",
+            Self::Evidence => "evidence",
+            Self::Index => "index",
+        }
+    }
+
+    pub fn for_publication(promotion: PromotionState, strategy: UpdateStrategy) -> Self {
+        match strategy {
+            UpdateStrategy::ProposalFiles => Self::Proposal,
+            UpdateStrategy::ManagedBlocks if promotion.targets_stable_surface() => Self::Stable,
+            UpdateStrategy::ManagedBlocks => Self::Pending,
+            UpdateStrategy::AppendOnlyIndex if promotion.targets_evidence_only() => Self::Evidence,
+            UpdateStrategy::AppendOnlyIndex if promotion.targets_pending_surface() => Self::Index,
+            UpdateStrategy::AppendOnlyIndex => Self::Pending,
+        }
+    }
+}
+
+impl std::fmt::Display for PublicationTargetClass {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExpertiseInputMetadata {
+    pub expertise_kind: GovernedExpertiseKind,
+    pub domain_families: Vec<String>,
+}
+
+impl ExpertiseInputMetadata {
+    pub fn new(
+        expertise_kind: GovernedExpertiseKind,
+        domain_families: Vec<String>,
+    ) -> Option<Self> {
+        let domain_families = normalize_domain_families(domain_families);
+        if domain_families.is_empty() {
+            None
+        } else {
+            Some(Self { expertise_kind, domain_families })
+        }
+    }
+
+    pub fn normalized(&self) -> Option<Self> {
+        Self::new(self.expertise_kind, self.domain_families.clone())
+    }
+}
+
+pub fn normalize_domain_families(domain_families: Vec<String>) -> Vec<String> {
+    let mut unique = BTreeSet::new();
+    for family in domain_families {
+        let trimmed = family.trim();
+        if !trimmed.is_empty() {
+            unique.insert(trimmed.to_string());
+        }
+    }
+    unique.into_iter().collect()
+}
+
+pub fn classify_governed_expertise_input(
+    mode: Mode,
+    domain_families: Vec<String>,
+) -> Option<ExpertiseInputMetadata> {
+    ExpertiseInputMetadata::new(mode.governed_expertise_kind()?, domain_families)
+}
+
 /// A publish profile determines how Canon routes governed output into
 /// project-visible surfaces.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum PublishProfile {
     /// Route output through the project-memory promotion policy.
     ProjectMemory,
@@ -269,7 +356,7 @@ pub struct LineageMetadata {
     #[serde(alias = "source_run")]
     pub source_ref: String,
     pub source_artifacts: Vec<String>,
-    pub promotion_state: String,
+    pub promotion_state: PromotionState,
     #[serde(alias = "published_at")]
     pub promoted_at: String,
     pub content_digest: String,
@@ -288,7 +375,7 @@ pub struct LineageMetadata {
     #[serde(skip_serializing_if = "Option::is_none", default, alias = "readiness")]
     pub packet_readiness: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default, alias = "profile")]
-    pub promotion_profile: Option<String>,
+    pub promotion_profile: Option<PublishProfile>,
 }
 
 impl LineageMetadata {
@@ -375,6 +462,14 @@ mod tests {
     }
 
     #[test]
+    fn publish_profile_serde_round_trip() {
+        let json = serde_json::to_string(&PublishProfile::ProjectMemory).unwrap();
+        assert_eq!(json, "\"project-memory\"");
+        let back: PublishProfile = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, PublishProfile::ProjectMemory);
+    }
+
+    #[test]
     fn indexable_artifact_classes_have_stable_carriers_and_rules() {
         let managed_surface = IndexableArtifactClass::ManagedSurface;
         assert_eq!(managed_surface.as_str(), "managed-surface");
@@ -420,7 +515,7 @@ mod tests {
             producer: CANON_PRODUCER.into(),
             source_ref: "canon-run:run-abc".into(),
             source_artifacts: vec!["artifact-1.md".into()],
-            promotion_state: "auto".into(),
+            promotion_state: PromotionState::Auto,
             promoted_at: "2026-05-13T00:00:00Z".into(),
             content_digest: "sha256:abc123".into(),
             mode: Some("architecture".into()),
@@ -430,7 +525,7 @@ mod tests {
             zone: Some("yellow".into()),
             approval_state: Some("approved".into()),
             packet_readiness: Some("complete".into()),
-            promotion_profile: Some("project-memory".into()),
+            promotion_profile: Some(PublishProfile::ProjectMemory),
         };
         let json = serde_json::to_string(&meta).unwrap();
         let back: LineageMetadata = serde_json::from_str(&json).unwrap();
@@ -456,8 +551,9 @@ mod tests {
         let back: LineageMetadata = serde_json::from_str(legacy_json).unwrap();
         assert_eq!(back.source_ref, "run-abc");
         assert_eq!(back.promoted_at, "2026-05-13T00:00:00Z");
+        assert_eq!(back.promotion_state, PromotionState::AutoIfApproved);
         assert_eq!(back.packet_readiness.as_deref(), Some("complete"));
-        assert_eq!(back.promotion_profile.as_deref(), Some("project-memory"));
+        assert_eq!(back.promotion_profile, Some(PublishProfile::ProjectMemory));
     }
 
     #[test]
@@ -548,5 +644,141 @@ mod tests {
         assert_eq!(json, "\"packet-metadata-sidecar\"");
         let back: ArtifactMetadataCarrier = serde_json::from_str(&json).unwrap();
         assert_eq!(back, ArtifactMetadataCarrier::PacketMetadataSidecar);
+    }
+
+    #[test]
+    fn metadata_and_publication_target_strings_are_stable() {
+        for (carrier, expected) in [
+            (ArtifactMetadataCarrier::ManagedSurfaceEnvelope, "managed-surface-envelope"),
+            (ArtifactMetadataCarrier::PacketMetadataSidecar, "packet-metadata-sidecar"),
+        ] {
+            assert_eq!(carrier.as_str(), expected);
+            assert_eq!(carrier.to_string(), expected);
+            assert!(!carrier.discovery_rule().is_empty());
+        }
+
+        for (artifact_class, expected, carrier) in [
+            (
+                IndexableArtifactClass::ManagedSurface,
+                "managed-surface",
+                ArtifactMetadataCarrier::ManagedSurfaceEnvelope,
+            ),
+            (
+                IndexableArtifactClass::ProposalArtifact,
+                "proposal-artifact",
+                ArtifactMetadataCarrier::PacketMetadataSidecar,
+            ),
+            (
+                IndexableArtifactClass::EvidenceBundle,
+                "evidence-bundle",
+                ArtifactMetadataCarrier::PacketMetadataSidecar,
+            ),
+            (
+                IndexableArtifactClass::IndexSurface,
+                "index-surface",
+                ArtifactMetadataCarrier::PacketMetadataSidecar,
+            ),
+        ] {
+            assert_eq!(artifact_class.as_str(), expected);
+            assert_eq!(artifact_class.to_string(), expected);
+            assert_eq!(artifact_class.metadata_carrier(), carrier);
+            assert_eq!(artifact_class.discovery_rule(), carrier.discovery_rule());
+        }
+
+        for (target_class, expected) in [
+            (PublicationTargetClass::Stable, "stable"),
+            (PublicationTargetClass::Pending, "pending"),
+            (PublicationTargetClass::Proposal, "proposal"),
+            (PublicationTargetClass::Evidence, "evidence"),
+            (PublicationTargetClass::Index, "index"),
+        ] {
+            assert_eq!(target_class.as_str(), expected);
+            assert_eq!(target_class.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn publication_target_class_maps_project_memory_outcomes() {
+        assert_eq!(
+            PublicationTargetClass::for_publication(
+                PromotionState::Auto,
+                UpdateStrategy::ManagedBlocks,
+            ),
+            PublicationTargetClass::Stable
+        );
+        assert_eq!(
+            PublicationTargetClass::for_publication(
+                PromotionState::PendingIndex,
+                UpdateStrategy::ManagedBlocks,
+            ),
+            PublicationTargetClass::Pending
+        );
+        assert_eq!(
+            PublicationTargetClass::for_publication(
+                PromotionState::PendingIndex,
+                UpdateStrategy::ProposalFiles,
+            ),
+            PublicationTargetClass::Proposal
+        );
+        assert_eq!(
+            PublicationTargetClass::for_publication(
+                PromotionState::EvidenceOnly,
+                UpdateStrategy::AppendOnlyIndex,
+            ),
+            PublicationTargetClass::Evidence
+        );
+        assert_eq!(
+            PublicationTargetClass::for_publication(
+                PromotionState::IndexOnly,
+                UpdateStrategy::AppendOnlyIndex,
+            ),
+            PublicationTargetClass::Index
+        );
+        assert_eq!(
+            PublicationTargetClass::for_publication(
+                PromotionState::Auto,
+                UpdateStrategy::AppendOnlyIndex,
+            ),
+            PublicationTargetClass::Pending
+        );
+    }
+
+    #[test]
+    fn expertise_input_metadata_normalizes_domain_families() {
+        let metadata = classify_governed_expertise_input(
+            Mode::DomainLanguage,
+            vec!["systems".to_string(), String::new(), "systems".to_string()],
+        )
+        .expect("supported expertise metadata");
+
+        assert_eq!(metadata.expertise_kind, GovernedExpertiseKind::DomainLanguage);
+        assert_eq!(metadata.domain_families, vec!["systems".to_string()]);
+        assert!(
+            classify_governed_expertise_input(Mode::Review, vec!["systems".to_string()]).is_none()
+        );
+        assert!(classify_governed_expertise_input(Mode::DomainModel, Vec::new()).is_none());
+
+        let unnormalized = ExpertiseInputMetadata {
+            expertise_kind: GovernedExpertiseKind::DomainModel,
+            domain_families: vec![
+                " bounded-contexts ".to_string(),
+                String::new(),
+                "bounded-contexts".to_string(),
+                "services".to_string(),
+            ],
+        };
+        assert_eq!(
+            unnormalized.normalized(),
+            Some(ExpertiseInputMetadata {
+                expertise_kind: GovernedExpertiseKind::DomainModel,
+                domain_families: vec!["bounded-contexts".to_string(), "services".to_string(),],
+            })
+        );
+
+        let empty = ExpertiseInputMetadata {
+            expertise_kind: GovernedExpertiseKind::DomainLanguage,
+            domain_families: vec!["   ".to_string()],
+        };
+        assert_eq!(empty.normalized(), None);
     }
 }

@@ -1,14 +1,18 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 -> 1.1.0
+Version change: 1.1.0 -> 1.2.0
 Modified principles:
-- None
+- Language Rules: expanded to ban magic literals in owned Rust logic and to
+  require typed serde models for stable serialization shapes
 Added sections:
-- Language Rules
+- None
 Removed sections:
 - None
 Templates requiring updates:
 - None
+Related docs updated:
+- updated: .agents/skills/canon-shared/references/rust-language-rules.md
+- updated: defaults/embedded-skills/canon-shared/references/rust-language-rules.md
 Follow-up TODOs:
 - None
 -->
@@ -23,7 +27,6 @@ control, and reliability. AI is a cognitive multiplier operating under
 constraints, not an autonomous decision-maker.
 
 ## Core Principles
-
 ### I. Method over prompting
 
 All work MUST follow an explicit method before execution begins. Every method
@@ -158,6 +161,18 @@ Compliance expectations are mandatory:
 - Rust code outside `main.rs`, `#[cfg(test)]` modules, and files under
   `tests/` MUST NOT introduce panic-prone control flow; failures and invariant
   breaks MUST surface as explicit error values or equivalent blocked states.
+- Rust code outside `main.rs`, `#[cfg(test)]` modules, and files under
+  `tests/` MUST NOT introduce magic strings or magic numbers in repository
+  logic, mode dispatch, protocol handling, persistence, configuration, CLI
+  contracts, or serialization paths. Reusable literals MUST be expressed
+  through named constants or typed enums/newtypes owned by the relevant module
+  or type.
+- When a serialized or deserialized shape is stable, Rust code outside
+  `main.rs`, `#[cfg(test)]` modules, and files under `tests/` MUST model it
+  with typed `struct` or `enum` definitions plus `serde` derives instead of ad
+  hoc `serde_json::Map` assembly, repeated raw field-name strings, or `json!`
+  object construction. Map-based serialization is valid only when the shape is
+  genuinely dynamic.
 - Rust `main.rs` entrypoints MAY panic when immediate process termination is
   the deliberate CLI behavior, but explicit exits remain preferred when
   practical.
@@ -192,4 +207,4 @@ Compliance review expectations are mandatory:
 - no work may be marked complete until validation evidence is recorded and
   independently reviewed when required
 
-**Version**: 1.1.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-05-13
+**Version**: 1.2.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-05-14

@@ -5,7 +5,9 @@ use canon_engine::EngineService;
 use canon_engine::domain::approval::ApprovalDecision;
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::publish_profile::PublishProfile;
 use canon_engine::domain::run::ClassificationProvenance;
+use canon_engine::orchestrator::publish::publish_run_with_profile;
 use canon_engine::orchestrator::service::RunRequest;
 use tempfile::TempDir;
 
@@ -785,6 +787,26 @@ fn domain_language_direct_run_exercises_service_summary_and_publish_paths() {
         Some("recommendation-only")
     );
 
+    let project_memory_publish = publish_run_with_profile(
+        workspace.path(),
+        &summary.run_id,
+        PublishProfile::ProjectMemory,
+        None,
+    )
+    .expect("project-memory publish should succeed");
+    assert_eq!(project_memory_publish.published_to, "docs/project/domain-language.md");
+
+    let metadata_path =
+        workspace.path().join("docs").join("project").join("domain-language.packet-metadata.json");
+    let metadata: serde_json::Value = serde_json::from_slice(
+        &fs::read(&metadata_path).expect("read project-memory domain-language metadata"),
+    )
+    .expect("parse domain-language project-memory metadata");
+    assert_eq!(metadata["publication_target_class"], "stable");
+    assert_eq!(metadata["expertise_input"]["expertise_kind"], "domain-language");
+    assert_eq!(metadata["expertise_input"]["domain_families"][0], "systems");
+    assert_eq!(metadata["lineage"]["promotion_state"], "auto");
+
     let published = service.publish(&summary.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&summary.run_id, "domain-language");
     assert!(published.published_to.ends_with(&format!("docs/domain/language/{leaf}")));
@@ -940,6 +962,26 @@ fn domain_model_direct_run_exercises_service_summary_json_and_publish_paths() {
         status.mode_result.as_ref().and_then(|result| result.execution_posture.as_deref()),
         Some("recommendation-only")
     );
+
+    let project_memory_publish = publish_run_with_profile(
+        workspace.path(),
+        &summary.run_id,
+        PublishProfile::ProjectMemory,
+        None,
+    )
+    .expect("project-memory publish should succeed");
+    assert_eq!(project_memory_publish.published_to, "docs/project/domain-model.md");
+
+    let metadata_path =
+        workspace.path().join("docs").join("project").join("domain-model.packet-metadata.json");
+    let metadata: serde_json::Value = serde_json::from_slice(
+        &fs::read(&metadata_path).expect("read project-memory domain-model metadata"),
+    )
+    .expect("parse domain-model project-memory metadata");
+    assert_eq!(metadata["publication_target_class"], "stable");
+    assert_eq!(metadata["expertise_input"]["expertise_kind"], "domain-model");
+    assert_eq!(metadata["expertise_input"]["domain_families"][0], "systems");
+    assert_eq!(metadata["lineage"]["promotion_state"], "auto");
 
     let published = service.publish(&summary.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&summary.run_id, "domain-model");
