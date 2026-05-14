@@ -157,7 +157,7 @@ impl EngineService {
             &run_id,
             request.mode,
             &artifact_contract.artifact_requirements,
-        );
+        )?;
 
         let artifacts = artifact_contract
             .artifact_requirements
@@ -416,9 +416,12 @@ impl EngineService {
             .collect::<Vec<_>>();
 
         let view_manifest_contents =
-            build_architecture_view_manifest(&selected_artifact_names, &context_summary);
-        let packet_metadata_contents =
-            build_architecture_packet_metadata(&run_id, &selected_artifact_names, &context_summary);
+            build_architecture_view_manifest(&selected_artifact_names, &context_summary)?;
+        let packet_metadata_contents = build_architecture_packet_metadata(
+            &run_id,
+            &selected_artifact_names,
+            &context_summary,
+        )?;
 
         let artifacts = artifact_contract
             .artifact_requirements
@@ -622,7 +625,7 @@ impl EngineService {
 fn build_architecture_view_manifest(
     selected_artifact_names: &[String],
     context_summary: &str,
-) -> String {
+) -> Result<String, EngineError> {
     let primary_artifact = architecture_packet_body_artifacts(selected_artifact_names)
         .into_iter()
         .next()
@@ -689,14 +692,16 @@ fn build_architecture_view_manifest(
         },
         "views": views,
     }))
-    .expect("serialize architecture view manifest")
+    .map_err(|error| {
+        EngineError::Validation(format!("architecture view manifest serialization failed: {error}"))
+    })
 }
 
 fn build_architecture_packet_metadata(
     run_id: &str,
     selected_artifact_names: &[String],
     context_summary: &str,
-) -> String {
+) -> Result<String, EngineError> {
     let artifact_order = architecture_packet_body_artifacts(selected_artifact_names);
     let primary_artifact =
         artifact_order.first().cloned().unwrap_or_else(|| "architecture-overview.md".to_string());
@@ -743,7 +748,11 @@ fn build_architecture_packet_metadata(
             ),
         },
     }))
-    .expect("serialize architecture packet metadata")
+    .map_err(|error| {
+        EngineError::Validation(format!(
+            "architecture packet metadata serialization failed: {error}"
+        ))
+    })
 }
 
 fn architecture_packet_body_artifacts(selected_artifact_names: &[String]) -> Vec<String> {
@@ -779,7 +788,10 @@ fn architecture_view_heading(file_name: &str) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::architecture_view_heading;
+    use super::{
+        architecture_view_heading, build_architecture_packet_metadata,
+        build_architecture_view_manifest,
+    };
 
     #[test]
     fn architecture_view_heading_returns_system_context_for_known_views() {
@@ -795,5 +807,50 @@ mod tests {
         assert_eq!(architecture_view_heading("unknown-view.md"), "System Context");
         assert_eq!(architecture_view_heading(""), "System Context");
         assert_eq!(architecture_view_heading("architecture-decisions.md"), "System Context");
+    }
+
+    #[test]
+    fn build_architecture_view_manifest_renders_json() {
+        let selected_artifact_names = vec![
+            "01-architecture-overview.md".to_string(),
+            "02-system-context.md".to_string(),
+            "03-system-context.mmd".to_string(),
+            "view-manifest.json".to_string(),
+            "packet-metadata.json".to_string(),
+        ];
+
+        let rendered = build_architecture_view_manifest(&selected_artifact_names, "")
+            .expect("view manifest should render");
+        let value: serde_json::Value = serde_json::from_str(&rendered).expect("view manifest json");
+
+        assert_eq!(value["primary_artifact"], "01-architecture-overview.md");
+        assert_eq!(value["views"][0]["view"], "system-context");
+        assert_eq!(value["views"][0]["included"], true);
+        assert_eq!(value["views"][0]["artifacts"][0], "02-system-context.md");
+    }
+
+    #[test]
+    fn build_architecture_packet_metadata_renders_json() {
+        let selected_artifact_names = vec![
+            "01-architecture-overview.md".to_string(),
+            "02-system-context.md".to_string(),
+            "03-system-context.mmd".to_string(),
+            "view-manifest.json".to_string(),
+            "packet-metadata.json".to_string(),
+        ];
+
+        let rendered = build_architecture_packet_metadata(
+            "R-architecture-test",
+            &selected_artifact_names,
+            "## System Context\n\nBounded architecture context.",
+        )
+        .expect("packet metadata should render");
+        let value: serde_json::Value =
+            serde_json::from_str(&rendered).expect("packet metadata json");
+
+        assert_eq!(value["packet_kind"], "architecture-visual-packet");
+        assert_eq!(value["run_id"], "R-architecture-test");
+        assert_eq!(value["primary_artifact"], "01-architecture-overview.md");
+        assert_eq!(value["included_views"][0], "System Context");
     }
 }

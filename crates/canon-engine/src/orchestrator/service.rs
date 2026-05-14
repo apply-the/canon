@@ -1703,7 +1703,12 @@ impl EngineService {
             )));
         }
 
-        let absolute_path = discovered.pop().expect("checked for a discovered patch");
+        let Some(absolute_path) = discovered.pop() else {
+            return Err(EngineError::Validation(
+                "expected exactly one bounded mutation payload after preflight selection"
+                    .to_string(),
+            ));
+        };
         let relative_path = self.persisted_input_path(&absolute_path);
         let patch = std::fs::read_to_string(&absolute_path)?;
         let changed_paths = parse_unified_diff_paths(&patch)?;
@@ -2747,12 +2752,12 @@ pub(super) fn packet_body_artifact_order(
 /// - `legacy_aliases` (omitted when empty): a map from bare slug to prefixed filename
 ///   enabling consumers to resolve unprefixed references.
 ///
-/// Serialization is infallible because the payload contains only `String` values.
+/// Build the machine-facing packet metadata sidecar for runtime-authored modes.
 pub(super) fn build_runtime_packet_metadata(
     run_id: &str,
     mode: Mode,
     artifact_requirements: &[ArtifactRequirement],
-) -> String {
+) -> Result<String, EngineError> {
     let artifact_order = packet_body_artifact_order(artifact_requirements);
     let primary_artifact = artifact_order.first().cloned().unwrap_or_default();
     let legacy_aliases = artifact_requirements
@@ -2778,8 +2783,9 @@ pub(super) fn build_runtime_packet_metadata(
         payload.insert("legacy_aliases".to_string(), serde_json::json!(legacy_aliases));
     }
 
-    serde_json::to_string_pretty(&serde_json::Value::Object(payload))
-        .expect("packet metadata serialization is infallible for string-only payload")
+    serde_json::to_string_pretty(&serde_json::Value::Object(payload)).map_err(|error| {
+        EngineError::Validation(format!("packet metadata serialization failed: {error}"))
+    })
 }
 
 fn collect_files_recursively(directory: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

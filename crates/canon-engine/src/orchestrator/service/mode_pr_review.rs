@@ -171,7 +171,7 @@ impl EngineService {
             &run_id,
             request.mode,
             &artifact_contract.artifact_requirements,
-        );
+        )?;
 
         let artifacts = artifact_contract
             .artifact_requirements

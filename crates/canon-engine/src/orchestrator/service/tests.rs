@@ -238,12 +238,11 @@ fn build_runtime_packet_metadata_emits_order_and_legacy_aliases() {
         },
     ];
 
-    let metadata: serde_json::Value = serde_json::from_str(&build_runtime_packet_metadata(
-        "R-test",
-        Mode::Requirements,
-        &requirements,
-    ))
-    .expect("packet metadata json");
+    let metadata_contents =
+        build_runtime_packet_metadata("R-test", Mode::Requirements, &requirements)
+            .expect("packet metadata should render");
+    let metadata: serde_json::Value =
+        serde_json::from_str(&metadata_contents).expect("packet metadata json");
 
     assert_eq!(metadata["run_id"], "R-test");
     assert_eq!(metadata["mode"], "requirements");

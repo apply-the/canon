@@ -39,6 +39,24 @@ fn render_review_like_artifact(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ReviewLikeMode {
+    Review,
+    Verification,
+}
+
+impl TryFrom<Mode> for ReviewLikeMode {
+    type Error = EngineError;
+
+    fn try_from(mode: Mode) -> Result<Self, Self::Error> {
+        match mode {
+            Mode::Review => Ok(Self::Review),
+            Mode::Verification => Ok(Self::Verification),
+            other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
+        }
+    }
+}
+
 impl EngineService {
     pub(super) fn run_review(
         &self,
@@ -78,26 +96,26 @@ impl EngineService {
         let evidence_path = format!("runs/{run_id}/evidence.toml");
         let context_summary =
             self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
+        let review_mode = ReviewLikeMode::try_from(request.mode)?;
 
         let (
             context_request_summary,
             generation_request_summary,
             critique_request_summary,
             validation_request_summary,
-        ) = match request.mode {
-            Mode::Review => (
+        ) = match review_mode {
+            ReviewLikeMode::Review => (
                 "capture review packet context and authored evidence target",
                 "generate bounded review packet for a non-PR change package",
                 "critique review findings, evidence gaps, and disposition posture",
                 "validate review evidence against the repository surface",
             ),
-            Mode::Verification => (
+            ReviewLikeMode::Verification => (
                 "capture verification target context and authored evidence basis",
                 "generate bounded verification challenge packet",
                 "critique supported claims, contradictions, and unresolved findings",
                 "validate verification evidence against the repository surface",
             ),
-            other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
         };
 
         let context_request = self.governed_request(GovernedRequestSpec {
@@ -147,10 +165,9 @@ impl EngineService {
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
         let copilot = CopilotCliAdapter;
-        let generation_output = match request.mode {
-            Mode::Review => copilot.generate_review(&context_summary),
-            Mode::Verification => copilot.generate_verification(&context_summary),
-            _ => unreachable!("unsupported review-like mode"),
+        let generation_output = match review_mode {
+            ReviewLikeMode::Review => copilot.generate_review(&context_summary),
+            ReviewLikeMode::Verification => copilot.generate_verification(&context_summary),
         };
         let generation_attempt = self.completed_attempt(
             &generation_request,
@@ -184,10 +201,11 @@ impl EngineService {
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
-        let critique_output = match request.mode {
-            Mode::Review => copilot.critique_review(&generation_output.summary),
-            Mode::Verification => copilot.critique_verification(&generation_output.summary),
-            _ => unreachable!("unsupported review-like mode"),
+        let critique_output = match review_mode {
+            ReviewLikeMode::Review => copilot.critique_review(&generation_output.summary),
+            ReviewLikeMode::Verification => {
+                copilot.critique_verification(&generation_output.summary)
+            }
         };
         let critique_attempt = self.completed_attempt(
             &critique_request,
@@ -260,12 +278,15 @@ impl EngineService {
             &run_id,
             request.mode,
             &artifact_contract.artifact_requirements,
-        );
+        )?;
 
-        let artifact_disposition = match request.mode {
-            Mode::Review => crate::domain::execution::EvidenceDisposition::NeedsDisposition,
-            Mode::Verification => crate::domain::execution::EvidenceDisposition::Supporting,
-            _ => unreachable!("unsupported review-like mode"),
+        let artifact_disposition = match review_mode {
+            ReviewLikeMode::Review => {
+                crate::domain::execution::EvidenceDisposition::NeedsDisposition
+            }
+            ReviewLikeMode::Verification => {
+                crate::domain::execution::EvidenceDisposition::Supporting
+            }
         };
         let artifacts = artifact_contract
             .artifact_requirements
@@ -312,8 +333,8 @@ impl EngineService {
             .iter()
             .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
             .collect::<Vec<_>>();
-        let state = match request.mode {
-            Mode::Review => {
+        let state = match review_mode {
+            ReviewLikeMode::Review => {
                 let gates = gatekeeper::evaluate_review_gates(
                     &artifact_contract,
                     &gate_inputs,
@@ -328,7 +349,7 @@ impl EngineService {
                 let state = run_state_from_gates(&gates);
                 (state, gates)
             }
-            Mode::Verification => {
+            ReviewLikeMode::Verification => {
                 let gates = gatekeeper::evaluate_verification_gates(
                     &artifact_contract,
                     &gate_inputs,
@@ -344,7 +365,6 @@ impl EngineService {
                 let state = run_state_from_gates(&gates);
                 (state, gates)
             }
-            _ => unreachable!("unsupported review-like mode"),
         };
         let (state, gates) = state;
 
@@ -461,9 +481,17 @@ impl EngineService {
 
 #[cfg(test)]
 mod tests {
-    use super::render_review_like_artifact;
+    use super::{ReviewLikeMode, render_review_like_artifact};
     use crate::EngineError;
     use crate::domain::mode::Mode;
+
+    #[test]
+    fn review_like_mode_rejects_unsupported_modes() {
+        let error = ReviewLikeMode::try_from(Mode::Change)
+            .expect_err("unsupported modes should be rejected before dispatch");
+
+        assert!(matches!(error, EngineError::UnsupportedMode(mode) if mode == "change"));
+    }
 
     #[test]
     fn render_review_like_artifact_returns_packet_metadata_verbatim() {

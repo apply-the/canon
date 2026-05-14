@@ -319,16 +319,19 @@ fn handle_start(
 }
 
 fn handle_refresh(repo_root: &Path, request: GovernanceRequest) -> GovernanceResponse {
-    let run_ref = request.run_ref.clone();
     if let Err(response) = validate_request(repo_root, &request, GovernanceOperation::Refresh) {
         return *response;
     }
 
-    project_run_response(
-        repo_root,
-        non_empty(run_ref.as_deref()).expect("validated refresh requests always include run_ref"),
-        None,
-    )
+    let Some(run_ref) = non_empty(request.run_ref.as_deref()) else {
+        return GovernanceResponse::blocked(
+            "missing_required_field",
+            "request is missing required fields for domain execution",
+            vec!["run_ref".to_string()],
+        );
+    };
+
+    project_run_response(repo_root, run_ref, None)
 }
 
 fn validate_request(

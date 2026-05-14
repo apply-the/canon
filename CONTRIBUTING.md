@@ -23,6 +23,7 @@ guide instead.
 -`cargo-deny`
 - `cargo-nextest` if you want the same test runner used by the repository pre-push hook and blocking CI workflows
 - `cargo-llvm-cov` if you use the installed `pre-push` hook
+- `cargo-cyclonedx` if you want to generate the same CycloneDX SBOM artifacts used by the dedicated SBOM workflow
 - PowerShell (`pwsh`) for the PowerShell skill validator on macOS or Linux
 -If you are on Windows, you can install Cygwin to test Shell (`sh`) scripts.
 
@@ -88,6 +89,7 @@ Run these before opening or updating a pull request:
 ```bash
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
+sh scripts/check-rust-no-panic.sh
 cargo nextest run --workspace --all-features
 cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
 cargo test --workspace --all-features
@@ -96,7 +98,14 @@ git diff --check
 ```
 _Important!_ We accept zero warnings/errors policy with Clippy.
 
-After `./scripts/install-hooks.sh`, `pre-commit` runs `cargo fmt --all -- --check`; `pre-push` runs `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo nextest run --workspace --all-features`, and `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
+After `./scripts/install-hooks.sh`, `pre-commit` runs `cargo fmt --all -- --check`; `pre-push` runs `sh scripts/check-rust-no-panic.sh`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo nextest run --workspace --all-features`, and `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`.
+
+For the dedicated SBOM workflow, the matching local command is:
+
+```bash
+cargo install cargo-cyclonedx --locked
+cargo cyclonedx --manifest-path Cargo.toml --format json --all-features --target all --override-filename workspace-sbom
+```
 
 Validate Canon skill structure and shared runtime behavior:
 
