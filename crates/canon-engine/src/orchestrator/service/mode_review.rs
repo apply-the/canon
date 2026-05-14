@@ -494,6 +494,15 @@ mod tests {
     }
 
     #[test]
+    fn review_like_mode_accepts_supported_modes() {
+        assert!(matches!(ReviewLikeMode::try_from(Mode::Review), Ok(ReviewLikeMode::Review)));
+        assert!(matches!(
+            ReviewLikeMode::try_from(Mode::Verification),
+            Ok(ReviewLikeMode::Verification)
+        ));
+    }
+
+    #[test]
     fn render_review_like_artifact_returns_packet_metadata_verbatim() {
         let rendered = render_review_like_artifact(
             Mode::Review,

@@ -1962,6 +1962,21 @@ mod tests {
     }
 
     #[test]
+    fn write_managed_block_replaces_legacy_marker_without_end_marker() {
+        let workspace = tempdir().expect("temp workspace");
+        let target = workspace.path().join("legacy-open.md");
+        let legacy = "preface\n<!-- canon:managed-block:test:start -->\nold Canon data\n";
+        fs::write(&target, legacy).expect("write legacy");
+
+        super::write_managed_block(&target, "test", "new Canon data").expect("migrate block");
+        let result = fs::read_to_string(&target).expect("read migrated");
+        assert!(result.contains("preface"));
+        assert!(result.contains("project-memory:managed:start"));
+        assert!(result.contains("<!-- project-memory:managed:end -->"));
+        assert!(result.contains("new Canon data"));
+    }
+
+    #[test]
     fn write_proposal_file_emits_sidecar() {
         let workspace = tempdir().expect("temp workspace");
         let dest = workspace.path().join("proposals");
@@ -1997,6 +2012,35 @@ mod tests {
     }
 
     #[test]
+    fn write_proposal_file_uses_unknown_placeholders_for_missing_optional_lineage_fields() {
+        let workspace = tempdir().expect("temp workspace");
+        let dest = workspace.path().join("proposals");
+        let lineage = super::LineageMetadata {
+            contract_version: "v1".into(),
+            producer: "canon".into(),
+            source_ref: "canon-run:R-test".into(),
+            source_artifacts: vec!["artifact.md".into()],
+            promotion_state: "pending-index".into(),
+            promoted_at: "2026-05-13T00:00:00Z".into(),
+            content_digest: "sha256:abc123".into(),
+            mode: None,
+            stage: None,
+            owner: None,
+            risk: None,
+            zone: None,
+            approval_state: None,
+            packet_readiness: None,
+            promotion_profile: None,
+        };
+
+        let path = super::write_proposal_file(&dest, "decision-record.md", "# Proposal", &lineage)
+            .expect("write proposal");
+        let content = fs::read_to_string(&path).expect("read proposal");
+        assert!(content.contains("Canon proposal from canon-run:R-test (unknown-mode)"));
+        assert!(content.contains("promotion_state: pending-index | profile: unknown-profile"));
+    }
+
+    #[test]
     fn content_digest_for_artifacts_is_stable_for_same_inputs() {
         let artifacts = vec![
             markdown_artifact(
@@ -2018,6 +2062,35 @@ mod tests {
 
         assert_eq!(first, second);
         assert!(first.starts_with("sha256:"));
+    }
+
+    #[test]
+    fn content_digest_for_artifacts_ignores_publish_metadata_sidecar() {
+        let artifacts = vec![
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                "product-context.md",
+                "# Product Context\n\nBounded summary.\n",
+            ),
+            markdown_artifact(
+                "R-test",
+                Mode::Requirements,
+                PUBLISH_METADATA_FILE_NAME,
+                "{\"ignored\":true}\n",
+            ),
+        ];
+        let without_sidecar = vec![markdown_artifact(
+            "R-test",
+            Mode::Requirements,
+            "product-context.md",
+            "# Product Context\n\nBounded summary.\n",
+        )];
+
+        assert_eq!(
+            super::content_digest_for_artifacts(&artifacts),
+            super::content_digest_for_artifacts(&without_sidecar)
+        );
     }
 
     #[test]

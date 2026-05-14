@@ -827,6 +827,16 @@ mod tests {
         assert_eq!(value["views"][0]["view"], "system-context");
         assert_eq!(value["views"][0]["included"], true);
         assert_eq!(value["views"][0]["artifacts"][0], "02-system-context.md");
+        assert_eq!(value["views"][1]["required"], true);
+        assert_eq!(
+            value["views"][1]["reason"],
+            "No `## Containers` section was authored; Canon emitted an explicit omission artifact instead."
+        );
+        assert_eq!(value["views"][3]["required"], false);
+        assert_eq!(
+            value["views"][3]["reason"],
+            "No `## Components` section was authored; this optional view was omitted from the packet."
+        );
     }
 
     #[test]
@@ -852,5 +862,8 @@ mod tests {
         assert_eq!(value["run_id"], "R-architecture-test");
         assert_eq!(value["primary_artifact"], "01-architecture-overview.md");
         assert_eq!(value["included_views"][0], "System Context");
+        assert_eq!(value["source_context"]["system_context_authored"], true);
+        assert_eq!(value["source_context"]["container_view_authored"], false);
+        assert_eq!(value["source_context"]["deployment_view_authored"], false);
     }
 }

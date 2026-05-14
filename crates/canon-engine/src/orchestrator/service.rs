@@ -1703,12 +1703,12 @@ impl EngineService {
             )));
         }
 
-        let Some(absolute_path) = discovered.pop() else {
-            return Err(EngineError::Validation(
+        let absolute_path = discovered.pop().ok_or_else(|| {
+            EngineError::Validation(
                 "expected exactly one bounded mutation payload after preflight selection"
                     .to_string(),
-            ));
-        };
+            )
+        })?;
         let relative_path = self.persisted_input_path(&absolute_path);
         let patch = std::fs::read_to_string(&absolute_path)?;
         let changed_paths = parse_unified_diff_paths(&patch)?;

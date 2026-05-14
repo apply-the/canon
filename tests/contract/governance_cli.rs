@@ -156,3 +156,39 @@ fn governance_refresh_returns_failed_outcome_for_unknown_run_ref() {
     assert_eq!(json["reason_code"], "run_not_found");
     assert_eq!(json["run_ref"], "R-20260502-deadbeef");
 }
+
+#[test]
+fn governance_refresh_blocks_when_run_ref_is_missing() {
+    let workspace = TempDir::new().expect("temp dir");
+    let workspace_ref = workspace.path().to_string_lossy().into_owned();
+    let request = serde_json::json!({
+        "request_kind": "refresh",
+        "governance_attempt_id": "ga-003",
+        "stage_key": "verification",
+        "goal": "Refresh the governed packet",
+        "workspace_ref": workspace_ref,
+        "mode": "verification",
+        "system_context": "existing",
+        "risk": "bounded-impact",
+        "zone": "yellow",
+        "owner": "staff-engineer"
+    });
+
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args(["governance", "refresh", "--json"])
+        .write_stdin(request.to_string())
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let json: serde_json::Value = serde_json::from_slice(&output).expect("refresh json");
+
+    assert_eq!(json["adapter_schema_version"], "v1");
+    assert_eq!(json["status"], "blocked");
+    assert_eq!(json["approval_state"], "not_needed");
+    assert_eq!(json["reason_code"], "missing_required_field");
+    assert_eq!(json["missing_fields"], serde_json::json!(["run_ref"]));
+}
