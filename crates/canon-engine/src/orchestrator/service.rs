@@ -23,7 +23,8 @@ use crate::artifacts::markdown::{
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
 use crate::domain::artifact::{
-    ArtifactRecord, ArtifactRequirement, artifact_slug, is_packet_sidecar,
+    ArtifactRecord, ArtifactRequirement, RuntimePacketMetadata, artifact_slug, is_packet_sidecar,
+    is_special_repository_directory,
 };
 use crate::domain::execution::{
     DeniedInvocation, EvidenceBundle, ExecutionPosture, GenerationPath, InvocationAttempt,
@@ -347,6 +348,42 @@ pub struct AuthoringLifecycleSummary {
     pub supporting_inputs: Vec<String>,
     pub readiness_delta: Vec<String>,
     pub next_authoring_step: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PacketShape {
+    DirectoryBacked,
+    SingleFile,
+    MultiInput,
+}
+
+impl PacketShape {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::DirectoryBacked => "directory-backed",
+            Self::SingleFile => "single-file",
+            Self::MultiInput => "multi-input",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AuthorityStatus {
+    ExplicitAuthoritativeBrief,
+    SingleInputAuthoritativeBrief,
+    DerivedAuthoritativeInput,
+    AmbiguousCurrentBrief,
+}
+
+impl AuthorityStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ExplicitAuthoritativeBrief => "explicit-authoritative-brief",
+            Self::SingleInputAuthoritativeBrief => "single-input-authoritative-brief",
+            Self::DerivedAuthoritativeInput => "derived-authoritative-input",
+            Self::AmbiguousCurrentBrief => "ambiguous-current-brief",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -1808,7 +1845,7 @@ impl EngineService {
                 let file_name = entry.file_name();
                 let name = file_name.to_string_lossy();
 
-                if name == ".git" || name == ".canon" || name == "target" {
+                if is_special_repository_directory(&name) {
                     continue;
                 }
 
@@ -2511,13 +2548,12 @@ impl EngineService {
                 .iter()
                 .all(|path| path == &directory_roots[0] || path.starts_with(&directory_roots[0]))
         {
-            "directory-backed"
+            PacketShape::DirectoryBacked
         } else if resolved_inputs.len() == 1 && resolved_inputs[0].is_file() {
-            "single-file"
+            PacketShape::SingleFile
         } else {
-            "multi-input"
-        }
-        .to_string();
+            PacketShape::MultiInput
+        };
 
         let normalized_source_inputs =
             source_inputs.iter().cloned().collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>();
@@ -2548,18 +2584,17 @@ impl EngineService {
             .iter()
             .any(|path| Self::authored_input_name(path) == Some("brief.md"))
         {
-            "explicit-authoritative-brief"
-        } else if packet_shape == "single-file" && !authoritative_inputs.is_empty() {
-            "single-input-authoritative-brief"
+            AuthorityStatus::ExplicitAuthoritativeBrief
+        } else if packet_shape == PacketShape::SingleFile && !authoritative_inputs.is_empty() {
+            AuthorityStatus::SingleInputAuthoritativeBrief
         } else if !authoritative_inputs.is_empty() {
-            "derived-authoritative-input"
+            AuthorityStatus::DerivedAuthoritativeInput
         } else {
-            "ambiguous-current-brief"
-        }
-        .to_string();
+            AuthorityStatus::AmbiguousCurrentBrief
+        };
 
         let mut readiness_delta = Vec::new();
-        if authority_status == "ambiguous-current-brief" {
+        if authority_status == AuthorityStatus::AmbiguousCurrentBrief {
             readiness_delta.push(
                 "Canon could not identify one authoritative current-mode brief from the supplied inputs; add `brief.md` or reduce the packet to one clear readiness brief."
                     .to_string(),
@@ -2573,7 +2608,8 @@ impl EngineService {
             ));
         }
         if !supporting_inputs.is_empty()
-            && (authority_status == "ambiguous-current-brief" || !missing_context.is_empty())
+            && (authority_status == AuthorityStatus::AmbiguousCurrentBrief
+                || !missing_context.is_empty())
         {
             readiness_delta.push(
                 "Supporting inputs are present, but they do not replace the current-mode brief Canon uses for readiness."
@@ -2581,7 +2617,7 @@ impl EngineService {
             );
         }
 
-        let next_authoring_step = if authority_status == "ambiguous-current-brief" {
+        let next_authoring_step = if authority_status == AuthorityStatus::AmbiguousCurrentBrief {
             "Tighten the packet so one current-mode brief is authoritative before relying on the supporting files.".to_string()
         } else if !missing_context.is_empty() {
             "Strengthen the authoritative brief by resolving the named missing-context items before starting the governed run.".to_string()
@@ -2597,8 +2633,8 @@ impl EngineService {
         };
 
         AuthoringLifecycleSummary {
-            packet_shape,
-            authority_status,
+            packet_shape: packet_shape.as_str().to_string(),
+            authority_status: authority_status.as_str().to_string(),
             authoritative_inputs,
             supporting_inputs,
             readiness_delta,
@@ -2769,21 +2805,27 @@ pub(super) fn build_runtime_packet_metadata(
         })
         .collect::<std::collections::BTreeMap<_, _>>();
 
-    let mut payload = serde_json::Map::new();
-    payload.insert("run_id".to_string(), serde_json::Value::String(run_id.to_string()));
-    payload.insert("mode".to_string(), serde_json::Value::String(mode.as_str().to_string()));
-    payload.insert("primary_artifact".to_string(), serde_json::Value::String(primary_artifact));
-    payload.insert(
-        "artifact_order".to_string(),
-        serde_json::Value::Array(
-            artifact_order.into_iter().map(serde_json::Value::String).collect(),
-        ),
-    );
-    if !legacy_aliases.is_empty() {
-        payload.insert("legacy_aliases".to_string(), serde_json::json!(legacy_aliases));
+    #[derive(Serialize)]
+    struct RuntimePacketMetadataEnvelope<'a> {
+        run_id: &'a str,
+        mode: &'a str,
+        #[serde(flatten)]
+        metadata: RuntimePacketMetadata,
     }
 
-    serde_json::to_string_pretty(&serde_json::Value::Object(payload)).map_err(|error| {
+    let payload = RuntimePacketMetadataEnvelope {
+        run_id,
+        mode: mode.as_str(),
+        metadata: RuntimePacketMetadata {
+            primary_artifact,
+            artifact_order,
+            publish_order: None,
+            legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
+            expertise_input: None,
+        },
+    };
+
+    serde_json::to_string_pretty(&payload).map_err(|error| {
         EngineError::Validation(format!("packet metadata serialization failed: {error}"))
     })
 }

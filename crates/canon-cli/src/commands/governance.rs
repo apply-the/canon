@@ -20,19 +20,85 @@ use crate::output;
 
 const ADAPTER_SCHEMA_VERSION: &str = "v1";
 const OPERATIONS: [&str; 3] = ["start", "refresh", "capabilities"];
-const STATUS_VALUES: [&str; 7] = [
-    "pending_selection",
-    "running",
-    "governed_ready",
-    "awaiting_approval",
-    "blocked",
-    "completed",
-    "failed",
+const STATUS_VALUES: [GovernanceStatus; 7] = [
+    GovernanceStatus::PendingSelection,
+    GovernanceStatus::Running,
+    GovernanceStatus::GovernedReady,
+    GovernanceStatus::AwaitingApproval,
+    GovernanceStatus::Blocked,
+    GovernanceStatus::Completed,
+    GovernanceStatus::Failed,
 ];
-const APPROVAL_STATE_VALUES: [&str; 5] =
-    ["not_needed", "requested", "granted", "rejected", "expired"];
-const PACKET_READINESS_VALUES: [&str; 4] = ["pending", "incomplete", "reusable", "rejected"];
+const APPROVAL_STATE_VALUES: [ApprovalState; 5] = [
+    ApprovalState::NotNeeded,
+    ApprovalState::Requested,
+    ApprovalState::Granted,
+    ApprovalState::Rejected,
+    ApprovalState::Expired,
+];
+const PACKET_READINESS_VALUES: [PacketReadiness; 4] = [
+    PacketReadiness::Pending,
+    PacketReadiness::Incomplete,
+    PacketReadiness::Reusable,
+    PacketReadiness::Rejected,
+];
 type GovernanceFailure = Box<GovernanceResponse>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum GovernanceStatus {
+    PendingSelection,
+    Running,
+    GovernedReady,
+    AwaitingApproval,
+    Blocked,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ApprovalState {
+    NotNeeded,
+    Requested,
+    Granted,
+    Rejected,
+    Expired,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum PacketReadiness {
+    Pending,
+    Incomplete,
+    Reusable,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum GovernanceReasonCode {
+    ApprovalRequired,
+    ArtifactContractMissing,
+    ArtifactContractUnreadable,
+    BlockedByGovernance,
+    DomainValidationFailed,
+    IncompletePacket,
+    InputDocumentMissing,
+    MissingRequiredField,
+    PathOutsideWorkspace,
+    RejectedPacket,
+    RequestKindMismatch,
+    RunFailed,
+    RunNotFound,
+    RuntimeError,
+    UnsupportedMode,
+    UnsupportedRisk,
+    UnsupportedSystemContext,
+    UnsupportedZone,
+    WorkspaceMismatch,
+    WorkspaceUnavailable,
+}
 
 pub fn execute(
     service: &EngineService,
@@ -109,17 +175,17 @@ struct GovernanceCapabilitiesResponse {
     supported_schema_versions: [&'static str; 1],
     operations: [&'static str; 3],
     supported_modes: Vec<&'static str>,
-    status_values: [&'static str; 7],
-    approval_state_values: [&'static str; 5],
-    packet_readiness_values: [&'static str; 4],
+    status_values: [GovernanceStatus; 7],
+    approval_state_values: [ApprovalState; 5],
+    packet_readiness_values: [PacketReadiness; 4],
     compatibility_notes: [&'static str; 2],
 }
 
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 struct GovernanceResponse {
     adapter_schema_version: &'static str,
-    status: String,
-    approval_state: String,
+    status: GovernanceStatus,
+    approval_state: ApprovalState,
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     run_ref: Option<String>,
@@ -130,7 +196,7 @@ struct GovernanceResponse {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     document_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    packet_readiness: Option<String>,
+    packet_readiness: Option<PacketReadiness>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     missing_fields: Vec<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -138,15 +204,19 @@ struct GovernanceResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     headline: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    reason_code: Option<String>,
+    reason_code: Option<GovernanceReasonCode>,
 }
 
 impl GovernanceResponse {
-    fn blocked(reason_code: &str, message: impl Into<String>, missing_fields: Vec<String>) -> Self {
+    fn blocked(
+        reason_code: GovernanceReasonCode,
+        message: impl Into<String>,
+        missing_fields: Vec<String>,
+    ) -> Self {
         Self {
             adapter_schema_version: ADAPTER_SCHEMA_VERSION,
-            status: "blocked".to_string(),
-            approval_state: "not_needed".to_string(),
+            status: GovernanceStatus::Blocked,
+            approval_state: ApprovalState::NotNeeded,
             message: message.into(),
             run_ref: None,
             packet_ref: None,
@@ -156,15 +226,19 @@ impl GovernanceResponse {
             missing_fields,
             missing_sections: Vec::new(),
             headline: Some("Governance request is blocked".to_string()),
-            reason_code: Some(reason_code.to_string()),
+            reason_code: Some(reason_code),
         }
     }
 
-    fn failed(reason_code: &str, message: impl Into<String>, run_ref: Option<String>) -> Self {
+    fn failed(
+        reason_code: GovernanceReasonCode,
+        message: impl Into<String>,
+        run_ref: Option<String>,
+    ) -> Self {
         Self {
             adapter_schema_version: ADAPTER_SCHEMA_VERSION,
-            status: "failed".to_string(),
-            approval_state: "not_needed".to_string(),
+            status: GovernanceStatus::Failed,
+            approval_state: ApprovalState::NotNeeded,
             message: message.into(),
             run_ref,
             packet_ref: None,
@@ -174,7 +248,7 @@ impl GovernanceResponse {
             missing_fields: Vec::new(),
             missing_sections: Vec::new(),
             headline: Some("Governance request failed".to_string()),
-            reason_code: Some(reason_code.to_string()),
+            reason_code: Some(reason_code),
         }
     }
 }
@@ -199,11 +273,11 @@ struct ValidatedStartRequest {
 struct RunProjection {
     run_ref: String,
     run_state: RunState,
-    approval_state: String,
+    approval_state: ApprovalState,
     packet_ref: Option<String>,
     expected_document_refs: Vec<String>,
     document_refs: Vec<String>,
-    packet_readiness: Option<String>,
+    packet_readiness: Option<PacketReadiness>,
     missing_sections: Vec<String>,
 }
 
@@ -325,7 +399,7 @@ fn handle_refresh(repo_root: &Path, request: GovernanceRequest) -> GovernanceRes
 
     let Some(run_ref) = non_empty(request.run_ref.as_deref()) else {
         return GovernanceResponse::blocked(
-            "missing_required_field",
+            GovernanceReasonCode::MissingRequiredField,
             "request is missing required fields for domain execution",
             vec!["run_ref".to_string()],
         );
@@ -342,7 +416,7 @@ fn validate_request(
     let missing = missing_domain_fields(request, &operation);
     if !missing.is_empty() {
         return Err(Box::new(GovernanceResponse::blocked(
-            "missing_required_field",
+            GovernanceReasonCode::MissingRequiredField,
             "request is missing required fields for domain execution",
             missing,
         )));
@@ -355,7 +429,7 @@ fn validate_request(
     let request_kind = non_empty(request.request_kind.as_deref()).unwrap_or_default();
     if request_kind != expected_kind {
         return Err(Box::new(GovernanceResponse::blocked(
-            "request_kind_mismatch",
+            GovernanceReasonCode::RequestKindMismatch,
             format!(
                 "request_kind `{request_kind}` does not match the invoked `{expected_kind}` operation"
             ),
@@ -415,7 +489,7 @@ fn validate_workspace_binding(
 ) -> Result<(), GovernanceFailure> {
     let canonical_repo = canonical_repo_root(repo_root).map_err(|error| {
         Box::new(GovernanceResponse::failed(
-            "workspace_unavailable",
+            GovernanceReasonCode::WorkspaceUnavailable,
             format!("workspace is not accessible: {error}"),
             None,
         ))
@@ -423,7 +497,7 @@ fn validate_workspace_binding(
     let requested = resolve_request_path(repo_root, workspace_ref);
     let canonical_requested = requested.canonicalize().map_err(|_| {
         Box::new(GovernanceResponse::failed(
-            "workspace_unavailable",
+            GovernanceReasonCode::WorkspaceUnavailable,
             format!("workspace `{workspace_ref}` is not accessible"),
             None,
         ))
@@ -431,7 +505,7 @@ fn validate_workspace_binding(
 
     if canonical_requested != canonical_repo {
         return Err(Box::new(GovernanceResponse::blocked(
-            "workspace_mismatch",
+            GovernanceReasonCode::WorkspaceMismatch,
             "workspace_ref must bind to the current Canon workspace",
             vec!["workspace_ref".to_string()],
         )));
@@ -443,7 +517,7 @@ fn validate_workspace_binding(
 fn parse_mode(value: &str) -> Result<Mode, GovernanceFailure> {
     value.parse::<Mode>().map_err(|_| {
         Box::new(GovernanceResponse::blocked(
-            "unsupported_mode",
+            GovernanceReasonCode::UnsupportedMode,
             format!("mode `{value}` is not supported by Canon governance"),
             vec!["mode".to_string()],
         ))
@@ -453,7 +527,7 @@ fn parse_mode(value: &str) -> Result<Mode, GovernanceFailure> {
 fn parse_system_context(value: &str) -> Result<SystemContext, GovernanceFailure> {
     value.parse::<SystemContext>().map_err(|_| {
         Box::new(GovernanceResponse::blocked(
-            "unsupported_system_context",
+            GovernanceReasonCode::UnsupportedSystemContext,
             format!("system_context `{value}` is not supported by Canon governance"),
             vec!["system_context".to_string()],
         ))
@@ -463,7 +537,7 @@ fn parse_system_context(value: &str) -> Result<SystemContext, GovernanceFailure>
 fn parse_risk(value: &str) -> Result<RiskClass, GovernanceFailure> {
     value.parse::<RiskClass>().map_err(|_| {
         Box::new(GovernanceResponse::blocked(
-            "unsupported_risk",
+            GovernanceReasonCode::UnsupportedRisk,
             format!("risk `{value}` is not supported by Canon governance"),
             vec!["risk".to_string()],
         ))
@@ -473,7 +547,7 @@ fn parse_risk(value: &str) -> Result<RiskClass, GovernanceFailure> {
 fn parse_zone(value: &str) -> Result<UsageZone, GovernanceFailure> {
     value.parse::<UsageZone>().map_err(|_| {
         Box::new(GovernanceResponse::blocked(
-            "unsupported_zone",
+            GovernanceReasonCode::UnsupportedZone,
             format!("zone `{value}` is not supported by Canon governance"),
             vec!["zone".to_string()],
         ))
@@ -517,7 +591,7 @@ fn normalize_workspace_relative_ref(
 ) -> Result<String, GovernanceFailure> {
     let canonical_repo = canonical_repo_root(repo_root).map_err(|error| {
         Box::new(GovernanceResponse::failed(
-            "workspace_unavailable",
+            GovernanceReasonCode::WorkspaceUnavailable,
             format!("workspace is not accessible: {error}"),
             None,
         ))
@@ -525,7 +599,7 @@ fn normalize_workspace_relative_ref(
     let candidate = resolve_request_path(repo_root, reference);
     let canonical_candidate = candidate.canonicalize().map_err(|_| {
         Box::new(GovernanceResponse::blocked(
-            "input_document_missing",
+            GovernanceReasonCode::InputDocumentMissing,
             format!("document `{reference}` is not accessible inside the workspace"),
             vec!["input_documents".to_string()],
         ))
@@ -533,7 +607,7 @@ fn normalize_workspace_relative_ref(
 
     if !canonical_candidate.starts_with(&canonical_repo) {
         return Err(Box::new(GovernanceResponse::blocked(
-            "path_outside_workspace",
+            GovernanceReasonCode::PathOutsideWorkspace,
             format!("document `{reference}` escapes the declared workspace boundary"),
             vec!["input_documents".to_string()],
         )));
@@ -541,7 +615,7 @@ fn normalize_workspace_relative_ref(
 
     let relative = canonical_candidate.strip_prefix(&canonical_repo).map_err(|_| {
         Box::new(GovernanceResponse::blocked(
-            "path_outside_workspace",
+            GovernanceReasonCode::PathOutsideWorkspace,
             format!("document `{reference}` escapes the declared workspace boundary"),
             vec!["input_documents".to_string()],
         ))
@@ -560,16 +634,14 @@ fn project_run_response(
         Err(response) => return *response,
     };
 
-    let status = normalized_status(projection.run_state, projection.packet_readiness.as_deref());
-    let reason_code = response_reason_code(status, projection.packet_readiness.as_deref());
-    let headline =
-        headline_hint.or_else(|| default_headline(status, projection.packet_readiness.as_deref()));
-    let message =
-        default_message(status, &projection.run_ref, projection.packet_readiness.as_deref());
+    let status = normalized_status(projection.run_state, projection.packet_readiness);
+    let reason_code = response_reason_code(status, projection.packet_readiness);
+    let headline = headline_hint.or_else(|| default_headline(status, projection.packet_readiness));
+    let message = default_message(status, &projection.run_ref, projection.packet_readiness);
 
     GovernanceResponse {
         adapter_schema_version: ADAPTER_SCHEMA_VERSION,
-        status: status.to_string(),
+        status,
         approval_state: projection.approval_state,
         message,
         run_ref: Some(projection.run_ref),
@@ -591,21 +663,21 @@ fn load_run_projection(
     let store = WorkspaceStore::new(repo_root);
     let manifest = store.load_run_manifest(run_ref).map_err(|_| {
         Box::new(GovernanceResponse::failed(
-            "run_not_found",
+            GovernanceReasonCode::RunNotFound,
             format!("run `{run_ref}` was not found in this workspace"),
             Some(run_ref.to_string()),
         ))
     })?;
     let state = store.load_run_state(run_ref).map_err(|error| {
         Box::new(GovernanceResponse::failed(
-            "runtime_error",
+            GovernanceReasonCode::RuntimeError,
             format!("run `{run_ref}` state could not be loaded: {error}"),
             Some(run_ref.to_string()),
         ))
     })?;
     let approvals = store.load_approval_records(run_ref).map_err(|error| {
         Box::new(GovernanceResponse::failed(
-            "runtime_error",
+            GovernanceReasonCode::RuntimeError,
             format!("run `{run_ref}` approvals could not be loaded: {error}"),
             Some(run_ref.to_string()),
         ))
@@ -630,7 +702,7 @@ fn load_run_projection(
             Err(error) if error.kind() == ErrorKind::NotFound => (Vec::new(), true),
             Err(error) => {
                 return Err(Box::new(GovernanceResponse::failed(
-                    "artifact_contract_unreadable",
+                    GovernanceReasonCode::ArtifactContractUnreadable,
                     format!("run `{run_ref}` artifact contract could not be loaded: {error}"),
                     Some(run_ref.to_string()),
                 )));
@@ -640,7 +712,7 @@ fn load_run_projection(
     let document_refs = load_document_refs(&store, run_ref, manifest.mode, &expected_document_refs)
         .map_err(|error| {
             Box::new(GovernanceResponse::failed(
-                "runtime_error",
+                GovernanceReasonCode::RuntimeError,
                 format!("run `{run_ref}` artifacts could not be listed: {error}"),
                 Some(run_ref.to_string()),
             ))
@@ -648,7 +720,7 @@ fn load_run_projection(
 
     if artifact_contract_missing && !document_refs.is_empty() {
         return Err(Box::new(GovernanceResponse::failed(
-            "artifact_contract_missing",
+            GovernanceReasonCode::ArtifactContractMissing,
             format!("run `{run_ref}` artifacts are present but artifact contract is missing"),
             Some(run_ref.to_string()),
         )));
@@ -737,21 +809,21 @@ fn packet_readiness_value(
     document_refs: &[String],
     missing_refs: &[String],
     rejected_refs: &[String],
-) -> Option<String> {
+) -> Option<PacketReadiness> {
     if expected_document_refs.is_empty() && document_refs.is_empty() {
-        return Some("pending".to_string());
+        return Some(PacketReadiness::Pending);
     }
     if !rejected_refs.is_empty() {
-        return Some("rejected".to_string());
+        return Some(PacketReadiness::Rejected);
     }
     if !missing_refs.is_empty() {
-        return Some("incomplete".to_string());
+        return Some(PacketReadiness::Incomplete);
     }
     if !document_refs.is_empty() {
-        return Some("reusable".to_string());
+        return Some(PacketReadiness::Reusable);
     }
 
-    Some("pending".to_string())
+    Some(PacketReadiness::Pending)
 }
 
 fn packet_missing_sections(missing_refs: &[String], rejected_refs: &[String]) -> Vec<String> {
@@ -768,92 +840,115 @@ fn packet_missing_sections(missing_refs: &[String], rejected_refs: &[String]) ->
     sections
 }
 
-fn approval_state_value(run_state: RunState, any_approved: bool, any_rejected: bool) -> String {
+fn approval_state_value(
+    run_state: RunState,
+    any_approved: bool,
+    any_rejected: bool,
+) -> ApprovalState {
     if matches!(run_state, RunState::AwaitingApproval) {
-        return "requested".to_string();
+        return ApprovalState::Requested;
     }
     if any_rejected {
-        return "rejected".to_string();
+        return ApprovalState::Rejected;
     }
     if any_approved {
-        return "granted".to_string();
+        return ApprovalState::Granted;
     }
-    "not_needed".to_string()
+    ApprovalState::NotNeeded
 }
 
-fn normalized_status(run_state: RunState, packet_readiness: Option<&str>) -> &'static str {
+fn normalized_status(
+    run_state: RunState,
+    packet_readiness: Option<PacketReadiness>,
+) -> GovernanceStatus {
     match run_state {
         RunState::Draft
         | RunState::ContextCaptured
         | RunState::Classified
         | RunState::Contracted
-        | RunState::Gated => "pending_selection",
-        RunState::Executing | RunState::Verifying => "running",
-        RunState::AwaitingApproval => "awaiting_approval",
-        RunState::Blocked => "blocked",
+        | RunState::Gated => GovernanceStatus::PendingSelection,
+        RunState::Executing | RunState::Verifying => GovernanceStatus::Running,
+        RunState::AwaitingApproval => GovernanceStatus::AwaitingApproval,
+        RunState::Blocked => GovernanceStatus::Blocked,
         RunState::Completed => match packet_readiness {
-            Some("reusable") => "governed_ready",
-            Some("incomplete") | Some("rejected") => "blocked",
-            _ => "completed",
+            Some(PacketReadiness::Reusable) => GovernanceStatus::GovernedReady,
+            Some(PacketReadiness::Incomplete) | Some(PacketReadiness::Rejected) => {
+                GovernanceStatus::Blocked
+            }
+            _ => GovernanceStatus::Completed,
         },
-        RunState::Failed | RunState::Aborted | RunState::Superseded => "failed",
+        RunState::Failed | RunState::Aborted | RunState::Superseded => GovernanceStatus::Failed,
     }
 }
 
-fn response_reason_code(status: &str, packet_readiness: Option<&str>) -> Option<String> {
+fn response_reason_code(
+    status: GovernanceStatus,
+    packet_readiness: Option<PacketReadiness>,
+) -> Option<GovernanceReasonCode> {
     match status {
-        "awaiting_approval" => Some("approval_required".to_string()),
-        "blocked" => match packet_readiness {
-            Some("incomplete") => Some("incomplete_packet".to_string()),
-            Some("rejected") => Some("rejected_packet".to_string()),
-            _ => Some("blocked_by_governance".to_string()),
+        GovernanceStatus::AwaitingApproval => Some(GovernanceReasonCode::ApprovalRequired),
+        GovernanceStatus::Blocked => match packet_readiness {
+            Some(PacketReadiness::Incomplete) => Some(GovernanceReasonCode::IncompletePacket),
+            Some(PacketReadiness::Rejected) => Some(GovernanceReasonCode::RejectedPacket),
+            _ => Some(GovernanceReasonCode::BlockedByGovernance),
         },
-        "failed" => Some("run_failed".to_string()),
+        GovernanceStatus::Failed => Some(GovernanceReasonCode::RunFailed),
         _ => None,
     }
 }
 
-fn default_headline(status: &str, packet_readiness: Option<&str>) -> Option<String> {
+fn default_headline(
+    status: GovernanceStatus,
+    packet_readiness: Option<PacketReadiness>,
+) -> Option<String> {
     let headline = match status {
-        "governed_ready" => "Governed packet is reusable",
-        "awaiting_approval" => "Governed packet is waiting on approval",
-        "blocked" => match packet_readiness {
-            Some("incomplete") => "Governed packet is incomplete",
-            Some("rejected") => "Governed packet was rejected for downstream reuse",
+        GovernanceStatus::GovernedReady => "Governed packet is reusable",
+        GovernanceStatus::AwaitingApproval => "Governed packet is waiting on approval",
+        GovernanceStatus::Blocked => match packet_readiness {
+            Some(PacketReadiness::Incomplete) => "Governed packet is incomplete",
+            Some(PacketReadiness::Rejected) => "Governed packet was rejected for downstream reuse",
             _ => "Governance execution is blocked",
         },
-        "completed" => "Governance execution completed",
-        "running" => "Governance execution is still running",
-        "pending_selection" => "Governance execution is still selecting the next action",
-        "failed" => "Governance execution failed",
-        _ => return None,
+        GovernanceStatus::Completed => "Governance execution completed",
+        GovernanceStatus::Running => "Governance execution is still running",
+        GovernanceStatus::PendingSelection => {
+            "Governance execution is still selecting the next action"
+        }
+        GovernanceStatus::Failed => "Governance execution failed",
     };
 
     Some(headline.to_string())
 }
 
-fn default_message(status: &str, run_ref: &str, packet_readiness: Option<&str>) -> String {
+fn default_message(
+    status: GovernanceStatus,
+    run_ref: &str,
+    packet_readiness: Option<PacketReadiness>,
+) -> String {
     match status {
-        "governed_ready" => {
+        GovernanceStatus::GovernedReady => {
             format!("run `{run_ref}` produced a reusable governed packet")
         }
-        "awaiting_approval" => {
+        GovernanceStatus::AwaitingApproval => {
             format!("run `{run_ref}` is awaiting approval before downstream reuse")
         }
-        "blocked" => match packet_readiness {
-            Some("incomplete") => {
+        GovernanceStatus::Blocked => match packet_readiness {
+            Some(PacketReadiness::Incomplete) => {
                 format!("run `{run_ref}` is blocked because the governed packet is incomplete")
             }
-            Some("rejected") => {
+            Some(PacketReadiness::Rejected) => {
                 format!("run `{run_ref}` is blocked because the governed packet is not reusable")
             }
             _ => format!("run `{run_ref}` is blocked by Canon governance"),
         },
-        "completed" => format!("run `{run_ref}` completed without a reusable packet projection"),
-        "running" => format!("run `{run_ref}` is still running"),
-        "pending_selection" => format!("run `{run_ref}` is still selecting the next governed step"),
-        "failed" => format!("run `{run_ref}` failed"),
-        _ => format!("run `{run_ref}` returned an unknown governance status"),
+        GovernanceStatus::Completed => {
+            format!("run `{run_ref}` completed without a reusable packet projection")
+        }
+        GovernanceStatus::Running => format!("run `{run_ref}` is still running"),
+        GovernanceStatus::PendingSelection => {
+            format!("run `{run_ref}` is still selecting the next governed step")
+        }
+        GovernanceStatus::Failed => format!("run `{run_ref}` failed"),
     }
 }
 
@@ -874,23 +969,25 @@ fn explicit_classification() -> ClassificationProvenance {
 
 fn map_engine_error(error: EngineError, run_ref: Option<String>) -> GovernanceResponse {
     match error {
-        EngineError::Validation(message) => {
-            GovernanceResponse::blocked("domain_validation_failed", message, Vec::new())
-                .with_run_ref(run_ref)
-        }
+        EngineError::Validation(message) => GovernanceResponse::blocked(
+            GovernanceReasonCode::DomainValidationFailed,
+            message,
+            Vec::new(),
+        )
+        .with_run_ref(run_ref),
         EngineError::UnsupportedMode(mode) => GovernanceResponse::blocked(
-            "unsupported_mode",
+            GovernanceReasonCode::UnsupportedMode,
             format!("mode `{mode}` is not supported by Canon governance"),
             vec!["mode".to_string()],
         )
         .with_run_ref(run_ref),
         EngineError::Io(error) => GovernanceResponse::failed(
-            "workspace_unavailable",
+            GovernanceReasonCode::WorkspaceUnavailable,
             format!("workspace or runtime state is not accessible: {error}"),
             run_ref,
         ),
         EngineError::UnsupportedInspectTarget(target) => GovernanceResponse::failed(
-            "runtime_error",
+            GovernanceReasonCode::RuntimeError,
             format!("unexpected engine target surfaced from governance execution: {target}"),
             run_ref,
         ),
@@ -950,8 +1047,9 @@ mod tests {
     use tempfile::TempDir;
 
     use super::{
-        GovernanceBoundedContext, GovernanceInputDocument, GovernanceOperation, GovernanceRequest,
-        GovernanceResponse, approval_state_value, artifact_contains_missing_authored_body,
+        ApprovalState, GovernanceBoundedContext, GovernanceInputDocument, GovernanceOperation,
+        GovernanceReasonCode, GovernanceRequest, GovernanceResponse, GovernanceStatus,
+        PacketReadiness, approval_state_value, artifact_contains_missing_authored_body,
         collect_input_references, command_response, default_headline, default_message,
         map_engine_error, missing_domain_fields, normalize_workspace_relative_ref,
         normalized_status, packet_missing_sections, packet_readiness_value, path_to_slash_string,
@@ -1511,26 +1609,32 @@ Preserve authored decision and option-analysis sections directly in the existing
 
     #[test]
     fn approval_state_value_covers_requested_granted_and_rejected_outcomes() {
-        assert_eq!(approval_state_value(RunState::AwaitingApproval, false, false), "requested");
-        assert_eq!(approval_state_value(RunState::Completed, true, false), "granted");
-        assert_eq!(approval_state_value(RunState::Completed, false, true), "rejected");
+        assert_eq!(
+            approval_state_value(RunState::AwaitingApproval, false, false),
+            ApprovalState::Requested
+        );
+        assert_eq!(approval_state_value(RunState::Completed, true, false), ApprovalState::Granted);
+        assert_eq!(approval_state_value(RunState::Completed, false, true), ApprovalState::Rejected);
     }
 
     #[test]
     fn response_defaults_cover_pending_blocked_and_running_states() {
         assert_eq!(
             packet_readiness_value(&Vec::new(), &Vec::new(), &Vec::new(), &Vec::new()),
-            Some("pending".to_string())
+            Some(PacketReadiness::Pending)
         );
         assert_eq!(
-            response_reason_code("blocked", Some("incomplete")).as_deref(),
-            Some("incomplete_packet")
+            response_reason_code(GovernanceStatus::Blocked, Some(PacketReadiness::Incomplete)),
+            Some(GovernanceReasonCode::IncompletePacket)
         );
         assert_eq!(
-            default_headline("blocked", Some("rejected")).as_deref(),
+            default_headline(GovernanceStatus::Blocked, Some(PacketReadiness::Rejected)).as_deref(),
             Some("Governed packet was rejected for downstream reuse")
         );
-        assert_eq!(default_message("running", "R-1", None), "run `R-1` is still running");
+        assert_eq!(
+            default_message(GovernanceStatus::Running, "R-1", None),
+            "run `R-1` is still running"
+        );
     }
 
     #[test]
@@ -1539,16 +1643,16 @@ Preserve authored decision and option-analysis sections directly in the existing
             EngineError::Validation("missing evidence".to_string()),
             Some("R-1".to_string()),
         );
-        assert_eq!(validation.reason_code.as_deref(), Some("domain_validation_failed"));
+        assert_eq!(validation.reason_code, Some(GovernanceReasonCode::DomainValidationFailed));
         assert_eq!(validation.run_ref.as_deref(), Some("R-1"));
 
         let unsupported =
             map_engine_error(EngineError::UnsupportedMode("legacy".to_string()), None);
-        assert_eq!(unsupported.reason_code.as_deref(), Some("unsupported_mode"));
+        assert_eq!(unsupported.reason_code, Some(GovernanceReasonCode::UnsupportedMode));
 
         let io_error =
             map_engine_error(EngineError::Io(std::io::Error::other("disk unavailable")), None);
-        assert_eq!(io_error.reason_code.as_deref(), Some("workspace_unavailable"));
+        assert_eq!(io_error.reason_code, Some(GovernanceReasonCode::WorkspaceUnavailable));
     }
 
     #[test]
@@ -1729,50 +1833,48 @@ Preserve authored decision and option-analysis sections directly in the existing
 
     #[test]
     fn response_defaults_cover_additional_status_variants() {
-        assert_eq!(normalized_status(RunState::Gated, None), "pending_selection");
-        assert_eq!(normalized_status(RunState::Executing, None), "running");
-        assert_eq!(normalized_status(RunState::Failed, None), "failed");
+        assert_eq!(normalized_status(RunState::Gated, None), GovernanceStatus::PendingSelection);
+        assert_eq!(normalized_status(RunState::Executing, None), GovernanceStatus::Running);
+        assert_eq!(normalized_status(RunState::Failed, None), GovernanceStatus::Failed);
 
-        assert_eq!(response_reason_code("blocked", None).as_deref(), Some("blocked_by_governance"));
         assert_eq!(
-            default_headline("blocked", None).as_deref(),
+            response_reason_code(GovernanceStatus::Blocked, None),
+            Some(GovernanceReasonCode::BlockedByGovernance)
+        );
+        assert_eq!(
+            default_headline(GovernanceStatus::Blocked, None).as_deref(),
             Some("Governance execution is blocked")
         );
         assert_eq!(
-            default_headline("completed", None).as_deref(),
+            default_headline(GovernanceStatus::Completed, None).as_deref(),
             Some("Governance execution completed")
         );
         assert_eq!(
-            default_headline("running", None).as_deref(),
+            default_headline(GovernanceStatus::Running, None).as_deref(),
             Some("Governance execution is still running")
         );
         assert_eq!(
-            default_headline("pending_selection", None).as_deref(),
+            default_headline(GovernanceStatus::PendingSelection, None).as_deref(),
             Some("Governance execution is still selecting the next action")
         );
         assert_eq!(
-            default_headline("failed", None).as_deref(),
+            default_headline(GovernanceStatus::Failed, None).as_deref(),
             Some("Governance execution failed")
         );
-        assert_eq!(default_headline("unknown", None), None);
 
         assert_eq!(
-            default_message("blocked", "R-1", Some("rejected")),
+            default_message(GovernanceStatus::Blocked, "R-1", Some(PacketReadiness::Rejected)),
             "run `R-1` is blocked because the governed packet is not reusable"
         );
         assert_eq!(
-            default_message("completed", "R-1", None),
+            default_message(GovernanceStatus::Completed, "R-1", None),
             "run `R-1` completed without a reusable packet projection"
         );
         assert_eq!(
-            default_message("pending_selection", "R-1", None),
+            default_message(GovernanceStatus::PendingSelection, "R-1", None),
             "run `R-1` is still selecting the next governed step"
         );
-        assert_eq!(default_message("failed", "R-1", None), "run `R-1` failed");
-        assert_eq!(
-            default_message("unknown", "R-1", None),
-            "run `R-1` returned an unknown governance status"
-        );
+        assert_eq!(default_message(GovernanceStatus::Failed, "R-1", None), "run `R-1` failed");
     }
 
     #[test]
@@ -1784,7 +1886,7 @@ Preserve authored decision and option-analysis sections directly in the existing
                 &Vec::new(),
                 &Vec::new(),
             ),
-            Some("pending".to_string())
+            Some(PacketReadiness::Pending)
         );
 
         assert_eq!(
@@ -1800,7 +1902,7 @@ Preserve authored decision and option-analysis sections directly in the existing
             Some("R-2".to_string()),
         );
 
-        assert_eq!(response.reason_code.as_deref(), Some("runtime_error"));
+        assert_eq!(response.reason_code, Some(GovernanceReasonCode::RuntimeError));
         assert_eq!(response.run_ref.as_deref(), Some("R-2"));
     }
 
@@ -1821,10 +1923,22 @@ Preserve authored decision and option-analysis sections directly in the existing
 
     #[test]
     fn completed_runs_only_become_governed_ready_with_reusable_packets() {
-        assert_eq!(normalized_status(RunState::Completed, Some("reusable")), "governed_ready");
-        assert_eq!(normalized_status(RunState::Completed, Some("incomplete")), "blocked");
-        assert_eq!(normalized_status(RunState::Completed, Some("rejected")), "blocked");
-        assert_eq!(normalized_status(RunState::Completed, Some("pending")), "completed");
+        assert_eq!(
+            normalized_status(RunState::Completed, Some(PacketReadiness::Reusable)),
+            GovernanceStatus::GovernedReady
+        );
+        assert_eq!(
+            normalized_status(RunState::Completed, Some(PacketReadiness::Incomplete)),
+            GovernanceStatus::Blocked
+        );
+        assert_eq!(
+            normalized_status(RunState::Completed, Some(PacketReadiness::Rejected)),
+            GovernanceStatus::Blocked
+        );
+        assert_eq!(
+            normalized_status(RunState::Completed, Some(PacketReadiness::Pending)),
+            GovernanceStatus::Completed
+        );
     }
 
     #[test]
@@ -1839,11 +1953,11 @@ Preserve authored decision and option-analysis sections directly in the existing
 
         assert_eq!(
             packet_readiness_value(&expected, &present, &missing, &Vec::new()),
-            Some("incomplete".to_string())
+            Some(PacketReadiness::Incomplete)
         );
         assert_eq!(
             packet_readiness_value(&expected, &present, &Vec::new(), &rejected),
-            Some("rejected".to_string())
+            Some(PacketReadiness::Rejected)
         );
     }
 
@@ -1863,7 +1977,7 @@ Preserve authored decision and option-analysis sections directly in the existing
         assert_eq!(
             *response,
             GovernanceResponse::blocked(
-                "path_outside_workspace",
+                GovernanceReasonCode::PathOutsideWorkspace,
                 format!(
                     "document `{}` escapes the declared workspace boundary",
                     outside_file.to_string_lossy()

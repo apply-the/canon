@@ -4,6 +4,7 @@ use crate::domain::execution::{
     ExecutionAdapterDescriptor, InvocationConstraintSet, InvocationPolicyDecision,
     InvocationRequest, PolicyDecisionKind, ToolOutcome, ToolOutcomeKind,
 };
+use crate::domain::mode::Mode;
 use crate::domain::policy::PolicySet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +50,7 @@ pub fn evaluate_request_policy(
     policy_set: &PolicySet,
 ) -> InvocationPolicyDecision {
     let mut decision = placeholder_decision(request);
+    let request_mode = parsed_request_mode(&request.mode);
 
     if !policy_set.runtime_adapter_enabled(request.adapter) {
         decision.kind = PolicyDecisionKind::Deny;
@@ -68,7 +70,7 @@ pub fn evaluate_request_policy(
         return decision;
     }
 
-    if request.mode == "requirements"
+    if request_mode == Some(Mode::Requirements)
         && matches!(request.capability, canon_adapters::CapabilityKind::ProposeWorkspaceEdit)
     {
         decision.kind = PolicyDecisionKind::Deny;
@@ -80,22 +82,20 @@ pub fn evaluate_request_policy(
     }
 
     if matches!(request.capability, canon_adapters::CapabilityKind::ExecuteBoundedTransformation)
-        && let Some(profile_id) = execution_mutation_profile_id(request.mode.as_str())
+        && let Some(profile_id) = execution_mutation_profile_id(request_mode)
     {
         match classify_change_mutation_scope(&request.requested_scope) {
             ChangeMutationScopeStatus::Missing => {
                 decision.kind = PolicyDecisionKind::Deny;
                 decision.requires_approval = false;
-                decision.rationale = missing_execution_scope_rationale(request.mode.as_str());
+                decision.rationale = missing_execution_scope_rationale(request_mode);
             }
             ChangeMutationScopeStatus::Expanded => {
                 decision.kind = PolicyDecisionKind::NeedsApproval;
                 decision.requires_approval = true;
                 decision.constraints.allowed_paths = request.requested_scope.clone();
-                decision.rationale = expanded_execution_scope_rationale(
-                    request.mode.as_str(),
-                    &request.requested_scope,
-                );
+                decision.rationale =
+                    expanded_execution_scope_rationale(request_mode, &request.requested_scope);
             }
             ChangeMutationScopeStatus::Bounded => {
                 decision.kind = PolicyDecisionKind::AllowConstrained;
@@ -105,18 +105,19 @@ pub fn evaluate_request_policy(
                         request.requested_scope.clone(),
                     )
                     .unwrap_or_default();
-                decision.rationale = bounded_execution_scope_rationale(
-                    request.mode.as_str(),
-                    &request.requested_scope,
-                );
+                decision.rationale =
+                    bounded_execution_scope_rationale(request_mode, &request.requested_scope);
             }
         }
         return decision;
     }
 
     let approval_required = matches!(
-        (request.mode.as_str(), request.capability),
-        ("requirements" | "change", canon_adapters::CapabilityKind::GenerateContent)
+        (request_mode, request.capability),
+        (
+            Some(Mode::Requirements) | Some(Mode::Change),
+            canon_adapters::CapabilityKind::GenerateContent
+        )
     ) && (!policy_set.allow_mutation(request.risk, request.zone)
         || matches!(request.risk, crate::domain::policy::RiskClass::SystemicImpact));
 
@@ -139,81 +140,89 @@ pub fn evaluate_request_policy(
 }
 
 fn constraint_profile_id(request: &InvocationRequest) -> Option<&'static str> {
-    match (request.mode.as_str(), request.capability) {
-        ("requirements", canon_adapters::CapabilityKind::ReadRepository) => {
+    match (parsed_request_mode(&request.mode), request.capability) {
+        (Some(Mode::Requirements), canon_adapters::CapabilityKind::ReadRepository) => {
             Some("requirements-context")
         }
-        ("requirements", canon_adapters::CapabilityKind::GenerateContent) => {
+        (Some(Mode::Requirements), canon_adapters::CapabilityKind::GenerateContent) => {
             Some("requirements-generation")
         }
-        ("requirements", canon_adapters::CapabilityKind::CritiqueContent) => {
+        (Some(Mode::Requirements), canon_adapters::CapabilityKind::CritiqueContent) => {
             Some("requirements-validation")
         }
-        ("change", canon_adapters::CapabilityKind::ReadRepository) => Some("change-context"),
-        ("change", canon_adapters::CapabilityKind::GenerateContent) => Some("change-generation"),
-        ("change", canon_adapters::CapabilityKind::ValidateWithTool) => Some("change-validation"),
-        ("change", canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
+        (Some(Mode::Change), canon_adapters::CapabilityKind::ReadRepository) => {
+            Some("change-context")
+        }
+        (Some(Mode::Change), canon_adapters::CapabilityKind::GenerateContent) => {
+            Some("change-generation")
+        }
+        (Some(Mode::Change), canon_adapters::CapabilityKind::ValidateWithTool) => {
+            Some("change-validation")
+        }
+        (Some(Mode::Change), canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
             Some("change-mutation")
         }
-        ("pr-review", canon_adapters::CapabilityKind::InspectDiff) => Some("pr-review-diff"),
-        ("pr-review", canon_adapters::CapabilityKind::CritiqueContent) => {
+        (Some(Mode::PrReview), canon_adapters::CapabilityKind::InspectDiff) => {
+            Some("pr-review-diff")
+        }
+        (Some(Mode::PrReview), canon_adapters::CapabilityKind::CritiqueContent) => {
             Some("pr-review-critique")
         }
         _ => None,
     }
 }
 
-fn execution_mutation_profile_id(mode: &str) -> Option<&'static str> {
+fn execution_mutation_profile_id(mode: Option<Mode>) -> Option<&'static str> {
     match mode {
-        "change" => Some("change-mutation"),
-        "implementation" => Some("implementation-mutation"),
-        "refactor" => Some("refactor-mutation"),
+        Some(Mode::Change) => Some("change-mutation"),
+        Some(Mode::Implementation) => Some("implementation-mutation"),
+        Some(Mode::Refactor) => Some("refactor-mutation"),
         _ => None,
     }
 }
 
 fn constrained_rationale(request: &InvocationRequest) -> &'static str {
-    match (request.mode.as_str(), request.capability) {
-        ("requirements", canon_adapters::CapabilityKind::GenerateContent)
-        | ("requirements", canon_adapters::CapabilityKind::CritiqueContent) => {
+    match (parsed_request_mode(&request.mode), request.capability) {
+        (Some(Mode::Requirements), canon_adapters::CapabilityKind::GenerateContent)
+        | (Some(Mode::Requirements), canon_adapters::CapabilityKind::CritiqueContent) => {
             "AI-assisted invocation is allowed only with summary-first retention"
         }
-        ("requirements", canon_adapters::CapabilityKind::ReadRepository) => {
+        (Some(Mode::Requirements), canon_adapters::CapabilityKind::ReadRepository) => {
             "requirements context capture is bounded by repository and input scope constraints"
         }
-        ("change", canon_adapters::CapabilityKind::ReadRepository) => {
+        (Some(Mode::Change), canon_adapters::CapabilityKind::ReadRepository) => {
             "change repository analysis is bounded to the named system slice and current workspace"
         }
-        ("change", canon_adapters::CapabilityKind::GenerateContent) => {
+        (Some(Mode::Change), canon_adapters::CapabilityKind::GenerateContent) => {
             "change generation is bounded and must remain traceable to repository context"
         }
-        ("change", canon_adapters::CapabilityKind::ValidateWithTool) => {
+        (Some(Mode::Change), canon_adapters::CapabilityKind::ValidateWithTool) => {
             "change validation must challenge generated change framing through a separate non-generative path"
         }
-        ("change", canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
+        (Some(Mode::Change), canon_adapters::CapabilityKind::ExecuteBoundedTransformation) => {
             "change mutation remains recommendation-only until a later execution tranche"
         }
-        ("pr-review", canon_adapters::CapabilityKind::InspectDiff) => {
+        (Some(Mode::PrReview), canon_adapters::CapabilityKind::InspectDiff) => {
             "pr-review diff inspection is constrained to summary-first repository evidence"
         }
-        ("pr-review", canon_adapters::CapabilityKind::CritiqueContent) => {
+        (Some(Mode::PrReview), canon_adapters::CapabilityKind::CritiqueContent) => {
             "pr-review critique is allowed only with summary-first retention and preserved review evidence"
         }
         _ => "invocation is constrained by policy",
     }
 }
 
-fn missing_execution_scope_rationale(mode: &str) -> String {
+fn missing_execution_scope_rationale(mode: Option<Mode>) -> String {
     match mode {
-        "change" => {
+        Some(Mode::Change) => {
             "change mutation requires a closed named change surface before execution can be recommended"
                 .to_string()
         }
-        "implementation" => {
+        Some(Mode::Implementation) => {
             "implementation mutation requires explicit bounded paths before execution can be recommended"
                 .to_string()
         }
-        "refactor" => {
+        Some(Mode::Refactor) => {
             "refactor mutation requires an explicit preserved refactor scope before execution can be recommended"
                 .to_string()
         }
@@ -222,17 +231,17 @@ fn missing_execution_scope_rationale(mode: &str) -> String {
     }
 }
 
-fn expanded_execution_scope_rationale(mode: &str, scope: &[String]) -> String {
+fn expanded_execution_scope_rationale(mode: Option<Mode>, scope: &[String]) -> String {
     match mode {
-        "change" => format!(
+        Some(Mode::Change) => format!(
             "change mutation scope broadens beyond a closed change surface and requires explicit approval before it can be recommended: {}",
             scope.join(", ")
         ),
-        "implementation" => format!(
+        Some(Mode::Implementation) => format!(
             "implementation mutation scope broadens beyond the declared bounded execution surface and requires explicit approval before it can be recommended: {}",
             scope.join(", ")
         ),
-        "refactor" => format!(
+        Some(Mode::Refactor) => format!(
             "refactor mutation scope broadens beyond the declared preservation surface and requires explicit approval before it can be recommended: {}",
             scope.join(", ")
         ),
@@ -243,17 +252,17 @@ fn expanded_execution_scope_rationale(mode: &str, scope: &[String]) -> String {
     }
 }
 
-fn bounded_execution_scope_rationale(mode: &str, scope: &[String]) -> String {
+fn bounded_execution_scope_rationale(mode: Option<Mode>, scope: &[String]) -> String {
     match mode {
-        "change" => format!(
+        Some(Mode::Change) => format!(
             "change mutation remains recommendation-only within the declared change surface: {}",
             scope.join(", ")
         ),
-        "implementation" => format!(
+        Some(Mode::Implementation) => format!(
             "implementation mutation remains recommendation-only within the declared mutation bounds: {}",
             scope.join(", ")
         ),
-        "refactor" => format!(
+        Some(Mode::Refactor) => format!(
             "refactor mutation remains recommendation-only within the declared refactor scope: {}",
             scope.join(", ")
         ),
@@ -262,6 +271,10 @@ fn bounded_execution_scope_rationale(mode: &str, scope: &[String]) -> String {
             scope.join(", ")
         ),
     }
+}
+
+fn parsed_request_mode(mode: &str) -> Option<Mode> {
+    mode.parse::<Mode>().ok()
 }
 
 fn classify_change_mutation_scope(scope: &[String]) -> ChangeMutationScopeStatus {

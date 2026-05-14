@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -8,11 +8,14 @@ use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
 use crate::EngineError;
-use crate::domain::artifact::{artifact_slug, is_packet_sidecar};
+use crate::domain::artifact::{
+    RuntimePacketMetadata, artifact_slug, is_packet_sidecar, should_skip_repo_scan_directory,
+};
 use crate::domain::mode::Mode;
 use crate::domain::publish_profile::{
-    CANON_PRODUCER, LineageMetadata, ManagedBlockDescriptor, PROJECT_MEMORY_CONTRACT_VERSION,
-    PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile, UpdateStrategy,
+    CANON_PRODUCER, ExpertiseInputMetadata, LineageMetadata, ManagedBlockDescriptor,
+    PROJECT_MEMORY_CONTRACT_VERSION, PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState,
+    PublicationTargetClass, PublishProfile, UpdateStrategy, classify_governed_expertise_input,
 };
 use crate::domain::run::RunState;
 use crate::persistence::manifests::RunManifest;
@@ -21,6 +24,7 @@ use crate::persistence::store::{PersistedArtifact, WorkspaceStore};
 
 const ADR_REGISTRY_DIRECTORY: &str = "docs/adr";
 const PROFILE_METADATA_FILE_SUFFIX: &str = ".packet-metadata.json";
+const MAX_REPO_SCAN_DEPTH: usize = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct GeneratedAdr {
@@ -66,29 +70,17 @@ struct PublishMetadata {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     legacy_aliases: Option<BTreeMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    profile: Option<String>,
+    profile: Option<PublishProfile>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    promotion_state: Option<String>,
+    promotion_state: Option<PromotionState>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    update_strategy: Option<String>,
+    update_strategy: Option<UpdateStrategy>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    publication_target_class: Option<PublicationTargetClass>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    expertise_input: Option<ExpertiseInputMetadata>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     lineage: Option<LineageMetadata>,
-}
-
-/// Metadata sidecar persisted alongside every packet as `packet-metadata.json`.
-///
-/// Consumers use this file to reconstruct the canonical artifact sequence without
-/// inspecting raw filenames or relying on filesystem ordering.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-struct RuntimePacketMetadata {
-    #[serde(default)]
-    primary_artifact: String,
-    #[serde(default)]
-    artifact_order: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    publish_order: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    legacy_aliases: Option<BTreeMap<String, String>>,
 }
 
 pub fn publish_run(
@@ -192,6 +184,8 @@ pub fn publish_run(
         profile: None,
         promotion_state: None,
         update_strategy: None,
+        publication_target_class: None,
+        expertise_input: None,
         lineage: None,
     };
     let metadata_contents = serde_json::to_vec_pretty(&metadata).map_err(|error| {
@@ -268,6 +262,9 @@ pub fn publish_run_with_profile(
         .map(|a| source_artifact_path(&manifest.run_id, manifest.mode, &a.record.file_name))
         .collect::<Vec<_>>();
     let packet_metadata = runtime_packet_metadata(&artifacts);
+    let expertise_input =
+        resolve_expertise_input_metadata(repo_root, manifest.mode, &packet_metadata);
+    let publication_target_class = PublicationTargetClass::for_publication(promotion, strategy);
 
     let publish_timestamp = OffsetDateTime::now_utc().format(&Rfc3339).map_err(|error| {
         EngineError::Validation(format!("failed to format publish timestamp: {error}"))
@@ -278,7 +275,7 @@ pub fn publish_run_with_profile(
         producer: CANON_PRODUCER.to_string(),
         source_ref: format!("canon-run:{}", manifest.run_id),
         source_artifacts: source_artifacts.clone(),
-        promotion_state: promotion.as_str().to_string(),
+        promotion_state: promotion,
         promoted_at: publish_timestamp.clone(),
         content_digest: content_digest_for_artifacts(&artifacts),
         mode: Some(manifest.mode.as_str().to_string()),
@@ -288,7 +285,7 @@ pub fn publish_run_with_profile(
         zone: Some(manifest.zone.as_str().to_string()),
         approval_state: Some(format!("{:?}", state.state)),
         packet_readiness: Some(packet_readiness_for(&state.state).to_string()),
-        promotion_profile: Some(profile.as_str().to_string()),
+        promotion_profile: Some(profile),
     };
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 2);
@@ -400,9 +397,11 @@ pub fn publish_run_with_profile(
         artifact_order: packet_metadata.artifact_order,
         publish_order: packet_metadata.publish_order,
         legacy_aliases: packet_metadata.legacy_aliases,
-        profile: Some(profile.as_str().to_string()),
-        promotion_state: Some(promotion.as_str().to_string()),
-        update_strategy: Some(strategy.as_str().to_string()),
+        profile: Some(profile),
+        promotion_state: Some(promotion),
+        update_strategy: Some(strategy),
+        publication_target_class: Some(publication_target_class),
+        expertise_input,
         lineage: Some(lineage),
     };
     let metadata_contents = serde_json::to_vec_pretty(&metadata).map_err(|error| {
@@ -616,7 +615,149 @@ fn infer_runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePack
         artifact_order,
         publish_order: None,
         legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
+        expertise_input: None,
     }
+}
+
+fn resolve_expertise_input_metadata(
+    repo_root: &Path,
+    mode: Mode,
+    packet_metadata: &RuntimePacketMetadata,
+) -> Option<ExpertiseInputMetadata> {
+    if let Some(metadata) = packet_metadata.expertise_input.as_ref() {
+        return metadata.normalized();
+    }
+
+    classify_governed_expertise_input(mode, infer_boundline_domain_families(repo_root))
+}
+
+fn infer_boundline_domain_families(repo_root: &Path) -> Vec<String> {
+    let mut families = BTreeSet::new();
+    let package_json = read_lowercase_file(repo_root.join("package.json"));
+
+    if let Some(package_json) = package_json.as_deref() {
+        if package_json.contains("\"react\"") {
+            families.insert("react".to_string());
+            families.insert("web_ui".to_string());
+        }
+        if package_json.contains("\"vue\"") {
+            families.insert("vue".to_string());
+            families.insert("web_ui".to_string());
+        }
+        if package_json.contains("\"@angular/") || package_json.contains("\"angular\"") {
+            families.insert("angular".to_string());
+            families.insert("web_ui".to_string());
+        }
+        if package_json.contains("\"express\"")
+            || package_json.contains("\"nest\"")
+            || package_json.contains("\"fastify\"")
+            || package_json.contains("\"koa\"")
+            || package_json.contains("\"hapi\"")
+        {
+            families.insert("node_service".to_string());
+        }
+    }
+
+    if repo_root.join("Cargo.toml").exists() || repo_contains_extension(repo_root, "rs", 0) {
+        families.insert("systems".to_string());
+    }
+    if repo_root.join("pyproject.toml").exists()
+        || repo_root.join("setup.py").exists()
+        || repo_contains_extension(repo_root, "py", 0)
+    {
+        families.insert("python_service".to_string());
+    }
+    if repo_root.join("pom.xml").exists()
+        || repo_root.join("build.gradle").exists()
+        || repo_root.join("build.gradle.kts").exists()
+    {
+        families.insert("jvm_service".to_string());
+    }
+    if repo_contains_suffix(repo_root, ".csproj", 0) || repo_contains_suffix(repo_root, ".sln", 0) {
+        families.insert("dotnet_service".to_string());
+    }
+    if repo_root.join("Gemfile").exists() {
+        families.insert("ruby".to_string());
+    }
+    if repo_root.join("composer.json").exists() {
+        families.insert("php".to_string());
+    }
+
+    if families.is_empty()
+        && package_json.is_some()
+        && (repo_contains_extension(repo_root, "js", 0)
+            || repo_contains_extension(repo_root, "jsx", 0)
+            || repo_contains_extension(repo_root, "ts", 0)
+            || repo_contains_extension(repo_root, "tsx", 0))
+    {
+        families.insert("node_service".to_string());
+    }
+
+    families.into_iter().collect()
+}
+
+fn read_lowercase_file(path: PathBuf) -> Option<String> {
+    fs::read_to_string(path).ok().map(|contents| contents.to_ascii_lowercase())
+}
+
+fn repo_contains_extension(root: &Path, extension: &str, depth: usize) -> bool {
+    if depth >= MAX_REPO_SCAN_DEPTH {
+        return false;
+    }
+
+    let Ok(entries) = fs::read_dir(root) else {
+        return false;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if should_skip_repo_scan_directory(&name) {
+                continue;
+            }
+            if repo_contains_extension(&path, extension, depth + 1) {
+                return true;
+            }
+        } else if path.extension().and_then(|value| value.to_str()) == Some(extension) {
+            return true;
+        }
+    }
+
+    false
+}
+
+fn repo_contains_suffix(root: &Path, suffix: &str, depth: usize) -> bool {
+    if depth >= MAX_REPO_SCAN_DEPTH {
+        return false;
+    }
+
+    let Ok(entries) = fs::read_dir(root) else {
+        return false;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if should_skip_repo_scan_directory(&name) {
+                continue;
+            }
+            if repo_contains_suffix(&path, suffix, depth + 1) {
+                return true;
+            }
+        } else if path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .is_some_and(|value| value.ends_with(suffix))
+        {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn render_project_memory_index_entry(
@@ -668,7 +809,7 @@ fn write_surface_proposal_file(
         lineage.source_ref,
         lineage.mode.as_deref().unwrap_or("unknown-mode"),
         lineage.promotion_state,
-        lineage.promotion_profile.as_deref().unwrap_or("unknown-profile"),
+        lineage.promotion_profile.map(PublishProfile::as_str).unwrap_or("unknown-profile"),
     );
 
     if let Some(parent) = proposal_path.parent() {
@@ -757,7 +898,7 @@ pub fn write_proposal_file(
         lineage.source_ref,
         lineage.mode.as_deref().unwrap_or("unknown-mode"),
         lineage.promotion_state,
-        lineage.promotion_profile.as_deref().unwrap_or("unknown-profile"),
+        lineage.promotion_profile.map(PublishProfile::as_str).unwrap_or("unknown-profile"),
     );
 
     fs::create_dir_all(destination)?;
@@ -1232,7 +1373,7 @@ mod tests {
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
     use crate::domain::publish_profile::{
-        PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, UpdateStrategy,
+        PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile, UpdateStrategy,
     };
     use crate::domain::run::{ClassificationProvenance, RunState, SystemContext};
     use crate::persistence::manifests::RunManifest;
@@ -1458,6 +1599,8 @@ mod tests {
                 profile: None,
                 promotion_state: None,
                 update_strategy: None,
+                publication_target_class: None,
+                expertise_input: None,
                 lineage: None,
             })
             .expect("metadata json"),
@@ -1995,7 +2138,7 @@ mod tests {
             producer: "canon".into(),
             source_ref: "canon-run:R-test".into(),
             source_artifacts: vec!["artifact.md".into()],
-            promotion_state: "pending-index".into(),
+            promotion_state: PromotionState::PendingIndex,
             promoted_at: "2026-05-13T00:00:00Z".into(),
             content_digest: "sha256:abc123".into(),
             mode: Some("architecture".into()),
@@ -2005,7 +2148,7 @@ mod tests {
             zone: None,
             approval_state: Some("AwaitingApproval".into()),
             packet_readiness: Some("partial".into()),
-            promotion_profile: Some("project-memory".into()),
+            promotion_profile: Some(PublishProfile::ProjectMemory),
         };
 
         let path = super::write_proposal_file(
@@ -2030,7 +2173,7 @@ mod tests {
             producer: "canon".into(),
             source_ref: "canon-run:R-test".into(),
             source_artifacts: vec!["artifact.md".into()],
-            promotion_state: "pending-index".into(),
+            promotion_state: PromotionState::PendingIndex,
             promoted_at: "2026-05-13T00:00:00Z".into(),
             content_digest: "sha256:abc123".into(),
             mode: None,
@@ -2299,6 +2442,8 @@ mod tests {
         assert!(metadata.artifact_order.is_empty());
         assert!(metadata.profile.is_none());
         assert!(metadata.promotion_state.is_none());
+        assert!(metadata.publication_target_class.is_none());
+        assert!(metadata.expertise_input.is_none());
         assert!(metadata.lineage.is_none());
     }
 }
