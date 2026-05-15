@@ -170,11 +170,11 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     let conventional_comments_text =
         fs::read_to_string(conventional_comments).expect("conventional comments artifact");
     assert!(
-        conventional_comments_text.contains("issue:"),
+        conventional_comments_text.contains("issue(scope:"),
         "high-impact contract drift should surface as an issue comment"
     );
     assert!(
-        conventional_comments_text.contains("question:"),
+        conventional_comments_text.contains("question(scope:"),
         "decision-impact findings should surface as reviewer questions"
     );
     assert!(

@@ -83,6 +83,11 @@ grounded, reviewable artifact set.
 - Read the full diff between `BASE_REF` and `HEAD_REF` (or between `BASE_REF` and the working tree when `WORKTREE` is the head ref) before generation.
 - Start the real Canon run before artifact writing so `.canon/artifacts/<RUN_ID>/pr-review/` exists and the packet stays attached to a real run id.
 - Treat `review-summary.md` as the primary status artifact and `conventional-comments.md` as the reviewer-facing companion artifact.
+- Each entry in `conventional-comments.md` carries an explicit `scope` annotation derived deterministically from the finding's changed surfaces:
+  - `scope:pr` — no specific surfaces; the comment applies at the whole-PR level.
+  - `scope:surface` — all changed surfaces for this finding belong to the same functional group (test files, source files, contract files, or boundary files).
+  - `scope:file` — surfaces span two or more functional groups.
+  - Scope is always derived; do not fabricate or override it. Line-level anchors are not emitted in the current slice.
 - Treat the source files in the diff and the working tree as read-only during the review. Do not modify, refactor, format, or rewrite any source file as part of producing the review.
 - Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/pr-review/`.
 - Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.

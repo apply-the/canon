@@ -165,7 +165,7 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
         fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
             .expect("conventional comments artifact");
     assert!(
-        conventional_comments.contains("praise:"),
+        conventional_comments.contains("praise(scope:"),
         "note-only review packets should emit a praise-style conventional comment"
     );
     assert!(
