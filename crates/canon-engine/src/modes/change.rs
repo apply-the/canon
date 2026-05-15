@@ -1,6 +1,8 @@
 use crate::domain::gate::GateKind;
 
+/// The method definition filename for change mode.
 pub const MODE_FILE: &str = "change.toml";
+/// The ordered step sequence for change mode execution.
 pub const STEP_SEQUENCE: &[&str] = &[
     "capture-context",
     "classify-risk",
@@ -14,6 +16,7 @@ pub const STEP_SEQUENCE: &[&str] = &[
     "define-validation-strategy",
     "evaluate-gates",
 ];
+/// The gates required to close a change mode run.
 pub const REQUIRED_GATES: &[GateKind] = &[
     GateKind::Exploration,
     GateKind::ChangePreservation,

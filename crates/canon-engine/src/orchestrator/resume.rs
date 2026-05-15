@@ -4,10 +4,13 @@ use sha2::{Digest, Sha256};
 use crate::domain::run::InputFingerprint;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// The decision reached after evaluating whether a run can be resumed.
 pub struct ResumeDecision {
+    /// The action to take: `"resume"` or `"fork"`.
     pub action: String,
 }
 
+/// Returns whether the stored input fingerprints still match the current on-disk files.
 pub fn input_fingerprints_match(
     repo_root: &std::path::Path,
     stored_fingerprints: &[InputFingerprint],

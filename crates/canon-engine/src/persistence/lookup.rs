@@ -70,11 +70,24 @@ impl LookupQuery {
     }
 }
 
+/// Error returned when resolving a run reference by partial or display id fails.
 #[derive(Debug)]
 pub enum LookupError {
-    NotFound { query: String },
-    Ambiguous { query: String, matches: Vec<String> },
+    /// No run matched the query.
+    NotFound {
+        /// The query string that was searched.
+        query: String,
+    },
+    /// Multiple runs matched the query.
+    Ambiguous {
+        /// The query string that was searched.
+        query: String,
+        /// All run IDs that matched the query.
+        matches: Vec<String>,
+    },
+    /// The run history is empty.
     EmptyHistory,
+    /// An I/O error occurred while scanning the run store.
     Io(std::io::Error),
 }
 

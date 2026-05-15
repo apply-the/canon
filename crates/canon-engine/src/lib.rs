@@ -1,10 +1,16 @@
 //! Core engine crate for Canon.
 
+/// Artifact rendering and contract types.
 pub mod artifacts;
+/// Core domain model types.
 pub mod domain;
+/// Mode-specific execution logic.
 pub mod modes;
+/// Orchestration layer: classification, gating, execution, and service.
 pub mod orchestrator;
+/// Persistence layer: manifests, invocation records, and workspace store.
 pub mod persistence;
+/// Review domain: findings, critique, and summary types.
 pub mod review;
 
 pub use orchestrator::publish::PublishSummary;

@@ -4,11 +4,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::mode::{GovernedExpertiseKind, Mode};
 
+/// Contract version string for project-memory promotion lineage.
 pub const PROJECT_MEMORY_CONTRACT_VERSION: &str = "v1";
+/// Canonical producer identifier for Canon-owned managed blocks.
 pub const CANON_PRODUCER: &str = "canon";
+/// Marker family name for Canon-owned managed blocks in project-visible surfaces.
 pub const PROJECT_MEMORY_MANAGED_BLOCK_MARKER: &str = "project-memory:managed";
+/// Filename for the project-memory packet metadata sidecar.
 pub const PROJECT_MEMORY_PACKET_METADATA_FILE_NAME: &str = "packet-metadata.json";
+/// Contract version string for governed expertise input metadata.
 pub const GOVERNED_EXPERTISE_INPUT_CONTRACT_VERSION: &str = "v1";
+/// Required field names for V1 lineage metadata envelopes.
 pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "contract_version",
     "producer",
@@ -18,6 +24,7 @@ pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "promoted_at",
     "content_digest",
 ];
+/// Optional field names recognized in V1 lineage metadata envelopes.
 pub const OPTIONAL_V1_LINEAGE_FIELDS: &[&str] = &[
     "mode",
     "stage",
@@ -43,6 +50,7 @@ pub enum ArtifactMetadataCarrier {
 }
 
 impl ArtifactMetadataCarrier {
+    /// Returns the kebab-case string representation of this carrier.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ManagedSurfaceEnvelope => "managed-surface-envelope",
@@ -50,6 +58,7 @@ impl ArtifactMetadataCarrier {
         }
     }
 
+    /// Returns the consumer-facing discovery rule for reading this carrier's metadata.
     pub fn discovery_rule(self) -> &'static str {
         match self {
             Self::ManagedSurfaceEnvelope => {
@@ -87,6 +96,7 @@ pub enum IndexableArtifactClass {
 }
 
 impl IndexableArtifactClass {
+    /// Returns the kebab-case string representation of this class.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ManagedSurface => "managed-surface",
@@ -96,6 +106,7 @@ impl IndexableArtifactClass {
         }
     }
 
+    /// Returns the metadata carrier family for this indexable artifact class.
     pub fn metadata_carrier(self) -> ArtifactMetadataCarrier {
         match self {
             Self::ManagedSurface => ArtifactMetadataCarrier::ManagedSurfaceEnvelope,
@@ -105,10 +116,12 @@ impl IndexableArtifactClass {
         }
     }
 
+    /// Returns the consumer-facing discovery rule for reading this class.
     pub fn discovery_rule(self) -> &'static str {
         self.metadata_carrier().discovery_rule()
     }
 
+    /// Returns a slice containing all known `IndexableArtifactClass` variants.
     pub fn all() -> &'static [IndexableArtifactClass] {
         &[Self::ManagedSurface, Self::ProposalArtifact, Self::EvidenceBundle, Self::IndexSurface]
     }
@@ -120,17 +133,24 @@ impl std::fmt::Display for IndexableArtifactClass {
     }
 }
 
+/// The publication target class used for routing packet output to the appropriate surface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum PublicationTargetClass {
+    /// Stable project-memory surface.
     Stable,
+    /// Pending or draft surface.
     Pending,
+    /// Proposal artifact destination.
     Proposal,
+    /// Evidence-facing surface.
     Evidence,
+    /// Append-only index surface.
     Index,
 }
 
 impl PublicationTargetClass {
+    /// Returns the kebab-case string representation of this target class.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Stable => "stable",
@@ -141,6 +161,7 @@ impl PublicationTargetClass {
         }
     }
 
+    /// Derives the publication target class from a promotion state and update strategy.
     pub fn for_publication(promotion: PromotionState, strategy: UpdateStrategy) -> Self {
         match strategy {
             UpdateStrategy::ProposalFiles => Self::Proposal,
@@ -159,13 +180,19 @@ impl std::fmt::Display for PublicationTargetClass {
     }
 }
 
+/// Governed expertise input metadata captured alongside published artifacts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExpertiseInputMetadata {
+    /// The expertise kind associated with the governed mode.
     pub expertise_kind: GovernedExpertiseKind,
+    /// The domain families provided by the expertise input.
     pub domain_families: Vec<String>,
 }
 
 impl ExpertiseInputMetadata {
+    /// Constructs a new metadata record from the given expertise kind and domain families.
+    ///
+    /// Returns `None` if `domain_families` is empty after normalization.
     pub fn new(
         expertise_kind: GovernedExpertiseKind,
         domain_families: Vec<String>,
@@ -178,11 +205,13 @@ impl ExpertiseInputMetadata {
         }
     }
 
+    /// Returns a normalized copy of this metadata, or `None` if the domain families are empty.
     pub fn normalized(&self) -> Option<Self> {
         Self::new(self.expertise_kind, self.domain_families.clone())
     }
 }
 
+/// Normalizes domain family strings: trims whitespace and deduplicates.
 pub fn normalize_domain_families(domain_families: Vec<String>) -> Vec<String> {
     let mut unique = BTreeSet::new();
     for family in domain_families {
@@ -194,6 +223,7 @@ pub fn normalize_domain_families(domain_families: Vec<String>) -> Vec<String> {
     unique.into_iter().collect()
 }
 
+/// Classifies a governed expertise input from the run mode and provided domain families.
 pub fn classify_governed_expertise_input(
     mode: Mode,
     domain_families: Vec<String>,
@@ -211,6 +241,7 @@ pub enum PublishProfile {
 }
 
 impl PublishProfile {
+    /// Returns the kebab-case string representation of this publish profile.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ProjectMemory => "project-memory",
@@ -256,6 +287,7 @@ pub enum PromotionState {
 }
 
 impl PromotionState {
+    /// Returns the kebab-case string representation of this promotion state.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Auto => "auto",
@@ -304,6 +336,7 @@ pub enum UpdateStrategy {
 }
 
 impl UpdateStrategy {
+    /// Returns the kebab-case string representation of this update strategy.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ManagedBlocks => "managed-blocks",
@@ -322,12 +355,16 @@ impl std::fmt::Display for UpdateStrategy {
 /// Descriptor for a producer-neutral managed block in repo-visible surfaces.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ManagedBlockDescriptor {
+    /// Identifier of the tool or agent that owns this managed block.
     pub producer: String,
+    /// Reference to the Canon run or source artifact that produced the managed block.
     pub source_ref: String,
+    /// Contract version string for this managed block format.
     pub contract_version: String,
 }
 
 impl ManagedBlockDescriptor {
+    /// Constructs a Canon-owned managed block descriptor for the given source reference.
     pub fn canon(source_ref: impl Into<String>) -> Self {
         Self {
             producer: CANON_PRODUCER.to_string(),
@@ -336,6 +373,7 @@ impl ManagedBlockDescriptor {
         }
     }
 
+    /// Returns the HTML comment start marker for this managed block.
     pub fn start_marker(&self) -> String {
         format!(
             "<!-- {PROJECT_MEMORY_MANAGED_BLOCK_MARKER}:start producer=\"{}\" source_ref=\"{}\" contract_version=\"{}\" -->",
@@ -343,6 +381,7 @@ impl ManagedBlockDescriptor {
         )
     }
 
+    /// Returns the static HTML comment end marker for Canon-managed blocks.
     pub fn end_marker() -> &'static str {
         "<!-- project-memory:managed:end -->"
     }
@@ -351,38 +390,55 @@ impl ManagedBlockDescriptor {
 /// Lineage metadata emitted with every project-memory promoted output.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineageMetadata {
+    /// V1 contract version for this lineage envelope.
     pub contract_version: String,
+    /// Identifier of the producer that emitted this output.
     pub producer: String,
     #[serde(alias = "source_run")]
+    /// Reference to the Canon run that produced this output.
     pub source_ref: String,
+    /// Artifact filenames included in this promotion.
     pub source_artifacts: Vec<String>,
+    /// The promotion state applied during this publication.
     pub promotion_state: PromotionState,
     #[serde(alias = "published_at")]
+    /// ISO-8601 timestamp of when this output was promoted.
     pub promoted_at: String,
+    /// SHA-256 or equivalent digest of the promoted content.
     pub content_digest: String,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Governed mode that produced this output, if recorded.
     pub mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Authoring stage within the mode, if applicable.
     pub stage: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Named human owner at promotion time, if any.
     pub owner: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Risk class of the run at promotion time, if recorded.
     pub risk: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Usage zone of the run at promotion time, if recorded.
     pub zone: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Approval state of the run at promotion time, if recorded.
     pub approval_state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default, alias = "readiness")]
+    /// Packet readiness label at promotion time, if recorded.
     pub packet_readiness: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", default, alias = "profile")]
+    /// Publish profile used for this promotion, if recorded.
     pub promotion_profile: Option<PublishProfile>,
 }
 
 impl LineageMetadata {
+    /// Returns the required V1 lineage field names.
     pub fn required_field_names() -> &'static [&'static str] {
         REQUIRED_V1_LINEAGE_FIELDS
     }
 
+    /// Returns the optional V1 lineage field names.
     pub fn optional_field_names() -> &'static [&'static str] {
         OPTIONAL_V1_LINEAGE_FIELDS
     }
@@ -391,15 +447,20 @@ impl LineageMetadata {
 /// Per-mode promotion policy entry loaded from `publish-profiles.toml`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModePromotionPolicy {
+    /// The governed mode this policy entry applies to.
     pub mode: String,
+    /// The default promotion state when no explicit override is present.
     pub default_promotion_state: PromotionState,
+    /// The default update strategy when no explicit override is present.
     pub default_update_strategy: UpdateStrategy,
 }
 
 /// Top-level policy file shape.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublishProfilesPolicy {
+    /// Contract version string for this policy file.
     pub contract_version: String,
+    /// The per-mode promotion policy entries.
     pub profiles: Vec<ModePromotionPolicy>,
 }
 

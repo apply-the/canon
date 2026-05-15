@@ -214,4 +214,16 @@ mod tests {
         assert!(is_known_mutation_payload_file(Path::new("patch.diff")));
         assert!(!is_known_mutation_payload_file(Path::new("random.rs")));
     }
+
+    #[test]
+    fn path_within_allowed_scope_returns_false_for_empty_path() {
+        let allowed = vec!["src/**".to_string()];
+        assert!(!path_within_allowed_scope("", &allowed));
+    }
+
+    #[test]
+    fn normalized_scope_prefix_returns_none_for_empty_and_dot_slash_entries() {
+        assert_eq!(normalized_scope_prefix(""), None);
+        assert_eq!(normalized_scope_prefix("./"), None);
+    }
 }

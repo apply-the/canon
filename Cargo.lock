@@ -126,6 +126,7 @@ version = "0.53.0"
 dependencies = [
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
  "time",
  "tracing",

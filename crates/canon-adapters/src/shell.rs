@@ -9,28 +9,45 @@ use crate::{
     InvocationOrientation, LineageClass, SideEffectClass, TrustBoundaryKind,
 };
 
+/// The result of executing a shell command via [`ShellAdapter`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellOutput {
+    /// The process exit status code.
     pub status_code: i32,
+    /// Captured standard output.
     pub stdout: String,
+    /// Captured standard error.
     pub stderr: String,
+    /// The invocation audit record for this command.
     pub invocation: AdapterInvocation,
 }
 
+/// The result of a `git diff` operation, including changed file listings and the raw patch.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GitDiff {
+    /// The base ref the diff is computed against.
     pub base_ref: String,
+    /// The head ref being compared.
     pub head_ref: String,
+    /// Paths of all changed files.
     pub changed_files: Vec<String>,
+    /// Newline-separated list of changed file paths as a single string.
     pub changed_files_text: String,
+    /// The full unified diff patch.
     pub patch: String,
+    /// Invocation audit records for the git commands that produced this diff.
     pub invocations: Vec<AdapterInvocation>,
 }
 
+/// Adapter that wraps `std::process::Command` for governed shell command execution.
+///
+/// All methods return either a [`ShellOutput`] or a [`GitDiff`] alongside the
+/// invocation audit records required for the evidence bundle.
 #[derive(Debug, Default)]
 pub struct ShellAdapter;
 
 impl ShellAdapter {
+    /// Returns a read-only shell command request with the given purpose.
     pub fn read_only_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::Shell,
@@ -43,6 +60,7 @@ impl ShellAdapter {
         }
     }
 
+    /// Returns a workspace-mutation shell command request with the given purpose.
     pub fn mutating_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::Shell,
@@ -55,6 +73,7 @@ impl ShellAdapter {
         }
     }
 
+    /// Returns a validation shell command request with the given purpose.
     pub fn validation_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::Shell,
@@ -67,6 +86,7 @@ impl ShellAdapter {
         }
     }
 
+    /// Returns an inspect-diff shell command request with the given purpose.
     pub fn inspect_diff_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::Shell,
@@ -79,6 +99,7 @@ impl ShellAdapter {
         }
     }
 
+    /// Executes a shell command, enforcing the mutation policy, and returns the output.
     pub fn run(
         &self,
         request: &AdapterRequest,
@@ -111,6 +132,7 @@ impl ShellAdapter {
         })
     }
 
+    /// Runs a `git diff` between `base_ref` and `head_ref`, returning changed files and the patch.
     pub fn git_diff(
         &self,
         base_ref: &str,

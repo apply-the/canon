@@ -8,161 +8,283 @@ use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::run::{ClosureAssessment, ClosureDecompositionScope, SystemContext};
 
+/// Evaluation context for Discovery mode gate checks.
 pub struct DiscoveryGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for System Shaping mode gate checks.
 pub struct SystemShapingGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Architecture mode gate checks.
 pub struct ArchitectureGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Backlog mode gate checks.
 pub struct BacklogGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Whether the run targets a new or existing system.
     pub system_context: Option<SystemContext>,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
+    /// Closure assessment for the backlog packet.
     pub closure_assessment: &'a ClosureAssessment,
 }
 
+/// Evaluation context for Change mode gate checks.
 pub struct ChangeGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether the run targets a new or existing system.
     pub system_context: Option<SystemContext>,
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Implementation mode gate checks.
 pub struct ImplementationGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether the run targets a new or existing system.
     pub system_context: Option<SystemContext>,
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Incident mode gate checks.
 pub struct IncidentGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Migration mode gate checks.
 pub struct MigrationGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Security Assessment mode gate checks.
 pub struct SecurityAssessmentGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for System Assessment mode gate checks.
 pub struct SystemAssessmentGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Supply Chain Analysis mode gate checks.
 pub struct SupplyChainAnalysisGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Domain Language mode gate checks.
 pub struct DomainLanguageGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Domain Model mode gate checks.
 pub struct DomainModelGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Refactor mode gate checks.
 pub struct RefactorGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether the run targets a new or existing system.
     pub system_context: Option<SystemContext>,
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Review mode gate checks.
 pub struct ReviewGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Verification mode gate checks.
 pub struct VerificationGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
     pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for PR Review mode gate checks.
 pub struct PrReviewGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
     pub owner: &'a str,
+    /// Assigned risk class for the run.
     pub risk: RiskClass,
+    /// Assigned usage zone for the run.
     pub zone: UsageZone,
+    /// Approval records recorded against this run.
     pub approvals: &'a [ApprovalRecord],
+    /// Invocations that were denied during the run.
     pub denied_invocations: &'a [DeniedInvocation],
+    /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
 
+/// Evaluates the gate set for a Requirements mode run.
 pub fn evaluate_requirements_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -182,6 +304,7 @@ pub fn evaluate_requirements_gates(
     ]
 }
 
+/// Evaluates the gate set for a Discovery mode run.
 pub fn evaluate_discovery_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -213,6 +336,7 @@ pub fn evaluate_discovery_gates(
     ]
 }
 
+/// Evaluates the gate set for a System Shaping mode run.
 pub fn evaluate_system_shaping_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -251,6 +375,7 @@ pub fn evaluate_system_shaping_gates(
     ]
 }
 
+/// Evaluates the gate set for an Architecture mode run.
 pub fn evaluate_architecture_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -289,6 +414,7 @@ pub fn evaluate_architecture_gates(
     ]
 }
 
+/// Evaluates the gate set for a Change mode run.
 pub fn evaluate_change_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -320,6 +446,7 @@ pub fn evaluate_change_gates(
     ]
 }
 
+/// Evaluates the gate set for a Backlog mode run.
 pub fn evaluate_backlog_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -370,6 +497,7 @@ pub fn evaluate_backlog_gates(
     ]
 }
 
+/// Evaluates the gate set for an Implementation mode run.
 pub fn evaluate_implementation_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -392,6 +520,7 @@ pub fn evaluate_implementation_gates(
     gates
 }
 
+/// Evaluates the gate set for an Incident mode run.
 pub fn evaluate_incident_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -446,6 +575,7 @@ pub fn evaluate_incident_gates(
     ]
 }
 
+/// Evaluates the gate set for a Migration mode run.
 pub fn evaluate_migration_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -518,6 +648,7 @@ pub fn evaluate_migration_gates(
     ]
 }
 
+/// Evaluates the gate set for a Security Assessment mode run.
 pub fn evaluate_security_assessment_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -549,6 +680,7 @@ pub fn evaluate_security_assessment_gates(
     ]
 }
 
+/// Evaluates the gate set for a System Assessment mode run.
 pub fn evaluate_system_assessment_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -585,6 +717,7 @@ pub fn evaluate_system_assessment_gates(
     ]
 }
 
+/// Evaluates the gate set for a Supply Chain Analysis mode run.
 pub fn evaluate_supply_chain_analysis_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -673,6 +806,7 @@ fn operational_capture_gate(
     evaluation
 }
 
+/// Evaluates the gate set for a Refactor mode run.
 pub fn evaluate_refactor_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -746,6 +880,7 @@ fn change_preservation_gate(
     }
 }
 
+/// Evaluates the gate set for a Review mode run.
 pub fn evaluate_review_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -785,6 +920,7 @@ pub fn evaluate_review_gates(
     ]
 }
 
+/// Evaluates the gate set for a Verification mode run.
 pub fn evaluate_verification_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -807,6 +943,7 @@ pub fn evaluate_verification_gates(
     ]
 }
 
+/// Evaluates the gate set for a PR Review mode run.
 pub fn evaluate_pr_review_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -1643,6 +1780,7 @@ fn named_artifact_gate(
     }
 }
 
+/// Evaluates the gate set for a Domain Language mode run.
 pub fn evaluate_domain_language_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
@@ -1674,6 +1812,7 @@ pub fn evaluate_domain_language_gates(
     ]
 }
 
+/// Evaluates the gate set for a Domain Model mode run.
 pub fn evaluate_domain_model_gates(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],

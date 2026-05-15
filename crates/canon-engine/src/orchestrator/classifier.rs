@@ -3,12 +3,16 @@ use crate::domain::mode::Mode;
 use crate::domain::policy::{PolicySet, RiskClass, UsageZone};
 use crate::domain::run::SystemContext;
 
+/// Whether system context is required or optional for a given mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SystemContextRequirement {
+    /// The mode requires an explicit system context.
     Required,
+    /// The mode accepts an optional system context.
     Optional,
 }
 
+/// Returns the system context requirement for the given mode.
 pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
     match mode {
         Mode::SystemShaping
@@ -32,6 +36,7 @@ pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
     }
 }
 
+/// Validates that the system context is compatible with the mode's requirements.
 pub fn validate_system_context(
     mode: Mode,
     system_context: Option<SystemContext>,
@@ -73,16 +78,21 @@ fn supported_system_context_usage(mode: Mode) -> &'static str {
     }
 }
 
+/// Whether a mutating adapter operation may execute or is recommendation-only.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MutationPolicy {
+    /// The operation is permitted to mutate state.
     Execute,
+    /// The operation produces only recommendations; no state mutations are applied.
     RecommendationOnly,
 }
 
+/// Returns whether mutation is permitted for the given risk/zone pair.
 pub fn allow_mutation(policy_set: &PolicySet, risk: RiskClass, zone: UsageZone) -> bool {
     policy_set.allow_mutation(risk, zone)
 }
 
+/// Returns the mutation policy for a mode under the given risk/zone pair.
 pub fn mutation_policy_for_mode(
     _mode: Mode,
     policy_set: &PolicySet,
@@ -96,6 +106,7 @@ pub fn mutation_policy_for_mode(
     }
 }
 
+/// Validates that a named owner is present when required by the risk class policy.
 pub fn classify_owner_requirement(
     policy_set: &PolicySet,
     risk: RiskClass,
@@ -115,6 +126,7 @@ pub fn classify_owner_requirement(
     Ok(())
 }
 
+/// Applies the verification layers required by the risk class to the given artifact contract.
 pub fn apply_verification_layers(
     policy_set: &PolicySet,
     risk: RiskClass,
@@ -123,14 +135,19 @@ pub fn apply_verification_layers(
     contract.required_verification_layers = policy_set.verification_layers_for(risk);
 }
 
+/// Confidence level of an inferred risk/zone classification.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClassificationConfidence {
+    /// Low confidence; the classification is a weak guess from limited signals.
     Low,
+    /// Moderate confidence; the classification is plausible but should be confirmed.
     Moderate,
+    /// High confidence; signals strongly support the classification.
     High,
 }
 
 impl ClassificationConfidence {
+    /// Returns the kebab-case string representation of this confidence level.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Low => "low",
@@ -150,23 +167,38 @@ impl ClassificationConfidence {
     }
 }
 
+/// An inferred risk/zone classification produced before operator confirmation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InferredClassification {
+    /// The inferred risk class.
     pub risk: RiskClass,
+    /// The inferred usage zone.
     pub zone: UsageZone,
+    /// Whether the risk was supplied explicitly (skipping inference).
     pub risk_was_supplied: bool,
+    /// Whether the zone was supplied explicitly (skipping inference).
     pub zone_was_supplied: bool,
+    /// Confidence level of the combined classification.
     pub confidence: ClassificationConfidence,
+    /// Whether the operator should confirm this classification before proceeding.
     pub requires_confirmation: bool,
+    /// One-line headline summarizing the inferred classification.
     pub headline: String,
+    /// Full rationale combining risk and zone signals.
     pub rationale: String,
+    /// Rationale specific to the risk class inference.
     pub risk_rationale: String,
+    /// Rationale specific to the zone inference.
     pub zone_rationale: String,
+    /// Combined signals from inputs and mode heuristics.
     pub signals: Vec<String>,
+    /// Signals that specifically drove the risk class.
     pub risk_signals: Vec<String>,
+    /// Signals that specifically drove the usage zone.
     pub zone_signals: Vec<String>,
 }
 
+/// Infers a risk/zone classification from mode, explicit overrides, and input signals.
 pub fn infer_risk_zone(
     mode: Mode,
     explicit_risk: Option<RiskClass>,

@@ -1,3 +1,4 @@
+//! Canon CLI binary.
 mod app;
 mod commands;
 mod error;

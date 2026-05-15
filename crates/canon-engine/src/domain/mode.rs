@@ -6,37 +6,62 @@ use canon_adapters::AdapterKind;
 
 use crate::domain::gate::GateKind;
 
-// Modes stay focused on the governed work type; `SystemContext` carries new vs existing state.
+/// The governed work type for a Canon run.
+///
+/// Modes focus on *what kind of work* is being done; the system state
+/// (new vs existing) is carried separately by [`SystemContext`](crate::domain::run::SystemContext).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Mode {
+    /// Capture and bound stakeholder requirements before design work begins.
     Requirements,
+    /// Explore unknowns and bound the problem space before committing to a solution.
     Discovery,
+    /// Shape the architecture and constraints of a new system.
     SystemShaping,
+    /// Controlled change to a live system with explicit invariant preservation.
     Change,
+    /// Decompose upstream decisions into delivery epics and slices.
     Backlog,
+    /// Record and evaluate architectural decisions and tradeoffs.
     Architecture,
+    /// Assess the current health and structure of an existing system.
     SystemAssessment,
+    /// Execute bounded implementation tasks with mutation control.
     Implementation,
+    /// Restructure code without adding features or changing observable behavior.
     Refactor,
+    /// Challenge and validate claims, contracts, or evidence in a governed run.
     Verification,
+    /// Review a bounded non-PR artifact bundle for completeness and correctness.
     Review,
+    /// Perform a governed review of a pull request or diff range.
     PrReview,
+    /// Contain and document a live incident with blast-radius and follow-up posture.
     Incident,
+    /// Assess threats, risks, and mitigations for a system or change.
     SecurityAssessment,
+    /// Plan and govern a data or system migration with safety posture.
     Migration,
+    /// Analyze the supply chain: SBOM, vulnerabilities, licenses, and legacy risk.
     SupplyChainAnalysis,
+    /// Govern and stabilize the shared domain vocabulary for a product area.
     DomainLanguage,
+    /// Formalize domain concepts, relationships, and invariants.
     DomainModel,
 }
 
+/// The class of governed expertise packet produced by an authoring-specialization mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum GovernedExpertiseKind {
+    /// A domain-language packet that stabilizes shared vocabulary.
     DomainLanguage,
+    /// A domain-model packet that formalizes concepts, relationships, and invariants.
     DomainModel,
 }
 
 impl GovernedExpertiseKind {
+    /// Returns the kebab-case string representation of this expertise kind.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::DomainLanguage => "domain-language",
@@ -44,37 +69,58 @@ impl GovernedExpertiseKind {
         }
     }
 
+    /// Returns all defined expertise kinds.
     pub fn all() -> &'static [GovernedExpertiseKind] {
         &[Self::DomainLanguage, Self::DomainModel]
     }
 }
 
+/// The primary weight of a governed mode's work type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModeEmphasis {
+    /// The mode is primarily concerned with analysis, exploration, or assessment.
     AnalysisHeavy,
+    /// The mode is primarily concerned with executing bounded mutations or changes.
     ExecutionHeavy,
+    /// The mode is primarily concerned with reviewing and validating artifacts or diffs.
     ReviewHeavy,
 }
 
+/// The depth at which a mode produces implementation artifacts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImplementationDepth {
+    /// Produces complete, production-ready implementation artifacts.
     Full,
+    /// Produces only interface contracts and type-level definitions.
     ContractOnly,
+    /// Produces structural skeletons without business logic.
     Skeleton,
 }
 
+/// Static profile describing the governance contract for a single [`Mode`].
+///
+/// Profiles are constructed once by [`all_mode_profiles`] and are used
+/// by the classifier and gatekeeper to enforce mode-specific constraints.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModeProfile {
+    /// The mode this profile describes.
     pub mode: Mode,
+    /// One-sentence description of the mode's governed purpose.
     pub purpose: &'static str,
+    /// Whether the mode is analysis-heavy, execution-heavy, or review-heavy.
     pub emphasis: ModeEmphasis,
+    /// The artifact depth produced by this mode.
     pub implementation_depth: ImplementationDepth,
+    /// The ordered set of governance gates that apply to this mode.
     pub gate_profile: Vec<GateKind>,
+    /// The families of artifacts this mode is expected to produce.
     pub artifact_families: Vec<&'static str>,
+    /// The adapter kinds this mode is permitted to invoke.
     pub allowed_adapters: Vec<AdapterKind>,
 }
 
 impl Mode {
+    /// Returns the canonical kebab-case string representation of this mode.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Requirements => "requirements",
@@ -98,6 +144,7 @@ impl Mode {
         }
     }
 
+    /// Returns the [`GovernedExpertiseKind`] for authoring-specialization modes, or `None`.
     pub fn governed_expertise_kind(self) -> Option<GovernedExpertiseKind> {
         match self {
             Self::DomainLanguage => Some(GovernedExpertiseKind::DomainLanguage),
@@ -106,6 +153,7 @@ impl Mode {
         }
     }
 
+    /// Returns all defined modes in display order.
     pub fn all() -> &'static [Mode] {
         &[
             Self::Discovery,
@@ -170,6 +218,10 @@ impl std::str::FromStr for Mode {
     }
 }
 
+/// Returns the full set of static [`ModeProfile`] records, one for each [`Mode`].
+///
+/// This is the authoritative source of governance contracts used by the
+/// classifier and gatekeeper during run execution.
 pub fn all_mode_profiles() -> Vec<ModeProfile> {
     use AdapterKind::{CopilotCli, Filesystem, McpStdio, Shell};
     use GateKind::{

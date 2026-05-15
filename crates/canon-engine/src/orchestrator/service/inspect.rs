@@ -2,6 +2,7 @@ use super::EngineService;
 use super::*;
 
 impl EngineService {
+    /// Runs a structured inspection against the given target and returns an inspect response.
     pub fn inspect(&self, target: InspectTarget) -> Result<InspectResponse, EngineError> {
         let store = WorkspaceStore::new(&self.repo_root);
         let (name, system_context, entries) = match target {

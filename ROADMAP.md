@@ -38,5 +38,24 @@ governance adapter contracts for automation. Any such onboarding should keep
 secrets out of versioned repository state and prefer environment or
 host-managed credential references over raw token persistence.
 
+A tech-debt refactor should split the remaining large source files to match
+the module decomposition already applied to `service.rs`, `summarizers.rs`,
+and `markdown.rs`. Files above 1000 lines that still need decomposition, in
+descending order:
+
+| File | Lines |
+|---|---|
+| `orchestrator/gatekeeper.rs` | 2692 |
+| `orchestrator/publish.rs` | 2455 |
+| `service/clarity.rs` | 2235 |
+| `commands/governance.rs` | 2039 |
+| `persistence/store.rs` | 1584 |
+| `cli/output.rs` | 1320 |
+
+Each split should follow the same Rust 2024 named-file-plus-sibling-directory
+pattern used in the completed passes: no `mod.rs`, child modules use
+`use super::*`, visibility promoted only where cross-sibling calls require it.
+No behavior or API surface changes are in scope.
+
 This roadmap remains intentionally sparse: a macrofeature only moves forward
 once its bounds, artifact contract, and validation story are explicit.

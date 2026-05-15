@@ -4,32 +4,52 @@ use time::OffsetDateTime;
 
 use crate::domain::execution::{PolicyDecisionKind, ToolOutcomeKind};
 
+/// A discrete event in the adapter invocation audit trail.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TraceEventKind {
+    /// A new invocation request was persisted.
     RequestPersisted,
+    /// A policy decision was persisted for an invocation request.
     DecisionPersisted,
+    /// Approval is required before the invocation may proceed.
     ApprovalRequired,
+    /// An approval record was persisted for an invocation request.
     ApprovalRecorded,
+    /// The adapter dispatch for an invocation was started.
     DispatchStarted,
+    /// A tool outcome was recorded for an invocation attempt.
     OutcomeRecorded,
+    /// The evidence bundle was updated after an invocation.
     EvidenceBundleUpdated,
+    /// The adapter dispatch was denied at runtime by the policy.
     RuntimeDenied,
 }
 
+/// A single audit trace event for an adapter invocation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TraceEvent {
+    /// The run ID associated with this event.
     pub run_id: String,
+    /// The invocation request ID, if applicable.
     pub request_id: Option<String>,
+    /// The adapter that executed the invocation.
     pub adapter: Option<AdapterKind>,
+    /// The capability exercised by the invocation.
     pub capability: Option<CapabilityKind>,
+    /// The kind of event.
     pub event: TraceEventKind,
+    /// Human-readable summary of the event.
     pub summary: String,
+    /// The policy decision applied, if applicable.
     pub policy_decision: Option<PolicyDecisionKind>,
+    /// The tool outcome kind, if applicable.
     pub outcome: Option<ToolOutcomeKind>,
+    /// When this event was recorded.
     pub recorded_at: OffsetDateTime,
 }
 
 impl TraceEvent {
+    /// Constructs a trace event from an adapter invocation record.
     pub fn from_adapter_invocation(run_id: &str, invocation: &AdapterInvocation) -> Self {
         Self {
             run_id: run_id.to_string(),
@@ -53,6 +73,7 @@ impl TraceEvent {
     }
 }
 
+/// Parses newline-delimited JSON trace events from the given string.
 pub fn parse_trace_events(contents: &str) -> Result<Vec<TraceEvent>, serde_json::Error> {
     contents
         .lines()

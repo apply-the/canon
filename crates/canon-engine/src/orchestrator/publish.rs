@@ -43,11 +43,16 @@ struct AdrDocument {
     source_packet: Option<String>,
 }
 
+/// Summary returned after publishing a Canon run's artifacts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PublishSummary {
+    /// The run ID whose artifacts were published.
     pub run_id: String,
+    /// The governed mode of the published run.
     pub mode: String,
+    /// The destination path the artifacts were published to.
     pub published_to: String,
+    /// The list of files emitted to the destination.
     pub published_files: Vec<String>,
 }
 
@@ -83,6 +88,7 @@ struct PublishMetadata {
     lineage: Option<LineageMetadata>,
 }
 
+/// Publishes the artifacts from the named run to the given destination using the default profile.
 pub fn publish_run(
     repo_root: &Path,
     run_id: &str,

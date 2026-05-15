@@ -1,6 +1,7 @@
 use serde_json::Value;
 use std::path::Path;
 
+/// Required method IDs that every Canon assistant plugin must expose.
 pub const REQUIRED_METHODS: &[&str] = &[
     "clarify-input",
     "start-governed-packet",
@@ -11,6 +12,7 @@ pub const REQUIRED_METHODS: &[&str] = &[
     "publish-packet",
 ];
 
+/// Required top-level metadata fields in a Canon plugin manifest.
 pub const REQUIRED_METADATA_FIELDS: &[&str] = &[
     "name",
     "displayName",
@@ -24,9 +26,11 @@ pub const REQUIRED_METADATA_FIELDS: &[&str] = &[
     "capabilities",
 ];
 
+/// Marketing or positioning terms that Canon plugin descriptions must not use.
 pub const PROHIBITED_POSITIONING: &[&str] =
     &["agent framework", "orchestrator", "coding agent", "workspace mutation engine"];
 
+/// Extracts the workspace package version string from a `Cargo.toml` file contents.
 pub fn workspace_version_from_toml(cargo_toml: &str) -> Result<String, String> {
     let parsed: toml::Value =
         toml::from_str(cargo_toml).map_err(|error| format!("Cargo.toml parse error: {error}"))?;
@@ -36,6 +40,7 @@ pub fn workspace_version_from_toml(cargo_toml: &str) -> Result<String, String> {
         .ok_or_else(|| "workspace package version must be a string".to_string())
 }
 
+/// Extracts a string array from a JSON value by field name.
 pub fn string_array<'a>(value: &'a Value, field: &str) -> Result<Vec<&'a str>, String> {
     let entries = value
         .get(field)
@@ -48,10 +53,12 @@ pub fn string_array<'a>(value: &'a Value, field: &str) -> Result<Vec<&'a str>, S
         .collect()
 }
 
+/// Extracts the `id` fields from the `capabilities` array in a plugin manifest.
 pub fn capability_ids(value: &Value) -> Result<Vec<String>, String> {
     id_array(value, "capabilities", "capability")
 }
 
+/// Extracts the `id` fields from the `commands` array in a plugin manifest.
 pub fn command_ids(value: &Value) -> Result<Vec<String>, String> {
     id_array(value, "commands", "command")
 }
@@ -74,6 +81,7 @@ fn id_array(value: &Value, field: &str, label: &str) -> Result<Vec<String>, Stri
         .collect()
 }
 
+/// Returns the first prohibited positioning term found anywhere in the JSON value, or `None`.
 pub fn string_contains_any(value: &Value, prohibited: &[&str]) -> Option<String> {
     match value {
         Value::String(text) => prohibited
@@ -88,6 +96,10 @@ pub fn string_contains_any(value: &Value, prohibited: &[&str]) -> Option<String>
     }
 }
 
+/// Validates a plugin manifest JSON value and returns a list of validation error strings.
+///
+/// Checks for required metadata fields, version alignment, required methods,
+/// prohibited capability IDs, and prohibited positioning language.
 pub fn manifest_errors(manifest: &Value, version: &str, root: &Path) -> Vec<String> {
     let mut errors = Vec::new();
 

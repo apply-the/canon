@@ -8,12 +8,18 @@ use crate::domain::run::{
     ClassificationProvenance, RunIdentity, SystemContext, short_id_from_uuid,
 };
 
+/// A manifest linking a run's artifact, decision, trace, and invocation paths.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LinkManifest {
+    /// Relative paths of emitted artifact files.
     pub artifacts: Vec<String>,
+    /// Relative paths of persisted decision records.
     pub decisions: Vec<String>,
+    /// Relative paths of persisted trace event files.
     pub traces: Vec<String>,
+    /// Relative paths of persisted invocation directories.
     pub invocations: Vec<String>,
+    /// Relative path of the evidence bundle, if captured.
     pub evidence: Option<String>,
 }
 
@@ -26,9 +32,9 @@ pub struct LinkManifest {
 /// are absent on disk; they are reconstructed in-memory by [`RunManifest::canonicalize`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunManifest {
+    /// The canonical display run ID (e.g. `R-YYYYMMDD-SHORTID`).
     pub run_id: String,
-    /// Canonical machine identity. `None` only on legacy on-disk manifests
-    /// that pre-date feature 009; reconstruct via [`Self::canonicalize`].
+    /// Canonical machine identity.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub uuid: Option<String>,
     /// First 8 hex characters of the lowercase canonical `uuid`. `None` only
@@ -41,14 +47,21 @@ pub struct RunManifest {
     /// Optional human-readable title. Metadata only.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    /// The governed mode of the run.
     pub mode: Mode,
+    /// The risk class assigned to the run.
     pub risk: RiskClass,
+    /// The usage zone assigned to the run.
     pub zone: UsageZone,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// Whether the run targets a new or existing system.
     pub system_context: Option<SystemContext>,
     #[serde(default)]
+    /// Provenance of the risk/zone classification.
     pub classification: ClassificationProvenance,
+    /// Named human owner of the run.
     pub owner: String,
+    /// When the run was created.
     pub created_at: OffsetDateTime,
 }
 
@@ -129,9 +142,12 @@ impl RunManifest {
     }
 }
 
+/// The persisted state manifest for a run, recording its current state and last update time.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunStateManifest {
+    /// The current lifecycle state of the run.
     pub state: RunState,
+    /// When the state was last updated.
     pub updated_at: OffsetDateTime,
 }
 

@@ -1,6 +1,8 @@
 use crate::domain::gate::GateKind;
 
+/// The method definition filename for refactor mode.
 pub const MODE_FILE: &str = "refactor.toml";
+/// The ordered step sequence for refactor mode execution.
 pub const STEP_SEQUENCE: &[&str] = &[
     "capture-context",
     "classify-risk",
@@ -12,6 +14,7 @@ pub const STEP_SEQUENCE: &[&str] = &[
     "emit-artifacts",
     "evaluate-gates",
 ];
+/// The gates required to close a refactor mode run.
 pub const REQUIRED_GATES: &[GateKind] = &[
     GateKind::ChangePreservation,
     GateKind::Architecture,

@@ -4,14 +4,18 @@ use time::OffsetDateTime;
 
 use crate::domain::gate::GateKind;
 
+/// Whether a human reviewer approved or rejected a governance gate or invocation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
 #[strum(serialize_all = "lowercase")]
 pub enum ApprovalDecision {
+    /// The gate or invocation was explicitly approved.
     Approve,
+    /// The gate or invocation was explicitly rejected.
     Reject,
 }
 
 impl ApprovalDecision {
+    /// Returns the lowercase string representation of the decision.
     pub fn as_str(self) -> &'static str {
         self.into()
     }
@@ -29,17 +33,29 @@ impl std::str::FromStr for ApprovalDecision {
     }
 }
 
+/// A persisted record that a human reviewer made an explicit approval decision.
+///
+/// Approval records may be scoped to a specific gate or to a specific
+/// invocation request ID; exactly one of `gate` and `invocation_request_id`
+/// is `Some` for any given record.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApprovalRecord {
+    /// The gate this approval targets, if gate-scoped.
     pub gate: Option<GateKind>,
+    /// The invocation request ID this approval targets, if invocation-scoped.
     pub invocation_request_id: Option<String>,
+    /// Identifier of the reviewer who recorded the decision.
     pub by: String,
+    /// Whether the reviewer approved or rejected.
     pub decision: ApprovalDecision,
+    /// Human-readable rationale for the decision.
     pub rationale: String,
+    /// When this record was created.
     pub recorded_at: OffsetDateTime,
 }
 
 impl ApprovalRecord {
+    /// Constructs a gate-scoped approval record.
     pub fn for_gate(
         gate: GateKind,
         by: String,
@@ -50,6 +66,7 @@ impl ApprovalRecord {
         Self { gate: Some(gate), invocation_request_id: None, by, decision, rationale, recorded_at }
     }
 
+    /// Constructs an invocation-scoped approval record.
     pub fn for_invocation(
         request_id: String,
         by: String,
@@ -67,18 +84,23 @@ impl ApprovalRecord {
         }
     }
 
+    /// Returns `true` if this record targets the given gate.
     pub fn matches_gate(&self, gate: GateKind) -> bool {
         self.gate == Some(gate)
     }
 
+    /// Returns `true` if this record targets the given invocation request ID.
     pub fn matches_invocation(&self, request_id: &str) -> bool {
         self.invocation_request_id.as_deref() == Some(request_id)
     }
 
+    /// Returns `true` if the decision was [`ApprovalDecision::Approve`].
+    /// Returns `true` if this record carries an `Approve` decision.
     pub fn is_approved(&self) -> bool {
         matches!(self.decision, ApprovalDecision::Approve)
     }
 
+    /// Returns a display label identifying the target of this approval record.
     pub fn target_label(&self) -> String {
         match (&self.gate, &self.invocation_request_id) {
             (Some(gate), _) => format!("gate:{}", gate.as_str()),
@@ -151,5 +173,18 @@ mod tests {
         assert!(invocation_record.matches_invocation("req-7"));
         assert!(!invocation_record.is_approved());
         assert_eq!(invocation_record.target_label(), "invocation:req-7");
+    }
+
+    #[test]
+    fn target_label_returns_unknown_when_no_gate_or_invocation_id() {
+        let record = ApprovalRecord {
+            gate: None,
+            invocation_request_id: None,
+            by: "test-reviewer".to_string(),
+            decision: ApprovalDecision::Approve,
+            rationale: "n/a".to_string(),
+            recorded_at: OffsetDateTime::UNIX_EPOCH,
+        };
+        assert_eq!(record.target_label(), "unknown");
     }
 }

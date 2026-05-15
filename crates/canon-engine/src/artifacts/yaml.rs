@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+/// Serializes a value to a YAML string.
 pub fn render_yaml<T: Serialize>(value: &T) -> Result<String, serde_yaml::Error> {
     serde_yaml::to_string(value)
 }

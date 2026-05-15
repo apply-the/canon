@@ -3,6 +3,7 @@ use time::OffsetDateTime;
 use crate::domain::verification::{VerificationLayer, VerificationRecord};
 use crate::review::critique::CritiqueNote;
 
+/// Returns the default verification records for a requirements mode run.
 pub fn requirements_verification_records(target_paths: &[String]) -> Vec<VerificationRecord> {
     requirements_critique_notes()
         .into_iter()
@@ -33,6 +34,7 @@ fn requirements_critique_notes() -> Vec<CritiqueNote> {
     ]
 }
 
+/// Returns verification records for a change mode run from the given verification layers.
 pub fn change_verification_records(
     layers: &[VerificationLayer],
     target_paths: &[String],
@@ -55,6 +57,7 @@ pub fn change_verification_records(
         .collect()
 }
 
+/// Returns verification records for a PR review mode run from the given verification layers.
 pub fn pr_review_verification_records(
     layers: &[VerificationLayer],
     target_paths: &[String],
@@ -62,6 +65,7 @@ pub fn pr_review_verification_records(
     mode_verification_records("pr-review", layers, target_paths)
 }
 
+/// Returns verification records for any analysis-class mode run from the given verification layers.
 pub fn analysis_verification_records(
     mode_name: &str,
     layers: &[VerificationLayer],
@@ -70,6 +74,7 @@ pub fn analysis_verification_records(
     mode_verification_records(mode_name, layers, target_paths)
 }
 
+/// Attaches runtime lineage (request IDs, validation path, evidence bundle) to a set of verification records.
 pub fn attach_runtime_lineage(
     records: &mut [VerificationRecord],
     request_ids: &[String],

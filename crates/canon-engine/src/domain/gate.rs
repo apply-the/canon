@@ -29,6 +29,7 @@ pub enum GateKind {
 }
 
 impl GateKind {
+    /// Returns the kebab-case string representation of this gate kind.
     pub fn as_str(self) -> &'static str {
         self.into()
     }
@@ -71,11 +72,16 @@ pub enum GateStatus {
     Overridden,
 }
 
+/// A persisted result of evaluating a single governance gate during a run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GateEvaluation {
+    /// The gate that was evaluated.
     pub gate: GateKind,
+    /// The outcome of the evaluation.
     pub status: GateStatus,
+    /// Human-readable descriptions of any conditions that are blocking the gate.
     pub blockers: Vec<String>,
+    /// When this evaluation was recorded.
     pub evaluated_at: OffsetDateTime,
 }
 

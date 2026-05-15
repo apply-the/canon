@@ -58,6 +58,9 @@ pub(crate) mod next_action;
 pub(crate) mod patch;
 pub(crate) mod summarizers;
 
+mod context_builder;
+mod identity;
+mod input_handling;
 mod inspect;
 mod mode_backlog;
 mod mode_change;
@@ -73,6 +76,9 @@ mod mode_security_assessment;
 mod mode_shaping;
 mod mode_supply_chain_analysis;
 mod mode_system_assessment;
+mod run_lifecycle;
+mod run_op;
+mod run_summary;
 
 use clarity::*;
 use context_parse::*;
@@ -109,23 +115,37 @@ pub enum InspectTarget {
     Policies,
     /// Inspect the risk classification and usage zone for a given pattern.
     RiskZone {
+        /// The mode to evaluate classification for.
         mode: Mode,
+        /// An explicit risk class override, if provided.
         risk: Option<RiskClass>,
+        /// An explicit usage zone override, if provided.
         zone: Option<UsageZone>,
+        /// File path inputs to feed to the classifier.
         inputs: Vec<String>,
+        /// Inline text inputs to feed to the classifier.
         inline_inputs: Vec<String>,
     },
+    /// Inspect output-quality clarity for the named mode and inputs.
     Clarity {
+        /// The mode to evaluate clarity for.
         mode: Mode,
+        /// File path inputs to inspect.
         inputs: Vec<String>,
     },
+    /// List artifact paths for the named run.
     Artifacts {
+        /// The run ID to inspect.
         run_id: String,
     },
+    /// List invocation records for the named run.
     Invocations {
+        /// The run ID to inspect.
         run_id: String,
     },
+    /// List evidence records for the named run.
     Evidence {
+        /// The run ID to inspect.
         run_id: String,
     },
 }
@@ -182,10 +202,14 @@ impl RunRequest {
     }
 }
 
+/// The AI tool frontend the user is running Canon from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AiTool {
+    /// OpenAI Codex CLI or compatible Codex-family agent.
     Codex,
+    /// GitHub Copilot in VS Code or Copilot CLI.
     Copilot,
+    /// Anthropic Claude desktop or Claude Code.
     Claude,
 }
 
@@ -198,155 +222,256 @@ impl AiTool {
     }
 }
 
+/// Summary returned after a successful `canon init` operation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct InitSummary {
+    /// Absolute path to the repository root.
     pub repo_root: String,
+    /// Absolute path to the `.canon/` runtime directory.
     pub canon_root: String,
+    /// Number of method files materialized.
     pub methods_materialized: usize,
+    /// Number of policy files materialized.
     pub policies_materialized: usize,
+    /// Number of skill files materialized.
     pub skills_materialized: usize,
+    /// Whether a `CLAUDE.md` file was created or updated.
     pub claude_md_created: bool,
 }
 
+/// Summary returned after a `canon skills` materialization run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SkillsSummary {
+    /// Path to the skills directory that was populated.
     pub skills_dir: String,
+    /// Number of skill files successfully materialized.
     pub skills_materialized: usize,
+    /// Number of skill files skipped (already up to date).
     pub skills_skipped: usize,
+    /// Whether a `CLAUDE.md` file was created or updated.
     pub claude_md_created: bool,
 }
 
+/// A single skill entry in a skills listing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SkillEntry {
+    /// The skill name (e.g. `canon-implementation`).
     pub name: String,
+    /// The support state of the skill (e.g. `available`, `preview`).
     pub support_state: String,
 }
 
+/// The response returned by a `canon inspect` command.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct InspectResponse {
+    /// The inspection target label (e.g. `"modes"`, `"risk-zone"`).
     pub target: String,
+    /// System context of the inspected run, if applicable.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub system_context: Option<String>,
+    /// The ordered list of inspection result entries.
     pub entries: Vec<InspectEntry>,
 }
 
+/// A polymorphic entry in an [`InspectResponse`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(untagged)]
 pub enum InspectEntry {
+    /// A plain name string (e.g. a mode or policy name).
     Name(String),
+    /// A risk/zone classification summary.
     RiskZone(ClassificationInspectSummary),
+    /// A clarity inspection summary.
     Clarity(ClarityInspectSummary),
+    /// An invocation inspection summary.
     Invocation(InvocationInspectSummary),
+    /// An evidence inspection summary.
     Evidence(EvidenceInspectSummary),
 }
 
+/// Inspection summary for a single invocation within a run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct InvocationInspectSummary {
+    /// The invocation request ID.
     pub request_id: String,
+    /// The adapter that was (or would be) invoked.
     pub adapter: String,
+    /// The capability kind.
     pub capability: String,
+    /// The execution orientation.
     pub orientation: String,
+    /// The policy decision applied to this invocation.
     pub policy_decision: String,
+    /// Whether the invocation was constrained to recommendation-only.
     pub recommendation_only: bool,
+    /// Whether approval was granted, denied, or pending.
     pub approval_state: String,
+    /// The outcome kind of the latest attempt, if any.
     pub latest_outcome: Option<String>,
+    /// Artifact paths linked to this invocation.
     pub linked_artifacts: Vec<String>,
 }
 
+/// A compact representation of a closure finding for inspection output.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ClosureFindingInspectSummary {
+    /// Category label for the finding.
     pub category: String,
+    /// Severity of the finding (`"warning"` or `"blocking"`).
     pub severity: String,
+    /// The artifact or surface scope affected.
     pub affected_scope: String,
+    /// Recommended action to resolve the finding.
     pub recommended_followup: String,
 }
 
+/// Full evidence inspection summary for a run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EvidenceInspectSummary {
+    /// Execution posture of the run (`"mutating"` or `"recommendation-only"`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub execution_posture: Option<String>,
+    /// Feature slice from the upstream run, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub upstream_feature_slice: Option<String>,
+    /// Primary mode of the upstream run, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub primary_upstream_mode: Option<String>,
+    /// Source references from the upstream context.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub upstream_source_refs: Vec<String>,
+    /// Items carried forward from upstream.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub carried_forward_items: Vec<String>,
+    /// Excluded upstream scope, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub excluded_upstream_scope: Option<String>,
+    /// Closure status of the run.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure_status: Option<String>,
+    /// Decomposition scope of the run.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub decomposition_scope: Option<String>,
+    /// Closure findings for this run.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub closure_findings: Vec<ClosureFindingInspectSummary>,
+    /// Optional notes about the closure assessment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub closure_notes: Option<String>,
+    /// Summary labels for each generation path.
     pub generation_paths: Vec<String>,
+    /// Summary labels for each validation path.
     pub validation_paths: Vec<String>,
+    /// Summary labels for each denied invocation.
     pub denied_invocations: Vec<String>,
+    /// Artifact provenance links.
     pub artifact_provenance_links: Vec<String>,
 }
 
+/// Risk/zone classification inspection summary for a run or set of inputs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ClassificationInspectSummary {
+    /// The mode being classified.
     pub mode: String,
+    /// The inferred or supplied risk class.
     pub risk: String,
+    /// The inferred or supplied usage zone.
     pub zone: String,
+    /// Whether the risk was explicitly supplied by the user.
     pub risk_was_supplied: bool,
+    /// Whether the zone was explicitly supplied by the user.
     pub zone_was_supplied: bool,
+    /// Confidence level of the classification.
     pub confidence: String,
+    /// Whether the user must confirm the classification before proceeding.
     pub requires_confirmation: bool,
+    /// One-line headline summarizing the classification result.
     pub headline: String,
+    /// Full rationale for the combined risk/zone classification.
     pub rationale: String,
+    /// Rationale specific to the risk class.
     pub risk_rationale: String,
+    /// Rationale specific to the usage zone.
     pub zone_rationale: String,
+    /// Combined signals that influenced the classification.
     pub signals: Vec<String>,
+    /// Signals that specifically influenced the risk class.
     pub risk_signals: Vec<String>,
+    /// Signals that specifically influenced the usage zone.
     pub zone_signals: Vec<String>,
 }
 
+/// A single clarification question surfaced during a clarity inspection.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ClarificationQuestionSummary {
+    /// Unique identifier for this question.
     pub id: String,
+    /// The question text to present to the user.
     pub prompt: String,
+    /// Why this question is being asked.
     pub rationale: String,
+    /// The evidence gap or signal that triggered this question.
     pub evidence: String,
+    /// Which downstream decisions or artifacts are affected if skipped.
     pub affects: String,
+    /// The default assumption made if the user skips this question.
     pub default_if_skipped: String,
+    /// The current status of the question (`"open"` or `"resolved"`).
     pub status: String,
 }
 
+/// Full clarity inspection summary for a set of mode inputs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ClarityInspectSummary {
+    /// The mode being assessed.
     pub mode: String,
+    /// One-sentence summary of the clarity assessment.
     pub summary: String,
+    /// The input paths that were analyzed.
     pub source_inputs: Vec<String>,
+    /// Whether the inputs require clarification before a run can proceed.
     pub requires_clarification: bool,
+    /// Specific context items that are missing or underspecified.
     pub missing_context: Vec<String>,
+    /// Targeted questions to surface missing context.
     pub clarification_questions: Vec<ClarificationQuestionSummary>,
+    /// Reasoning signals that informed the clarity assessment.
     pub reasoning_signals: Vec<String>,
+    /// Output quality assessment for the current inputs.
     pub output_quality: OutputQualitySummary,
+    /// Authoring lifecycle assessment for the current inputs.
     pub authoring_lifecycle: AuthoringLifecycleSummary,
+    /// The most important next step for the author.
     pub recommended_focus: String,
 }
 
+/// Assessment of the output quality achievable from the current inputs.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct OutputQualitySummary {
+    /// Quality posture label (e.g. `"high"`, `"medium"`, `"low"`).
     pub posture: String,
+    /// Whether the inputs are materially closed (no critical gaps).
     pub materially_closed: bool,
+    /// Evidence signals that support the quality assessment.
     pub evidence_signals: Vec<String>,
+    /// Reasons why the quality was downgraded from ideal.
     pub downgrade_reasons: Vec<String>,
 }
 
+/// Assessment of where the inputs sit in the authoring lifecycle.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AuthoringLifecycleSummary {
+    /// The structural shape of the input packet.
     pub packet_shape: String,
+    /// Whether the inputs are authoritative, derived, or ambiguous.
     pub authority_status: String,
+    /// Input paths considered authoritative for this mode.
     pub authoritative_inputs: Vec<String>,
+    /// Input paths that are supporting but not primary.
     pub supporting_inputs: Vec<String>,
+    /// Delta steps needed to reach full authoring readiness.
     pub readiness_delta: Vec<String>,
+    /// The single most impactful next authoring action.
     pub next_authoring_step: String,
 }
 
@@ -386,38 +511,63 @@ impl AuthorityStatus {
     }
 }
 
+/// A suggested follow-up action for the user after a run completes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ResultActionSummary {
+    /// Unique identifier for this action.
     pub id: String,
+    /// Human-readable label for the action.
     pub label: String,
+    /// The host action type (e.g. `"open-file"`, `"run-command"`).
     pub host_action: String,
+    /// The target of the action (file path, URL, or command).
     pub target: String,
+    /// Plain-text fallback description if the host cannot render the action.
     pub text_fallback: String,
 }
 
+/// An action chip rendered in the Canon UX for a suggested next step.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ActionChip {
+    /// Unique identifier for this chip.
     pub id: String,
+    /// Short label shown in the chip button.
     pub label: String,
+    /// The skill invoked when the chip is activated.
     pub skill: String,
+    /// The user intent this chip represents.
     pub intent: String,
+    /// Pre-filled argument values for the skill invocation.
     pub prefilled_args: std::collections::BTreeMap<String, String>,
+    /// Argument keys the user must supply before the skill can run.
     pub required_user_inputs: Vec<String>,
+    /// Condition under which this chip should be shown.
     pub visibility_condition: String,
+    /// Whether this chip is the recommended primary next action.
     pub recommended: bool,
+    /// Plain-text fallback shown if the host cannot render chips.
     pub text_fallback: String,
 }
 
+/// The mode-specific result excerpt and navigation surface for a completed run.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ModeResultSummary {
+    /// One-line headline of the result.
     pub headline: String,
+    /// One-line summary of the emitted artifact packet.
     pub artifact_packet_summary: String,
+    /// Execution posture of the run, if applicable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution_posture: Option<String>,
+    /// Title of the primary artifact.
     pub primary_artifact_title: String,
+    /// File path of the primary artifact.
     pub primary_artifact_path: String,
+    /// Action to open or navigate to the primary artifact.
     pub primary_artifact_action: ResultActionSummary,
+    /// A short excerpt from the primary artifact for inline display.
     pub result_excerpt: String,
+    /// Suggested next-step action chips.
     #[serde(default)]
     pub action_chips: Vec<ActionChip>,
 }
@@ -500,51 +650,79 @@ pub struct StatusSummary {
     pub blocking_classification: Option<String>,
     /// List of gates currently preventing progress.
     pub blocked_gates: Vec<GateInspectSummary>,
+    /// Identifiers of pending approvals the run is waiting for.
     pub approval_targets: Vec<String>,
+    /// Relative paths of persisted artifacts for the run.
     pub artifact_paths: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// Closure status label for backlog runs.
     pub closure_status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// Decomposition scope label for backlog runs.
     pub decomposition_scope: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    /// Closure findings for backlog runs.
     pub closure_findings: Vec<ClosureFindingInspectSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// Human-readable closure notes for backlog runs.
     pub closure_notes: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    /// All possible next actions for the run.
     pub possible_actions: Vec<PossibleActionSummary>,
+    /// The mode-specific result summary, if the run has completed.
     pub mode_result: Option<ModeResultSummary>,
+    /// The recommended next action for the operator.
     pub recommended_next_action: Option<RecommendedActionSummary>,
 }
 
+/// A summary of a single gate evaluation included in status and inspect responses.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct GateInspectSummary {
+    /// The gate kind label.
     pub gate: String,
+    /// The gate evaluation status label.
     pub status: String,
+    /// Human-readable blockers preventing this gate from passing.
     pub blockers: Vec<String>,
 }
 
+/// The single recommended next action for an operator, with rationale and optional target.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RecommendedActionSummary {
+    /// The action verb (e.g., `"approve"`, `"resume"`).
     pub action: String,
+    /// Human-readable rationale for the recommendation.
     pub rationale: String,
+    /// The optional target for the action (e.g., a gate label).
     pub target: Option<String>,
 }
 
+/// A possible next action surfaced in a status or inspect response.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PossibleActionSummary {
+    /// The action verb (e.g., `"approve"`, `"resume"`).
     pub action: String,
+    /// Human-readable text describing the action.
     pub text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    /// The optional target for the action.
     pub target: Option<String>,
 }
 
+/// Summary returned after recording an approval decision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ApprovalSummary {
+    /// The run ID the approval was recorded against.
     pub run_id: String,
+    /// The approval target (gate or invocation label).
     pub target: String,
+    /// The identity of the reviewer who recorded the decision.
     pub approved_by: String,
+    /// When the approval was recorded (ISO-8601).
     pub recorded_at: String,
+    /// The approval decision (`"approve"` or `"reject"`).
     pub decision: String,
+    /// The run state after the approval was applied.
     pub state: String,
 }
 
@@ -679,2088 +857,6 @@ impl EngineService {
             .into_iter()
             .map(|entry| SkillEntry { name: entry.name, support_state: entry.support_state })
             .collect()
-    }
-
-    /// Executes a managed run according to the provided request parameters.
-    /// This handles policy validation, risk classification, and artifact emission.
-    pub fn run(&self, mut request: RunRequest) -> Result<RunSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
-        store.init_runtime_state(None)?;
-
-        let policy_root = request.policy_root.as_deref().map(|root| {
-            let root = PathBuf::from(root);
-            if root.is_absolute() { root } else { self.repo_root.join(root) }
-        });
-        let policy_set = store.load_policy_set(policy_root.as_deref())?;
-        classifier::validate_system_context(request.mode, request.system_context)
-            .map_err(EngineError::Validation)?;
-        let owner_supplied_explicitly = !request.owner.trim().is_empty();
-        request.owner = self.resolve_owner(&request.owner);
-        classifier::classify_owner_requirement(&policy_set, request.risk, &request.owner).map_err(
-            |error| {
-                if !owner_supplied_explicitly && request.owner.trim().is_empty() {
-                    EngineError::Validation(format!(
-                        "{error}; pass --owner or configure git user.name and user.email"
-                    ))
-                } else {
-                    EngineError::Validation(error)
-                }
-            },
-        )?;
-        request.inputs = self.auto_bind_canonical_mode_inputs(
-            request.mode,
-            &request.inputs,
-            &request.inline_inputs,
-        );
-        self.validate_authored_inputs(request.mode, &request.inputs, &request.inline_inputs)?;
-
-        match request.mode {
-            Mode::Requirements => self.run_requirements(&store, request, policy_set),
-            Mode::Discovery => self.run_discovery(&store, request, policy_set),
-            Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
-            Mode::Change => self.run_change(&store, request, policy_set),
-            Mode::Backlog => self.run_backlog(&store, request, policy_set),
-            Mode::Incident => self.run_incident(&store, request, policy_set),
-            Mode::SystemAssessment => self.run_system_assessment(&store, request, policy_set),
-            Mode::SecurityAssessment => self.run_security_assessment(&store, request, policy_set),
-            Mode::SupplyChainAnalysis => {
-                self.run_supply_chain_analysis(&store, request, policy_set)
-            }
-            Mode::Implementation => self.run_implementation(&store, request, policy_set),
-            Mode::Migration => self.run_migration(&store, request, policy_set),
-            Mode::Refactor => self.run_refactor(&store, request, policy_set),
-            Mode::Architecture => self.run_architecture(&store, request, policy_set),
-            Mode::Review => self.run_review(&store, request, policy_set),
-            Mode::Verification => self.run_verification(&store, request, policy_set),
-            Mode::PrReview => self.run_pr_review(&store, request, policy_set),
-            Mode::DomainLanguage => self.run_domain_language(&store, request, policy_set),
-            Mode::DomainModel => self.run_domain_model(&store, request, policy_set),
-        }
-    }
-
-    pub fn approve(
-        &self,
-        run_id: &str,
-        target: &str,
-        by: &str,
-        decision: ApprovalDecision,
-        rationale: &str,
-    ) -> Result<ApprovalSummary, EngineError> {
-        let approver_supplied_explicitly = !by.trim().is_empty();
-        let approver = self.resolve_approver(by);
-        if !approver_supplied_explicitly && approver.trim().is_empty() {
-            return Err(EngineError::Validation(
-                "missing approver identity; pass --by or configure git user.name and user.email"
-                    .to_string(),
-            ));
-        }
-
-        let store = WorkspaceStore::new(&self.repo_root);
-        let canonical = self.resolve_run(run_id)?;
-        let run_id = canonical.as_str();
-        let manifest = store.load_run_manifest(run_id)?;
-        let contract = store.load_artifact_contract(run_id)?;
-        let context = store.load_run_context(run_id)?;
-        let mut approvals = store.load_approval_records(run_id)?;
-        let artifacts =
-            store.load_persisted_artifacts(run_id, manifest.mode, &contract).unwrap_or_default();
-
-        let target_label = target.to_string();
-        let approval = if let Some(gate) = target.strip_prefix("gate:") {
-            ApprovalRecord::for_gate(
-                gate.parse::<GateKind>()
-                    .map_err(|error| EngineError::Validation(error.to_string()))?,
-                approver.clone(),
-                decision,
-                rationale.to_string(),
-                OffsetDateTime::now_utc(),
-            )
-        } else if let Some(request_id) = target.strip_prefix("invocation:") {
-            ApprovalRecord::for_invocation(
-                request_id.to_string(),
-                approver,
-                decision,
-                rationale.to_string(),
-                OffsetDateTime::now_utc(),
-            )
-        } else {
-            return Err(EngineError::Validation(format!("unsupported approval target `{target}`")));
-        };
-        store.persist_approval_record(run_id, &approval)?;
-        approvals.push(approval.clone());
-
-        let state = if approval.gate.is_some() {
-            self.refresh_run_state(&store, &manifest, &context, &contract, &artifacts, &approvals)?
-        } else {
-            store.load_run_state(run_id)?.state
-        };
-
-        Ok(ApprovalSummary {
-            run_id: run_id.to_string(),
-            target: target_label,
-            approved_by: approval.by.clone(),
-            recorded_at: approval.recorded_at.to_string(),
-            decision: decision.as_str().to_string(),
-            state: format!("{state:?}"),
-        })
-    }
-
-    pub fn resume(&self, run_id: &str) -> Result<RunSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
-        let canonical = self.resolve_run(run_id)?;
-        let run_id = canonical.as_str();
-        let manifest = store.load_run_manifest(run_id)?;
-        let context = store.load_run_context(run_id)?;
-
-        if !resume::input_fingerprints_match(&self.repo_root, &context.input_fingerprints)? {
-            return Err(EngineError::Validation(format!(
-                "stale run `{run_id}`: input context changed; fork or rerun instead"
-            )));
-        }
-
-        let contract = store.load_artifact_contract(run_id)?;
-        let approvals = store.load_approval_records(run_id)?;
-        let artifacts =
-            store.load_persisted_artifacts(run_id, manifest.mode, &contract).unwrap_or_default();
-
-        if matches!(manifest.mode, Mode::Requirements) && artifacts.is_empty() {
-            let generation_request_id = format!("{run_id}-generate");
-            let approved_generation = approvals.iter().any(|approval| {
-                approval.matches_invocation(&generation_request_id)
-                    && matches!(approval.decision, ApprovalDecision::Approve)
-            });
-
-            if !approved_generation {
-                return self.summarize_run(
-                    &store,
-                    RunSummarySpec {
-                        run_id,
-                        mode: manifest.mode,
-                        risk: manifest.risk,
-                        zone: manifest.zone,
-                        state: RunState::AwaitingApproval,
-                        artifact_count: 0,
-                    },
-                );
-            }
-
-            let policy_set = store.load_policy_set(None)?;
-            let request = RunRequest {
-                mode: manifest.mode,
-                risk: manifest.risk,
-                zone: manifest.zone,
-                system_context: context.system_context,
-                classification: manifest.classification.clone(),
-                owner: manifest.owner.clone(),
-                inputs: self.resume_inputs(&context),
-                inline_inputs: Vec::new(),
-                excluded_paths: context.excluded_paths.clone(),
-                policy_root: None,
-                method_root: None,
-            };
-            let input_scope = request.merged_input_sources();
-            let now = OffsetDateTime::now_utc();
-            let evidence_path = format!("runs/{run_id}/evidence.toml");
-            let context_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::ReadRepository,
-                summary: "capture repository and idea context",
-                scope: input_scope.clone(),
-            });
-            let context_decision =
-                invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-            let context_summary =
-                self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
-            let context_attempt = self.completed_attempt(
-                &context_request,
-                1,
-                "filesystem",
-                ToolOutcome {
-                    kind: ToolOutcomeKind::Succeeded,
-                    summary: format!(
-                        "Captured requirements context from {} input(s).",
-                        request.authored_input_count()
-                    ),
-                    exit_code: Some(0),
-                    payload_refs: Vec::new(),
-                    candidate_artifacts: Vec::new(),
-                    recorded_at: OffsetDateTime::now_utc(),
-                },
-            );
-            let generation_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::GenerateContent,
-                summary: "generate bounded requirements framing",
-                scope: input_scope.clone(),
-            });
-            let generation_decision =
-                invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
-            let denied_edit_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::ProposeWorkspaceEdit,
-                summary: "attempt workspace mutation from requirements mode",
-                scope: input_scope.clone(),
-            });
-            let denied_edit_decision =
-                invocation_runtime::evaluate_request_policy(&denied_edit_request, &policy_set);
-            let denied_invocations =
-                if matches!(denied_edit_decision.kind, PolicyDecisionKind::Deny) {
-                    vec![DeniedInvocation {
-                        request_id: denied_edit_request.request_id.clone(),
-                        rationale: denied_edit_decision.rationale.clone(),
-                        policy_refs: denied_edit_decision.policy_refs.clone(),
-                        recorded_at: denied_edit_decision.decided_at,
-                    }]
-                } else {
-                    Vec::new()
-                };
-
-            let copilot = CopilotCliAdapter;
-            let generation_output = copilot.generate(&context_summary);
-            let generation_attempt = self.completed_attempt(
-                &generation_request,
-                1,
-                &generation_output.executor,
-                ToolOutcome {
-                    kind: ToolOutcomeKind::Succeeded,
-                    summary: generation_output.summary.clone(),
-                    exit_code: Some(0),
-                    payload_refs: Vec::new(),
-                    candidate_artifacts: contract
-                        .artifact_requirements
-                        .iter()
-                        .map(|requirement| requirement.file_name.clone())
-                        .collect(),
-                    recorded_at: OffsetDateTime::now_utc(),
-                },
-            );
-            let critique_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::CritiqueContent,
-                summary: "critique generated requirements framing",
-                scope: input_scope.clone(),
-            });
-            let critique_decision =
-                invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
-            let critique_output = copilot.critique(&generation_output.summary);
-            let critique_attempt = self.completed_attempt(
-                &critique_request,
-                1,
-                &critique_output.executor,
-                ToolOutcome {
-                    kind: ToolOutcomeKind::Succeeded,
-                    summary: critique_output.summary.clone(),
-                    exit_code: Some(0),
-                    payload_refs: Vec::new(),
-                    candidate_artifacts: Vec::new(),
-                    recorded_at: OffsetDateTime::now_utc(),
-                },
-            );
-
-            let generation_path = GenerationPath {
-                path_id: format!("generation:{}", generation_request.request_id),
-                request_ids: vec![generation_request.request_id.clone()],
-                lineage_classes: vec![LineageClass::AiVendorFamily],
-                derived_artifacts: contract
-                    .artifact_requirements
-                    .iter()
-                    .map(|requirement| {
-                        format!(
-                            "artifacts/{}/{}/{}",
-                            run_id,
-                            request.mode.as_str(),
-                            requirement.file_name
-                        )
-                    })
-                    .collect(),
-            };
-            let validation_path = ValidationPath {
-                path_id: format!("validation:{}", critique_request.request_id),
-                request_ids: vec![critique_request.request_id.clone()],
-                lineage_classes: vec![LineageClass::AiVendorFamily],
-                verification_refs: vec![format!(
-                    "runs/{run_id}/invocations/{}/attempt-01.toml",
-                    critique_request.request_id
-                )],
-                independence: evidence_builder::default_independence(&generation_path.path_id),
-            };
-            let validation_path = ValidationPath {
-                independence: evidence_builder::assess_validation_independence(
-                    &generation_path,
-                    &validation_path,
-                ),
-                ..validation_path
-            };
-            let denied_summary = if denied_invocations.is_empty() {
-                "No governed invocations were denied during requirements mode.".to_string()
-            } else {
-                denied_invocations
-                    .iter()
-                    .map(|denied| denied.rationale.clone())
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            };
-            let artifacts = contract
-                .artifact_requirements
-                .iter()
-                .map(|requirement| PersistedArtifact {
-                    record: ArtifactRecord {
-                        file_name: requirement.file_name.clone(),
-                        relative_path: format!(
-                            "artifacts/{}/{}/{}",
-                            run_id,
-                            request.mode.as_str(),
-                            requirement.file_name
-                        ),
-                        format: requirement.format,
-                        provenance: Some(crate::domain::artifact::ArtifactProvenance {
-                            request_ids: vec![
-                                context_request.request_id.clone(),
-                                generation_request.request_id.clone(),
-                                critique_request.request_id.clone(),
-                            ],
-                            evidence_bundle: Some(evidence_path.clone()),
-                            disposition: crate::domain::execution::EvidenceDisposition::Supporting,
-                        }),
-                    },
-                    contents: render_requirements_artifact_from_evidence(
-                        &requirement.file_name,
-                        &context_summary,
-                        &context_summary,
-                        &generation_output.summary,
-                        &critique_output.summary,
-                        &denied_summary,
-                    ),
-                })
-                .collect::<Vec<_>>();
-            let gate_inputs = artifacts
-                .iter()
-                .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
-                .collect::<Vec<_>>();
-            let gates = gatekeeper::evaluate_requirements_gates(
-                &contract,
-                &gate_inputs,
-                &request.owner,
-                &denied_invocations,
-                true,
-            );
-            let state = run_state_from_gates(&gates);
-            let artifact_paths = artifacts
-                .iter()
-                .map(|artifact| artifact.record.relative_path.clone())
-                .collect::<Vec<_>>();
-            let mut verification_records =
-                verification_runner::requirements_verification_records(&artifact_paths);
-            for record in &mut verification_records {
-                record.request_ids = vec![
-                    generation_request.request_id.clone(),
-                    critique_request.request_id.clone(),
-                ];
-                record.validation_path_id = Some(validation_path.path_id.clone());
-                record.evidence_bundle = Some(evidence_path.clone());
-            }
-            let evidence = EvidenceBundle {
-                run_id: run_id.to_string(),
-                generation_paths: vec![generation_path],
-                validation_paths: vec![validation_path],
-                denied_invocations,
-                trace_refs: vec![format!("traces/{run_id}.jsonl")],
-                artifact_refs: artifact_paths,
-                decision_refs: vec![
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        context_request.request_id
-                    ),
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        generation_request.request_id
-                    ),
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        critique_request.request_id
-                    ),
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        denied_edit_request.request_id
-                    ),
-                ],
-                approval_refs: approvals
-                    .iter()
-                    .filter_map(|approval| {
-                        approval
-                            .invocation_request_id
-                            .as_ref()
-                            .map(|request_id| format!("runs/{run_id}/approvals/{}", request_id))
-                    })
-                    .collect(),
-            };
-
-            let bundle = PersistedRunBundle {
-                run: manifest.clone(),
-                context: context.clone(),
-                state: RunStateManifest { state, updated_at: now },
-                artifact_contract: contract.clone(),
-                links: LinkManifest {
-                    artifacts: artifacts
-                        .iter()
-                        .map(|artifact| artifact.record.relative_path.clone())
-                        .collect(),
-                    decisions: Vec::new(),
-                    traces: Vec::new(),
-                    invocations: Vec::new(),
-                    evidence: Some(evidence_path.clone()),
-                },
-                verification_records,
-                artifacts,
-                gates,
-                approvals: approvals.clone(),
-                evidence: Some(evidence),
-                invocations: vec![
-                    PersistedInvocation {
-                        request: context_request,
-                        decision: context_decision,
-                        attempts: vec![context_attempt],
-                        approvals: Vec::new(),
-                    },
-                    PersistedInvocation {
-                        request: generation_request,
-                        decision: generation_decision,
-                        attempts: vec![generation_attempt],
-                        approvals: approvals
-                            .iter()
-                            .filter(|approval| approval.matches_invocation(&generation_request_id))
-                            .cloned()
-                            .collect(),
-                    },
-                    PersistedInvocation {
-                        request: critique_request,
-                        decision: critique_decision,
-                        attempts: vec![critique_attempt],
-                        approvals: Vec::new(),
-                    },
-                    PersistedInvocation {
-                        request: denied_edit_request,
-                        decision: denied_edit_decision,
-                        attempts: Vec::new(),
-                        approvals: Vec::new(),
-                    },
-                ],
-            };
-            store.persist_run_bundle(&bundle)?;
-            return self.summarize_run(
-                &store,
-                RunSummarySpec {
-                    run_id,
-                    mode: manifest.mode,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    state,
-                    artifact_count: bundle.artifacts.len(),
-                },
-            );
-        }
-
-        let should_resume_change_execution = match manifest.mode {
-            Mode::Change => artifacts.is_empty(),
-            Mode::Implementation | Mode::Refactor => {
-                execution_continuation_pending(&context, &approvals)
-            }
-            _ => false,
-        };
-
-        if should_resume_change_execution {
-            let policy_set = store.load_policy_set(None)?;
-            let request = RunRequest {
-                mode: manifest.mode,
-                risk: manifest.risk,
-                zone: manifest.zone,
-                system_context: context.system_context,
-                classification: manifest.classification.clone(),
-                owner: manifest.owner.clone(),
-                inputs: self.resume_inputs(&context),
-                inline_inputs: Vec::new(),
-                excluded_paths: context.excluded_paths.clone(),
-                policy_root: None,
-                method_root: None,
-            };
-            return self.execute_change(
-                &store,
-                request,
-                policy_set,
-                manifest.to_identity().ok_or_else(|| {
-                    EngineError::Validation(format!(
-                        "run `{run_id}` is missing identity metadata; cannot resume"
-                    ))
-                })?,
-                approvals.clone(),
-            );
-        }
-
-        let state =
-            self.refresh_run_state(&store, &manifest, &context, &contract, &artifacts, &approvals)?;
-
-        self.summarize_run(
-            &store,
-            RunSummarySpec {
-                run_id,
-                mode: manifest.mode,
-                risk: manifest.risk,
-                zone: manifest.zone,
-                state,
-                artifact_count: artifacts.len(),
-            },
-        )
-    }
-
-    pub fn status(&self, run: &str) -> Result<StatusSummary, EngineError> {
-        let _ = all_mode_profiles();
-        let store = WorkspaceStore::new(&self.repo_root);
-        let canonical = self.resolve_run(run)?;
-        let run = canonical.as_str();
-        let manifest = store.load_run_manifest(run)?;
-        let state = store.load_run_state(run)?;
-        let details = self.collect_run_runtime_details(&store, run, manifest.mode, state.state)?;
-
-        Ok(StatusSummary {
-            run: run.to_string(),
-            owner: manifest.owner,
-            state: format!("{:?}", state.state),
-            system_context: details.system_context.map(|context| context.as_str().to_string()),
-            invocations_total: details.invocations_total,
-            pending_invocation_approvals: details.pending_invocation_approvals,
-            validation_independence_satisfied: details.validation_independence_satisfied,
-            blocking_classification: details.blocking_classification,
-            blocked_gates: details.blocked_gates,
-            approval_targets: details.approval_targets,
-            artifact_paths: details.artifact_paths,
-            closure_status: details.closure_status,
-            decomposition_scope: details.decomposition_scope,
-            closure_findings: details.closure_findings,
-            closure_notes: details.closure_notes,
-            possible_actions: details.possible_actions,
-            mode_result: details.mode_result,
-            recommended_next_action: details.recommended_next_action,
-        })
-    }
-
-    pub fn publish(
-        &self,
-        run: &str,
-        to: Option<PathBuf>,
-        adr: bool,
-    ) -> Result<PublishSummary, EngineError> {
-        let canonical = self.resolve_run(run)?;
-        publish_run(&self.repo_root, &canonical, to.as_deref(), adr)
-    }
-
-    pub fn publish_with_profile(
-        &self,
-        run: &str,
-        profile: crate::domain::publish_profile::PublishProfile,
-        to: Option<PathBuf>,
-    ) -> Result<PublishSummary, EngineError> {
-        let canonical = self.resolve_run(run)?;
-        crate::orchestrator::publish::publish_run_with_profile(
-            &self.repo_root,
-            &canonical,
-            profile,
-            to.as_deref(),
-        )
-    }
-
-    pub(super) fn refresh_run_state(
-        &self,
-        store: &WorkspaceStore,
-        manifest: &RunManifest,
-        context: &RunContext,
-        contract: &crate::domain::artifact::ArtifactContract,
-        artifacts: &[PersistedArtifact],
-        approvals: &[ApprovalRecord],
-    ) -> Result<RunState, EngineError> {
-        let evidence_bundle = store.load_evidence_bundle(&manifest.run_id)?;
-        let evidence_complete = evidence_bundle.is_some();
-        let validation_independence_satisfied = evidence_bundle
-            .as_ref()
-            .map(|bundle| bundle.validation_paths.iter().all(|path| path.independence.sufficient))
-            .unwrap_or(true);
-
-        let artifact_inputs = artifacts
-            .iter()
-            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
-            .collect::<Vec<_>>();
-
-        let gates = match manifest.mode {
-            Mode::Discovery => gatekeeper::evaluate_discovery_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::DiscoveryGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::SystemShaping => gatekeeper::evaluate_system_shaping_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::SystemShapingGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    evidence_complete,
-                },
-            ),
-            Mode::Change => gatekeeper::evaluate_change_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::ChangeGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    system_context: manifest.system_context,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::Incident => gatekeeper::evaluate_incident_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::IncidentGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::SystemAssessment => gatekeeper::evaluate_system_assessment_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::SystemAssessmentGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::SecurityAssessment => gatekeeper::evaluate_security_assessment_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::SecurityAssessmentGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::DomainLanguage => gatekeeper::evaluate_domain_language_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::DomainLanguageGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::DomainModel => gatekeeper::evaluate_domain_model_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::DomainModelGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::SupplyChainAnalysis => gatekeeper::evaluate_supply_chain_analysis_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::SupplyChainAnalysisGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::Implementation => gatekeeper::evaluate_implementation_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::ImplementationGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    system_context: manifest.system_context,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::Migration => gatekeeper::evaluate_migration_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::MigrationGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::Refactor => gatekeeper::evaluate_refactor_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::RefactorGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    system_context: manifest.system_context,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::Review => gatekeeper::evaluate_review_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::ReviewGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    evidence_complete,
-                },
-            ),
-            Mode::Verification => gatekeeper::evaluate_verification_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::VerificationGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    validation_independence_satisfied,
-                    evidence_complete,
-                },
-            ),
-            Mode::Architecture => gatekeeper::evaluate_architecture_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::ArchitectureGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    evidence_complete,
-                },
-            ),
-            Mode::PrReview => gatekeeper::evaluate_pr_review_gates(
-                contract,
-                &artifact_inputs,
-                gatekeeper::PrReviewGateContext {
-                    owner: &manifest.owner,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    approvals,
-                    denied_invocations: evidence_bundle
-                        .as_ref()
-                        .map(|bundle| bundle.denied_invocations.as_slice())
-                        .unwrap_or(&[]),
-                    evidence_complete,
-                },
-            ),
-            other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
-        };
-        let mut state = run_state_from_gates(&gates);
-        if matches!(manifest.mode, Mode::Implementation | Mode::Refactor)
-            && execution_continuation_pending(context, approvals)
-            && !matches!(state, RunState::Blocked)
-        {
-            state = RunState::AwaitingApproval;
-        }
-        let state_manifest = RunStateManifest { state, updated_at: OffsetDateTime::now_utc() };
-        store.persist_gate_evaluations(&manifest.run_id, &gates)?;
-        store.persist_run_state(&manifest.run_id, &state_manifest)?;
-        Ok(state)
-    }
-
-    pub(super) fn requirements_request(
-        &self,
-        spec: RequirementsRequestSpec<'_>,
-    ) -> InvocationRequest {
-        let adapter = match spec.capability {
-            CapabilityKind::GenerateContent
-            | CapabilityKind::CritiqueContent
-            | CapabilityKind::ProposeWorkspaceEdit => canon_adapters::AdapterKind::CopilotCli,
-            _ => canon_adapters::AdapterKind::Filesystem,
-        };
-
-        self.governed_request(GovernedRequestSpec {
-            run_id: spec.run_id,
-            mode: Mode::Requirements,
-            risk: spec.risk,
-            zone: spec.zone,
-            system_context: spec.system_context,
-            owner: spec.owner,
-            adapter,
-            capability: spec.capability,
-            summary: spec.summary,
-            scope: spec.scope,
-        })
-    }
-
-    pub(super) fn governed_request(&self, spec: GovernedRequestSpec<'_>) -> InvocationRequest {
-        let capability_profile = classify_capability(spec.adapter, spec.capability);
-
-        InvocationRequest {
-            request_id: format!("{}-{}", spec.run_id, capability_tag(spec.capability)),
-            run_id: spec.run_id.to_string(),
-            mode: spec.mode.as_str().to_string(),
-            system_context: spec.system_context,
-            risk: spec.risk,
-            zone: spec.zone,
-            adapter: spec.adapter,
-            capability: spec.capability,
-            orientation: capability_profile.orientation,
-            mutability: capability_profile.mutability,
-            trust_boundary: capability_profile.trust_boundary,
-            lineage: capability_profile.lineage,
-            requested_scope: spec.scope,
-            owner: Some(spec.owner.to_string()),
-            summary: spec.summary.to_string(),
-            requested_at: OffsetDateTime::now_utc(),
-        }
-    }
-
-    pub(super) fn read_requirements_context(
-        &self,
-        inputs: &[String],
-        inline_inputs: &[String],
-    ) -> Result<String, EngineError> {
-        let filesystem = FilesystemAdapter;
-        let mut fragments = Vec::new();
-        let include_input_labels = inputs.len() + inline_inputs.len() > 1;
-
-        for input in inputs {
-            let resolved = self.resolve_input_path(input);
-            let files = self.collect_content_input_files(input)?;
-            if files.is_empty() {
-                fragments.push(input.clone());
-                continue;
-            }
-
-            let include_labels = resolved.is_dir() || files.len() > 1 || include_input_labels;
-            for path in files {
-                let (contents, _) = filesystem
-                    .read_to_string_traced(&path, "capture requirements context")
-                    .map_err(|error| EngineError::Validation(error.to_string()))?;
-                if include_labels {
-                    fragments.push(format!(
-                        "## Input: {}\n\n{}",
-                        self.persisted_input_path(&path),
-                        contents
-                    ));
-                } else {
-                    fragments.push(contents);
-                }
-            }
-        }
-
-        for (index, inline_input) in inline_inputs.iter().enumerate() {
-            if include_input_labels || !inputs.is_empty() {
-                fragments.push(format!(
-                    "## Input: {}\n\n{}",
-                    inline_input_label(index),
-                    inline_input
-                ));
-            } else {
-                fragments.push(inline_input.clone());
-            }
-        }
-
-        let normalized = preserve_multiline_summary(&fragments.join("\n"));
-        if normalized.is_empty() {
-            Err(EngineError::Validation(
-                "authored input contained no usable content after normalization".to_string(),
-            ))
-        } else {
-            Ok(normalized)
-        }
-    }
-
-    pub(super) fn change_validation_attempt(
-        &self,
-        request: &InvocationRequest,
-    ) -> Result<(String, InvocationAttempt), EngineError> {
-        let shell = ShellAdapter;
-        let adapter_request = shell.validation_request(&request.summary);
-        let command =
-            shell.run(&adapter_request, "git", &["ls-files"], Some(&self.repo_root), false);
-
-        let (summary, outcome, executor) = match command {
-            Ok(output) if output.status_code == 0 => {
-                let files = output
-                    .stdout
-                    .lines()
-                    .map(str::trim)
-                    .filter(|line| !line.is_empty())
-                    .take(8)
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>();
-                let summary = if files.is_empty() {
-                    "Validation tool confirmed the repository is empty but reachable.".to_string()
-                } else {
-                    format!(
-                        "Validation tool reviewed tracked repository surfaces: {}",
-                        files.join(", ")
-                    )
-                };
-                (
-                    summary.clone(),
-                    ToolOutcome {
-                        kind: ToolOutcomeKind::Succeeded,
-                        summary,
-                        exit_code: Some(0),
-                        payload_refs: Vec::new(),
-                        candidate_artifacts: Vec::new(),
-                        recorded_at: OffsetDateTime::now_utc(),
-                    },
-                    "shell:git-ls-files".to_string(),
-                )
-            }
-            Ok(output) => {
-                let fallback = self.scan_workspace_surface()?;
-                let summary = format!(
-                    "Validation fell back to local workspace scan after git returned {}: {} | Fallback surfaces: {}",
-                    output.status_code,
-                    output.stderr.trim(),
-                    fallback.join(", ")
-                );
-                (
-                    summary.clone(),
-                    ToolOutcome {
-                        kind: ToolOutcomeKind::PartiallySucceeded,
-                        summary,
-                        exit_code: output.status_code.into(),
-                        payload_refs: Vec::new(),
-                        candidate_artifacts: Vec::new(),
-                        recorded_at: OffsetDateTime::now_utc(),
-                    },
-                    "validation-fallback".to_string(),
-                )
-            }
-            Err(_) => {
-                let fallback = self.scan_workspace_surface()?;
-                let summary = format!(
-                    "Validation used a bounded workspace scan because git repository inspection was unavailable: {}",
-                    fallback.join(", ")
-                );
-                (
-                    summary.clone(),
-                    ToolOutcome {
-                        kind: ToolOutcomeKind::Succeeded,
-                        summary,
-                        exit_code: Some(0),
-                        payload_refs: Vec::new(),
-                        candidate_artifacts: Vec::new(),
-                        recorded_at: OffsetDateTime::now_utc(),
-                    },
-                    "validation-fallback".to_string(),
-                )
-            }
-        };
-
-        Ok((summary, self.completed_attempt(request, 1, &executor, outcome)))
-    }
-
-    pub(super) fn locate_authored_mutation_patch(
-        &self,
-        inputs: &[String],
-        allowed_paths: &[String],
-    ) -> Result<Option<AuthoredMutationPatch>, EngineError> {
-        let mut discovered = Vec::new();
-
-        for input in inputs {
-            for candidate in mutation_payload_candidates_for(&self.resolve_input_path(input)) {
-                if !candidate.is_file() {
-                    continue;
-                }
-
-                let canonical = candidate.canonicalize()?;
-                if !discovered.iter().any(|existing: &PathBuf| existing == &canonical) {
-                    discovered.push(canonical);
-                }
-            }
-        }
-
-        if discovered.is_empty() {
-            return Ok(None);
-        }
-
-        if discovered.len() > 1 {
-            let paths = discovered
-                .iter()
-                .map(|path| self.persisted_input_path(path))
-                .collect::<Vec<_>>()
-                .join(", ");
-            return Err(EngineError::Validation(format!(
-                "multiple bounded mutation payloads were found; keep exactly one patch payload in the packet: {paths}"
-            )));
-        }
-
-        let absolute_path = discovered.pop().ok_or_else(|| {
-            EngineError::Validation(
-                "expected exactly one bounded mutation payload after preflight selection"
-                    .to_string(),
-            )
-        })?;
-        let relative_path = self.persisted_input_path(&absolute_path);
-        let patch = std::fs::read_to_string(&absolute_path)?;
-        let changed_paths = parse_unified_diff_paths(&patch)?;
-        let out_of_bounds = changed_paths
-            .iter()
-            .filter(|path| !path_within_allowed_scope(path, allowed_paths))
-            .cloned()
-            .collect::<Vec<_>>();
-        if !out_of_bounds.is_empty() {
-            return Err(EngineError::Validation(format!(
-                "bounded mutation payload `{relative_path}` touches paths outside Allowed Paths: {}; declared allowed paths: {}",
-                out_of_bounds.join(", "),
-                allowed_paths.join(", ")
-            )));
-        }
-
-        Ok(Some(AuthoredMutationPatch { absolute_path, relative_path, changed_paths }))
-    }
-
-    pub(super) fn apply_authored_mutation_patch(
-        &self,
-        request: &InvocationRequest,
-        patch: &AuthoredMutationPatch,
-    ) -> Result<InvocationAttempt, EngineError> {
-        let shell = ShellAdapter;
-        let adapter_request = shell.mutating_request(&request.summary);
-        let patch_arg = patch.absolute_path.to_string_lossy().into_owned();
-
-        let check_args = ["apply", "--check", "--whitespace=nowarn", patch_arg.as_str()];
-        let check_output = shell
-            .run(&adapter_request, "git", &check_args, Some(&self.repo_root), true)
-            .map_err(|error| {
-                EngineError::Validation(format!(
-                    "failed to preflight bounded mutation payload `{}`: {error}",
-                    patch.relative_path
-                ))
-            })?;
-        if check_output.status_code != 0 {
-            return Err(EngineError::Validation(format!(
-                "bounded mutation payload `{}` failed git apply --check with exit code {}: {}",
-                patch.relative_path,
-                check_output.status_code,
-                process_failure_excerpt(&check_output.stdout, &check_output.stderr)
-            )));
-        }
-
-        let apply_args = ["apply", "--whitespace=nowarn", patch_arg.as_str()];
-        let apply_output = shell
-            .run(&adapter_request, "git", &apply_args, Some(&self.repo_root), true)
-            .map_err(|error| {
-                EngineError::Validation(format!(
-                    "failed to apply bounded mutation payload `{}`: {error}",
-                    patch.relative_path
-                ))
-            })?;
-        if apply_output.status_code != 0 {
-            return Err(EngineError::Validation(format!(
-                "bounded mutation payload `{}` failed git apply with exit code {}: {}",
-                patch.relative_path,
-                apply_output.status_code,
-                process_failure_excerpt(&apply_output.stdout, &apply_output.stderr)
-            )));
-        }
-
-        let summary = format!(
-            "Applied authored bounded patch {} within allowed paths: {}",
-            patch.relative_path,
-            patch.changed_paths.join(", ")
-        );
-
-        Ok(self.completed_attempt(
-            request,
-            1,
-            "shell:git-apply",
-            ToolOutcome {
-                kind: ToolOutcomeKind::Succeeded,
-                summary,
-                exit_code: Some(0),
-                payload_refs: vec![crate::domain::execution::PayloadReference {
-                    path: patch.relative_path.clone(),
-                    digest: None,
-                }],
-                candidate_artifacts: patch.changed_paths.clone(),
-                recorded_at: OffsetDateTime::now_utc(),
-            },
-        ))
-    }
-
-    pub(super) fn scan_workspace_surface(&self) -> Result<Vec<String>, EngineError> {
-        let mut collected = Vec::new();
-        let mut stack = vec![self.repo_root.clone()];
-
-        while let Some(path) = stack.pop() {
-            for entry in std::fs::read_dir(path)? {
-                let entry = entry?;
-                let entry_path = entry.path();
-                let file_name = entry.file_name();
-                let name = file_name.to_string_lossy();
-
-                if is_special_repository_directory(&name) {
-                    continue;
-                }
-
-                if entry_path.is_dir() {
-                    stack.push(entry_path);
-                    continue;
-                }
-
-                if let Ok(relative) = entry_path.strip_prefix(&self.repo_root) {
-                    collected.push(relative.display().to_string());
-                }
-            }
-        }
-
-        collected.sort();
-        collected.truncate(8);
-        if collected.is_empty() {
-            collected.push("no-repository-surfaces-detected".to_string());
-        }
-
-        Ok(collected)
-    }
-
-    pub(super) fn completed_attempt(
-        &self,
-        request: &InvocationRequest,
-        attempt_number: u32,
-        executor: &str,
-        outcome: ToolOutcome,
-    ) -> InvocationAttempt {
-        InvocationAttempt {
-            request_id: request.request_id.clone(),
-            attempt_number,
-            started_at: OffsetDateTime::now_utc(),
-            finished_at: OffsetDateTime::now_utc(),
-            executor: executor.to_string(),
-            outcome,
-        }
-    }
-
-    pub(super) fn policy_decision_attempt(
-        &self,
-        request: &InvocationRequest,
-        decision: &crate::domain::execution::InvocationPolicyDecision,
-    ) -> InvocationAttempt {
-        let outcome_kind = if decision.constraints.recommendation_only {
-            ToolOutcomeKind::RecommendationOnly
-        } else {
-            match decision.kind {
-                PolicyDecisionKind::NeedsApproval => ToolOutcomeKind::AwaitingApproval,
-                PolicyDecisionKind::Deny => ToolOutcomeKind::Denied,
-                PolicyDecisionKind::Allow | PolicyDecisionKind::AllowConstrained => {
-                    ToolOutcomeKind::PartiallySucceeded
-                }
-            }
-        };
-
-        InvocationAttempt {
-            request_id: request.request_id.clone(),
-            attempt_number: 1,
-            started_at: decision.decided_at,
-            finished_at: decision.decided_at,
-            executor: "policy".to_string(),
-            outcome: ToolOutcome {
-                kind: outcome_kind,
-                summary: decision.rationale.clone(),
-                exit_code: None,
-                payload_refs: Vec::new(),
-                candidate_artifacts: Vec::new(),
-                recorded_at: decision.decided_at,
-            },
-        }
-    }
-
-    pub(super) fn summarize_run(
-        &self,
-        store: &WorkspaceStore,
-        spec: RunSummarySpec<'_>,
-    ) -> Result<RunSummary, EngineError> {
-        let details =
-            self.collect_run_runtime_details(store, spec.run_id, spec.mode, spec.state)?;
-        let manifest = store.load_run_manifest(spec.run_id)?;
-
-        Ok(RunSummary {
-            run_id: spec.run_id.to_string(),
-            uuid: manifest.uuid.clone(),
-            owner: manifest.owner,
-            mode: spec.mode.as_str().to_string(),
-            risk: spec.risk.as_str().to_string(),
-            zone: spec.zone.as_str().to_string(),
-            system_context: details.system_context.map(|context| context.as_str().to_string()),
-            state: format!("{:?}", spec.state),
-            artifact_count: spec.artifact_count,
-            invocations_total: details.invocations_total,
-            invocations_denied: details.invocations_denied,
-            invocations_pending_approval: details.pending_invocation_approvals,
-            blocking_classification: details.blocking_classification,
-            blocked_gates: details.blocked_gates,
-            approval_targets: details.approval_targets,
-            artifact_paths: details.artifact_paths,
-            closure_status: details.closure_status,
-            decomposition_scope: details.decomposition_scope,
-            closure_findings: details.closure_findings,
-            closure_notes: details.closure_notes,
-            possible_actions: details.possible_actions,
-            mode_result: details.mode_result,
-            recommended_next_action: details.recommended_next_action,
-        })
-    }
-
-    pub(super) fn collect_run_runtime_details(
-        &self,
-        store: &WorkspaceStore,
-        run_id: &str,
-        mode: Mode,
-        state: RunState,
-    ) -> Result<RunRuntimeDetails, EngineError> {
-        let invocations = store.load_persisted_invocations(run_id).unwrap_or_default();
-        let evidence_bundle = store.load_evidence_bundle(run_id)?;
-        let gates = store.load_gate_evaluations(run_id).unwrap_or_default();
-        let context = store.load_run_context(run_id).ok();
-        let system_context = context.as_ref().and_then(|context| context.system_context);
-        let backlog_planning =
-            context.as_ref().and_then(|context| context.backlog_planning.as_ref());
-
-        let persisted_artifacts = store
-            .load_artifact_contract(run_id)
-            .ok()
-            .and_then(|contract| store.load_persisted_artifacts(run_id, mode, &contract).ok());
-
-        let artifact_paths = persisted_artifacts
-            .as_ref()
-            .map(|artifacts| {
-                artifacts
-                    .iter()
-                    .map(|artifact| format!(".canon/{}", artifact.record.relative_path))
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-
-        let mode_result = persisted_artifacts
-            .as_ref()
-            .and_then(|artifacts| summarize_mode_result(mode, artifacts));
-        let approvals = store.load_approval_records(run_id).unwrap_or_default();
-        let mode_result =
-            apply_execution_posture_summary(mode_result, context.as_ref(), &approvals);
-
-        let pending_invocation_targets = invocations
-            .iter()
-            .filter(|invocation| {
-                invocation.decision.requires_approval
-                    && !invocation
-                        .approvals
-                        .iter()
-                        .any(|approval| matches!(approval.decision, ApprovalDecision::Approve))
-            })
-            .map(|invocation| format!("invocation:{}", invocation.request.request_id))
-            .collect::<Vec<_>>();
-
-        let pending_gate_targets = gates
-            .iter()
-            .filter(|gate| matches!(gate.status, GateStatus::NeedsApproval))
-            .map(|gate| format!("gate:{}", gate.gate.as_str()))
-            .collect::<Vec<_>>();
-
-        let blocked_gates = gates
-            .iter()
-            .filter(|gate| matches!(gate.status, GateStatus::Blocked))
-            .map(|gate| GateInspectSummary {
-                gate: gate.gate.as_str().to_string(),
-                status: format!("{:?}", gate.status),
-                blockers: gate.blockers.clone(),
-            })
-            .collect::<Vec<_>>();
-
-        let mut approval_targets = pending_gate_targets;
-        approval_targets.extend(pending_invocation_targets);
-
-        let mode_result = mode_result.map(|mut summary| {
-            summary.action_chips = build_action_chips_for(
-                state,
-                &approval_targets,
-                &summary.primary_artifact_path,
-                run_id,
-            );
-            summary
-        });
-
-        let blocking_classification =
-            if !approval_targets.is_empty() || matches!(state, RunState::AwaitingApproval) {
-                Some("approval-gated".to_string())
-            } else if !blocked_gates.is_empty() || matches!(state, RunState::Blocked) {
-                Some("artifact-blocked".to_string())
-            } else {
-                None
-            };
-
-        let validation_independence_satisfied = evidence_bundle
-            .as_ref()
-            .map(|bundle| bundle.validation_paths.iter().all(|path| path.independence.sufficient))
-            .unwrap_or(true);
-
-        let closure_status = backlog_planning
-            .map(|planning| planning.closure_assessment.status.as_str().to_string());
-        let decomposition_scope = backlog_planning
-            .map(|planning| planning.closure_assessment.decomposition_scope.as_str().to_string());
-        let closure_findings = backlog_planning
-            .map(|planning| {
-                planning
-                    .closure_assessment
-                    .findings
-                    .iter()
-                    .map(|finding| ClosureFindingInspectSummary {
-                        category: finding.category.clone(),
-                        severity: finding.severity.as_str().to_string(),
-                        affected_scope: finding.affected_scope.clone(),
-                        recommended_followup: finding.recommended_followup.clone(),
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        let closure_notes =
-            backlog_planning.and_then(|planning| planning.closure_assessment.notes.clone());
-
-        let recommended_next_action = recommend_next_action(
-            state,
-            mode_result.as_ref(),
-            &artifact_paths,
-            evidence_bundle.is_some(),
-            &blocked_gates,
-            &approval_targets,
-        );
-        let possible_actions = build_possible_actions(
-            state,
-            mode_result.as_ref(),
-            &artifact_paths,
-            evidence_bundle.is_some(),
-            &blocked_gates,
-            &approval_targets,
-            run_id,
-        );
-
-        Ok(RunRuntimeDetails {
-            system_context,
-            invocations_total: invocations.len(),
-            invocations_denied: evidence_bundle
-                .as_ref()
-                .map(|bundle| bundle.denied_invocations.len())
-                .unwrap_or(0),
-            pending_invocation_approvals: approval_targets
-                .iter()
-                .filter(|target| target.starts_with("invocation:"))
-                .count(),
-            validation_independence_satisfied,
-            blocking_classification,
-            blocked_gates,
-            approval_targets,
-            artifact_paths,
-            closure_status,
-            decomposition_scope,
-            closure_findings,
-            closure_notes,
-            possible_actions,
-            mode_result,
-            recommended_next_action,
-        })
-    }
-
-    pub(super) fn load_input_summary(
-        &self,
-        inputs: &[String],
-        inline_inputs: &[String],
-    ) -> Result<String, EngineError> {
-        let mut fragments = Vec::new();
-
-        for input in inputs {
-            let files = self.collect_content_input_files(input)?;
-            if !files.is_empty() {
-                for resolved in files {
-                    let contents = std::fs::read_to_string(&resolved)?;
-                    fragments.push(contents);
-                }
-            } else {
-                fragments.push(input.clone());
-            }
-        }
-
-        fragments.extend(inline_inputs.iter().cloned());
-
-        let combined = fragments.join("\n");
-        let normalized = preserve_multiline_summary(&combined);
-        if normalized.is_empty() {
-            Ok("Capture the bounded engineering need before implementation accelerates drift."
-                .to_string())
-        } else {
-            Ok(normalized)
-        }
-    }
-
-    pub(super) fn build_run_context(
-        &self,
-        request: &RunRequest,
-        input_fingerprints: Vec<InputFingerprint>,
-        captured_at: OffsetDateTime,
-    ) -> RunContext {
-        let (implementation_execution, refactor_execution) =
-            self.scaffold_mode_execution_context(request);
-        let upstream_context = self.scaffold_upstream_context(request);
-
-        RunContext {
-            repo_root: self.repo_root.display().to_string(),
-            owner: Some(request.owner.clone()),
-            inputs: request.merged_input_sources(),
-            excluded_paths: request.excluded_paths.clone(),
-            input_fingerprints,
-            system_context: request.system_context,
-            upstream_context,
-            implementation_execution,
-            refactor_execution,
-            backlog_planning: None,
-            inline_inputs: request.transient_inline_inputs(),
-            captured_at,
-        }
-    }
-
-    pub(super) fn scaffold_upstream_context(
-        &self,
-        request: &RunRequest,
-    ) -> Option<UpstreamContext> {
-        if !matches!(request.mode, Mode::Implementation | Mode::Refactor) {
-            return None;
-        }
-
-        let summary = self.load_input_summary(&request.inputs, &request.inline_inputs).ok()?;
-        let normalized = summary.to_lowercase();
-        let feature_slice = extract_marker(&summary, &normalized, "feature slice");
-        let primary_upstream_mode = extract_marker(&summary, &normalized, "primary upstream mode");
-        let source_refs = extract_first_marker_entries(&summary, &["upstream sources"]);
-        let carried_forward_items = extract_first_marker_entries(
-            &summary,
-            &["carried-forward decisions", "carried-forward invariants"],
-        );
-        let excluded_upstream_scope =
-            extract_marker(&summary, &normalized, "excluded upstream scope");
-
-        if feature_slice.is_none()
-            && primary_upstream_mode.is_none()
-            && source_refs.is_empty()
-            && carried_forward_items.is_empty()
-            && excluded_upstream_scope.is_none()
-        {
-            None
-        } else {
-            Some(UpstreamContext {
-                feature_slice,
-                primary_upstream_mode,
-                source_refs,
-                carried_forward_items,
-                excluded_upstream_scope,
-            })
-        }
-    }
-
-    pub(super) fn scaffold_mode_execution_context(
-        &self,
-        request: &RunRequest,
-    ) -> (Option<ImplementationExecutionContext>, Option<RefactorExecutionContext>) {
-        let source_refs = request.merged_input_sources();
-        let owners =
-            if !request.owner.trim().is_empty() { vec![request.owner.clone()] } else { Vec::new() };
-
-        match request.mode {
-            Mode::Implementation => (
-                Some(ImplementationExecutionContext {
-                    plan_sources: source_refs.clone(),
-                    mutation_bounds: MutationBounds {
-                        declared_paths: Vec::new(),
-                        owners,
-                        source_refs,
-                        expansion_policy: MutationExpansionPolicy::DenyWithoutApproval,
-                    },
-                    task_targets: Vec::new(),
-                    safety_net: Vec::new(),
-                    execution_posture: ExecutionPosture::RecommendationOnly,
-                    rollback_expectations: Vec::new(),
-                    post_approval_execution_consumed: false,
-                }),
-                None,
-            ),
-            Mode::Refactor => (
-                None,
-                Some(RefactorExecutionContext {
-                    preserved_behavior: Vec::new(),
-                    structural_rationale: None,
-                    refactor_scope: MutationBounds {
-                        declared_paths: Vec::new(),
-                        owners,
-                        source_refs,
-                        expansion_policy: MutationExpansionPolicy::DenyWithoutApproval,
-                    },
-                    safety_net: Vec::new(),
-                    no_feature_addition_target: None,
-                    allowed_exceptions: Vec::new(),
-                    execution_posture: ExecutionPosture::RecommendationOnly,
-                    post_approval_execution_consumed: false,
-                }),
-            ),
-            _ => (None, None),
-        }
-    }
-
-    pub(super) fn resume_inputs(&self, context: &RunContext) -> Vec<String> {
-        context
-            .inputs
-            .iter()
-            .map(|input| {
-                context
-                    .input_fingerprints
-                    .iter()
-                    .find(|fingerprint| {
-                        fingerprint.source_kind == InputSourceKind::Inline
-                            && fingerprint.path == *input
-                    })
-                    .and_then(|fingerprint| fingerprint.snapshot_ref.as_ref())
-                    .map(|snapshot_ref| format!(".canon/{snapshot_ref}"))
-                    .unwrap_or_else(|| input.clone())
-            })
-            .collect()
-    }
-
-    pub(super) fn capture_input_fingerprints(
-        &self,
-        inputs: &[String],
-        inline_inputs: &[String],
-    ) -> Result<Vec<InputFingerprint>, EngineError> {
-        let mut fingerprints = Vec::new();
-
-        for input in inputs {
-            for resolved in self.collect_input_files(input)? {
-                let metadata = std::fs::metadata(&resolved)?;
-                let modified = metadata
-                    .modified()
-                    .ok()
-                    .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-                    .map(|duration| duration.as_secs() as i64)
-                    .unwrap_or_default();
-
-                fingerprints.push(InputFingerprint {
-                    path: self.persisted_input_path(&resolved),
-                    source_kind: InputSourceKind::Path,
-                    size_bytes: metadata.len(),
-                    modified_unix_seconds: modified,
-                    content_digest_sha256: Some(sha256_hex(&std::fs::read(&resolved)?)),
-                    snapshot_ref: None,
-                });
-            }
-        }
-
-        let captured_at = OffsetDateTime::now_utc().unix_timestamp();
-        for (index, inline_input) in inline_inputs.iter().enumerate() {
-            fingerprints.push(InputFingerprint {
-                path: inline_input_label(index),
-                source_kind: InputSourceKind::Inline,
-                size_bytes: inline_input.len() as u64,
-                modified_unix_seconds: captured_at,
-                content_digest_sha256: Some(sha256_hex(inline_input.as_bytes())),
-                snapshot_ref: None,
-            });
-        }
-
-        Ok(fingerprints)
-    }
-
-    pub(super) fn clarity_source_inputs(
-        &self,
-        inputs: &[String],
-    ) -> Result<Vec<String>, EngineError> {
-        let mut source_inputs = Vec::new();
-
-        for input in inputs {
-            let files = self.collect_input_files(input)?;
-            if files.is_empty() {
-                if !source_inputs.iter().any(|existing| existing == input) {
-                    source_inputs.push(input.clone());
-                }
-                continue;
-            }
-
-            for path in files {
-                let persisted = self.persisted_input_path(&path);
-                if !source_inputs.iter().any(|existing| existing == &persisted) {
-                    source_inputs.push(persisted);
-                }
-            }
-        }
-
-        Ok(source_inputs)
-    }
-
-    pub(super) fn collect_input_files(&self, input: &str) -> Result<Vec<PathBuf>, EngineError> {
-        let resolved = self.resolve_input_path(input);
-        if resolved.is_file() {
-            return Ok(vec![resolved]);
-        }
-        if resolved.is_dir() {
-            let mut files = Vec::new();
-            collect_files_recursively(&resolved, &mut files)?;
-            files.sort();
-            return Ok(files);
-        }
-
-        Ok(Vec::new())
-    }
-
-    pub(super) fn collect_content_input_files(
-        &self,
-        input: &str,
-    ) -> Result<Vec<PathBuf>, EngineError> {
-        Ok(self
-            .collect_input_files(input)?
-            .into_iter()
-            .filter(|path| !is_known_mutation_payload_file(path))
-            .collect())
-    }
-
-    pub(super) fn validate_review_authored_input_path(
-        &self,
-        inputs: &[String],
-    ) -> Result<(), EngineError> {
-        const REVIEW_INPUT_HINT: &str = "canon-input/review.md or canon-input/review/";
-
-        if inputs.len() != 1 {
-            return Err(EngineError::Validation(format!(
-                "review requires exactly one authored input at {REVIEW_INPUT_HINT}"
-            )));
-        }
-
-        let input = &inputs[0];
-        let resolved = self.resolve_input_path(input);
-        if !resolved.exists() {
-            return Err(EngineError::Validation(format!(
-                "review input `{input}` was not found from {}; expected {REVIEW_INPUT_HINT}",
-                self.repo_root.display()
-            )));
-        }
-
-        let resolved_canonical = resolved.canonicalize()?;
-        let canonical_review_file = self.repo_root.join("canon-input").join("review.md");
-        let canonical_review_dir = self.repo_root.join("canon-input").join("review");
-        let mut allowed_paths = Vec::new();
-
-        if canonical_review_file.exists() {
-            allowed_paths.push(canonical_review_file.canonicalize()?);
-        }
-        if canonical_review_dir.exists() {
-            allowed_paths.push(canonical_review_dir.canonicalize()?);
-        }
-
-        if !allowed_paths.iter().any(|path| path == &resolved_canonical) {
-            return Err(EngineError::Validation(format!(
-                "review accepts only {REVIEW_INPUT_HINT}, not `{input}`"
-            )));
-        }
-
-        Ok(())
-    }
-
-    pub(super) fn validate_authored_input_paths(
-        &self,
-        mode: Mode,
-        inputs: &[String],
-    ) -> Result<(), EngineError> {
-        if matches!(mode, Mode::PrReview) {
-            return Ok(());
-        }
-
-        if matches!(mode, Mode::Review) && !inputs.is_empty() {
-            self.validate_review_authored_input_path(inputs)?;
-        }
-
-        let canon_root = self
-            .repo_root
-            .join(".canon")
-            .exists()
-            .then(|| self.repo_root.join(".canon").canonicalize())
-            .transpose()?;
-
-        for input in inputs {
-            let resolved = self.resolve_input_path(input);
-            if !resolved.exists() {
-                return Err(EngineError::Validation(format!(
-                    "input `{input}` was not found from {}",
-                    self.repo_root.display()
-                )));
-            }
-
-            let canonical = resolved.canonicalize()?;
-            if canon_root.as_ref().is_some_and(|root| canonical.starts_with(root)) {
-                return Err(EngineError::Validation(format!(
-                    "input `{input}` points inside .canon/ and cannot be used as authored input for {}",
-                    mode.as_str()
-                )));
-            }
-
-            let files = self.collect_content_input_files(input)?;
-            if resolved.is_dir() && files.is_empty() {
-                return Err(EngineError::Validation(format!(
-                    "input `{input}` is an empty directory and does not contain authored content"
-                )));
-            }
-
-            let mut has_usable_content = false;
-            for file in files {
-                let contents = std::fs::read_to_string(&file)?;
-                if !contents.trim().is_empty() {
-                    has_usable_content = true;
-                    break;
-                }
-            }
-
-            if !has_usable_content {
-                let message = if resolved.is_dir() {
-                    format!("input `{input}` expands to files with no usable authored content")
-                } else {
-                    format!("input `{input}` is empty or whitespace-only")
-                };
-                return Err(EngineError::Validation(message));
-            }
-        }
-
-        Ok(())
-    }
-
-    pub(super) fn validate_authored_inputs(
-        &self,
-        mode: Mode,
-        inputs: &[String],
-        inline_inputs: &[String],
-    ) -> Result<(), EngineError> {
-        if matches!(mode, Mode::PrReview) {
-            if !inline_inputs.is_empty() {
-                return Err(EngineError::Validation(
-                    "pr-review does not support --input-text; pass two refs via --input"
-                        .to_string(),
-                ));
-            }
-            return Ok(());
-        }
-
-        let source_count = inputs.len() + inline_inputs.len();
-        if matches!(mode, Mode::Review) {
-            if source_count != 1 {
-                return Err(EngineError::Validation(
-                    "review requires exactly one authored input at canon-input/review.md or canon-input/review/, or exactly one --input-text value"
-                        .to_string(),
-                ));
-            }
-        } else if source_count == 0 {
-            return Err(EngineError::Validation(format!(
-                "{} requires at least one authored input via --input or --input-text",
-                mode.as_str()
-            )));
-        }
-
-        self.validate_authored_input_paths(mode, inputs)?;
-        for (index, inline_input) in inline_inputs.iter().enumerate() {
-            if inline_input.trim().is_empty() {
-                return Err(EngineError::Validation(format!(
-                    "inline input {} for {} is empty or whitespace-only",
-                    index + 1,
-                    mode.as_str()
-                )));
-            }
-        }
-
-        Ok(())
-    }
-
-    pub(super) fn persisted_input_path(&self, resolved: &Path) -> String {
-        resolved
-            .strip_prefix(&self.repo_root)
-            .map(|path| path.to_string_lossy().into_owned())
-            .unwrap_or_else(|_| resolved.display().to_string())
-    }
-
-    pub(super) fn build_authoring_lifecycle_summary(
-        &self,
-        inputs: &[String],
-        source_inputs: &[String],
-        missing_context: &[String],
-        clarification_questions: &[ClarificationQuestionSummary],
-        materially_closed: bool,
-    ) -> AuthoringLifecycleSummary {
-        let resolved_inputs =
-            inputs.iter().map(|input| self.resolve_input_path(input)).collect::<Vec<_>>();
-        let directory_roots =
-            resolved_inputs.iter().filter(|path| path.is_dir()).cloned().collect::<Vec<_>>();
-        let packet_shape = if directory_roots.len() == 1
-            && resolved_inputs
-                .iter()
-                .all(|path| path == &directory_roots[0] || path.starts_with(&directory_roots[0]))
-        {
-            PacketShape::DirectoryBacked
-        } else if resolved_inputs.len() == 1 && resolved_inputs[0].is_file() {
-            PacketShape::SingleFile
-        } else {
-            PacketShape::MultiInput
-        };
-
-        let normalized_source_inputs =
-            source_inputs.iter().cloned().collect::<BTreeSet<_>>().into_iter().collect::<Vec<_>>();
-
-        let authoritative_inputs = if normalized_source_inputs
-            .iter()
-            .any(|path| Self::authored_input_name(path) == Some("brief.md"))
-        {
-            normalized_source_inputs
-                .iter()
-                .filter(|path| Self::authored_input_name(path) == Some("brief.md"))
-                .cloned()
-                .collect::<Vec<_>>()
-        } else if normalized_source_inputs.len() == 1 {
-            normalized_source_inputs.clone()
-        } else {
-            Vec::new()
-        };
-
-        let authoritative_lookup = authoritative_inputs.iter().cloned().collect::<BTreeSet<_>>();
-        let supporting_inputs = normalized_source_inputs
-            .iter()
-            .filter(|path| !authoritative_lookup.contains(*path))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let authority_status = if authoritative_inputs
-            .iter()
-            .any(|path| Self::authored_input_name(path) == Some("brief.md"))
-        {
-            AuthorityStatus::ExplicitAuthoritativeBrief
-        } else if packet_shape == PacketShape::SingleFile && !authoritative_inputs.is_empty() {
-            AuthorityStatus::SingleInputAuthoritativeBrief
-        } else if !authoritative_inputs.is_empty() {
-            AuthorityStatus::DerivedAuthoritativeInput
-        } else {
-            AuthorityStatus::AmbiguousCurrentBrief
-        };
-
-        let mut readiness_delta = Vec::new();
-        if authority_status == AuthorityStatus::AmbiguousCurrentBrief {
-            readiness_delta.push(
-                "Canon could not identify one authoritative current-mode brief from the supplied inputs; add `brief.md` or reduce the packet to one clear readiness brief."
-                    .to_string(),
-            );
-        }
-        readiness_delta.extend(missing_context.iter().cloned());
-        if !clarification_questions.is_empty() {
-            readiness_delta.push(format!(
-                "{} clarification question(s) still remain before this packet is unambiguously ready.",
-                clarification_questions.len()
-            ));
-        }
-        if !supporting_inputs.is_empty()
-            && (authority_status == AuthorityStatus::AmbiguousCurrentBrief
-                || !missing_context.is_empty())
-        {
-            readiness_delta.push(
-                "Supporting inputs are present, but they do not replace the current-mode brief Canon uses for readiness."
-                    .to_string(),
-            );
-        }
-
-        let next_authoring_step = if authority_status == AuthorityStatus::AmbiguousCurrentBrief {
-            "Tighten the packet so one current-mode brief is authoritative before relying on the supporting files.".to_string()
-        } else if !missing_context.is_empty() {
-            "Strengthen the authoritative brief by resolving the named missing-context items before starting the governed run.".to_string()
-        } else if !clarification_questions.is_empty() {
-            "Answer the remaining clarification questions in the authoritative brief or supporting notes before treating the packet as fully ready.".to_string()
-        } else if materially_closed {
-            "Packet authority is explicit and the brief already materially closes the decision; preserve that closure when you start the governed run.".to_string()
-        } else if !supporting_inputs.is_empty() {
-            "Packet authority is explicit; keep the supporting inputs as provenance and move to the matching governed run when ready.".to_string()
-        } else {
-            "Packet authority is explicit and the brief is ready for the matching governed run."
-                .to_string()
-        };
-
-        AuthoringLifecycleSummary {
-            packet_shape: packet_shape.as_str().to_string(),
-            authority_status: authority_status.as_str().to_string(),
-            authoritative_inputs,
-            supporting_inputs,
-            readiness_delta,
-            next_authoring_step,
-        }
-    }
-
-    pub(super) fn resolve_input_path(&self, input: &str) -> PathBuf {
-        let path = PathBuf::from(input);
-        if path.is_absolute() { path } else { self.repo_root.join(path) }
-    }
-
-    pub(super) fn auto_bind_canonical_mode_inputs(
-        &self,
-        mode: Mode,
-        inputs: &[String],
-        inline_inputs: &[String],
-    ) -> Vec<String> {
-        if !inputs.is_empty() || !inline_inputs.is_empty() {
-            return inputs.to_vec();
-        }
-
-        let Some((file_name, dir_name)) = canonical_mode_input_binding(mode) else {
-            return Vec::new();
-        };
-
-        let canonical_root = self.repo_root.join("canon-input");
-        let canonical_dir = canonical_root.join(dir_name);
-        if canonical_dir.exists() {
-            return vec![format!("canon-input/{dir_name}")];
-        }
-
-        let canonical_file = canonical_root.join(file_name);
-        if canonical_file.exists() {
-            return vec![format!("canon-input/{file_name}")];
-        }
-
-        Vec::new()
-    }
-
-    pub(super) fn load_pr_review_refs(
-        &self,
-        inputs: &[String],
-    ) -> Result<(String, String), EngineError> {
-        if inputs.len() < 2 {
-            return Err(EngineError::Validation(
-                "pr-review requires two inputs: <base-ref> <head-ref>".to_string(),
-            ));
-        }
-
-        Ok((inputs[0].clone(), inputs[1].clone()))
-    }
-
-    pub(super) fn map_init_summary(summary: StoreInitSummary) -> InitSummary {
-        InitSummary {
-            repo_root: summary.repo_root,
-            canon_root: summary.canon_root,
-            methods_materialized: summary.methods_materialized,
-            policies_materialized: summary.policies_materialized,
-            skills_materialized: summary.skills_materialized,
-            claude_md_created: summary.claude_md_created,
-        }
-    }
-
-    pub(super) fn map_skills_summary(summary: StoreSkillsSummary) -> SkillsSummary {
-        SkillsSummary {
-            skills_dir: summary.skills_dir,
-            skills_materialized: summary.skills_materialized,
-            skills_skipped: summary.skills_skipped,
-            claude_md_created: summary.claude_md_created,
-        }
-    }
-    fn authored_input_name(path: &str) -> Option<&str> {
-        Path::new(path).file_name().and_then(|name| name.to_str())
-    }
-
-    pub(super) fn resolve_approver(&self, explicit_approver: &str) -> String {
-        self.resolve_identity(explicit_approver)
-    }
-
-    pub(super) fn resolve_owner(&self, explicit_owner: &str) -> String {
-        self.resolve_identity(explicit_owner)
-    }
-
-    pub(super) fn resolve_identity(&self, explicit_identity: &str) -> String {
-        let explicit_identity = explicit_identity.trim();
-        if !explicit_identity.is_empty() {
-            return explicit_identity.to_string();
-        }
-
-        self.resolve_git_owner(GitConfigScope::Local)
-            .or_else(|| self.resolve_git_owner(GitConfigScope::Global))
-            .unwrap_or_default()
-    }
-
-    pub(super) fn resolve_git_owner(&self, scope: GitConfigScope) -> Option<String> {
-        let name = self.git_config_value(scope, "user.name");
-        let email = self.git_config_value(scope, "user.email");
-
-        match (name, email) {
-            (Some(name), Some(email)) => Some(format!("{name} <{email}>")),
-            (Some(name), None) => Some(name),
-            (None, Some(email)) => Some(email),
-            (None, None) => None,
-        }
-    }
-
-    pub(super) fn git_config_value(&self, scope: GitConfigScope, key: &str) -> Option<String> {
-        let shell = ShellAdapter;
-        let request = shell.read_only_request("resolve owner identity from git config");
-        let scope_arg = match scope {
-            GitConfigScope::Local => "--local",
-            GitConfigScope::Global => "--global",
-        };
-
-        let output = shell
-            .run(
-                &request,
-                "git",
-                &["config", scope_arg, "--get", key],
-                Some(&self.repo_root),
-                false,
-            )
-            .ok()?;
-        let value = output.stdout.trim();
-        if value.is_empty() { None } else { Some(value.to_string()) }
     }
 }
 

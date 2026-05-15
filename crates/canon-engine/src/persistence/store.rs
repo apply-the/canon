@@ -239,19 +239,29 @@ const SHARED_SKILL_FILES: &[(&str, &str)] = &[
     ),
 ];
 
+/// Summary of a Canon workspace initialization.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InitSummary {
+    /// Absolute path of the repository root.
     pub repo_root: String,
+    /// Absolute path of the `.canon/` directory.
     pub canon_root: String,
+    /// Number of method files materialized.
     pub methods_materialized: usize,
+    /// Number of policy files materialized.
     pub policies_materialized: usize,
+    /// Number of skill files materialized.
     pub skills_materialized: usize,
+    /// Whether the `CLAUDE.md` file was created.
     pub claude_md_created: bool,
 }
 
+/// The target location for materializing Canon skills.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SkillMaterializationTarget {
+    /// Materialize skills into `.agents/skills/`.
     Agents,
+    /// Materialize skills into `.claude/skills/` and create `CLAUDE.md`.
     Claude,
 }
 
@@ -268,38 +278,61 @@ impl SkillMaterializationTarget {
     }
 }
 
+/// Summary of a skill materialization operation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SkillsSummary {
+    /// Absolute path of the skills directory written to.
     pub skills_dir: String,
+    /// Number of skill files written.
     pub skills_materialized: usize,
+    /// Number of skill files skipped because they already existed.
     pub skills_skipped: usize,
+    /// Whether the `CLAUDE.md` file was created.
     pub claude_md_created: bool,
 }
 
+/// A discoverable skill entry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SkillEntry {
+    /// The skill name (directory name under `.agents/skills/`).
     pub name: String,
+    /// Human-readable support state label for the skill.
     pub support_state: String,
 }
 
+/// A persisted run artifact, pairing its record with its on-disk contents.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersistedArtifact {
+    /// The artifact record metadata.
     pub record: ArtifactRecord,
+    /// The full text contents of the artifact file.
     pub contents: String,
 }
 
+/// A complete bundle of all persisted data for a single governed run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersistedRunBundle {
+    /// The run manifest (identity, mode, risk, zone, owner, etc.).
     pub run: RunManifest,
+    /// The runtime context (inputs, inline inputs, adapter context).
     pub context: RunContext,
+    /// The current lifecycle state of the run.
     pub state: RunStateManifest,
+    /// The artifact contract specifying required output files.
     pub artifact_contract: ArtifactContract,
+    /// Persisted artifacts (records + contents).
     pub artifacts: Vec<PersistedArtifact>,
+    /// The link manifest referencing all associated files.
     pub links: LinkManifest,
+    /// Gate evaluations recorded for the run.
     pub gates: Vec<GateEvaluation>,
+    /// Approval records for the run.
     pub approvals: Vec<ApprovalRecord>,
+    /// Verification records produced by the run.
     pub verification_records: Vec<VerificationRecord>,
+    /// The evidence bundle, if captured.
     pub evidence: Option<EvidenceBundle>,
+    /// Persisted adapter invocation records.
     pub invocations: Vec<crate::persistence::invocations::PersistedInvocation>,
 }
 
@@ -350,14 +383,17 @@ impl WorkspaceStore {
         })
     }
 
+    /// Returns the names of all materialized method files.
     pub fn list_method_files(&self) -> Result<Vec<String>, Error> {
         list_file_names(self.layout.methods_dir())
     }
 
+    /// Returns the names of all materialized policy files.
     pub fn list_policy_files(&self) -> Result<Vec<String>, Error> {
         list_file_names(self.layout.policies_dir())
     }
 
+    /// Loads and merges all policy files, applying any overrides from the given root.
     pub fn load_policy_set(&self, override_root: Option<&Path>) -> Result<PolicySet, Error> {
         let risk_file: RiskPolicyFile =
             read_toml_file(self.layout.policies_dir().join("risk.toml"))?;
@@ -400,6 +436,7 @@ impl WorkspaceStore {
         Ok(policy_set)
     }
 
+    /// Persists all data from a completed run bundle to the canonical layout.
     pub fn persist_run_bundle(&self, bundle: &PersistedRunBundle) -> Result<(), Error> {
         let validated_artifact_paths = bundle
             .artifacts
@@ -668,6 +705,7 @@ impl WorkspaceStore {
         Ok(persisted_context)
     }
 
+    /// Returns the relative `.canon/`-prefixed paths of all artifact files for a run.
     pub fn list_artifact_files(&self, run_id: &str) -> Result<Vec<String>, Error> {
         let run_artifacts_root = self.layout.artifacts_dir().join(run_id);
         if !run_artifacts_root.exists() {
@@ -703,20 +741,24 @@ impl WorkspaceStore {
         Ok(entries)
     }
 
+    /// Lists all invocation request IDs for a run.
     pub fn list_invocation_ids(&self, run_id: &str) -> Result<Vec<String>, Error> {
         list_invocation_ids(&self.layout.run_dir(run_id))
     }
 
+    /// Returns the names of evidence files for a run (empty if none captured).
     pub fn list_evidence_entries(&self, run_id: &str) -> Result<Vec<String>, Error> {
         let evidence_path = self.layout.run_dir(run_id).join("evidence.toml");
         if evidence_path.exists() { Ok(vec!["evidence.toml".to_string()]) } else { Ok(Vec::new()) }
     }
 
+    /// Loads the evidence bundle for a run, returning `None` if not yet captured.
     pub fn load_evidence_bundle(&self, run_id: &str) -> Result<Option<EvidenceBundle>, Error> {
         let path = self.layout.run_evidence_path(run_id);
         if path.exists() { read_toml_file(path).map(Some) } else { Ok(None) }
     }
 
+    /// Loads and reassembles all invocation records for a run.
     pub fn load_persisted_invocations(
         &self,
         run_id: &str,
@@ -754,6 +796,7 @@ impl WorkspaceStore {
         Ok(invocations)
     }
 
+    /// Loads all trace events for a run from the JSONL trace file.
     pub fn load_trace_events(&self, run_id: &str) -> Result<Vec<TraceEvent>, Error> {
         let trace_path = self.layout.traces_dir().join(format!("{run_id}.jsonl"));
         if !trace_path.exists() {
@@ -764,23 +807,28 @@ impl WorkspaceStore {
         parse_trace_events(&contents).map_err(|error| Error::other(error.to_string()))
     }
 
+    /// Loads the current state manifest for a run.
     pub fn load_run_state(&self, run_id: &str) -> Result<RunStateManifest, Error> {
         read_toml_file(self.layout.run_dir(run_id).join("state.toml"))
     }
 
+    /// Loads and canonicalizes the run manifest for a run.
     pub fn load_run_manifest(&self, run_id: &str) -> Result<RunManifest, Error> {
         let manifest: RunManifest = read_toml_file(self.layout.run_dir(run_id).join("run.toml"))?;
         Ok(manifest.canonicalize())
     }
 
+    /// Loads the runtime context (inputs, adapter context) for a run.
     pub fn load_run_context(&self, run_id: &str) -> Result<RunContext, Error> {
         read_toml_file(self.layout.run_dir(run_id).join("context.toml"))
     }
 
+    /// Loads the artifact contract (required output file specifications) for a run.
     pub fn load_artifact_contract(&self, run_id: &str) -> Result<ArtifactContract, Error> {
         read_toml_file(self.layout.run_dir(run_id).join("artifact-contract.toml"))
     }
 
+    /// Loads all gate evaluations for a run, sorted by gate name.
     pub fn load_gate_evaluations(&self, run_id: &str) -> Result<Vec<GateEvaluation>, Error> {
         let mut gates = fs::read_dir(self.layout.run_gates_dir(run_id))?
             .map(|entry| {
@@ -792,6 +840,7 @@ impl WorkspaceStore {
         Ok(gates)
     }
 
+    /// Loads all approval records for a run, sorted by recorded-at timestamp.
     pub fn load_approval_records(&self, run_id: &str) -> Result<Vec<ApprovalRecord>, Error> {
         let approvals_dir = self.layout.run_approvals_dir(run_id);
         if !approvals_dir.exists() {
@@ -808,6 +857,7 @@ impl WorkspaceStore {
         Ok(approvals)
     }
 
+    /// Loads persisted artifacts from disk that satisfy the given artifact contract.
     pub fn load_persisted_artifacts(
         &self,
         run_id: &str,
@@ -844,6 +894,7 @@ impl WorkspaceStore {
             .map(|artifacts| artifacts.into_iter().flatten().collect())
     }
 
+    /// Persists gate evaluations for a run, writing one TOML file per gate.
     pub fn persist_gate_evaluations(
         &self,
         run_id: &str,
@@ -864,12 +915,14 @@ impl WorkspaceStore {
         Ok(())
     }
 
+    /// Persists the current lifecycle state of a run.
     pub fn persist_run_state(&self, run_id: &str, state: &RunStateManifest) -> Result<(), Error> {
         let path = self.layout.run_dir(run_id).join("state.toml");
         write_toml_file(path.clone(), state)?;
         self.append_trace_stream(run_id, &[self.filesystem.trace_write(&path, "persist run state")])
     }
 
+    /// Persists an approval record for a run.
     pub fn persist_approval_record(
         &self,
         run_id: &str,
@@ -886,6 +939,7 @@ impl WorkspaceStore {
         )
     }
 
+    /// Appends adapter invocation records to the run's trace stream.
     pub fn persist_adapter_invocations(
         &self,
         run_id: &str,
@@ -894,6 +948,7 @@ impl WorkspaceStore {
         self.append_trace_stream(run_id, invocations)
     }
 
+    /// Persists a text payload for an invocation request.
     pub fn persist_invocation_payload_text(
         &self,
         run_id: &str,

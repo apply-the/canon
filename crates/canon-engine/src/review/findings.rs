@@ -1,30 +1,48 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, IntoStaticStr};
 
+/// Classifies the structural concern behind a [`ReviewFinding`].
+///
+/// Each variant maps to a distinct review lens applied during diff inspection:
+/// boundary ownership, code duplication, contract compatibility, test coverage,
+/// and decision traceability.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum FindingCategory {
+    /// A public or boundary-marked surface changed and needs explicit reviewer disposition.
     BoundaryCheck,
+    /// Duplicate behavior or canonical ownership conflicts were detected.
     DuplicationCheck,
+    /// A contract or API surface drifted without an explicit acceptance record.
     ContractDrift,
+    /// Source files changed without companion test-surface updates.
     MissingTests,
+    /// Structural changes imply decisions that are not yet explicitly accepted.
     DecisionImpact,
 }
 
 impl FindingCategory {
+    /// Returns the kebab-case string representation of the category.
     pub fn as_str(self) -> &'static str {
         self.into()
     }
 }
 
+/// Indicates the urgency of a [`ReviewFinding`].
+///
+/// `MustFix` findings block readiness until the reviewer records an explicit
+/// disposition. `Note` findings are informational and do not gate the review.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
 #[strum(serialize_all = "kebab-case")]
 pub enum FindingSeverity {
+    /// Informational — does not block reviewer disposition.
     Note,
+    /// Requires explicit reviewer disposition before the review can pass.
     MustFix,
 }
 
 impl FindingSeverity {
+    /// Returns the kebab-case string representation of the severity.
     pub fn as_str(self) -> &'static str {
         self.into()
     }
@@ -40,8 +58,11 @@ impl FindingSeverity {
 #[serde(rename_all = "kebab-case")]
 #[strum(serialize_all = "kebab-case")]
 pub enum ConventionalCommentScope {
+    /// The comment applies to the entire pull request.
     Pr,
+    /// The comment applies to a specific file.
     File,
+    /// The comment applies to a specific surface within a file.
     Surface,
 }
 
@@ -57,18 +78,32 @@ impl ConventionalCommentScope {
     }
 }
 
+/// A single bounded finding produced during diff inspection.
+///
+/// Findings are collected into a [`ReviewPacket`] and rendered into the
+/// pr-review artifact bundle. Each finding carries enough context to map
+/// directly to a Conventional Comment entry without additional inference.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReviewFinding {
+    /// The structural lens that produced this finding.
     pub category: FindingCategory,
+    /// Whether this finding must be explicitly resolved before the review can pass.
     pub severity: FindingSeverity,
+    /// Short human-readable label used as the Conventional Comment subject.
     pub title: String,
+    /// Expanded rationale surfaced in the `Why:` line of the comment entry.
     pub details: String,
     /// Scope of this finding, derived deterministically from `changed_surfaces`.
     pub scope: ConventionalCommentScope,
+    /// The diff surfaces this finding is anchored to.
     pub changed_surfaces: Vec<String>,
 }
 
 impl ReviewFinding {
+    /// Maps `(severity, category)` to the Conventional Comments kind string.
+    ///
+    /// The mapping is intentionally static: callers must not derive the kind
+    /// independently to avoid drift between the domain model and the renderer.
     pub fn conventional_comment_kind(&self) -> &'static str {
         match (self.severity, self.category) {
             (FindingSeverity::MustFix, FindingCategory::BoundaryCheck) => "issue",
@@ -82,17 +117,33 @@ impl ReviewFinding {
     }
 }
 
+/// The complete review context derived from a bounded diff.
+///
+/// A `ReviewPacket` is the central input to all pr-review artifact renderers.
+/// It is built from the diff between two refs and carries the full set of
+/// [`ReviewFinding`]s produced by deterministic diff inspection.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReviewPacket {
+    /// The base ref the diff is compared against (e.g. `origin/main`).
     pub base_ref: String,
+    /// The head ref being reviewed (e.g. `HEAD` or `WORKTREE`).
     pub head_ref: String,
+    /// All changed surfaces detected in the diff between `base_ref` and `head_ref`.
     pub changed_surfaces: Vec<String>,
+    /// A one-line summary of the inferred review intent, used as artifact preamble.
     pub inferred_intent: String,
+    /// Surfaces that are boundary- or contract-marked and therefore warrant extra scrutiny.
     pub surprising_surface_area: Vec<String>,
+    /// All findings produced by diff inspection, in insertion order.
     pub findings: Vec<ReviewFinding>,
 }
 
 impl ReviewPacket {
+    /// Builds a [`ReviewPacket`] from a raw diff between two refs.
+    ///
+    /// Runs deterministic diff inspection over `changed_surfaces` and `patch`
+    /// to produce the initial finding set. No critique evidence is applied;
+    /// use [`from_evidence`](Self::from_evidence) to include governed critique.
     pub fn from_diff(
         base_ref: &str,
         head_ref: &str,
@@ -206,6 +257,10 @@ impl ReviewPacket {
         }
     }
 
+    /// Builds a [`ReviewPacket`] and appends governed critique evidence.
+    ///
+    /// Delegates to [`from_diff`](Self::from_diff) for the initial finding set,
+    /// then appends `critique_summary` to `inferred_intent` when non-empty.
     pub fn from_evidence(
         base_ref: &str,
         head_ref: &str,
@@ -225,10 +280,12 @@ impl ReviewPacket {
         packet
     }
 
+    /// Returns all findings whose [`FindingCategory`] matches `category`.
     pub fn findings_for(&self, category: FindingCategory) -> Vec<&ReviewFinding> {
         self.findings.iter().filter(|finding| finding.category == category).collect()
     }
 
+    /// Returns all findings with [`FindingSeverity::MustFix`] severity.
     pub fn must_fix_findings(&self) -> Vec<&ReviewFinding> {
         self.findings
             .iter()
@@ -236,6 +293,7 @@ impl ReviewPacket {
             .collect()
     }
 
+    /// Returns all findings with [`FindingSeverity::Note`] severity.
     pub fn note_findings(&self) -> Vec<&ReviewFinding> {
         self.findings
             .iter()
@@ -497,5 +555,42 @@ mod tests {
         let note = packet.note_findings().pop().expect("note finding");
         // Mixed src + tests → File scope
         assert_eq!(note.scope, ConventionalCommentScope::File);
+    }
+
+    #[test]
+    fn finding_category_as_str_returns_kebab_case_for_all_variants() {
+        assert_eq!(FindingCategory::BoundaryCheck.as_str(), "boundary-check");
+        assert_eq!(FindingCategory::DuplicationCheck.as_str(), "duplication-check");
+        assert_eq!(FindingCategory::ContractDrift.as_str(), "contract-drift");
+        assert_eq!(FindingCategory::MissingTests.as_str(), "missing-tests");
+        assert_eq!(FindingCategory::DecisionImpact.as_str(), "decision-impact");
+    }
+
+    #[test]
+    fn conventional_comment_scope_all_returns_all_three_variants_in_order() {
+        use super::ConventionalCommentScope;
+        let all = ConventionalCommentScope::all();
+        assert_eq!(
+            all,
+            &[
+                ConventionalCommentScope::Pr,
+                ConventionalCommentScope::File,
+                ConventionalCommentScope::Surface,
+            ]
+        );
+    }
+
+    #[test]
+    fn conventional_comment_kind_must_fix_duplication_check_falls_through_to_issue() {
+        use super::{ConventionalCommentScope, ReviewFinding};
+        let finding = ReviewFinding {
+            category: FindingCategory::DuplicationCheck,
+            severity: FindingSeverity::MustFix,
+            title: "dup".to_string(),
+            details: "overlapping logic".to_string(),
+            scope: ConventionalCommentScope::Pr,
+            changed_surfaces: vec![],
+        };
+        assert_eq!(finding.conventional_comment_kind(), "issue");
     }
 }

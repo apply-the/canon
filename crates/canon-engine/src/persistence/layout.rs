@@ -29,22 +29,27 @@ impl ProjectLayout {
         self.canon_root.join("artifacts")
     }
 
+    /// Returns the directory path for the decisions sub-directory.
     pub fn decisions_dir(&self) -> PathBuf {
         self.canon_root.join("decisions")
     }
 
+    /// Path to the trace events directory.
     pub fn traces_dir(&self) -> PathBuf {
         self.canon_root.join("traces")
     }
 
+    /// Path to the methods directory.
     pub fn methods_dir(&self) -> PathBuf {
         self.canon_root.join("methods")
     }
 
+    /// Path to the policies directory.
     pub fn policies_dir(&self) -> PathBuf {
         self.canon_root.join("policies")
     }
 
+    /// Path to the runs directory.
     pub fn runs_dir(&self) -> PathBuf {
         self.canon_root.join("runs")
     }
@@ -88,6 +93,7 @@ impl ProjectLayout {
     /// id and an optional slug. Used by the persistence layer at run
     /// creation. For legacy callers that have no slug, [`Self::run_dir`]
     /// returns the same path.
+    /// Returns the directory path for storing a new run (before it exists on disk).
     pub fn new_run_dir(&self, run_id: &str, slug: Option<&str>) -> PathBuf {
         if let Some((year, month)) = parse_dated_display_id(run_id) {
             let month_dir = self.runs_dir().join(year).join(month);
@@ -101,46 +107,57 @@ impl ProjectLayout {
         }
     }
 
+    /// Returns the gates sub-directory for a run.
     pub fn run_gates_dir(&self, run_id: &str) -> PathBuf {
         self.run_dir(run_id).join("gates")
     }
 
+    /// Returns the approvals sub-directory for a run.
     pub fn run_approvals_dir(&self, run_id: &str) -> PathBuf {
         self.run_dir(run_id).join("approvals")
     }
 
+    /// Returns the verification sub-directory for a run.
     pub fn run_verification_dir(&self, run_id: &str) -> PathBuf {
         self.run_dir(run_id).join("verification")
     }
 
+    /// Returns the invocations sub-directory for a run.
     pub fn run_invocations_dir(&self, run_id: &str) -> PathBuf {
         self.run_dir(run_id).join("invocations")
     }
 
+    /// Returns the inputs sub-directory for a run.
     pub fn run_inputs_dir(&self, run_id: &str) -> PathBuf {
         self.run_dir(run_id).join("inputs")
     }
 
+    /// Returns the directory path for a specific invocation under a run.
     pub fn run_invocation_dir(&self, run_id: &str, request_id: &str) -> PathBuf {
         self.run_invocations_dir(run_id).join(request_id)
     }
 
+    /// Returns the path to the evidence bundle file for a run.
     pub fn run_evidence_path(&self, run_id: &str) -> PathBuf {
         self.run_dir(run_id).join("evidence.toml")
     }
 
+    /// Returns the artifact directory for a run and mode.
     pub fn run_artifact_dir(&self, run_id: &str, mode: Mode) -> PathBuf {
         self.artifacts_dir().join(run_id).join(mode.as_str())
     }
 
+    /// Returns the path to the `.agents/skills/` directory.
     pub fn skills_dir(&self) -> PathBuf {
         self.repo_root.join(".agents").join("skills")
     }
 
+    /// Returns the path to the `.claude/skills/` directory.
     pub fn claude_skills_dir(&self) -> PathBuf {
         self.repo_root.join(".claude").join("skills")
     }
 
+    /// Returns the path to the `CLAUDE.md` file.
     pub fn claude_md_path(&self) -> PathBuf {
         self.repo_root.join("CLAUDE.md")
     }
@@ -213,5 +230,38 @@ mod tests {
         let layout = ProjectLayout::new("/tmp/canon-fixture");
         let p = layout.new_run_dir("0190f4cf-3a91-7a1c-9e8b-fa9203b1f0d4", None);
         assert!(p.ends_with("runs/0190f4cf-3a91-7a1c-9e8b-fa9203b1f0d4"));
+    }
+
+    #[test]
+    fn new_run_dir_omits_slug_when_empty_string() {
+        let layout = ProjectLayout::new("/tmp/canon-fixture");
+        let p = layout.new_run_dir("R-20260413-6f2b8d4e", Some(""));
+        assert!(p.ends_with("runs/2026/04/R-20260413-6f2b8d4e"));
+    }
+
+    #[test]
+    fn run_dir_resolves_slugged_sibling_on_disk() {
+        let root = tempfile::TempDir::new().expect("tempdir");
+        let layout = ProjectLayout::new(root.path());
+        let month_dir = root.path().join(".canon").join("runs").join("2026").join("04");
+        let slugged_dir = month_dir.join("R-20260413-6f2b8d4e--auth-hardening");
+        std::fs::create_dir_all(&slugged_dir).expect("create slugged dir");
+
+        let resolved = layout.run_dir("R-20260413-6f2b8d4e");
+        assert_eq!(resolved, slugged_dir);
+    }
+
+    #[test]
+    fn claude_skills_dir_and_claude_md_path_resolve_correctly() {
+        let layout = ProjectLayout::new("/tmp/canon-fixture");
+        assert!(layout.claude_skills_dir().ends_with(".claude/skills"));
+        assert!(layout.claude_md_path().ends_with("CLAUDE.md"));
+    }
+
+    #[test]
+    fn run_invocation_dir_nests_under_run_dir() {
+        let layout = ProjectLayout::new("/tmp/canon-fixture");
+        let p = layout.run_invocation_dir("R-20260413-6f2b8d4e", "req-01");
+        assert!(p.to_string_lossy().contains("invocations/req-01"));
     }
 }

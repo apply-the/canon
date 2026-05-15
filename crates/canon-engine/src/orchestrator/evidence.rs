@@ -3,6 +3,7 @@ use crate::domain::execution::{
     ValidationPath,
 };
 
+/// Returns an empty evidence bundle for the given run ID.
 pub fn empty_evidence_bundle(run_id: &str) -> EvidenceBundle {
     EvidenceBundle {
         run_id: run_id.to_string(),
@@ -16,6 +17,7 @@ pub fn empty_evidence_bundle(run_id: &str) -> EvidenceBundle {
     }
 }
 
+/// Returns a default (insufficient) validation independence assessment for the given target ID.
 pub fn default_independence(target_id: &str) -> ValidationIndependenceAssessment {
     ValidationIndependenceAssessment {
         target_id: target_id.to_string(),
@@ -25,6 +27,7 @@ pub fn default_independence(target_id: &str) -> ValidationIndependenceAssessment
     }
 }
 
+/// Attaches a generation path, validation path, and denied invocations to a bundle.
 pub fn attach_paths(
     bundle: &mut EvidenceBundle,
     generation_path: GenerationPath,
@@ -36,6 +39,7 @@ pub fn attach_paths(
     bundle.denied_invocations.extend(denied);
 }
 
+/// Assesses whether the given generation and validation paths satisfy validation independence.
 pub fn assess_validation_independence(
     generation_path: &GenerationPath,
     validation_path: &ValidationPath,

@@ -5,27 +5,44 @@ use crate::{
     LineageClass, SideEffectClass, TrustBoundaryKind,
 };
 
+/// The result of a Copilot CLI adapter call: generated content plus the audit record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CopilotCliOutput {
+    /// The generated or critiqued text summary.
     pub summary: String,
+    /// The audit record for this adapter invocation.
     pub invocation: AdapterInvocation,
+    /// Identifier of the executor that produced this output.
     pub executor: String,
 }
 
+/// Input parameters for the `generate_requirements` method on [`CopilotCliAdapter`].
 pub struct RequirementsGenerationInput<'a> {
+    /// The problem statement being addressed.
     pub problem: &'a str,
+    /// The desired outcome of the requirements packet.
     pub outcome: &'a str,
+    /// Explicit constraints that must be preserved.
     pub constraints: &'a [String],
+    /// Tradeoffs acknowledged as part of the requirements.
     pub tradeoffs: &'a [String],
+    /// Items explicitly out of scope.
     pub out_of_scope: &'a [String],
+    /// Open questions that must be resolved before downstream work.
     pub open_questions: &'a [String],
+    /// Source references that anchor the requirements.
     pub source_refs: &'a [String],
 }
 
+/// Adapter that models Copilot CLI capabilities for governance-gated content generation.
+///
+/// All methods return a [`CopilotCliOutput`] containing the generated content
+/// and a traceable [`AdapterInvocation`] record for the evidence bundle.
 #[derive(Debug, Default)]
 pub struct CopilotCliAdapter;
 
 impl CopilotCliAdapter {
+    /// Returns a read-only generation request for Copilot CLI with the given purpose.
     pub fn generation_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::CopilotCli,
@@ -38,6 +55,7 @@ impl CopilotCliAdapter {
         }
     }
 
+    /// Returns a read-only critique request for Copilot CLI with the given purpose.
     pub fn critique_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::CopilotCli,
@@ -50,6 +68,7 @@ impl CopilotCliAdapter {
         }
     }
 
+    /// Returns a workspace-mutation edit request for Copilot CLI with the given purpose.
     pub fn workspace_edit_request(&self, purpose: &str) -> AdapterRequest {
         AdapterRequest {
             adapter: AdapterKind::CopilotCli,
@@ -62,6 +81,7 @@ impl CopilotCliAdapter {
         }
     }
 
+    /// Generates a bounded exploration or generation output from a raw context string.
     pub fn generate(&self, context: &str) -> CopilotCliOutput {
         let normalized = normalize_multiline_context(context);
         let summary = format!(
@@ -71,6 +91,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::GenerateContent, "copilot-cli generation", summary)
     }
 
+    /// Generates a structured requirements packet from the provided input fields.
     pub fn generate_requirements(
         &self,
         input: RequirementsGenerationInput<'_>,
@@ -129,6 +150,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::GenerateContent, "copilot-cli requirements generation", summary)
     }
 
+    /// Generates an adversarial critique of a previously generated artifact.
     pub fn critique(&self, generated: &str) -> CopilotCliOutput {
         let normalized = normalize_multiline_context(generated);
         let summary = format!(
@@ -138,6 +160,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::CritiqueContent, "copilot-cli critique", summary)
     }
 
+    /// Generates a review packet output for a bounded non-PR artifact bundle.
     pub fn generate_review(&self, context: &str) -> CopilotCliOutput {
         let normalized = normalize_multiline_context(context);
         let summary = format!(
@@ -147,6 +170,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::GenerateContent, "copilot-cli review generation", summary)
     }
 
+    /// Generates an adversarial critique of a proposed review packet.
     pub fn critique_review(&self, generated: &str) -> CopilotCliOutput {
         let normalized = normalize_multiline_context(generated);
         let summary = format!(
@@ -156,6 +180,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::CritiqueContent, "copilot-cli review critique", summary)
     }
 
+    /// Generates a structured verification packet output from a verification context.
     pub fn generate_verification(&self, context: &str) -> CopilotCliOutput {
         let claims_under_test = verification_section_list_or_fallback(
             context,
@@ -196,6 +221,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::GenerateContent, "copilot-cli verification generation", summary)
     }
 
+    /// Produces a critique of a generated verification packet, challenging its claims and evidence.
     pub fn critique_verification(&self, generated: &str) -> CopilotCliOutput {
         let claims_under_test = verification_section_items(generated, &["Claims Under Test"]);
         let evidence_basis = verification_section_items(generated, &["Evidence Basis"]);
@@ -422,6 +448,7 @@ impl CopilotCliAdapter {
         self.output(CapabilityKind::CritiqueContent, "copilot-cli verification critique", summary)
     }
 
+    /// Produces a critique of generated requirements artifacts against the captured intake inputs.
     pub fn critique_requirements(
         &self,
         problem: &str,

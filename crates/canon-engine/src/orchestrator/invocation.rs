@@ -14,6 +14,7 @@ enum ChangeMutationScopeStatus {
     Expanded,
 }
 
+/// Returns a placeholder adapter descriptor for testing and stub purposes.
 pub fn placeholder_descriptor() -> ExecutionAdapterDescriptor {
     ExecutionAdapterDescriptor {
         adapter: canon_adapters::AdapterKind::Filesystem,
@@ -23,6 +24,7 @@ pub fn placeholder_descriptor() -> ExecutionAdapterDescriptor {
     }
 }
 
+/// Returns a placeholder allow decision for the given invocation request.
 pub fn placeholder_decision(request: &InvocationRequest) -> InvocationPolicyDecision {
     InvocationPolicyDecision {
         kind: PolicyDecisionKind::Allow,
@@ -34,6 +36,7 @@ pub fn placeholder_decision(request: &InvocationRequest) -> InvocationPolicyDeci
     }
 }
 
+/// Returns a placeholder successful tool outcome with the given summary.
 pub fn placeholder_outcome(summary: &str) -> ToolOutcome {
     ToolOutcome {
         kind: ToolOutcomeKind::Succeeded,
@@ -45,6 +48,7 @@ pub fn placeholder_outcome(summary: &str) -> ToolOutcome {
     }
 }
 
+/// Evaluates the policy decision for a governed invocation request.
 pub fn evaluate_request_policy(
     request: &InvocationRequest,
     policy_set: &PolicySet,

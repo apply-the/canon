@@ -1,11 +1,18 @@
 use crate::{AdapterError, AdapterRequest, SideEffectClass};
 
+/// Whether an adapter request should be executed or downgraded to recommendation-only.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DispatchDisposition {
+    /// The request is permitted to execute and produce real side effects.
     Execute,
+    /// The request is not permitted to mutate; only a recommendation is produced.
     RecommendationOnly,
 }
 
+/// Determines the dispatch disposition for a request given the current mutation policy.
+///
+/// Returns [`DispatchDisposition::RecommendationOnly`] when `request.side_effect`
+/// is `WorkspaceMutation` or `ExternalStateChange` and `allow_mutation` is `false`.
 pub fn dispatch_disposition(request: &AdapterRequest, allow_mutation: bool) -> DispatchDisposition {
     if matches!(
         request.side_effect,
@@ -18,6 +25,10 @@ pub fn dispatch_disposition(request: &AdapterRequest, allow_mutation: bool) -> D
     }
 }
 
+/// Enforces the mutation policy for a request, returning an error if mutation is blocked.
+///
+/// This is the boundary check that adapter call sites must use before executing
+/// any mutating capability.
 pub fn enforce_mutation_policy(
     request: &AdapterRequest,
     allow_mutation: bool,
