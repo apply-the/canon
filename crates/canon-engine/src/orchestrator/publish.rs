@@ -623,6 +623,7 @@ fn infer_runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePack
         legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
         expertise_input: None,
         authority_governance: None,
+        adaptive_governance: None,
     }
 }
 

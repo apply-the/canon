@@ -134,6 +134,11 @@ fn governance_start_and_refresh_emit_reusable_requirements_packets() {
     assert_eq!(start_json["packet_ref"], packet_ref);
     assert!(start_json["document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
     assert_eq!(start_json["document_refs"], start_json["expected_document_refs"]);
+    assert_eq!(start_json["authority_governance"]["contract_line"], "authority-governance-v1");
+    assert_eq!(start_json["authority_governance"]["approval_state"], "not_needed");
+    assert_eq!(start_json["adaptive_governance"]["contract_line"], "adaptive-governance-v1");
+    assert_eq!(start_json["adaptive_governance"]["governance_state"], "advisory");
+    assert_eq!(start_json["adaptive_governance"]["rollout_profile"], "guided");
 
     let refresh_output = cli_command()
         .current_dir(workspace.path())
@@ -166,6 +171,8 @@ fn governance_start_and_refresh_emit_reusable_requirements_packets() {
     assert_eq!(refresh_json["packet_ref"], start_json["packet_ref"]);
     assert_eq!(refresh_json["document_refs"], start_json["document_refs"]);
     assert_eq!(refresh_json["expected_document_refs"], start_json["expected_document_refs"]);
+    assert_eq!(refresh_json["authority_governance"], start_json["authority_governance"]);
+    assert_eq!(refresh_json["adaptive_governance"], start_json["adaptive_governance"]);
 }
 
 #[test]
@@ -201,6 +208,8 @@ fn governance_start_surfaces_approval_gated_architecture_runs() {
     assert_eq!(json["approval_state"], "requested");
     assert_eq!(json["reason_code"], "approval_required");
     assert!(json["run_ref"].as_str().is_some_and(|value| !value.is_empty()));
+    assert_eq!(json["authority_governance"]["contract_line"], "authority-governance-v1");
+    assert_eq!(json["adaptive_governance"]["contract_line"], "adaptive-governance-v1");
 }
 
 #[test]

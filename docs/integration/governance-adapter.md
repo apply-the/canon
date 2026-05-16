@@ -41,9 +41,10 @@ The adapter returns canonical workspace-relative refs so downstream systems can
 store or display stable pointers without scraping human CLI prose.
 
 Governed packets may also carry `authority-governance-v1` in the adjacent
-`packet-metadata.json` sidecar. Downstream consumers should treat that sidecar
-as the stable source for Canon authority semantics rather than inferring them
-from filenames or human prose.
+`packet-metadata.json` sidecar, and may also carry the optional
+`adaptive-governance-v1` companion in the same metadata. Downstream consumers
+should treat that sidecar as the stable source for Canon governance semantics
+rather than inferring them from filenames or human prose.
 
 ## Start Request Envelope
 
@@ -144,6 +145,48 @@ Compatibility rules:
   making the packet unreadable.
 - Missing optional fields leave the compatible remainder usable.
 - Unknown optional fields are additive by default.
+
+## Adaptive Governance Companion
+
+Canon may also publish first-slice adaptive semantics in `packet-metadata.json`
+as a typed `adaptive_governance` object beside the required
+`authority_governance` baseline.
+
+Representative shape:
+
+```json
+{
+  "adaptive_governance": {
+    "contract_line": "adaptive-governance-v1",
+    "governance_state": "advisory",
+    "rollout_profile": "guided"
+  }
+}
+```
+
+Required companion fields:
+
+- `contract_line`
+- `governance_state`
+- `rollout_profile`
+
+Optional additive fields:
+
+- `state_rationale`
+- `profile_rationale`
+
+Compatibility rules:
+
+- `authority-governance-v1` remains the required baseline.
+- `adaptive-governance-v1` is optional unless the downstream runtime requires a
+  compatible companion for a given stage.
+- Missing or unsupported companion semantics must remain distinguishable from a
+  missing required baseline.
+- An optional companion cannot repair missing required authority semantics.
+
+This boundary is intentional: Canon publishes semantic maturity labels, while
+downstream runtimes decide confidence, trust, degradation, escalation,
+councils, and stop behavior.
 
 ## Example: change
 

@@ -5,7 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::domain::execution::EvidenceDisposition;
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
-use crate::domain::publish_profile::{AuthorityGovernanceV1Envelope, ExpertiseInputMetadata};
+use crate::domain::publish_profile::{
+    AdaptiveGovernanceV1Envelope, AuthorityGovernanceV1Envelope, ExpertiseInputMetadata,
+};
 use crate::domain::verification::VerificationLayer;
 
 /// Filename of the view manifest sidecar emitted alongside every packet.
@@ -134,6 +136,9 @@ pub struct RuntimePacketMetadata {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Canon-owned authority-governance metadata, if any.
     pub authority_governance: Option<AuthorityGovernanceV1Envelope>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Canon-owned adaptive-governance companion metadata, if any.
+    pub adaptive_governance: Option<AdaptiveGovernanceV1Envelope>,
 }
 
 /// The governance contract for an artifact packet: the required artifacts and verification layers.
@@ -247,6 +252,8 @@ mod tests {
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
     use crate::domain::publish_profile::{
+        ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE, AdaptiveGovernanceState,
+        AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs, AdaptiveRolloutProfile,
         AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
         AuthorityPacketReadiness,
     };
@@ -348,12 +355,32 @@ mod tests {
                     promotion_refs: Vec::new(),
                 },
             )),
+            adaptive_governance: Some(AdaptiveGovernanceV1Envelope::from_runtime_inputs(
+                AdaptiveGovernanceV1RuntimeInputs {
+                    risk: RiskClass::SystemicImpact,
+                    zone: UsageZone::Yellow,
+                    approval_state: AuthorityApprovalState::Requested,
+                    packet_readiness: AuthorityPacketReadiness::Incomplete,
+                },
+            )),
         };
 
         let round_trip: RuntimePacketMetadata =
             serde_json::from_value(serde_json::to_value(&metadata).unwrap()).unwrap();
 
         assert_eq!(round_trip, metadata);
+        assert_eq!(
+            round_trip.adaptive_governance.as_ref().map(|value| value.contract_line.as_str()),
+            Some(ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE)
+        );
+        assert_eq!(
+            round_trip.adaptive_governance.as_ref().map(|value| value.governance_state),
+            Some(AdaptiveGovernanceState::Rule)
+        );
+        assert_eq!(
+            round_trip.adaptive_governance.as_ref().map(|value| value.rollout_profile),
+            Some(AdaptiveRolloutProfile::Governed)
+        );
     }
 
     #[test]

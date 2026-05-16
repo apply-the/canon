@@ -17,6 +17,8 @@ pub const PROJECT_MEMORY_PACKET_METADATA_FILE_NAME: &str = "packet-metadata.json
 pub const GOVERNED_EXPERTISE_INPUT_CONTRACT_VERSION: &str = "v1";
 /// Contract line string for the first authority-governance metadata slice.
 pub const AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE: &str = "authority-governance-v1";
+/// Contract line string for the first adaptive-governance companion slice.
+pub const ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE: &str = "adaptive-governance-v1";
 /// Required field names for V1 lineage metadata envelopes.
 pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "contract_version",
@@ -83,6 +85,127 @@ impl AuthorityRiskClass {
             RiskClass::LowImpact => Self::LowImpact,
             RiskClass::BoundedImpact => Self::BoundedImpact,
             RiskClass::SystemicImpact => Self::SystemicImpact,
+        }
+    }
+}
+
+/// Governance-state vocabulary exported through `adaptive-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AdaptiveGovernanceState {
+    Advisory,
+    Catch,
+    Rule,
+    Hook,
+}
+
+impl AdaptiveGovernanceState {
+    /// Returns the kebab-case string representation of this governance state.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Advisory => "advisory",
+            Self::Catch => "catch",
+            Self::Rule => "rule",
+            Self::Hook => "hook",
+        }
+    }
+}
+
+impl std::fmt::Display for AdaptiveGovernanceState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Rollout-profile vocabulary exported through `adaptive-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AdaptiveRolloutProfile {
+    Minimal,
+    Guided,
+    Governed,
+    Strict,
+}
+
+impl AdaptiveRolloutProfile {
+    /// Returns the kebab-case string representation of this rollout profile.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Minimal => "minimal",
+            Self::Guided => "guided",
+            Self::Governed => "governed",
+            Self::Strict => "strict",
+        }
+    }
+}
+
+impl std::fmt::Display for AdaptiveRolloutProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Typed `adaptive-governance-v1` envelope published with governed packet metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AdaptiveGovernanceV1Envelope {
+    pub contract_line: String,
+    pub governance_state: AdaptiveGovernanceState,
+    pub rollout_profile: AdaptiveRolloutProfile,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state_rationale: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile_rationale: Option<String>,
+}
+
+/// Typed runtime inputs used to build an `adaptive-governance-v1` envelope.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdaptiveGovernanceV1RuntimeInputs {
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approval_state: AuthorityApprovalState,
+    pub packet_readiness: AuthorityPacketReadiness,
+}
+
+impl AdaptiveGovernanceV1Envelope {
+    /// Builds the first-slice adaptive-governance companion from existing Canon runtime inputs.
+    pub fn from_runtime_inputs(inputs: AdaptiveGovernanceV1RuntimeInputs) -> Self {
+        let AdaptiveGovernanceV1RuntimeInputs { risk, zone, approval_state, packet_readiness } =
+            inputs;
+
+        let governance_state = if matches!(zone, UsageZone::Red) {
+            AdaptiveGovernanceState::Hook
+        } else if approval_state.requires_gate() {
+            AdaptiveGovernanceState::Rule
+        } else if matches!(
+            packet_readiness,
+            AuthorityPacketReadiness::Pending
+                | AuthorityPacketReadiness::Incomplete
+                | AuthorityPacketReadiness::Rejected
+        ) {
+            AdaptiveGovernanceState::Catch
+        } else {
+            AdaptiveGovernanceState::Advisory
+        };
+
+        let rollout_profile = if matches!(zone, UsageZone::Red) {
+            AdaptiveRolloutProfile::Strict
+        } else if approval_state.requires_gate() || matches!(risk, RiskClass::SystemicImpact) {
+            AdaptiveRolloutProfile::Governed
+        } else if matches!(risk, RiskClass::BoundedImpact | RiskClass::LowImpact)
+            && matches!(zone, UsageZone::Yellow)
+            || matches!(risk, RiskClass::BoundedImpact)
+        {
+            AdaptiveRolloutProfile::Guided
+        } else {
+            AdaptiveRolloutProfile::Minimal
+        };
+
+        Self {
+            contract_line: ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE.to_string(),
+            governance_state,
+            rollout_profile,
+            state_rationale: None,
+            profile_rationale: None,
         }
     }
 }
@@ -385,9 +508,10 @@ impl std::fmt::Display for PublishProfile {
 #[cfg(test)]
 mod authority_governance_tests {
     use super::{
-        AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE, AuthorityApprovalState,
-        AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
-        AuthorityPacketReadiness, AuthorityRiskClass,
+        ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE, AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE,
+        AdaptiveGovernanceState, AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs,
+        AdaptiveRolloutProfile, AuthorityApprovalState, AuthorityGovernanceV1Envelope,
+        AuthorityGovernanceV1RuntimeInputs, AuthorityPacketReadiness, AuthorityRiskClass,
     };
     use crate::domain::mode::{IntendedPersona, Mode};
     use crate::domain::policy::{AuthorityZone, ChangeClass, RiskClass, UsageZone};
@@ -437,6 +561,23 @@ mod authority_governance_tests {
         assert_eq!(value["risk"], "low-impact");
         assert!(value.get("primary_artifact").is_none());
         assert!(value.get("promotion_refs").is_none());
+    }
+
+    #[test]
+    fn adaptive_governance_envelope_derives_guided_advisory_companion() {
+        let envelope =
+            AdaptiveGovernanceV1Envelope::from_runtime_inputs(AdaptiveGovernanceV1RuntimeInputs {
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                approval_state: AuthorityApprovalState::NotNeeded,
+                packet_readiness: AuthorityPacketReadiness::Reusable,
+            });
+
+        assert_eq!(envelope.contract_line, ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE);
+        assert_eq!(envelope.governance_state, AdaptiveGovernanceState::Advisory);
+        assert_eq!(envelope.rollout_profile, AdaptiveRolloutProfile::Guided);
+        assert!(envelope.state_rationale.is_none());
+        assert!(envelope.profile_rationale.is_none());
     }
 }
 
