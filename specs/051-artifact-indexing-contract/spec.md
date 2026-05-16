@@ -2,7 +2,7 @@
 
 **Feature Branch**: `051-artifact-indexing-contract`  
 **Created**: 2026-05-14  
-**Status**: Draft  
+**Status**: Reviewed  
 **Input**: User description: "Stabilize a Canon-owned artifact indexing contract for Boundline runtime indexing by unifying indexable metadata across published artifacts and evidence, clarifying or removing undefined safety-net packets, and versioning those fields without turning Canon into a runtime registry or orchestrator."
 
 ## Governance Context *(mandatory)*

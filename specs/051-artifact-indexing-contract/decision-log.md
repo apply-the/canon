@@ -25,3 +25,16 @@
 - **D-005**: Feature-local 051 contract briefs are derived and non-normative.
   **Rationale**: they support implementation and review but must not outrank the
   stable Canon contract.
+
+- **D-006**: Canon publish sidecars expose `artifact_indexing.artifact_class`,
+  `artifact_indexing.metadata_carrier`, and `artifact_indexing.discovery_rule`
+  as typed producer output.
+  **Rationale**: downstream consumers need one machine-readable location for the
+  indexing contract instead of reconstructing the mapping from prose or publish
+  destination heuristics.
+
+- **D-007**: Unsupported publication target and update-strategy combinations
+  are rejected during publish rather than coerced into a best-effort artifact
+  class.
+  **Rationale**: the contract should fail loudly on ambiguity instead of
+  silently widening Canon semantics.

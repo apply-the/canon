@@ -263,6 +263,12 @@ fn publish_run_with_profile_promotes_completed_requirements() {
     assert_eq!(metadata["promotion_state"], "auto");
     assert_eq!(metadata["update_strategy"], "managed-blocks");
     assert_eq!(metadata["publication_target_class"], "stable");
+    assert_eq!(metadata["artifact_indexing"]["artifact_class"], "managed-surface");
+    assert_eq!(metadata["artifact_indexing"]["metadata_carrier"], "managed-surface-envelope");
+    assert_eq!(
+        metadata["artifact_indexing"]["discovery_rule"],
+        "Read the project-memory managed-block start marker for producer attribution and use the adjacent <surface>.packet-metadata.json sidecar for the full promoted lineage envelope."
+    );
     assert_eq!(metadata["primary_artifact"], "01-problem-statement.md");
     assert_eq!(metadata["artifact_order"][0], "01-problem-statement.md");
     assert!(metadata["expertise_input"].is_null());
@@ -299,6 +305,9 @@ fn publish_run_with_profile_uses_append_only_index_for_review() {
         serde_json::from_slice(&fs::read(&metadata_path).expect("read")).expect("parse");
     assert_eq!(metadata["promotion_state"], "evidence-only");
     assert_eq!(metadata["update_strategy"], "append-only-index");
+    assert_eq!(metadata["publication_target_class"], "evidence");
+    assert_eq!(metadata["artifact_indexing"]["artifact_class"], "evidence-bundle");
+    assert_eq!(metadata["artifact_indexing"]["metadata_carrier"], "packet-metadata-sidecar");
     assert_eq!(metadata["primary_artifact"], "01-review-brief.md");
 }
 
@@ -336,6 +345,9 @@ fn publish_run_with_profile_uses_proposal_files_for_incident() {
         serde_json::from_slice(&fs::read(&metadata_path).expect("read")).expect("parse");
     assert_eq!(metadata["promotion_state"], "pending-index");
     assert_eq!(metadata["update_strategy"], "proposal-files");
+    assert_eq!(metadata["publication_target_class"], "proposal");
+    assert_eq!(metadata["artifact_indexing"]["artifact_class"], "proposal-artifact");
+    assert_eq!(metadata["artifact_indexing"]["metadata_carrier"], "packet-metadata-sidecar");
     assert_eq!(metadata["primary_artifact"], "01-incident-frame.md");
 }
 
@@ -434,6 +446,7 @@ fn publish_run_with_profile_respects_destination_override() {
             .expect("parse metadata");
     assert_eq!(metadata["destination"], "custom/dest");
     assert_eq!(metadata["update_strategy"], "managed-blocks");
+    assert_eq!(metadata["artifact_indexing"]["artifact_class"], "managed-surface");
 }
 
 #[test]

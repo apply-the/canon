@@ -78,6 +78,44 @@ Canon publish policy or turning Canon into the delivery orchestrator.
 - `safety-net packets` is not a Canon V1 artifact class and MUST NOT be used as
   consumer-facing contract vocabulary.
 
+## Artifact Indexing Sidecar Fields
+
+Canon V1 sidecars for supported published surfaces expose a typed
+`artifact_indexing` payload with these required fields:
+
+- `artifact_class`
+- `metadata_carrier`
+- `discovery_rule`
+
+Example for a managed surface:
+
+```json
+{
+  "publication_target_class": "stable",
+  "artifact_indexing": {
+    "artifact_class": "managed-surface",
+    "metadata_carrier": "managed-surface-envelope",
+    "discovery_rule": "Read the project-memory managed-block start marker for producer attribution and use the adjacent <surface>.packet-metadata.json sidecar for the full promoted lineage envelope."
+  }
+}
+```
+
+Example for proposal, evidence, or index publication:
+
+```json
+{
+  "publication_target_class": "proposal",
+  "artifact_indexing": {
+    "artifact_class": "proposal-artifact",
+    "metadata_carrier": "packet-metadata-sidecar",
+    "discovery_rule": "Read packet-metadata.json for packet roots or <surface>.packet-metadata.json adjacent to the published surface to discover the canonical indexing metadata."
+  }
+}
+```
+
+Canonical producers MUST reject unsupported target-class and update-strategy
+combinations instead of inventing a best-effort artifact class.
+
 ## Managed Block Format
 
 ```md

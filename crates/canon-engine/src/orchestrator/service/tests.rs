@@ -592,6 +592,41 @@ fn engine_service_helpers_map_store_summaries_and_pr_review_inputs() {
 }
 
 #[test]
+fn engine_service_public_wrappers_cover_runtime_and_skill_entrypoints() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    // Exercise the public wrapper methods that forward to the workspace store.
+    assert_eq!(service.repo_root(), workspace.path());
+
+    let init = service.init(Some(AiTool::Copilot)).expect("init runtime state");
+    assert_eq!(init.repo_root, workspace.path().to_string_lossy());
+    assert!(std::path::Path::new(&init.canon_root).exists());
+
+    let installed = service.skills_install(AiTool::Copilot).expect("install skills");
+    assert!(std::path::Path::new(&installed.skills_dir).exists());
+
+    let listed = service.skills_list();
+    assert!(!listed.is_empty());
+    assert!(listed.iter().all(|entry| !entry.name.trim().is_empty()));
+
+    let updated = service.skills_update(AiTool::Copilot).expect("update skills");
+    assert_eq!(updated.skills_dir, installed.skills_dir);
+
+    assert_eq!(authority_approval_state(&[]), AuthorityApprovalState::NotNeeded);
+    assert_eq!(
+        authority_approval_state(&[ApprovalRecord::for_gate(
+            GateKind::Risk,
+            "maintainer".to_string(),
+            ApprovalDecision::Approve,
+            "approved".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )]),
+        AuthorityApprovalState::Granted
+    );
+}
+
+#[test]
 fn engine_service_resolves_relative_and_absolute_input_paths() {
     let service = EngineService::new("/tmp/canon-root");
 

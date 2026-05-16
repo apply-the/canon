@@ -6,7 +6,8 @@ use crate::domain::execution::EvidenceDisposition;
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
 use crate::domain::publish_profile::{
-    AdaptiveGovernanceV1Envelope, AuthorityGovernanceV1Envelope, ExpertiseInputMetadata,
+    AdaptiveGovernanceV1Envelope, ArtifactIndexingMetadata, AuthorityGovernanceV1Envelope,
+    ExpertiseInputMetadata, PublicationTargetClass,
 };
 use crate::domain::verification::VerificationLayer;
 
@@ -134,11 +135,27 @@ pub struct RuntimePacketMetadata {
     /// Governed expertise input metadata, if any.
     pub expertise_input: Option<ExpertiseInputMetadata>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Stable publication target class for the published surface, if known.
+    pub publication_target_class: Option<PublicationTargetClass>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Typed artifact-indexing metadata exposed to downstream consumers.
+    pub artifact_indexing: Option<ArtifactIndexingMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Canon-owned authority-governance metadata, if any.
     pub authority_governance: Option<AuthorityGovernanceV1Envelope>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Canon-owned adaptive-governance companion metadata, if any.
     pub adaptive_governance: Option<AdaptiveGovernanceV1Envelope>,
+}
+
+impl RuntimePacketMetadata {
+    /// Validates the optional artifact-indexing payload when Canon emits it.
+    pub fn validate_artifact_indexing(&self) -> Result<(), String> {
+        if let Some(indexing) = self.artifact_indexing.as_ref() {
+            indexing.validate()?;
+        }
+        Ok(())
+    }
 }
 
 /// The governance contract for an artifact packet: the required artifacts and verification layers.
@@ -254,8 +271,9 @@ mod tests {
     use crate::domain::publish_profile::{
         ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE, AdaptiveGovernanceState,
         AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs, AdaptiveRolloutProfile,
-        AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
-        AuthorityPacketReadiness,
+        ArtifactIndexingMetadata, ArtifactMetadataCarrier, AuthorityApprovalState,
+        AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
+        AuthorityPacketReadiness, IndexableArtifactClass, PublicationTargetClass, UpdateStrategy,
     };
 
     fn sample_record(relative_path: &str) -> ArtifactRecord {
@@ -343,6 +361,8 @@ mod tests {
             publish_order: None,
             legacy_aliases: None,
             expertise_input: None,
+            publication_target_class: None,
+            artifact_indexing: None,
             authority_governance: Some(AuthorityGovernanceV1Envelope::from_runtime_inputs(
                 AuthorityGovernanceV1RuntimeInputs {
                     mode: Mode::Architecture,
@@ -381,6 +401,51 @@ mod tests {
             round_trip.adaptive_governance.as_ref().map(|value| value.rollout_profile),
             Some(AdaptiveRolloutProfile::Governed)
         );
+    }
+
+    #[test]
+    fn runtime_packet_metadata_accepts_aligned_artifact_indexing_metadata() {
+        let metadata = RuntimePacketMetadata {
+            primary_artifact: "01-architecture-summary.md".to_string(),
+            artifact_order: vec!["01-architecture-summary.md".to_string()],
+            publish_order: None,
+            legacy_aliases: None,
+            expertise_input: None,
+            publication_target_class: Some(PublicationTargetClass::Stable),
+            artifact_indexing: Some(
+                ArtifactIndexingMetadata::for_publication(
+                    PublicationTargetClass::Stable,
+                    UpdateStrategy::ManagedBlocks,
+                )
+                .unwrap(),
+            ),
+            authority_governance: None,
+            adaptive_governance: None,
+        };
+
+        assert!(metadata.validate_artifact_indexing().is_ok());
+    }
+
+    #[test]
+    fn runtime_packet_metadata_rejects_misaligned_artifact_indexing_metadata() {
+        let metadata = RuntimePacketMetadata {
+            primary_artifact: "01-architecture-summary.md".to_string(),
+            artifact_order: vec!["01-architecture-summary.md".to_string()],
+            publish_order: None,
+            legacy_aliases: None,
+            expertise_input: None,
+            publication_target_class: Some(PublicationTargetClass::Stable),
+            artifact_indexing: Some(ArtifactIndexingMetadata {
+                artifact_class: IndexableArtifactClass::ManagedSurface,
+                metadata_carrier: ArtifactMetadataCarrier::PacketMetadataSidecar,
+                discovery_rule: "incorrect discovery rule".to_string(),
+            }),
+            authority_governance: None,
+            adaptive_governance: None,
+        };
+
+        let error = metadata.validate_artifact_indexing().unwrap_err();
+        assert!(error.contains("requires metadata carrier"));
     }
 
     #[test]

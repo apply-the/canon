@@ -16,9 +16,9 @@ without moving runtime indexing or orchestration into Canon. The first slice
 extends the existing normative contract at
 `docs/integration/project-memory-promotion-contract.md` rather than creating a
 second stable authority surface, stays inside existing publish-profile,
-artifact, and publish projection surfaces, bumps Canon from `0.50.0` to
-`0.51.0`, and closes with docs review, targeted tests, clippy, formatting, and
-coverage on modified files.
+artifact, and publish projection surfaces, bumps Canon to `0.55.0`, and closes
+with docs review, targeted tests, clippy, formatting, and coverage on modified
+files.
 
 ## Governance Context
 
