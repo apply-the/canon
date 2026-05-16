@@ -50,7 +50,6 @@ descending order:
 | `service/clarity.rs` | 2235 |
 | `commands/governance.rs` | 2039 |
 | `persistence/store.rs` | 1584 |
-| `cli/output.rs` | 1320 |
 
 Each split should follow the same Rust 2024 named-file-plus-sibling-directory
 pattern used in the completed passes: no `mod.rs`, child modules use

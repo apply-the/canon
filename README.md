@@ -5,7 +5,10 @@
 [![CI](https://github.com/apply-the/canon/actions/workflows/ci.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/ci.yml)
 [![Lint](https://github.com/apply-the/canon/actions/workflows/lint.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/lint.yml)
 [![Vulnerabilities](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml)
-[![Quality](https://github.com/apply-the/canon/actions/workflows/quality.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/quality.yml)
+[![Coverage](https://codecov.io/gh/apply-the/canon/branch/main/graph/badge.svg)](https://codecov.io/gh/apply-the/canon)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=apply-the_boundline&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=apply-the_boundline)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_boundline&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_boundline)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_boundline&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_boundline)
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
