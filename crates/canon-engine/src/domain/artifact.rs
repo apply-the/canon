@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::domain::execution::EvidenceDisposition;
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
-use crate::domain::publish_profile::ExpertiseInputMetadata;
+use crate::domain::publish_profile::{AuthorityGovernanceV1Envelope, ExpertiseInputMetadata};
 use crate::domain::verification::VerificationLayer;
 
 /// Filename of the view manifest sidecar emitted alongside every packet.
@@ -131,6 +131,9 @@ pub struct RuntimePacketMetadata {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Governed expertise input metadata, if any.
     pub expertise_input: Option<ExpertiseInputMetadata>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Canon-owned authority-governance metadata, if any.
+    pub authority_governance: Option<AuthorityGovernanceV1Envelope>,
 }
 
 /// The governance contract for an artifact packet: the required artifacts and verification layers.
@@ -239,9 +242,14 @@ pub struct ArtifactProvenance {
 mod tests {
     use super::{
         ArtifactFormat, ArtifactRecord, ArtifactRequirement, RUNTIME_PACKET_METADATA_FILE_NAME,
-        VIEW_MANIFEST_FILE_NAME, is_packet_sidecar,
+        RuntimePacketMetadata, VIEW_MANIFEST_FILE_NAME, is_packet_sidecar,
     };
     use crate::domain::mode::Mode;
+    use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::publish_profile::{
+        AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
+        AuthorityPacketReadiness,
+    };
 
     fn sample_record(relative_path: &str) -> ArtifactRecord {
         ArtifactRecord {
@@ -318,6 +326,34 @@ mod tests {
             .validate_relative_path("run-123", Mode::Requirements)
             .expect_err("empty file_name should fail");
         assert!(error.contains("must not be empty"));
+    }
+
+    #[test]
+    fn runtime_packet_metadata_round_trips_authority_governance() {
+        let metadata = RuntimePacketMetadata {
+            primary_artifact: "01-architecture-summary.md".to_string(),
+            artifact_order: vec!["01-architecture-summary.md".to_string()],
+            publish_order: None,
+            legacy_aliases: None,
+            expertise_input: None,
+            authority_governance: Some(AuthorityGovernanceV1Envelope::from_runtime_inputs(
+                AuthorityGovernanceV1RuntimeInputs {
+                    mode: Mode::Architecture,
+                    risk: RiskClass::SystemicImpact,
+                    zone: UsageZone::Yellow,
+                    approval_state: AuthorityApprovalState::Requested,
+                    packet_readiness: AuthorityPacketReadiness::Incomplete,
+                    primary_artifact: Some("01-architecture-summary.md".to_string()),
+                    artifact_order: vec!["01-architecture-summary.md".to_string()],
+                    promotion_refs: Vec::new(),
+                },
+            )),
+        };
+
+        let round_trip: RuntimePacketMetadata =
+            serde_json::from_value(serde_json::to_value(&metadata).unwrap()).unwrap();
+
+        assert_eq!(round_trip, metadata);
     }
 
     #[test]

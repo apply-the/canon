@@ -34,6 +34,10 @@ use crate::domain::execution::{
 use crate::domain::gate::{GateKind, GateStatus};
 use crate::domain::mode::{Mode, all_mode_profiles};
 use crate::domain::policy::{RiskClass, UsageZone};
+use crate::domain::publish_profile::{
+    AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
+    AuthorityPacketReadiness,
+};
 use crate::domain::run::{
     ClassificationProvenance, ImplementationExecutionContext, InlineInput, InputFingerprint,
     InputSourceKind, RefactorExecutionContext, RunContext, RunIdentity, RunState, SystemContext,
@@ -887,7 +891,8 @@ pub(super) fn packet_body_artifact_order(
 /// Build the machine-facing packet metadata sidecar for runtime-authored modes.
 pub(super) fn build_runtime_packet_metadata(
     run_id: &str,
-    mode: Mode,
+    request: &RunRequest,
+    approvals: &[ApprovalRecord],
     artifact_requirements: &[ArtifactRequirement],
 ) -> Result<String, EngineError> {
     let artifact_order = packet_body_artifact_order(artifact_requirements);
@@ -900,6 +905,18 @@ pub(super) fn build_runtime_packet_metadata(
                 .then(|| (slug.to_string(), requirement.file_name.clone()))
         })
         .collect::<std::collections::BTreeMap<_, _>>();
+    let authority_governance = Some(AuthorityGovernanceV1Envelope::from_runtime_inputs(
+        AuthorityGovernanceV1RuntimeInputs {
+            mode: request.mode,
+            risk: request.risk,
+            zone: request.zone,
+            approval_state: authority_approval_state(approvals),
+            packet_readiness: AuthorityPacketReadiness::Reusable,
+            primary_artifact: (!primary_artifact.is_empty()).then_some(primary_artifact.clone()),
+            artifact_order: artifact_order.clone(),
+            promotion_refs: Vec::new(),
+        },
+    ));
 
     #[derive(Serialize)]
     struct RuntimePacketMetadataEnvelope<'a> {
@@ -911,19 +928,28 @@ pub(super) fn build_runtime_packet_metadata(
 
     let payload = RuntimePacketMetadataEnvelope {
         run_id,
-        mode: mode.as_str(),
+        mode: request.mode.as_str(),
         metadata: RuntimePacketMetadata {
             primary_artifact,
             artifact_order,
             publish_order: None,
             legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
             expertise_input: None,
+            authority_governance,
         },
     };
 
     serde_json::to_string_pretty(&payload).map_err(|error| {
         EngineError::Validation(format!("packet metadata serialization failed: {error}"))
     })
+}
+
+fn authority_approval_state(approvals: &[ApprovalRecord]) -> AuthorityApprovalState {
+    match approvals.last().map(|record| record.decision) {
+        Some(ApprovalDecision::Approve) => AuthorityApprovalState::Granted,
+        Some(ApprovalDecision::Reject) => AuthorityApprovalState::Rejected,
+        None => AuthorityApprovalState::NotNeeded,
+    }
 }
 
 fn collect_files_recursively(directory: &Path, files: &mut Vec<PathBuf>) -> std::io::Result<()> {

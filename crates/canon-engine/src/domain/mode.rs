@@ -218,6 +218,171 @@ impl std::str::FromStr for Mode {
     }
 }
 
+/// Stable intended authoring posture published through `authority-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum IntendedPersona {
+    ProductStrategist,
+    SystemArchitect,
+    DeliveryEngineer,
+    VerificationLead,
+    OperationsGovernor,
+    DomainSteward,
+}
+
+impl IntendedPersona {
+    /// Returns the kebab-case string representation of this persona.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::ProductStrategist => "product-strategist",
+            Self::SystemArchitect => "system-architect",
+            Self::DeliveryEngineer => "delivery-engineer",
+            Self::VerificationLead => "verification-lead",
+            Self::OperationsGovernor => "operations-governor",
+            Self::DomainSteward => "domain-steward",
+        }
+    }
+}
+
+impl fmt::Display for IntendedPersona {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Canon-owned intended persona metadata for a governed mode.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IntendedPersonaProfile {
+    pub intended_persona: IntendedPersona,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub persona_anti_behaviors: Vec<String>,
+}
+
+/// Advisory-only downstream role hint kind exported by Canon.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum StageRoleHintKind {
+    ReviewerCapability,
+    ReviewPosture,
+    HumanGate,
+}
+
+/// One advisory-only downstream hint exported by Canon.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StageRoleHint {
+    pub hint_kind: StageRoleHintKind,
+    pub value: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rationale: Option<String>,
+}
+
+impl Mode {
+    /// Returns the Canon-owned intended persona profile for this mode.
+    pub fn intended_persona_profile(self) -> IntendedPersonaProfile {
+        match self {
+            Self::Requirements | Self::Discovery | Self::Backlog => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::ProductStrategist,
+                persona_anti_behaviors: vec![
+                    "premature implementation".to_string(),
+                    "unbounded platform expansion".to_string(),
+                ],
+            },
+            Self::SystemShaping | Self::Architecture | Self::SystemAssessment => {
+                IntendedPersonaProfile {
+                    intended_persona: IntendedPersona::SystemArchitect,
+                    persona_anti_behaviors: vec![
+                        "provider-specific routing directives".to_string(),
+                        "unbounded implementation detail".to_string(),
+                    ],
+                }
+            }
+            Self::Change | Self::Implementation | Self::Refactor => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::DeliveryEngineer,
+                persona_anti_behaviors: vec![
+                    "scope drift".to_string(),
+                    "unchecked broad mutation".to_string(),
+                ],
+            },
+            Self::Verification | Self::Review | Self::PrReview => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::VerificationLead,
+                persona_anti_behaviors: vec![
+                    "rubber-stamp approval".to_string(),
+                    "single-path validation".to_string(),
+                ],
+            },
+            Self::Incident
+            | Self::SecurityAssessment
+            | Self::Migration
+            | Self::SupplyChainAnalysis => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::OperationsGovernor,
+                persona_anti_behaviors: vec![
+                    "silent risk acceptance".to_string(),
+                    "unreviewed operational change".to_string(),
+                ],
+            },
+            Self::DomainLanguage | Self::DomainModel => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::DomainSteward,
+                persona_anti_behaviors: vec![
+                    "terminology churn".to_string(),
+                    "ambiguous domain boundaries".to_string(),
+                ],
+            },
+        }
+    }
+
+    /// Returns advisory-only downstream role hints for this mode.
+    pub fn stage_role_hints(self) -> Vec<StageRoleHint> {
+        match self {
+            Self::Verification | Self::Review | Self::PrReview => vec![
+                StageRoleHint {
+                    hint_kind: StageRoleHintKind::ReviewerCapability,
+                    value: "independent-review".to_string(),
+                    rationale: Some(
+                        "Review-heavy modes benefit from an explicit independent validation path"
+                            .to_string(),
+                    ),
+                },
+                StageRoleHint {
+                    hint_kind: StageRoleHintKind::ReviewPosture,
+                    value: "evidence-challenge".to_string(),
+                    rationale: Some(
+                        "Consumers may want a reviewer posture that challenges evidence completeness"
+                            .to_string(),
+                    ),
+                },
+            ],
+            Self::Incident | Self::SecurityAssessment | Self::Migration => vec![StageRoleHint {
+                hint_kind: StageRoleHintKind::HumanGate,
+                value: "human-approval".to_string(),
+                rationale: Some(
+                    "Operationally sensitive modes often require an explicit downstream human gate"
+                        .to_string(),
+                ),
+            }],
+            _ => Vec::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod authority_persona_tests {
+    use super::{IntendedPersona, Mode, StageRoleHintKind};
+
+    #[test]
+    fn architecture_modes_publish_system_architect_persona() {
+        let profile = Mode::Architecture.intended_persona_profile();
+        assert_eq!(profile.intended_persona, IntendedPersona::SystemArchitect);
+        assert!(!profile.persona_anti_behaviors.is_empty());
+    }
+
+    #[test]
+    fn review_heavy_modes_publish_advisory_role_hints() {
+        let hints = Mode::PrReview.stage_role_hints();
+        assert_eq!(hints.len(), 2);
+        assert_eq!(hints[0].hint_kind, StageRoleHintKind::ReviewerCapability);
+    }
+}
+
 /// Returns the full set of static [`ModeProfile`] records, one for each [`Mode`].
 ///
 /// This is the authoritative source of governance contracts used by the

@@ -71,6 +71,92 @@ impl std::str::FromStr for UsageZone {
     }
 }
 
+/// Cross-repo authority posture exported through `authority-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+pub enum AuthorityZone {
+    /// Full delivery posture is permitted without an additional human gate.
+    Green,
+    /// Delivery posture is constrained and downstream systems should elevate review.
+    Yellow,
+    /// Delivery posture is recommendation-only.
+    Red,
+    /// Delivery posture requires an unresolved human gate before progressing.
+    Restricted,
+}
+
+impl AuthorityZone {
+    /// Returns the lowercase string representation of this authority zone.
+    pub fn as_str(self) -> &'static str {
+        self.into()
+    }
+}
+
+impl std::str::FromStr for AuthorityZone {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "green" | "Green" => Ok(Self::Green),
+            "yellow" | "Yellow" => Ok(Self::Yellow),
+            "red" | "Red" => Ok(Self::Red),
+            "restricted" | "Restricted" => Ok(Self::Restricted),
+            other => Err(format!("unsupported authority zone: {other}")),
+        }
+    }
+}
+
+/// Cross-repo change-impact classification exported through `authority-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Display, IntoStaticStr)]
+#[serde(rename_all = "kebab-case")]
+#[strum(serialize_all = "kebab-case")]
+pub enum ChangeClass {
+    /// Narrow, self-contained change.
+    LowImpact,
+    /// Bounded but meaningful delivery change.
+    BoundedImpact,
+    /// Cross-cutting change with systemic risk.
+    SystemicImpact,
+    /// Operationally critical change that requires the highest delivery posture.
+    CriticalOperations,
+}
+
+impl ChangeClass {
+    /// Returns the kebab-case string representation of this change class.
+    pub fn as_str(self) -> &'static str {
+        self.into()
+    }
+
+    /// Derives a first-slice change class from existing Canon risk and mode vocabulary.
+    pub fn from_risk_and_mode(risk: RiskClass, mode: crate::domain::mode::Mode) -> Self {
+        match mode {
+            crate::domain::mode::Mode::Incident
+            | crate::domain::mode::Mode::Migration
+            | crate::domain::mode::Mode::SecurityAssessment => Self::CriticalOperations,
+            _ => match risk {
+                RiskClass::LowImpact => Self::LowImpact,
+                RiskClass::BoundedImpact => Self::BoundedImpact,
+                RiskClass::SystemicImpact => Self::SystemicImpact,
+            },
+        }
+    }
+}
+
+impl std::str::FromStr for ChangeClass {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "low-impact" | "LowImpact" => Ok(Self::LowImpact),
+            "bounded-impact" | "BoundedImpact" => Ok(Self::BoundedImpact),
+            "systemic-impact" | "SystemicImpact" => Ok(Self::SystemicImpact),
+            "critical-operations" | "CriticalOperations" => Ok(Self::CriticalOperations),
+            other => Err(format!("unsupported change class: {other}")),
+        }
+    }
+}
+
 /// Policy configuration for a specific risk class.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -323,6 +409,47 @@ impl PolicySet {
         {
             self.block_mutation_for_red_or_systemic = block_mutation_for_red_or_systemic;
         }
+    }
+}
+
+#[cfg(test)]
+mod authority_contract_tests {
+    use std::str::FromStr;
+
+    use super::{AuthorityZone, ChangeClass, RiskClass, UsageZone};
+    use crate::domain::mode::Mode;
+
+    #[test]
+    fn authority_zone_round_trips_supported_values() {
+        assert_eq!(AuthorityZone::Green.as_str(), "green");
+        assert_eq!(AuthorityZone::Restricted.as_str(), "restricted");
+        assert_eq!(AuthorityZone::from_str("yellow").unwrap(), AuthorityZone::Yellow);
+        assert_eq!(AuthorityZone::from_str("Restricted").unwrap(), AuthorityZone::Restricted);
+    }
+
+    #[test]
+    fn change_class_derives_operational_modes_to_critical_operations() {
+        assert_eq!(
+            ChangeClass::from_risk_and_mode(RiskClass::SystemicImpact, Mode::Incident),
+            ChangeClass::CriticalOperations
+        );
+        assert_eq!(
+            ChangeClass::from_risk_and_mode(RiskClass::BoundedImpact, Mode::Migration),
+            ChangeClass::CriticalOperations
+        );
+    }
+
+    #[test]
+    fn change_class_preserves_risk_for_non_operational_modes() {
+        assert_eq!(
+            ChangeClass::from_risk_and_mode(RiskClass::LowImpact, Mode::Requirements),
+            ChangeClass::LowImpact
+        );
+        assert_eq!(
+            ChangeClass::from_risk_and_mode(RiskClass::SystemicImpact, Mode::Architecture),
+            ChangeClass::SystemicImpact
+        );
+        assert_eq!(UsageZone::from_str("red").unwrap(), UsageZone::Red);
     }
 }
 

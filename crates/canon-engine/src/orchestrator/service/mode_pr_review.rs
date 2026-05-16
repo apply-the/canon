@@ -169,7 +169,8 @@ impl EngineService {
 
         let packet_metadata_contents = build_runtime_packet_metadata(
             &run_id,
-            request.mode,
+            &request,
+            &[],
             &artifact_contract.artifact_requirements,
         )?;
 
