@@ -5,7 +5,7 @@
 [![CI](https://github.com/apply-the/canon/actions/workflows/ci.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/ci.yml)
 [![Lint](https://github.com/apply-the/canon/actions/workflows/lint.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/lint.yml)
 [![Vulnerabilities](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml)
-[![Coverage](https://codecov.io/gh/apply-the/canon/graph/badge.svg?token=JZ4IPF51DH)](https://codecov.io/gh/apply-the/canon)
+[![Quality](https://github.com/apply-the/canon/actions/workflows/quality.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/quality.yml)
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
@@ -57,6 +57,22 @@ stable field expectations, `authority-governance-v1` packet metadata, and
 boundary rules for external orchestrators. See
 `docs/guides/governed-personas-and-authority-zones.md` for the first-slice
 authority-zone vocabulary and persona guidance.
+
+## Adaptive Governance Semantics
+
+Canon also defines the S4 semantic boundary used by downstream runtimes such as
+Boundline.
+
+- `authority-governance-v1` remains the required posture baseline
+- `adaptive-governance-v1` is an optional additive companion
+- Canon owns semantic posture, approval, readiness, lineage, project memory,
+  and promotion meaning
+- downstream runtimes own confidence, trust, degradation, escalation,
+  councils, and stop behavior
+
+Use `docs/governance-semantics-and-authority-zones.md` for the semantic
+vocabulary and authority-boundary rules, and
+`docs/integration/governance-adapter.md` for the machine-facing projection.
 
 ## Assistant Plugin Packages
 
@@ -178,6 +194,11 @@ Inside the repository you want to govern:
 ```bash
 canon init
 ```
+
+Canon resolves the active repository automatically: it prefers the nearest
+initialized `.canon/` ancestor, then the nearest `.git/` root, and only then
+falls back to the current working directory. You can run `canon` from a subdirectory
+without re-specifying the repository root.
 
 If you want Canon to materialize repo-local AI skills as well:
 

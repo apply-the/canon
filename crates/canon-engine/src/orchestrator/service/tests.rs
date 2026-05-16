@@ -380,6 +380,9 @@ fn build_runtime_packet_metadata_emits_order_and_legacy_aliases() {
     assert_eq!(metadata["authority_governance"]["contract_line"], "authority-governance-v1");
     assert_eq!(metadata["authority_governance"]["authority_zone"], "green");
     assert_eq!(metadata["authority_governance"]["risk"], "low-impact");
+    assert_eq!(metadata["adaptive_governance"]["contract_line"], "adaptive-governance-v1");
+    assert_eq!(metadata["adaptive_governance"]["governance_state"], "advisory");
+    assert_eq!(metadata["adaptive_governance"]["rollout_profile"], "minimal");
 }
 
 #[test]

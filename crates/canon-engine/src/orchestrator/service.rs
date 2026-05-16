@@ -35,8 +35,8 @@ use crate::domain::gate::{GateKind, GateStatus};
 use crate::domain::mode::{Mode, all_mode_profiles};
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::publish_profile::{
-    AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
-    AuthorityPacketReadiness,
+    AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs, AuthorityApprovalState,
+    AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs, AuthorityPacketReadiness,
 };
 use crate::domain::run::{
     ClassificationProvenance, ImplementationExecutionContext, InlineInput, InputFingerprint,
@@ -917,6 +917,14 @@ pub(super) fn build_runtime_packet_metadata(
             promotion_refs: Vec::new(),
         },
     ));
+    let adaptive_governance = Some(AdaptiveGovernanceV1Envelope::from_runtime_inputs(
+        AdaptiveGovernanceV1RuntimeInputs {
+            risk: request.risk,
+            zone: request.zone,
+            approval_state: authority_approval_state(approvals),
+            packet_readiness: AuthorityPacketReadiness::Reusable,
+        },
+    ));
 
     #[derive(Serialize)]
     struct RuntimePacketMetadataEnvelope<'a> {
@@ -936,6 +944,7 @@ pub(super) fn build_runtime_packet_metadata(
             legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
             expertise_input: None,
             authority_governance,
+            adaptive_governance,
         },
     };
 

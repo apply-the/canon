@@ -219,11 +219,8 @@ fn representative_mode_input(mode: &str) -> &'static str {
     }
 }
 
-fn representative_mode_workspace(mode: &str) -> &'static str {
-    match mode {
-        "review" => concat!(env!("CARGO_MANIFEST_DIR"), "/docs/templates"),
-        _ => env!("CARGO_MANIFEST_DIR"),
-    }
+fn representative_mode_workspace(_mode: &str) -> &'static str {
+    env!("CARGO_MANIFEST_DIR")
 }
 
 #[test]

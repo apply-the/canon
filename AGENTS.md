@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-15
+Auto-generated from all feature plans. Last updated: 2026-05-16
 
 ## Governing Constitution
 
@@ -74,6 +74,7 @@ Auto-generated from all feature plans. Last updated: 2026-05-15
 - local filesystem under `.canon/` plus repo-visible docs under (050-project-memory-control)
 - Rust 1.95.0, edition 2024 + Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice (054-authority-zone-contract)
 - Canon packet metadata and governed artifacts under `.canon/`, integration docs under `docs/integration/`, repo-facing guides under `docs/`, and feature-local artifacts under `specs/054-authority-zone-contract/` (054-authority-zone-contract)
+- Canon packet metadata and governed artifacts under `.canon/`, integration docs under `docs/integration/`, repo-facing guides under `docs/`, and feature-local planning artifacts under `specs/055-adaptive-governance/` (055-adaptive-governance)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -132,9 +133,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 055-adaptive-governance: Added Rust 1.95.0, edition 2024 + Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice
 - 054-authority-zone-contract: Added Rust 1.95.0, edition 2024 + Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice
 - 050-project-memory-control: Added Rust 1.95.0, Edition 2024 + `clap`, `serde`, `serde_json`, `thiserror`,
-- 049-logical-packet-ordering: Added Rust 1.95.0, Edition 2024 + existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

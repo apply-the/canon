@@ -6,6 +6,7 @@ use strum_macros::Display;
 
 use crate::commands;
 use crate::error::CliResult;
+use crate::workspace;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Display)]
 #[strum(serialize_all = "lowercase")]
@@ -336,7 +337,10 @@ fn run_with(cli: Cli, repo_root: PathBuf) -> CliResult<i32> {
 pub fn run() -> CliResult<i32> {
     tracing_subscriber::fmt::try_init().ok();
 
-    run_with(Cli::parse(), std::env::current_dir()?)
+    let repo_root =
+        workspace::resolve_repo_root().map_err(|error| std::io::Error::other(error.to_string()))?;
+
+    run_with(Cli::parse(), repo_root)
 }
 
 #[cfg(test)]
