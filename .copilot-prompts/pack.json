@@ -1,6 +1,6 @@
 {
   "name": "canon",
-  "displayName": "Canon Assistant Support for Claude Code",
+  "displayName": "Canon Assistant Support for GitHub Copilot",
   "version": "0.54.0",
   "description": "Canon provides semantic governance for AI-assisted engineering work: structured packets, governed evidence, approvals, lineage, project memory, and reusable delivery knowledge.",
   "author": {
@@ -59,8 +59,8 @@
     "embeddedSkills": "defaults/embedded-skills",
     "commands": "assistant/commands/governed-methods.json",
     "starterPrompts": "assistant/prompts/starter-prompts.md",
+    "commandPromptPack": "assistant/prompts/copilot-command-pack.md",
     "icon": "assistant/assets/canon-plugin-icon.svg",
     "logo": "assistant/assets/canon-plugin-logo.svg"
-  },
-  "commands": ".claude-plugin/commands.json"
+  }
 }

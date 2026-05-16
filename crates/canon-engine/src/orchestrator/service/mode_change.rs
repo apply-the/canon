@@ -32,6 +32,89 @@ fn render_change_like_artifact(
     }
 }
 
+#[derive(Debug)]
+struct ChangeModeRequestSummary {
+    context_request_summary: &'static str,
+    context_attempt_summary: &'static str,
+    generation_request_summary: &'static str,
+    validation_request_summary: &'static str,
+    declared_execution_scope: Vec<String>,
+    mutation_summary: String,
+}
+
+fn change_mode_request_summaries(
+    mode: Mode,
+    brief_summary: &str,
+) -> Result<ChangeModeRequestSummary, EngineError> {
+    match mode {
+        Mode::Change => {
+            let declared_change_surface = extract_change_surface_entries(brief_summary);
+            let mutation_summary = if declared_change_surface.is_empty() {
+                "propose bounded legacy transformation without mutating the workspace".to_string()
+            } else {
+                format!(
+                    "propose bounded legacy transformation within declared change surface: {}",
+                    declared_change_surface.join(", ")
+                )
+            };
+            Ok(ChangeModeRequestSummary {
+                context_request_summary: "capture change brief and repository context",
+                context_attempt_summary: "Captured change brief and bounded repository context.",
+                generation_request_summary: "generate bounded change framing",
+                validation_request_summary: "validate change framing against repository context",
+                declared_execution_scope: declared_change_surface,
+                mutation_summary,
+            })
+        }
+        Mode::Implementation => {
+            let declared_mutation_bounds = extract_execution_scope_entries(
+                brief_summary,
+                &["allowed paths", "mutation bounds"],
+            );
+            let mutation_summary = if declared_mutation_bounds.is_empty() {
+                "propose bounded implementation guidance without mutating the workspace".to_string()
+            } else {
+                format!(
+                    "propose bounded implementation guidance within declared mutation bounds: {}",
+                    declared_mutation_bounds.join(", ")
+                )
+            };
+            Ok(ChangeModeRequestSummary {
+                context_request_summary: "capture implementation brief and bounded repository context",
+                context_attempt_summary: "Captured implementation brief and bounded repository context.",
+                generation_request_summary: "generate bounded implementation packet",
+                validation_request_summary: "validate implementation safety-net evidence against repository context",
+                declared_execution_scope: declared_mutation_bounds,
+                mutation_summary,
+            })
+        }
+        Mode::Refactor => {
+            let declared_refactor_scope = extract_execution_scope_entries(
+                brief_summary,
+                &["allowed paths", "refactor scope"],
+            );
+            let mutation_summary = if declared_refactor_scope.is_empty() {
+                "propose bounded structural refactor guidance without mutating the workspace"
+                    .to_string()
+            } else {
+                format!(
+                    "propose bounded structural refactor guidance within declared refactor scope: {}",
+                    declared_refactor_scope.join(", ")
+                )
+            };
+            Ok(ChangeModeRequestSummary {
+                context_request_summary: "capture refactor brief and bounded repository context",
+                context_attempt_summary: "Captured refactor brief and bounded repository context.",
+                generation_request_summary: "generate bounded refactor packet",
+                validation_request_summary: "validate refactor preservation evidence against repository context",
+                declared_execution_scope: declared_refactor_scope,
+                mutation_summary,
+            })
+        }
+        other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
+    }
+}
+
 impl EngineService {
     pub(super) fn run_change(
         &self,
@@ -84,82 +167,7 @@ impl EngineService {
         let input_scope = request.merged_input_sources();
         let evidence_path = format!("runs/{run_id}/evidence.toml");
 
-        let (
-            context_request_summary,
-            context_attempt_summary,
-            generation_request_summary,
-            validation_request_summary,
-            declared_execution_scope,
-            mutation_summary,
-        ) = match request.mode {
-            Mode::Change => {
-                let declared_change_surface = extract_change_surface_entries(&brief_summary);
-                let mutation_summary = if declared_change_surface.is_empty() {
-                    "propose bounded legacy transformation without mutating the workspace"
-                        .to_string()
-                } else {
-                    format!(
-                        "propose bounded legacy transformation within declared change surface: {}",
-                        declared_change_surface.join(", ")
-                    )
-                };
-                (
-                    "capture change brief and repository context",
-                    "Captured change brief and bounded repository context.",
-                    "generate bounded change framing",
-                    "validate change framing against repository context",
-                    declared_change_surface,
-                    mutation_summary,
-                )
-            }
-            Mode::Implementation => {
-                let declared_mutation_bounds = extract_execution_scope_entries(
-                    &brief_summary,
-                    &["allowed paths", "mutation bounds"],
-                );
-                let mutation_summary = if declared_mutation_bounds.is_empty() {
-                    "propose bounded implementation guidance without mutating the workspace"
-                        .to_string()
-                } else {
-                    format!(
-                        "propose bounded implementation guidance within declared mutation bounds: {}",
-                        declared_mutation_bounds.join(", ")
-                    )
-                };
-                (
-                    "capture implementation brief and bounded repository context",
-                    "Captured implementation brief and bounded repository context.",
-                    "generate bounded implementation packet",
-                    "validate implementation safety-net evidence against repository context",
-                    declared_mutation_bounds,
-                    mutation_summary,
-                )
-            }
-            Mode::Refactor => {
-                let declared_refactor_scope = extract_execution_scope_entries(
-                    &brief_summary,
-                    &["allowed paths", "refactor scope"],
-                );
-                let mutation_summary = if declared_refactor_scope.is_empty() {
-                    "propose bounded structural refactor guidance without mutating the workspace"
-                        .to_string()
-                } else {
-                    format!(
-                        "propose bounded structural refactor guidance within declared refactor scope: {}",
-                        declared_refactor_scope.join(", ")
-                    )
-                };
-                (
-                    "capture refactor brief and bounded repository context",
-                    "Captured refactor brief and bounded repository context.",
-                    "generate bounded refactor packet",
-                    "validate refactor preservation evidence against repository context",
-                    declared_refactor_scope,
-                    mutation_summary,
-                )
-            }
-            other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
-        };
+        let request_summaries = change_mode_request_summaries(request.mode, &brief_summary)?;
 
         let context_request = self.governed_request(GovernedRequestSpec {
             run_id: &run_id,
@@ -170,7 +178,7 @@ impl EngineService {
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Filesystem,
             capability: CapabilityKind::ReadRepository,
-            summary: context_request_summary,
+            summary: request_summaries.context_request_summary,
             scope: input_scope.clone(),
         });
         let context_decision =
@@ -183,7 +191,7 @@ impl EngineService {
             "filesystem",
             ToolOutcome {
                 kind: ToolOutcomeKind::Succeeded,
-                summary: context_attempt_summary.to_string(),
+                summary: request_summaries.context_attempt_summary.to_string(),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
                 candidate_artifacts: Vec::new(),
@@ -200,7 +208,7 @@ impl EngineService {
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::CopilotCli,
             capability: CapabilityKind::GenerateContent,
-            summary: generation_request_summary,
+            summary: request_summaries.generation_request_summary,
             scope: input_scope.clone(),
         });
         let generation_decision =
@@ -217,8 +225,8 @@ impl EngineService {
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ExecuteBoundedTransformation,
-            summary: &mutation_summary,
-            scope: declared_execution_scope.clone(),
+            summary: request_summaries.mutation_summary.as_str(),
+            scope: request_summaries.declared_execution_scope.clone(),
         });
         let mut mutation_decision =
             invocation_runtime::evaluate_request_policy(&mutation_request, &policy_set);
@@ -233,7 +241,10 @@ impl EngineService {
         });
         let execution_gate_approved = execution_gate_is_approved(&approvals);
         let mutation_patch = if matches!(request.mode, Mode::Implementation | Mode::Refactor) {
-            self.locate_authored_mutation_patch(&request.inputs, &declared_execution_scope)?
+            self.locate_authored_mutation_patch(
+                &request.inputs,
+                &request_summaries.declared_execution_scope,
+            )?
         } else {
             None
         };
@@ -250,7 +261,7 @@ impl EngineService {
             mutation_decision.requires_approval = false;
             mutation_decision.rationale = approved_execution_mutation_rationale(
                 request.mode,
-                &declared_execution_scope,
+                &request_summaries.declared_execution_scope,
                 mutation_patch
                     .as_ref()
                     .map(|patch| patch.relative_path.as_str())
@@ -402,7 +413,7 @@ impl EngineService {
             owner: &request.owner,
             adapter: canon_adapters::AdapterKind::Shell,
             capability: CapabilityKind::ValidateWithTool,
-            summary: validation_request_summary,
+            summary: request_summaries.validation_request_summary,
             scope: input_scope.clone(),
         });
         let validation_decision =
@@ -453,7 +464,8 @@ impl EngineService {
         let default_owner = self.resolve_owner("");
         let packet_metadata_contents = build_runtime_packet_metadata(
             &run_id,
-            request.mode,
+            &request,
+            approvals.as_slice(),
             &artifact_contract.artifact_requirements,
         )?;
         let artifacts = artifact_contract
@@ -672,9 +684,49 @@ impl EngineService {
 
 #[cfg(test)]
 mod tests {
-    use super::render_change_like_artifact;
+    use super::{change_mode_request_summaries, render_change_like_artifact};
     use crate::EngineError;
     use crate::domain::mode::Mode;
+
+    #[test]
+    fn change_mode_request_summaries_cover_empty_implementation_and_refactor_scope() {
+        let implementation = change_mode_request_summaries(
+            Mode::Implementation,
+            "# Implementation Brief\n\n## Task Mapping\n- keep the slice bounded\n",
+        )
+        .expect("implementation summaries");
+        assert_eq!(
+            implementation.context_request_summary,
+            "capture implementation brief and bounded repository context"
+        );
+        assert_eq!(
+            implementation.generation_request_summary,
+            "generate bounded implementation packet"
+        );
+        assert!(implementation.declared_execution_scope.is_empty());
+        assert_eq!(
+            implementation.mutation_summary,
+            "propose bounded implementation guidance without mutating the workspace"
+        );
+
+        let refactor = change_mode_request_summaries(
+            Mode::Refactor,
+            "# Refactor Brief\n\n## Preserved Behavior\n- keep behavior stable\n",
+        )
+        .expect("refactor summaries");
+        assert!(refactor.declared_execution_scope.is_empty());
+        assert_eq!(
+            refactor.mutation_summary,
+            "propose bounded structural refactor guidance without mutating the workspace"
+        );
+    }
+
+    #[test]
+    fn change_mode_request_summaries_reject_unsupported_modes() {
+        let error = change_mode_request_summaries(Mode::Requirements, "# Requirements Brief")
+            .expect_err("requirements mode should be unsupported for change summaries");
+        assert!(matches!(error, EngineError::UnsupportedMode(mode) if mode == "requirements"));
+    }
 
     #[test]
     fn render_change_like_artifact_returns_packet_metadata_verbatim() {

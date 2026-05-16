@@ -1,12 +1,13 @@
 use super::{
-    ClarificationQuestionSummary, EngineService, GateInspectSummary, ModeResultSummary,
-    RecommendedActionSummary, ResultActionSummary, RunRequest, apply_execution_posture_summary,
-    approved_execution_mutation_rationale, build_action_chips_for, build_runtime_packet_metadata,
-    canonical_mode_input_binding, capability_tag, execution_continuation_pending,
-    extract_change_surface_entries, packet_body_artifact_order, preserve_multiline_summary,
-    recommend_next_action, resolved_execution_posture_label,
-    resolved_execution_posture_label_for_mode, run_state_from_gates, set_execution_posture,
-    set_post_approval_execution_consumed,
+    AiTool, AuthorityStatus, ClarificationQuestionSummary, EngineService, GateInspectSummary,
+    ModeResultSummary, RecommendedActionSummary, ResultActionSummary, RunRequest,
+    apply_execution_posture_summary, approved_execution_mutation_rationale,
+    authority_approval_state, build_action_chips_for, build_runtime_packet_metadata,
+    canonical_mode_input_binding, capability_tag, collect_files_recursively,
+    execution_continuation_pending, extract_change_surface_entries, packet_body_artifact_order,
+    preserve_multiline_summary, process_failure_excerpt, recommend_next_action,
+    resolved_execution_posture_label, resolved_execution_posture_label_for_mode,
+    run_state_from_gates, set_execution_posture, set_post_approval_execution_consumed,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
 use crate::domain::artifact::{ArtifactFormat, ArtifactRequirement};
@@ -14,13 +15,125 @@ use crate::domain::execution::ExecutionPosture;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
-use crate::domain::run::RunState;
+use crate::domain::publish_profile::AuthorityApprovalState;
+use crate::domain::run::{ClassificationProvenance, RunState};
 use crate::persistence::store::{
-    InitSummary as StoreInitSummary, SkillsSummary as StoreSkillsSummary,
+    InitSummary as StoreInitSummary, SkillMaterializationTarget,
+    SkillsSummary as StoreSkillsSummary, WorkspaceStore,
 };
 use canon_adapters::CapabilityKind;
 use tempfile::TempDir;
 use time::OffsetDateTime;
+
+fn inline_request(
+    mode: Mode,
+    risk: RiskClass,
+    zone: UsageZone,
+    system_context: Option<crate::domain::run::SystemContext>,
+    owner: &str,
+    inline_input: &str,
+) -> RunRequest {
+    RunRequest {
+        mode,
+        risk,
+        zone,
+        system_context,
+        classification: ClassificationProvenance::explicit(),
+        owner: owner.to_string(),
+        inputs: Vec::new(),
+        inline_inputs: vec![inline_input.to_string()],
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    }
+}
+
+fn supported_implementation_brief() -> &'static str {
+    r#"# Implementation Brief
+
+## Task Mapping
+1. Add bounded auth session repository helpers.
+2. Thread the helper through the revocation service without expanding the public API.
+
+## Bounded Changes
+- Auth session repository helper wiring.
+- Revocation service internal composition.
+
+## Mutation Bounds
+src/auth/session.rs; src/auth/repository.rs
+
+## Allowed Paths
+- src/auth/session.rs
+- src/auth/repository.rs
+
+## Safety-Net Evidence
+Contract coverage protects revocation formatting and audit ordering before mutation.
+
+## Independent Checks
+cargo test --test session_contract
+
+## Rollback Triggers
+Revocation output drifts or audit ordering becomes unstable.
+
+## Rollback Steps
+Revert the bounded auth-session patch and redeploy the previous build.
+"#
+}
+
+fn supported_verification_brief() -> &'static str {
+    r#"# Verification Brief
+
+## Claims Under Test
+
+- rollback remains bounded and auditable
+- operator evidence remains tied to the rollback boundary
+
+## Invariant Checks
+
+- rollback metadata remains explicit during the bounded flow
+
+## Contract Assumptions
+
+- rollback metadata must remain explicit
+
+## Verification Outcome
+
+Status: supported
+
+## Challenge Findings
+
+- no additional challenge findings remain beyond the authored packet
+
+## Contradictions
+
+- none recorded
+
+## Verified Claims
+
+- rollback remains bounded and auditable
+- operator evidence remains tied to the rollback boundary
+
+## Rejected Claims
+
+- none recorded
+
+## Overall Verdict
+
+Status: supported
+
+Rationale: the current evidence covers the authored claim set.
+
+## Open Findings
+
+Status: no-open-findings
+
+- No unresolved findings remain from the current verification packet.
+
+## Required Follow-Up
+
+- Keep the verification packet attached to downstream release review.
+"#
+}
 
 #[test]
 fn change_surface_entries_prefer_markdown_section_over_inline_summary_mentions() {
@@ -238,9 +351,22 @@ fn build_runtime_packet_metadata_emits_order_and_legacy_aliases() {
         },
     ];
 
-    let metadata_contents =
-        build_runtime_packet_metadata("R-test", Mode::Requirements, &requirements)
-            .expect("packet metadata should render");
+    let request = RunRequest {
+        mode: Mode::Requirements,
+        risk: RiskClass::LowImpact,
+        zone: UsageZone::Green,
+        system_context: None,
+        classification: ClassificationProvenance::explicit(),
+        owner: "product-owner".to_string(),
+        inputs: Vec::new(),
+        inline_inputs: Vec::new(),
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    };
+
+    let metadata_contents = build_runtime_packet_metadata("R-test", &request, &[], &requirements)
+        .expect("packet metadata should render");
     let metadata: serde_json::Value =
         serde_json::from_str(&metadata_contents).expect("packet metadata json");
 
@@ -251,6 +377,9 @@ fn build_runtime_packet_metadata_emits_order_and_legacy_aliases() {
     assert_eq!(metadata["artifact_order"][1], "02-scope-cuts.md");
     assert_eq!(metadata["legacy_aliases"]["problem-statement.md"], "01-problem-statement.md");
     assert_eq!(metadata["legacy_aliases"]["scope-cuts.md"], "02-scope-cuts.md");
+    assert_eq!(metadata["authority_governance"]["contract_line"], "authority-governance-v1");
+    assert_eq!(metadata["authority_governance"]["authority_zone"], "green");
+    assert_eq!(metadata["authority_governance"]["risk"], "low-impact");
 }
 
 #[test]
@@ -272,6 +401,155 @@ fn capability_tag_covers_supported_capabilities() {
     for (capability, expected) in cases {
         assert_eq!(capability_tag(capability), expected);
     }
+}
+
+#[test]
+fn service_helper_branches_cover_inline_inputs_authority_and_process_failures() {
+    let request = RunRequest {
+        mode: Mode::Requirements,
+        risk: RiskClass::LowImpact,
+        zone: UsageZone::Green,
+        system_context: None,
+        classification: ClassificationProvenance::explicit(),
+        owner: "maintainer".to_string(),
+        inputs: vec!["docs/brief.md".to_string()],
+        inline_inputs: vec!["inline summary".to_string(), "more detail".to_string()],
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    };
+
+    assert_eq!(
+        request.merged_input_sources(),
+        vec![
+            "docs/brief.md".to_string(),
+            "inline-input-01.md".to_string(),
+            "inline-input-02.md".to_string(),
+        ]
+    );
+    assert_eq!(
+        request.transient_inline_inputs(),
+        vec![
+            crate::domain::run::InlineInput {
+                label: "inline-input-01.md".to_string(),
+                contents: "inline summary".to_string(),
+            },
+            crate::domain::run::InlineInput {
+                label: "inline-input-02.md".to_string(),
+                contents: "more detail".to_string(),
+            },
+        ]
+    );
+    assert_eq!(AiTool::Claude.materialization_target(), SkillMaterializationTarget::Claude);
+    assert_eq!(AiTool::Copilot.materialization_target(), SkillMaterializationTarget::Agents);
+    assert_eq!(AuthorityStatus::DerivedAuthoritativeInput.as_str(), "derived-authoritative-input");
+    assert_eq!(
+        authority_approval_state(&[ApprovalRecord::for_gate(
+            GateKind::Risk,
+            "maintainer".to_string(),
+            ApprovalDecision::Reject,
+            "not yet".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )]),
+        AuthorityApprovalState::Rejected
+    );
+    assert_eq!(process_failure_excerpt("stdout message", "stderr message"), "stderr message");
+    assert_eq!(process_failure_excerpt("stdout message", "   \n"), "stdout message");
+    assert_eq!(process_failure_excerpt("   ", "   \n"), "no process output captured");
+    assert_eq!(
+        canonical_mode_input_binding(Mode::SystemAssessment),
+        Some(("system-assessment.md", "system-assessment"))
+    );
+    assert_eq!(
+        canonical_mode_input_binding(Mode::SecurityAssessment),
+        Some(("security-assessment.md", "security-assessment"))
+    );
+
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::create_dir_all(workspace.path().join("nested")).expect("nested dir");
+    std::fs::write(workspace.path().join("top.md"), "# top\n").expect("top file");
+    std::fs::write(workspace.path().join("nested").join("child.md"), "# child\n")
+        .expect("child file");
+    let mut files = Vec::new();
+    collect_files_recursively(workspace.path(), &mut files).expect("recursive collection");
+    assert!(files.iter().any(|path| path.ends_with("top.md")));
+    assert!(files.iter().any(|path| path.ends_with("child.md")));
+}
+
+#[test]
+fn run_implementation_direct_runtime_covers_implementation_branching() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::create_dir_all(workspace.path().join("src/auth")).expect("src/auth dir");
+    std::fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String { format!(\"revoked:{id}\") }\n",
+    )
+    .expect("session file");
+    std::fs::write(
+        workspace.path().join("src/auth/repository.rs"),
+        "pub fn persist_session(id: &str) -> String { id.to_string() }\n",
+    )
+    .expect("repository file");
+
+    let store = WorkspaceStore::new(workspace.path());
+    store.init_runtime_state(None).expect("init runtime state");
+    let policy_set = store.load_policy_set(None).expect("policy set");
+    let service = EngineService::new(workspace.path());
+
+    let summary = service
+        .run_implementation(
+            &store,
+            inline_request(
+                Mode::Implementation,
+                RiskClass::LowImpact,
+                UsageZone::Green,
+                Some(crate::domain::run::SystemContext::Existing),
+                "staff-engineer",
+                supported_implementation_brief(),
+            ),
+            policy_set,
+        )
+        .expect("implementation run");
+
+    assert_eq!(summary.mode, "implementation");
+    assert_eq!(summary.state, "Blocked");
+    assert!(summary.artifact_paths.iter().any(|path| path.ends_with("packet-metadata.json")));
+}
+
+#[test]
+fn run_verification_direct_runtime_covers_verification_branching() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::create_dir_all(workspace.path().join("src")).expect("src dir");
+    std::fs::write(
+        workspace.path().join("src/reviewer.rs"),
+        "pub fn format_review(label: &str) -> String { format!(\"review:{label}\") }\n",
+    )
+    .expect("reviewer file");
+
+    let store = WorkspaceStore::new(workspace.path());
+    store.init_runtime_state(None).expect("init runtime state");
+    let policy_set = store.load_policy_set(None).expect("policy set");
+    let service = EngineService::new(workspace.path());
+
+    let summary = service
+        .run_verification(
+            &store,
+            inline_request(
+                Mode::Verification,
+                RiskClass::LowImpact,
+                UsageZone::Green,
+                None,
+                "verifier",
+                supported_verification_brief(),
+            ),
+            policy_set,
+        )
+        .expect("verification run");
+
+    assert_eq!(summary.mode, "verification");
+    assert_eq!(summary.state, "Completed");
+    assert!(!summary.artifact_paths.is_empty());
+    assert!(summary.mode_result.is_some());
 }
 
 #[test]

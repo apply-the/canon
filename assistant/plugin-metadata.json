@@ -1,7 +1,7 @@
 {
   "name": "canon",
   "displayName": "Canon Assistant Support",
-  "version": "0.53.0",
+  "version": "0.54.0",
   "description": "Governed packet runtime for AI-assisted engineering work",
   "author": {
     "name": "Apply The",
@@ -81,10 +81,18 @@
       "displayName": "Cursor",
       "packagePath": ".cursor-plugin",
       "manifestPath": ".cursor-plugin/manifest.json"
+    },
+    {
+      "id": "copilot",
+      "displayName": "GitHub Copilot",
+      "packagePath": ".copilot-prompts",
+      "manifestPath": ".copilot-prompts/pack.json"
     }
   ],
   "copilot": {
-    "manifestSupported": false,
+    "manifestSupported": true,
+    "packagePath": ".copilot-prompts",
+    "manifestPath": ".copilot-prompts/pack.json",
     "commandPromptPack": "assistant/prompts/copilot-command-pack.md"
   },
   "prohibitedPositioning": [

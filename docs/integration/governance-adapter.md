@@ -40,6 +40,11 @@ The `v1` surface returns flat JSON. External tools should rely on these fields:
 The adapter returns canonical workspace-relative refs so downstream systems can
 store or display stable pointers without scraping human CLI prose.
 
+Governed packets may also carry `authority-governance-v1` in the adjacent
+`packet-metadata.json` sidecar. Downstream consumers should treat that sidecar
+as the stable source for Canon authority semantics rather than inferring them
+from filenames or human prose.
+
 ## Start Request Envelope
 
 For file-backed modes, the request body is JSON on stdin:
@@ -90,6 +95,55 @@ When Canon produces a reusable packet, the adapter returns a projection like:
 
 When the request is blocked or approval-gated, Canon keeps the same flat shape
 and adds a machine-readable `reason_code`.
+
+## Authority Governance Sidecar
+
+Canon publishes first-slice authority semantics in `packet-metadata.json` as a
+typed `authority_governance` object.
+
+Representative shape:
+
+```json
+{
+  "authority_governance": {
+    "contract_line": "authority-governance-v1",
+    "authority_zone": "yellow",
+    "change_class": "systemic-impact",
+    "intended_persona": "system-architect",
+    "approval_state": "granted",
+    "packet_readiness": "reusable",
+    "risk": "systemic-impact",
+    "primary_artifact": "01-architecture-summary.md",
+    "artifact_order": ["01-architecture-summary.md"]
+  }
+}
+```
+
+Required fields:
+
+- `contract_line`
+- `authority_zone`
+- `change_class`
+- `intended_persona`
+- `approval_state`
+- `packet_readiness`
+- `risk`
+
+Optional additive fields:
+
+- `persona_anti_behaviors`
+- `primary_artifact`
+- `artifact_order`
+- `promotion_refs`
+- `stage_role_hints`
+
+Compatibility rules:
+
+- Unsupported contract lines fail closed for consumers.
+- Missing required fields make the authority semantics unavailable without
+  making the packet unreadable.
+- Missing optional fields leave the compatible remainder usable.
+- Unknown optional fields are additive by default.
 
 ## Example: change
 

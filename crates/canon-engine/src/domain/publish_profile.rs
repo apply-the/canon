@@ -2,7 +2,8 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
-use crate::domain::mode::{GovernedExpertiseKind, Mode};
+use crate::domain::mode::{GovernedExpertiseKind, IntendedPersona, Mode, StageRoleHint};
+use crate::domain::policy::{AuthorityZone, ChangeClass, RiskClass, UsageZone};
 
 /// Contract version string for project-memory promotion lineage.
 pub const PROJECT_MEMORY_CONTRACT_VERSION: &str = "v1";
@@ -14,6 +15,8 @@ pub const PROJECT_MEMORY_MANAGED_BLOCK_MARKER: &str = "project-memory:managed";
 pub const PROJECT_MEMORY_PACKET_METADATA_FILE_NAME: &str = "packet-metadata.json";
 /// Contract version string for governed expertise input metadata.
 pub const GOVERNED_EXPERTISE_INPUT_CONTRACT_VERSION: &str = "v1";
+/// Contract line string for the first authority-governance metadata slice.
+pub const AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE: &str = "authority-governance-v1";
 /// Required field names for V1 lineage metadata envelopes.
 pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "contract_version",
@@ -35,6 +38,130 @@ pub const OPTIONAL_V1_LINEAGE_FIELDS: &[&str] = &[
     "packet_readiness",
     "promotion_profile",
 ];
+
+/// Approval state exported through `authority-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorityApprovalState {
+    NotNeeded,
+    Requested,
+    Granted,
+    Rejected,
+    Expired,
+}
+
+impl AuthorityApprovalState {
+    /// Returns true when the authority posture still requires a human gate.
+    pub const fn requires_gate(self) -> bool {
+        matches!(self, Self::Requested)
+    }
+}
+
+/// Packet readiness exported through `authority-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorityPacketReadiness {
+    Pending,
+    Incomplete,
+    Reusable,
+    Rejected,
+}
+
+/// Risk vocabulary exported through `authority-governance-v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AuthorityRiskClass {
+    LowImpact,
+    BoundedImpact,
+    SystemicImpact,
+}
+
+impl AuthorityRiskClass {
+    /// Maps the runtime risk class into the stable contract vocabulary.
+    pub const fn from_risk_class(risk: RiskClass) -> Self {
+        match risk {
+            RiskClass::LowImpact => Self::LowImpact,
+            RiskClass::BoundedImpact => Self::BoundedImpact,
+            RiskClass::SystemicImpact => Self::SystemicImpact,
+        }
+    }
+}
+
+/// Typed `authority-governance-v1` envelope published with governed packet metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuthorityGovernanceV1Envelope {
+    pub contract_line: String,
+    pub authority_zone: AuthorityZone,
+    pub change_class: ChangeClass,
+    pub intended_persona: IntendedPersona,
+    pub approval_state: AuthorityApprovalState,
+    pub packet_readiness: AuthorityPacketReadiness,
+    pub risk: AuthorityRiskClass,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub persona_anti_behaviors: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub primary_artifact: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub artifact_order: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub promotion_refs: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub stage_role_hints: Vec<StageRoleHint>,
+}
+
+/// Typed runtime inputs used to build an `authority-governance-v1` envelope.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AuthorityGovernanceV1RuntimeInputs {
+    pub mode: Mode,
+    pub risk: RiskClass,
+    pub zone: UsageZone,
+    pub approval_state: AuthorityApprovalState,
+    pub packet_readiness: AuthorityPacketReadiness,
+    pub primary_artifact: Option<String>,
+    pub artifact_order: Vec<String>,
+    pub promotion_refs: Vec<String>,
+}
+
+impl AuthorityGovernanceV1Envelope {
+    /// Builds the first-slice authority-governance envelope from existing Canon runtime inputs.
+    pub fn from_runtime_inputs(inputs: AuthorityGovernanceV1RuntimeInputs) -> Self {
+        let AuthorityGovernanceV1RuntimeInputs {
+            mode,
+            risk,
+            zone,
+            approval_state,
+            packet_readiness,
+            primary_artifact,
+            artifact_order,
+            promotion_refs,
+        } = inputs;
+        let persona = mode.intended_persona_profile();
+        let authority_zone = if approval_state.requires_gate() {
+            AuthorityZone::Restricted
+        } else {
+            match zone {
+                UsageZone::Green => AuthorityZone::Green,
+                UsageZone::Yellow => AuthorityZone::Yellow,
+                UsageZone::Red => AuthorityZone::Red,
+            }
+        };
+
+        Self {
+            contract_line: AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE.to_string(),
+            authority_zone,
+            change_class: ChangeClass::from_risk_and_mode(risk, mode),
+            intended_persona: persona.intended_persona,
+            approval_state,
+            packet_readiness,
+            risk: AuthorityRiskClass::from_risk_class(risk),
+            persona_anti_behaviors: persona.persona_anti_behaviors,
+            primary_artifact,
+            artifact_order,
+            promotion_refs,
+            stage_role_hints: mode.stage_role_hints(),
+        }
+    }
+}
 
 /// Canon-owned metadata carrier families for indexable artifact classes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -252,6 +379,64 @@ impl PublishProfile {
 impl std::fmt::Display for PublishProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(test)]
+mod authority_governance_tests {
+    use super::{
+        AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE, AuthorityApprovalState,
+        AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
+        AuthorityPacketReadiness, AuthorityRiskClass,
+    };
+    use crate::domain::mode::{IntendedPersona, Mode};
+    use crate::domain::policy::{AuthorityZone, ChangeClass, RiskClass, UsageZone};
+
+    #[test]
+    fn authority_governance_envelope_derives_required_fields() {
+        let envelope = AuthorityGovernanceV1Envelope::from_runtime_inputs(
+            AuthorityGovernanceV1RuntimeInputs {
+                mode: Mode::Architecture,
+                risk: RiskClass::SystemicImpact,
+                zone: UsageZone::Yellow,
+                approval_state: AuthorityApprovalState::Requested,
+                packet_readiness: AuthorityPacketReadiness::Incomplete,
+                primary_artifact: Some("01-architecture-summary.md".to_string()),
+                artifact_order: vec!["01-architecture-summary.md".to_string()],
+                promotion_refs: Vec::new(),
+            },
+        );
+
+        assert_eq!(envelope.contract_line, AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE);
+        assert_eq!(envelope.authority_zone, AuthorityZone::Restricted);
+        assert_eq!(envelope.change_class, ChangeClass::SystemicImpact);
+        assert_eq!(envelope.intended_persona, IntendedPersona::SystemArchitect);
+        assert_eq!(envelope.packet_readiness, AuthorityPacketReadiness::Incomplete);
+        assert_eq!(envelope.risk, AuthorityRiskClass::SystemicImpact);
+        assert!(!envelope.persona_anti_behaviors.is_empty());
+    }
+
+    #[test]
+    fn authority_governance_envelope_omits_optional_fields_when_empty() {
+        let envelope = AuthorityGovernanceV1Envelope::from_runtime_inputs(
+            AuthorityGovernanceV1RuntimeInputs {
+                mode: Mode::Requirements,
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                approval_state: AuthorityApprovalState::NotNeeded,
+                packet_readiness: AuthorityPacketReadiness::Reusable,
+                primary_artifact: None,
+                artifact_order: Vec::new(),
+                promotion_refs: Vec::new(),
+            },
+        );
+
+        let value = serde_json::to_value(&envelope).unwrap();
+        assert_eq!(value["authority_zone"], "green");
+        assert_eq!(value["change_class"], "low-impact");
+        assert_eq!(value["risk"], "low-impact");
+        assert!(value.get("primary_artifact").is_none());
+        assert!(value.get("promotion_refs").is_none());
     }
 }
 

@@ -15,6 +15,26 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.54.0] - 2026-05-15
+
+Delivered specs:
+
+- `specs/054-authority-zone-contract/`
+
+Highlights:
+
+- Added the typed `authority-governance-v1` contract vocabulary for authority
+  zones, change classes, intended personas, advisory role hints, and stable
+  required-versus-optional metadata rules.
+- Extended runtime packet metadata sidecars so governed Canon packets can carry
+  the `authority_governance` envelope without introducing a second publication
+  channel.
+- Kept Canon on the semantic side of the boundary: stage-role hints remain
+  advisory, while downstream runtimes keep council choice and operational stop
+  behavior.
+- Bumped workspace version to `0.54.0` across all crates for the
+  authority-zone-contract feature branch.
+
 ## [0.52.0] - 2026-05-14
 
 Delivered specs:
