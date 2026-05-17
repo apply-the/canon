@@ -383,6 +383,82 @@ impl std::fmt::Display for IndexableArtifactClass {
     }
 }
 
+/// Typed indexing metadata published with Canon-owned sidecars.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArtifactIndexingMetadata {
+    /// The stable artifact class exposed to downstream consumers.
+    pub artifact_class: IndexableArtifactClass,
+    /// The normative metadata carrier family for this artifact class.
+    pub metadata_carrier: ArtifactMetadataCarrier,
+    /// The discovery rule consumers should apply for this artifact class.
+    pub discovery_rule: String,
+}
+
+impl ArtifactIndexingMetadata {
+    /// Builds typed indexing metadata from the effective publication class and
+    /// update strategy, rejecting ambiguous combinations.
+    pub fn for_publication(
+        publication_target_class: PublicationTargetClass,
+        update_strategy: UpdateStrategy,
+    ) -> Result<Self, String> {
+        let artifact_class =
+            indexable_artifact_class_for_publication(publication_target_class, update_strategy)?;
+
+        Ok(Self {
+            artifact_class,
+            metadata_carrier: artifact_class.metadata_carrier(),
+            discovery_rule: artifact_class.discovery_rule().to_string(),
+        })
+    }
+
+    /// Validates that the carrier and discovery rule remain aligned with the
+    /// declared artifact class.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.metadata_carrier != self.artifact_class.metadata_carrier() {
+            return Err(format!(
+                "artifact class `{}` requires metadata carrier `{}`; found `{}`",
+                self.artifact_class,
+                self.artifact_class.metadata_carrier(),
+                self.metadata_carrier,
+            ));
+        }
+        if self.discovery_rule.trim() != self.artifact_class.discovery_rule() {
+            return Err(format!(
+                "artifact class `{}` requires discovery rule `{}`",
+                self.artifact_class,
+                self.artifact_class.discovery_rule(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Resolves the stable indexable artifact class for one publication target.
+pub fn indexable_artifact_class_for_publication(
+    publication_target_class: PublicationTargetClass,
+    update_strategy: UpdateStrategy,
+) -> Result<IndexableArtifactClass, String> {
+    match (publication_target_class, update_strategy) {
+        (
+            PublicationTargetClass::Stable | PublicationTargetClass::Pending,
+            UpdateStrategy::ManagedBlocks,
+        ) => Ok(IndexableArtifactClass::ManagedSurface),
+        (PublicationTargetClass::Proposal, UpdateStrategy::ProposalFiles) => {
+            Ok(IndexableArtifactClass::ProposalArtifact)
+        }
+        (PublicationTargetClass::Evidence, UpdateStrategy::AppendOnlyIndex) => {
+            Ok(IndexableArtifactClass::EvidenceBundle)
+        }
+        (PublicationTargetClass::Index, UpdateStrategy::AppendOnlyIndex) => {
+            Ok(IndexableArtifactClass::IndexSurface)
+        }
+        (target_class, strategy) => Err(format!(
+            "unsupported artifact indexing mapping for target class `{}` with update strategy `{}`",
+            target_class, strategy
+        )),
+    }
+}
+
 /// The publication target class used for routing packet output to the appropriate surface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -510,8 +586,10 @@ mod authority_governance_tests {
     use super::{
         ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE, AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE,
         AdaptiveGovernanceState, AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs,
-        AdaptiveRolloutProfile, AuthorityApprovalState, AuthorityGovernanceV1Envelope,
-        AuthorityGovernanceV1RuntimeInputs, AuthorityPacketReadiness, AuthorityRiskClass,
+        AdaptiveRolloutProfile, ArtifactIndexingMetadata, ArtifactMetadataCarrier,
+        AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
+        AuthorityPacketReadiness, AuthorityRiskClass, IndexableArtifactClass,
+        PublicationTargetClass, UpdateStrategy,
     };
     use crate::domain::mode::{IntendedPersona, Mode};
     use crate::domain::policy::{AuthorityZone, ChangeClass, RiskClass, UsageZone};
@@ -578,6 +656,67 @@ mod authority_governance_tests {
         assert_eq!(envelope.rollout_profile, AdaptiveRolloutProfile::Guided);
         assert!(envelope.state_rationale.is_none());
         assert!(envelope.profile_rationale.is_none());
+    }
+
+    #[test]
+    fn artifact_indexing_metadata_maps_managed_surfaces_from_publication() {
+        let metadata = ArtifactIndexingMetadata::for_publication(
+            PublicationTargetClass::Stable,
+            UpdateStrategy::ManagedBlocks,
+        )
+        .unwrap();
+
+        assert_eq!(metadata.artifact_class, IndexableArtifactClass::ManagedSurface);
+        assert_eq!(metadata.metadata_carrier, ArtifactMetadataCarrier::ManagedSurfaceEnvelope);
+        assert!(metadata.validate().is_ok());
+    }
+
+    #[test]
+    fn artifact_indexing_metadata_rejects_ambiguous_publication_mappings() {
+        let error = ArtifactIndexingMetadata::for_publication(
+            PublicationTargetClass::Proposal,
+            UpdateStrategy::ManagedBlocks,
+        )
+        .unwrap_err();
+
+        assert!(error.contains("unsupported artifact indexing mapping"));
+    }
+
+    #[test]
+    fn artifact_indexing_metadata_maps_index_surfaces_from_publication() {
+        let metadata = ArtifactIndexingMetadata::for_publication(
+            PublicationTargetClass::Index,
+            UpdateStrategy::AppendOnlyIndex,
+        )
+        .unwrap();
+
+        assert_eq!(metadata.artifact_class, IndexableArtifactClass::IndexSurface);
+        assert_eq!(metadata.metadata_carrier, ArtifactMetadataCarrier::PacketMetadataSidecar);
+        assert!(metadata.validate().is_ok());
+    }
+
+    #[test]
+    fn artifact_indexing_metadata_validate_rejects_misaligned_discovery_rule() {
+        let error = ArtifactIndexingMetadata {
+            artifact_class: IndexableArtifactClass::ManagedSurface,
+            metadata_carrier: ArtifactMetadataCarrier::ManagedSurfaceEnvelope,
+            discovery_rule: "wrong-rule".to_string(),
+        }
+        .validate()
+        .unwrap_err();
+
+        assert!(error.contains("requires discovery rule"));
+    }
+
+    #[test]
+    fn indexable_artifact_class_for_publication_rejects_pending_append_only_mapping() {
+        let error = super::indexable_artifact_class_for_publication(
+            PublicationTargetClass::Pending,
+            UpdateStrategy::AppendOnlyIndex,
+        )
+        .unwrap_err();
+
+        assert!(error.contains("unsupported artifact indexing mapping"));
     }
 }
 

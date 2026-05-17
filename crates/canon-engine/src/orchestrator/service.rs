@@ -943,6 +943,8 @@ pub(super) fn build_runtime_packet_metadata(
             publish_order: None,
             legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
             expertise_input: None,
+            publication_target_class: None,
+            artifact_indexing: None,
             authority_governance,
             adaptive_governance,
         },

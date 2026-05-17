@@ -15,6 +15,25 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.55.0] - 2026-05-16
+
+Delivered specs:
+
+- `specs/051-artifact-indexing-contract/`
+
+Highlights:
+
+- Extended Canon publish metadata and runtime packet sidecars with typed
+  `artifact_indexing` projection data so downstream consumers can recover the
+  published artifact class, metadata carrier, and discovery rule without
+  reconstructing them from prose.
+- Added publish-path guards that reject unsupported target-class and update-
+  strategy mappings instead of silently inventing artifact-indexing semantics.
+- Validated managed-surface, proposal, and evidence publish paths so the
+  emitted sidecars carry the expected artifact indexing contract fields.
+- Bumped workspace version to `0.55.0` across the Canon crates and active
+  compatibility metadata.
+
 ## [0.54.0] - 2026-05-15
 
 Delivered specs:

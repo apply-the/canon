@@ -48,6 +48,24 @@ without creating a second authority surface.
   Discovery rule: read `<surface>.packet-metadata.json` adjacent to the
   append-only surface.
 
+## Producer Sidecar Payload
+
+Canon V1 producer sidecars for supported surfaces expose this typed
+`artifact_indexing` payload:
+
+```json
+{
+  "artifact_indexing": {
+    "artifact_class": "managed-surface|proposal-artifact|evidence-bundle|index-surface",
+    "metadata_carrier": "managed-surface-envelope|packet-metadata-sidecar",
+    "discovery_rule": "consumer-facing discovery rule string"
+  }
+}
+```
+
+Publish paths MUST reject unsupported target-class and update-strategy
+combinations instead of silently projecting an ambiguous artifact class.
+
 ## Required V1 Lineage Fields
 
 - `contract_version`

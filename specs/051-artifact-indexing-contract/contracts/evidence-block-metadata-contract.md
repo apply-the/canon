@@ -28,6 +28,9 @@ their downstream indexing surface.
   sidecar for the full promoted lineage.
 - For evidence published as a bundle, consumers read `packet-metadata.json`
   adjacent to the bundle root.
+- Those sidecars now also expose the typed `artifact_indexing` payload so
+  consumers can recover the published artifact class and carrier rule without
+  inferring them from destination paths alone.
 
 ## Ownership Boundary
 

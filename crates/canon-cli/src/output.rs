@@ -93,13 +93,14 @@ pub fn print_inspect<T: Serialize>(
 mod tests {
     use canon_engine::{
         GateInspectSummary, ModeResultSummary, RecommendedActionSummary, ResultActionSummary,
-        RunSummary,
+        RunSummary, StatusSummary,
     };
-    use serde_json::json;
+    use serde_json::{Value, json};
 
     use super::dispatch::render_markdown_from_json;
     use super::inspect::render_risk_zone_text;
-    use super::run::render_run_summary_markdown;
+    use super::primitives::{render_kv_field, render_scalar_field, scalar_value};
+    use super::run::{render_run_summary_markdown, render_status_summary_markdown};
 
     #[test]
     fn clarity_markdown_surfaces_questions_and_signals() {
@@ -673,5 +674,214 @@ mod tests {
         let value = serde_json::json!({ "something_else": "data" });
         let markdown = render_markdown_from_json(&value, "invocations", None);
         assert!(markdown.contains("- No invocations recorded."));
+    }
+
+    // --- coverage gap tests ---
+
+    #[test]
+    fn primitives_scalar_value_handles_null_number_and_complex_types() {
+        // Null → None
+        assert_eq!(scalar_value(Some(&Value::Null)), None);
+        // Number → string representation
+        assert_eq!(scalar_value(Some(&serde_json::json!(42))), Some("42".to_string()));
+        // Object (other branch) → JSON string
+        assert_eq!(scalar_value(Some(&serde_json::json!({"a": 1}))), Some("{\"a\":1}".to_string()));
+    }
+
+    #[test]
+    fn primitives_render_scalar_field_skips_null_value() {
+        let mut lines: Vec<String> = Vec::new();
+        render_scalar_field(&mut lines, "Label", Some(&Value::Null));
+        assert!(lines.is_empty());
+    }
+
+    #[test]
+    fn primitives_render_kv_field_skips_when_scalar_is_null() {
+        let mut lines: Vec<String> = Vec::new();
+        render_kv_field(&mut lines, "KEY", Some(&Value::Null));
+        assert!(lines.is_empty());
+    }
+
+    #[test]
+    fn status_summary_markdown_renders_run_id_state_and_system_context() {
+        let summary = StatusSummary {
+            run: "run-status-1".to_string(),
+            owner: "owner".to_string(),
+            state: "Completed".to_string(),
+            system_context: Some("existing".to_string()),
+            invocations_total: 2,
+            pending_invocation_approvals: 0,
+            validation_independence_satisfied: true,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: Vec::new(),
+            artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            possible_actions: Vec::new(),
+            mode_result: None,
+            recommended_next_action: None,
+        };
+        let markdown = render_status_summary_markdown(&summary);
+        assert!(markdown.contains("# status"));
+        assert!(markdown.contains("Run ID: run-status-1"));
+        assert!(markdown.contains("State: Completed"));
+        assert!(markdown.contains("System Context: existing"));
+    }
+
+    #[test]
+    fn run_summary_markdown_renders_uuid_when_present() {
+        let summary = RunSummary {
+            run_id: "run-uuid-1".to_string(),
+            uuid: Some("550e8400-e29b-41d4-a716-446655440000".to_string()),
+            owner: "owner".to_string(),
+            mode: "requirements".to_string(),
+            risk: "low-impact".to_string(),
+            zone: "green".to_string(),
+            system_context: None,
+            state: "Completed".to_string(),
+            artifact_count: 0,
+            invocations_total: 0,
+            invocations_denied: 0,
+            invocations_pending_approval: 0,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: Vec::new(),
+            artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            possible_actions: Vec::new(),
+            mode_result: None,
+            recommended_next_action: None,
+        };
+        let markdown = render_run_summary_markdown(&summary);
+        assert!(markdown.contains("UUID: 550e8400-e29b-41d4-a716-446655440000"));
+    }
+
+    #[test]
+    fn recommended_next_step_with_target_renders_target_line() {
+        let summary = RunSummary {
+            run_id: "run-target-1".to_string(),
+            uuid: None,
+            owner: "owner".to_string(),
+            mode: "change".to_string(),
+            risk: "low-impact".to_string(),
+            zone: "green".to_string(),
+            system_context: None,
+            state: "AwaitingApproval".to_string(),
+            artifact_count: 0,
+            invocations_total: 1,
+            invocations_denied: 0,
+            invocations_pending_approval: 1,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: Vec::new(),
+            artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            possible_actions: Vec::new(),
+            mode_result: None,
+            recommended_next_action: Some(RecommendedActionSummary {
+                action: "approve".to_string(),
+                rationale: "Explicit approval needed.".to_string(),
+                target: Some("invocation:req-1".to_string()),
+            }),
+        };
+        let markdown = render_run_summary_markdown(&summary);
+        assert!(markdown.contains("Target: invocation:req-1"));
+    }
+
+    #[test]
+    fn risk_zone_text_with_empty_entries_returns_target_marker_only() {
+        let value = json!({ "entries": [] });
+        let text = render_risk_zone_text(&value);
+        assert_eq!(text, "TARGET=risk-zone");
+    }
+
+    #[test]
+    fn evidence_markdown_with_system_context_renders_context_line() {
+        let value = json!({
+            "entries": [{"execution_posture": "recommendation-only"}],
+            "system_context": "existing"
+        });
+        let markdown = render_markdown_from_json(&value, "evidence", Some("run-sc-1"));
+        assert!(markdown.contains("System Context: existing"));
+        assert!(markdown.contains("Run ID: run-sc-1"));
+    }
+
+    #[test]
+    fn invocations_markdown_with_system_context_renders_context_line() {
+        let value = json!({
+            "entries": [],
+            "system_context": "new"
+        });
+        let markdown = render_markdown_from_json(&value, "invocations", Some("run-sc-2"));
+        assert!(markdown.contains("System Context: new"));
+        assert!(markdown.contains("Run ID: run-sc-2"));
+    }
+
+    #[test]
+    fn risk_zone_markdown_with_rationale_renders_why_section() {
+        let value = json!({
+            "entries": [{
+                "mode": "implementation",
+                "risk": "systemic-impact",
+                "zone": "red",
+                "risk_was_supplied": true,
+                "zone_was_supplied": true,
+                "confidence": "high",
+                "requires_confirmation": false,
+                "headline": "Systemic impact detected.",
+                "rationale": "Changes touch cross-cutting infrastructure.",
+                "signals": []
+            }]
+        });
+        let markdown = render_markdown_from_json(&value, "risk-zone", None);
+        assert!(markdown.contains("## Why"));
+        assert!(markdown.contains("Changes touch cross-cutting infrastructure."));
+    }
+
+    #[test]
+    fn clarity_markdown_with_supporting_inputs_readiness_delta_and_quality_signals() {
+        let value = json!({
+            "entries": [{
+                "mode": "architecture",
+                "requires_clarification": false,
+                "authoring_lifecycle": {
+                    "packet_shape": "directory-backed",
+                    "authority_status": "explicit-authoritative-brief",
+                    "authoritative_inputs": ["canon-input/architecture.md"],
+                    "supporting_inputs": ["canon-input/context.md"],
+                    "readiness_delta": [
+                        "Add deployment view.",
+                        "Clarify scaling strategy."
+                    ],
+                    "next_authoring_step": "Proceed to governed run."
+                },
+                "output_quality": {
+                    "posture": "publishable",
+                    "materially_closed": true,
+                    "evidence_signals": ["Full section coverage detected."],
+                    "downgrade_reasons": ["Minor gap in deployment view."]
+                }
+            }]
+        });
+        let markdown = render_markdown_from_json(&value, "clarity", None);
+        assert!(markdown.contains("Supporting Inputs:"));
+        assert!(markdown.contains("- canon-input/context.md"));
+        assert!(markdown.contains("Readiness Delta:"));
+        assert!(markdown.contains("- Add deployment view."));
+        assert!(markdown.contains("Evidence Signals:"));
+        assert!(markdown.contains("- Full section coverage detected."));
+        assert!(markdown.contains("Downgrade Reasons:"));
+        assert!(markdown.contains("- Minor gap in deployment view."));
+        assert!(markdown.contains("Next Authoring Step:"));
+        assert!(markdown.contains("Proceed to governed run."));
     }
 }

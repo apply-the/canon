@@ -228,6 +228,8 @@ pub(super) fn project_runtime_packet_metadata(
         publish_order: None,
         legacy_aliases: None,
         expertise_input: None,
+        publication_target_class: None,
+        artifact_indexing: None,
         authority_governance: Some(AuthorityGovernanceV1Envelope::from_runtime_inputs(
             AuthorityGovernanceV1RuntimeInputs {
                 mode: manifest.mode,
@@ -288,4 +290,187 @@ pub(super) fn projected_artifact_order(
             (file_name != RUNTIME_PACKET_METADATA_FILE_NAME).then(|| file_name.to_string())
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        ApprovalState, GovernanceReasonCode, GovernanceStatus, PacketReadiness,
+        load_run_projection, load_runtime_packet_metadata, merge_projected_governance_metadata,
+        project_run_response, project_runtime_packet_metadata, projected_artifact_order,
+    };
+    use canon_engine::domain::artifact::RuntimePacketMetadata;
+    use canon_engine::domain::mode::Mode;
+    use canon_engine::domain::policy::{RiskClass, UsageZone};
+    use canon_engine::domain::publish_profile::PublicationTargetClass;
+    use canon_engine::domain::run::ClassificationProvenance;
+    use canon_engine::domain::run::RunState;
+    use canon_engine::persistence::manifests::{RunManifest, RunStateManifest};
+    use std::fs;
+    use std::path::Path;
+    use tempfile::TempDir;
+    use time::OffsetDateTime;
+
+    fn sample_manifest() -> RunManifest {
+        RunManifest {
+            run_id: "R-20260517-abcd1234".to_string(),
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: None,
+            mode: Mode::Architecture,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: None,
+            classification: ClassificationProvenance::default(),
+            owner: "staff-engineer".to_string(),
+            created_at: OffsetDateTime::UNIX_EPOCH,
+        }
+    }
+
+    #[test]
+    fn project_runtime_packet_metadata_keeps_indexing_fields_empty() {
+        let metadata = project_runtime_packet_metadata(
+            &sample_manifest(),
+            ApprovalState::Granted,
+            Some(PacketReadiness::Reusable),
+            &[
+                ".canon/artifacts/R-20260517-abcd1234/architecture/overview.md".to_string(),
+                ".canon/artifacts/R-20260517-abcd1234/architecture/packet-metadata.json"
+                    .to_string(),
+            ],
+            &[],
+        );
+
+        assert_eq!(metadata.primary_artifact, "overview.md");
+        assert_eq!(metadata.artifact_order, vec!["overview.md".to_string()]);
+        assert!(metadata.publication_target_class.is_none());
+        assert!(metadata.artifact_indexing.is_none());
+        assert!(metadata.authority_governance.is_some());
+        assert!(metadata.adaptive_governance.is_some());
+    }
+
+    #[test]
+    fn merge_projected_governance_metadata_only_backfills_governance_fields() {
+        let projected = project_runtime_packet_metadata(
+            &sample_manifest(),
+            ApprovalState::Requested,
+            Some(PacketReadiness::Incomplete),
+            &[".canon/artifacts/R-20260517-abcd1234/architecture/overview.md".to_string()],
+            &[],
+        );
+        let merged = merge_projected_governance_metadata(
+            RuntimePacketMetadata {
+                primary_artifact: "custom.md".to_string(),
+                artifact_order: vec!["custom.md".to_string()],
+                publication_target_class: Some(PublicationTargetClass::Stable),
+                ..RuntimePacketMetadata::default()
+            },
+            &projected,
+        );
+
+        assert_eq!(merged.primary_artifact, "custom.md");
+        assert_eq!(merged.artifact_order, vec!["custom.md".to_string()]);
+        assert_eq!(merged.publication_target_class, Some(PublicationTargetClass::Stable));
+        assert!(merged.artifact_indexing.is_none());
+        assert!(merged.authority_governance.is_some());
+        assert!(merged.adaptive_governance.is_some());
+
+        assert_eq!(
+            projected_artifact_order(
+                &[".canon/artifacts/run/architecture/expected.md".to_string()],
+                &[
+                    ".canon/artifacts/run/architecture/packet-metadata.json".to_string(),
+                    ".canon/artifacts/run/architecture/actual.md".to_string(),
+                ],
+            ),
+            vec!["actual.md".to_string()]
+        );
+    }
+
+    fn write_run_manifest(repo_root: &Path, run_ref: &str) {
+        let run_dir = repo_root.join(".canon").join("runs").join(run_ref);
+        fs::create_dir_all(&run_dir).expect("create run dir");
+        fs::write(
+            run_dir.join("run.toml"),
+            toml::to_string(&RunManifest {
+                run_id: run_ref.to_string(),
+                uuid: None,
+                short_id: None,
+                slug: None,
+                title: None,
+                mode: Mode::Architecture,
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                system_context: None,
+                classification: ClassificationProvenance::default(),
+                owner: "staff-engineer".to_string(),
+                created_at: OffsetDateTime::UNIX_EPOCH,
+            })
+            .expect("serialize run manifest"),
+        )
+        .expect("write run manifest");
+    }
+
+    fn write_run_state(repo_root: &Path, run_ref: &str) {
+        let run_dir = repo_root.join(".canon").join("runs").join(run_ref);
+        fs::create_dir_all(&run_dir).expect("create run dir");
+        fs::write(
+            run_dir.join("state.toml"),
+            toml::to_string(&RunStateManifest {
+                state: RunState::Completed,
+                updated_at: OffsetDateTime::UNIX_EPOCH,
+            })
+            .expect("serialize run state"),
+        )
+        .expect("write run state");
+    }
+
+    #[test]
+    fn project_run_response_returns_run_not_found_when_manifest_is_missing() {
+        let workspace = TempDir::new().expect("tempdir");
+
+        let response = project_run_response(workspace.path(), "missing-run", None);
+
+        assert_eq!(response.status, GovernanceStatus::Failed);
+        assert_eq!(response.reason_code, Some(GovernanceReasonCode::RunNotFound));
+    }
+
+    #[test]
+    fn load_run_projection_returns_runtime_error_when_state_manifest_is_missing() {
+        let workspace = TempDir::new().expect("tempdir");
+        let run_ref = "019db71e-f1bb-7dc2-b535-213e556d16fe";
+        write_run_manifest(workspace.path(), run_ref);
+
+        let response = load_run_projection(workspace.path(), run_ref).unwrap_err();
+
+        assert_eq!(response.status, GovernanceStatus::Failed);
+        assert_eq!(response.reason_code, Some(GovernanceReasonCode::RuntimeError));
+        assert!(response.message.contains("state could not be loaded"));
+    }
+
+    #[test]
+    fn load_run_projection_omits_packet_ref_when_no_packet_artifacts_exist() {
+        let workspace = TempDir::new().expect("tempdir");
+        let run_ref = "019db71e-f1bb-7dc2-b535-213e556d16fe";
+        write_run_manifest(workspace.path(), run_ref);
+        write_run_state(workspace.path(), run_ref);
+
+        let projection = load_run_projection(workspace.path(), run_ref).expect("projection");
+
+        assert!(projection.expected_document_refs.is_empty());
+        assert!(projection.document_refs.is_empty());
+        assert_eq!(projection.packet_ref, None);
+    }
+
+    #[test]
+    fn load_runtime_packet_metadata_returns_none_when_sidecar_is_missing() {
+        let workspace = TempDir::new().expect("tempdir");
+
+        let metadata =
+            load_runtime_packet_metadata(workspace.path(), "missing-run", Mode::Architecture)
+                .expect("missing sidecar should not be an error");
+
+        assert_eq!(metadata, None);
+    }
 }

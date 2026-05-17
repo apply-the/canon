@@ -13,9 +13,10 @@ use crate::domain::artifact::{
 };
 use crate::domain::mode::Mode;
 use crate::domain::publish_profile::{
-    CANON_PRODUCER, ExpertiseInputMetadata, LineageMetadata, ManagedBlockDescriptor,
-    PROJECT_MEMORY_CONTRACT_VERSION, PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState,
-    PublicationTargetClass, PublishProfile, UpdateStrategy, classify_governed_expertise_input,
+    ArtifactIndexingMetadata, CANON_PRODUCER, ExpertiseInputMetadata, LineageMetadata,
+    ManagedBlockDescriptor, PROJECT_MEMORY_CONTRACT_VERSION,
+    PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublicationTargetClass,
+    PublishProfile, UpdateStrategy, classify_governed_expertise_input,
 };
 use crate::domain::run::RunState;
 use crate::persistence::manifests::RunManifest;
@@ -74,6 +75,8 @@ struct PublishMetadata {
     publish_order: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     legacy_aliases: Option<BTreeMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    artifact_indexing: Option<ArtifactIndexingMetadata>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     profile: Option<PublishProfile>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
@@ -160,6 +163,7 @@ pub fn publish_run(
         })
         .collect::<Vec<_>>();
     let packet_metadata = runtime_packet_metadata(&artifacts);
+    packet_metadata.validate_artifact_indexing().map_err(EngineError::Validation)?;
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 1);
     for artifact in &artifacts {
@@ -187,10 +191,11 @@ pub fn publish_run(
         artifact_order: packet_metadata.artifact_order,
         publish_order: packet_metadata.publish_order,
         legacy_aliases: packet_metadata.legacy_aliases,
+        artifact_indexing: packet_metadata.artifact_indexing,
         profile: None,
         promotion_state: None,
         update_strategy: None,
-        publication_target_class: None,
+        publication_target_class: packet_metadata.publication_target_class,
         expertise_input: None,
         lineage: None,
     };
@@ -267,10 +272,20 @@ pub fn publish_run_with_profile(
         .iter()
         .map(|a| source_artifact_path(&manifest.run_id, manifest.mode, &a.record.file_name))
         .collect::<Vec<_>>();
-    let packet_metadata = runtime_packet_metadata(&artifacts);
+    let mut packet_metadata = runtime_packet_metadata(&artifacts);
+    packet_metadata.validate_artifact_indexing().map_err(EngineError::Validation)?;
     let expertise_input =
         resolve_expertise_input_metadata(repo_root, manifest.mode, &packet_metadata);
     let publication_target_class = PublicationTargetClass::for_publication(promotion, strategy);
+    let artifact_indexing = ArtifactIndexingMetadata::for_publication(
+        publication_target_class,
+        strategy,
+    )
+    .map_err(|error| {
+        EngineError::Validation(format!("unsupported artifact indexing projection: {error}"))
+    })?;
+    packet_metadata.publication_target_class = Some(publication_target_class);
+    packet_metadata.artifact_indexing = Some(artifact_indexing.clone());
 
     let publish_timestamp = OffsetDateTime::now_utc().format(&Rfc3339).map_err(|error| {
         EngineError::Validation(format!("failed to format publish timestamp: {error}"))
@@ -403,6 +418,7 @@ pub fn publish_run_with_profile(
         artifact_order: packet_metadata.artifact_order,
         publish_order: packet_metadata.publish_order,
         legacy_aliases: packet_metadata.legacy_aliases,
+        artifact_indexing: Some(artifact_indexing),
         profile: Some(profile),
         promotion_state: Some(promotion),
         update_strategy: Some(strategy),
@@ -622,6 +638,8 @@ fn infer_runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePack
         publish_order: None,
         legacy_aliases: (!legacy_aliases.is_empty()).then_some(legacy_aliases),
         expertise_input: None,
+        publication_target_class: None,
+        artifact_indexing: None,
         authority_governance: None,
         adaptive_governance: None,
     }
@@ -1604,6 +1622,7 @@ mod tests {
                 artifact_order: vec!["01-problem-statement.md".to_string()],
                 publish_order: None,
                 legacy_aliases: None,
+                artifact_indexing: None,
                 profile: None,
                 promotion_state: None,
                 update_strategy: None,
