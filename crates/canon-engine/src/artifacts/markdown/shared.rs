@@ -290,3 +290,232 @@ pub fn trim_multiline_block(value: &str) -> String {
         _ => String::new(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_string_list_formats_items_with_dashes() {
+        let items = vec!["alpha".to_string(), "beta".to_string()];
+        let result = render_string_list(&items, "none");
+        assert_eq!(result, "- alpha\n- beta");
+    }
+
+    #[test]
+    fn render_string_list_returns_empty_message_when_empty() {
+        let result = render_string_list(&[], "nothing here");
+        assert_eq!(result, "nothing here");
+    }
+
+    #[test]
+    fn render_missing_authored_decision_block_contains_heading_and_guidance() {
+        let result = render_missing_authored_decision_block("Risk Level", "Add a risk section.");
+        assert!(result.contains("## Risk Level"));
+        assert!(result.contains("Add a risk section."));
+        assert!(result.contains("Missing Authored Decision"));
+        assert!(result.contains("Decision required"));
+    }
+
+    #[test]
+    fn extract_markdown_h2_section_finds_matching_section() {
+        let source = "# Title\n\n## Problem\n\nThis is the problem.\n\n## Next\n\nother";
+        let result = extract_markdown_h2_section(source, "Problem");
+        assert_eq!(result.as_deref(), Some("This is the problem."));
+    }
+
+    #[test]
+    fn extract_markdown_h2_section_returns_none_when_absent() {
+        let source = "# Title\n\n## Other\n\nsome content";
+        let result = extract_markdown_h2_section(source, "Missing");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn extract_markdown_h2_section_returns_none_for_empty_body() {
+        let source = "## Problem\n\n## Next\n\ncontent";
+        let result = extract_markdown_h2_section(source, "Problem");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn is_matching_h2_heading_matches_exact_h2() {
+        assert!(is_matching_h2_heading("## Problem", "Problem"));
+        assert!(is_matching_h2_heading("## problem", "Problem")); // case-insensitive
+    }
+
+    #[test]
+    fn is_matching_h2_heading_rejects_h3_and_h1() {
+        assert!(!is_matching_h2_heading("### Problem", "Problem"));
+        assert!(!is_matching_h2_heading("# Problem", "Problem"));
+        assert!(!is_matching_h2_heading("Some text", "Problem"));
+    }
+
+    #[test]
+    fn is_matching_heading_matches_any_heading_level() {
+        assert!(is_matching_heading("# Title", "Title"));
+        assert!(is_matching_heading("## Section", "Section"));
+        assert!(is_matching_heading("### Sub", "Sub"));
+    }
+
+    #[test]
+    fn is_matching_heading_is_case_insensitive() {
+        assert!(is_matching_heading("## RISK LEVEL", "risk level"));
+    }
+
+    #[test]
+    fn is_matching_heading_rejects_non_headings() {
+        assert!(!is_matching_heading("plain text", "plain text"));
+    }
+
+    #[test]
+    fn system_shaping_context_gap_returns_none_when_both_supplied() {
+        let result = system_shaping_context_gap(Some("Build a new service"), Some("Minimal deps"));
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn system_shaping_context_gap_returns_error_when_intent_missing() {
+        let result = system_shaping_context_gap(None, Some("Minimal deps"));
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn system_shaping_context_gap_returns_error_when_constraint_missing() {
+        let result = system_shaping_context_gap(Some("Build a new service"), None);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn extract_inline_marker_finds_value_after_colon() {
+        let source = "risk: bounded-impact\nother: stuff";
+        let normalized = source.to_lowercase();
+        let result = extract_inline_marker(source, &normalized, "risk");
+        assert_eq!(result.as_deref(), Some("bounded-impact"));
+    }
+
+    #[test]
+    fn extract_inline_marker_returns_none_when_absent() {
+        let source = "zone: green";
+        let normalized = source.to_lowercase();
+        let result = extract_inline_marker(source, &normalized, "risk");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn looks_like_inline_marker_detects_key_colon_pattern() {
+        assert!(looks_like_inline_marker("Risk Level: high"));
+        assert!(!looks_like_inline_marker("- bullet item"));
+        assert!(!looks_like_inline_marker("* another bullet"));
+        assert!(!looks_like_inline_marker("no colon here"));
+    }
+
+    #[test]
+    fn trim_multiline_block_strips_leading_and_trailing_blank_lines() {
+        let input = "\n\n  first line\n  second line\n\n";
+        let result = trim_multiline_block(input);
+        assert_eq!(result, "  first line\n  second line");
+    }
+
+    #[test]
+    fn trim_multiline_block_returns_empty_for_all_blank() {
+        assert_eq!(trim_multiline_block("\n\n\n"), String::new());
+    }
+
+    #[test]
+    fn is_section_boundary_detects_headings_and_framing_markers() {
+        assert!(is_section_boundary("## Next Section"));
+        assert!(is_section_boundary("Generated framing: some text"));
+        assert!(is_section_boundary("Critique evidence: some text"));
+        assert!(!is_section_boundary("Regular text here"));
+    }
+
+    #[test]
+    fn render_discovery_bundle_summary_includes_detail_links() {
+        let result = render_discovery_bundle_summary(
+            "problem-map.md",
+            "The problem",
+            "Some constraints",
+            "Next: architecture",
+        );
+        // problem-map.md is the current_file so it should be excluded from links.
+        assert!(!result.contains("[problem-map.md](problem-map.md)"));
+        assert!(result.contains("unknowns-and-assumptions.md"));
+        assert!(result.contains("The problem"));
+    }
+
+    #[test]
+    fn render_discovery_bundle_summary_uses_multiline_format_for_long_content() {
+        // Content with a newline triggers the multiline branch in format_field (line 91).
+        let long_problem = "line one\nline two";
+        let result = render_discovery_bundle_summary(
+            "unknowns-and-assumptions.md",
+            long_problem,
+            "no constraints",
+            "next step",
+        );
+        assert!(result.contains("- **Problem:**\n\n  line one\n  line two"));
+    }
+
+    #[test]
+    fn render_missing_authored_body_block_contains_heading_and_capture_message() {
+        let result = render_missing_authored_body_block("Decision");
+        assert!(result.contains("## Decision"));
+        assert!(result.contains("NOT CAPTURED"));
+    }
+
+    #[test]
+    fn render_authored_decision_section_returns_body_when_heading_present() {
+        let source = "## Risk Level\n\nBounded impact only.\n";
+        let result = render_authored_decision_section(source, "Risk Level", &[], "Add risk.");
+        assert!(result.contains("Bounded impact only."));
+        assert!(!result.contains("Missing Authored Decision"));
+    }
+
+    #[test]
+    fn render_authored_decision_section_returns_missing_block_when_heading_absent() {
+        let source = "## Some Other Section\n\nsome content\n";
+        let result = render_authored_decision_section(source, "Risk Level", &[], "Add risk.");
+        assert!(result.contains("Missing Authored Decision"));
+        assert!(result.contains("Add risk."));
+    }
+
+    #[test]
+    fn extract_authored_h2_section_falls_back_to_alias() {
+        let source = "## Risk\n\nBounded impact.\n";
+        // Canonical heading doesn't match, but alias "Risk" does.
+        let result = extract_authored_h2_section(source, "Risk Level", &["Risk"]);
+        assert_eq!(result.as_deref(), Some("Bounded impact."));
+    }
+
+    #[test]
+    fn extract_authored_h2_section_returns_none_when_no_match() {
+        let source = "## Other\n\nsome content\n";
+        let result = extract_authored_h2_section(source, "Risk Level", &[]);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn extract_inline_marker_finds_multiline_value() {
+        // Value is on the next line, not the same line as the key.
+        let source = "risk:\nbounded-impact\nother: stuff";
+        let normalized = source.to_lowercase();
+        let result = extract_inline_marker(source, &normalized, "risk");
+        assert_eq!(result.as_deref(), Some("bounded-impact"));
+    }
+
+    #[test]
+    fn extract_markdown_section_finds_section_body() {
+        let source = "# Title\n\n## Problem\n\nThis is the problem body.\n\n## Next\n\nother";
+        let result = extract_markdown_section(source, "Problem");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("This is the problem body."));
+    }
+
+    #[test]
+    fn extract_markdown_section_returns_none_when_absent() {
+        let source = "## Other\n\ncontent";
+        let result = extract_markdown_section(source, "Missing");
+        assert!(result.is_none());
+    }
+}

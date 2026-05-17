@@ -395,4 +395,117 @@ mod tests {
         let ids: Vec<&str> = actions.iter().map(|action| action.action.as_str()).collect();
         assert_eq!(ids, vec!["resume", "status"]);
     }
+
+    #[test]
+    fn recommend_next_action_returns_inspect_artifacts_for_blocked_run_with_artifacts() {
+        let blocked_gate = make_blocked_gate("artifact-completeness");
+        let action = recommend_next_action(
+            RunState::Blocked,
+            None,
+            &[".canon/artifacts/run-1/summary.md".to_string()],
+            false,
+            &[blocked_gate],
+            &[],
+        );
+        assert_eq!(action.unwrap().action, "inspect-artifacts");
+    }
+
+    #[test]
+    fn recommend_next_action_returns_none_for_blocked_run_without_artifacts_or_evidence() {
+        let blocked_gate = make_blocked_gate("risk");
+        let action =
+            recommend_next_action(RunState::Blocked, None, &[], false, &[blocked_gate], &[]);
+        assert!(action.is_none());
+    }
+
+    #[test]
+    fn recommend_blocked_next_action_returns_evidence_when_bundle_exists() {
+        let blocked_gate = make_blocked_gate("artifact-completeness");
+        let action =
+            recommend_next_action(RunState::Blocked, None, &[], true, &[blocked_gate], &[]);
+        assert_eq!(action.unwrap().action, "inspect-evidence");
+    }
+
+    #[test]
+    fn recommend_completed_next_action_returns_inspect_artifacts_when_no_mode_result() {
+        let action = recommend_next_action(
+            RunState::Completed,
+            None,
+            &[".canon/artifacts/run-1/output.md".to_string()],
+            false,
+            &[],
+            &[],
+        );
+        assert_eq!(action.unwrap().action, "inspect-artifacts");
+    }
+
+    #[test]
+    fn recommend_completed_next_action_returns_inspect_evidence_when_only_bundle() {
+        let action = recommend_next_action(RunState::Completed, None, &[], true, &[], &[]);
+        assert_eq!(action.unwrap().action, "inspect-evidence");
+    }
+
+    #[test]
+    fn recommend_completed_next_action_returns_none_with_no_artifacts_or_evidence() {
+        let action = recommend_next_action(RunState::Completed, None, &[], false, &[], &[]);
+        assert!(action.is_none());
+    }
+
+    #[test]
+    fn build_possible_actions_adds_approve_for_each_approval_target() {
+        let actions = build_possible_actions(
+            RunState::AwaitingApproval,
+            None,
+            &[],
+            false,
+            &[],
+            &["gate:execution".to_string(), "gate:risk".to_string()],
+            "run-3",
+        );
+        let approve_actions: Vec<_> = actions.iter().filter(|a| a.action == "approve").collect();
+        assert_eq!(approve_actions.len(), 2);
+        assert!(approve_actions[0].target.as_deref() == Some("gate:execution"));
+        assert!(approve_actions[1].target.as_deref() == Some("gate:risk"));
+    }
+
+    #[test]
+    fn build_possible_actions_blocked_with_evidence_appends_inspect_evidence() {
+        let blocked = vec![make_blocked_gate("artifact-completeness")];
+        // No artifact_paths, has evidence, blocked gate: should append inspect-evidence.
+        let actions =
+            build_possible_actions(RunState::Blocked, None, &[], true, &blocked, &[], "run-4");
+        let ids: Vec<&str> = actions.iter().map(|a| a.action.as_str()).collect();
+        assert!(ids.contains(&"inspect-evidence"));
+    }
+
+    #[test]
+    fn build_possible_actions_empty_run_id_suppresses_all_actions() {
+        let actions = build_possible_actions(
+            RunState::Completed,
+            None,
+            &[".canon/artifacts/run-1/output.md".to_string()],
+            true,
+            &[],
+            &[],
+            "",
+        );
+        // Empty run_id suppresses inspect-artifacts and inspect-evidence.
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn build_possible_actions_approval_target_with_evidence_shows_approve_and_evidence() {
+        let actions = build_possible_actions(
+            RunState::AwaitingApproval,
+            None,
+            &[],
+            true,
+            &[],
+            &["gate:execution".to_string()],
+            "run-5",
+        );
+        let ids: Vec<&str> = actions.iter().map(|a| a.action.as_str()).collect();
+        assert!(ids.contains(&"inspect-evidence"));
+        assert!(ids.contains(&"approve"));
+    }
 }

@@ -945,6 +945,7 @@ pub(super) fn build_runtime_packet_metadata(
             expertise_input: None,
             publication_target_class: None,
             artifact_indexing: None,
+            semantic_descriptor: None,
             authority_governance,
             adaptive_governance,
         },
