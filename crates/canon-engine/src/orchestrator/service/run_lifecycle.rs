@@ -291,6 +291,36 @@ impl EngineService {
         let mut fragments = Vec::new();
         let include_input_labels = inputs.len() + inline_inputs.len() > 1;
 
+        self.append_file_input_fragments(
+            &filesystem,
+            inputs,
+            include_input_labels,
+            &mut fragments,
+        )?;
+        self.append_inline_input_fragments(
+            inputs,
+            inline_inputs,
+            include_input_labels,
+            &mut fragments,
+        );
+
+        let normalized = preserve_multiline_summary(&fragments.join("\n"));
+        if normalized.is_empty() {
+            Err(EngineError::Validation(
+                "authored input contained no usable content after normalization".to_string(),
+            ))
+        } else {
+            Ok(normalized)
+        }
+    }
+
+    fn append_file_input_fragments(
+        &self,
+        filesystem: &FilesystemAdapter,
+        inputs: &[String],
+        include_input_labels: bool,
+        fragments: &mut Vec<String>,
+    ) -> Result<(), EngineError> {
         for input in inputs {
             let resolved = self.resolve_input_path(input);
             let files = self.collect_content_input_files(input)?;
@@ -316,6 +346,16 @@ impl EngineService {
             }
         }
 
+        Ok(())
+    }
+
+    fn append_inline_input_fragments(
+        &self,
+        inputs: &[String],
+        inline_inputs: &[String],
+        include_input_labels: bool,
+        fragments: &mut Vec<String>,
+    ) {
         for (index, inline_input) in inline_inputs.iter().enumerate() {
             if include_input_labels || !inputs.is_empty() {
                 fragments.push(format!(
@@ -326,15 +366,6 @@ impl EngineService {
             } else {
                 fragments.push(inline_input.clone());
             }
-        }
-
-        let normalized = preserve_multiline_summary(&fragments.join("\n"));
-        if normalized.is_empty() {
-            Err(EngineError::Validation(
-                "authored input contained no usable content after normalization".to_string(),
-            ))
-        } else {
-            Ok(normalized)
         }
     }
 

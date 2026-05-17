@@ -232,188 +232,39 @@ impl CopilotCliAdapter {
                 "No explicit risk boundary was authored for this verification packet.".to_string()
             });
 
-        let explicit_risk_claims = claims_under_test
-            .iter()
-            .filter(|claim| contains_verification_failure_keyword(claim))
-            .cloned()
-            .collect::<Vec<_>>();
-        let explicit_risk_evidence = evidence_basis
-            .iter()
-            .filter(|entry| contains_verification_failure_keyword(entry))
-            .cloned()
-            .collect::<Vec<_>>();
-        let strong_claims = claims_under_test
-            .iter()
-            .filter(|claim| has_strong_verification_claim_language(claim))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let mut challenge_findings = Vec::new();
-        for focus in &challenge_focus {
-            challenge_findings.push(format!(
-                "Authored challenge focus remains open until explicit evidence answers it: {focus}"
-            ));
-        }
-        for claim in &strong_claims {
-            challenge_findings.push(format!(
-                "The packet makes a broad assurance claim that still needs direct evidence: {claim}"
-            ));
-        }
-        for claim in &explicit_risk_claims {
-            challenge_findings.push(format!(
-                "The authored claim already signals a contradiction or missing-evidence path: {claim}"
-            ));
-        }
-        for entry in &explicit_risk_evidence {
-            challenge_findings.push(format!(
-                "The authored evidence basis already records a contradiction or proof gap: {entry}"
-            ));
-        }
-
-        let mut contradictions = Vec::new();
-        for claim in &explicit_risk_claims {
-            contradictions.push(format!(
-                "The authored claim under test already records a contradiction or unresolved support gap: {claim}"
-            ));
-        }
-        for entry in &explicit_risk_evidence {
-            contradictions.push(format!(
-                "The evidence basis still names a proof gap or unsupported path: {entry}"
-            ));
-        }
-        for focus in &challenge_focus {
-            if contains_verification_failure_keyword(focus) {
-                contradictions.push(format!(
-                    "The authored challenge focus already names an unresolved contradiction or evidence gap: {focus}"
-                ));
-            }
-        }
-
-        let mut open_findings = Vec::new();
-        for focus in &challenge_focus {
-            open_findings.push(format!(
-                "Answer this authored challenge focus with explicit evidence or narrow the affected claim: {focus}"
-            ));
-        }
-        for claim in &strong_claims {
-            open_findings.push(format!(
-                "This broad assurance claim still needs adversarial or contract-backed evidence: {claim}"
-            ));
-        }
-        for contradiction in &contradictions {
-            open_findings.push(contradiction.clone());
-        }
-
+        let (explicit_risk_claims, explicit_risk_evidence, strong_claims) =
+            collect_verification_risk_signals(&claims_under_test, &evidence_basis);
+        let challenge_findings = build_verification_challenge_findings(
+            &challenge_focus,
+            &strong_claims,
+            &explicit_risk_claims,
+            &explicit_risk_evidence,
+        );
+        let contradictions = build_verification_contradictions(
+            &explicit_risk_claims,
+            &explicit_risk_evidence,
+            &challenge_focus,
+        );
+        let open_findings =
+            build_verification_open_findings(&challenge_focus, &strong_claims, &contradictions);
         let has_open_findings = !open_findings.is_empty();
-        let risk_boundary_blocks = contains_case_insensitive(&risk_boundary, "block")
-            || contains_case_insensitive(&risk_boundary, "must")
-            || contains_case_insensitive(&risk_boundary, "cannot pass")
-            || contains_case_insensitive(&risk_boundary, "should fail");
-        let verdict = if !has_open_findings {
-            "supported"
-        } else if !contradictions.is_empty() || risk_boundary_blocks {
-            "unsupported"
-        } else {
-            "mixed"
-        };
-        let open_findings_status =
-            if has_open_findings { "unresolved-findings-open" } else { "no-open-findings" };
-
-        let verified_claims = if verdict == "supported" {
-            if claims_under_test.is_empty() {
-                vec![
-                    "The verification packet remained bounded to the authored evidence basis and contract surface."
-                        .to_string(),
-                ]
-            } else {
-                claims_under_test.clone()
-            }
-        } else {
-            let mut supported = Vec::new();
-            if !evidence_basis.is_empty() {
-                supported.push(
-                    "The evidence basis is explicit enough for downstream inspection and follow-up."
-                        .to_string(),
-                );
-            }
-            if !contract_assumptions.is_empty() {
-                supported.push(
-                    "The contract surface or assumptions remain explicit in the verification packet."
-                        .to_string(),
-                );
-            }
-            if supported.is_empty() {
-                supported.push(
-                    "Only the packet boundaries were captured; the claims themselves remain under challenge."
-                        .to_string(),
-                );
-            }
-            supported
-        };
-
-        let mut rejected_claims = Vec::new();
-        if verdict != "supported" {
-            for claim in &explicit_risk_claims {
-                rejected_claims.push(format!("Still unsupported from the current packet: {claim}"));
-            }
-            for claim in &strong_claims {
-                rejected_claims.push(format!("Still unsupported from the current packet: {claim}"));
-            }
-            if rejected_claims.is_empty() {
-                for focus in &challenge_focus {
-                    rejected_claims.push(format!(
-                        "The packet does not yet close this authored challenge focus: {focus}"
-                    ));
-                }
-            }
-        }
-
-        let required_follow_up = if has_open_findings {
-            let mut follow_up = Vec::new();
-            if !challenge_focus.is_empty() {
-                follow_up.push(
-                    "Address each authored challenge-focus item with explicit evidence or narrow the affected claim."
-                        .to_string(),
-                );
-            }
-            if !contradictions.is_empty() {
-                follow_up.push(
-                    "Resolve the contradictions or proof gaps before treating the packet as supported."
-                        .to_string(),
-                );
-            }
-            if !strong_claims.is_empty() {
-                follow_up.push(
-                    "Reduce absolute claim language or add adversarial evidence for the strongest assurances."
-                        .to_string(),
-                );
-            }
-            follow_up.push(
-                "Keep the unresolved findings visible in the packet until the next verification or review pass."
-                    .to_string(),
-            );
-            follow_up
-        } else {
-            vec![
-                "Keep the verification packet attached to downstream release or approval discussion."
-                    .to_string(),
-            ]
-        };
-
-        let rationale = match verdict {
-            "supported" => {
-                "No explicit contradiction, missing-evidence marker, or open authored challenge remained in the normalized verification packet."
-                    .to_string()
-            }
-            "unsupported" => format!(
-                "The packet still carries {} unresolved finding(s) against the named claims and evidence basis, so readiness remains blocked.",
-                open_findings.len()
-            ),
-            _ => {
-                "Some verification concerns remain open and need follow-up before the packet can be treated as fully trusted."
-                    .to_string()
-            }
-        };
+        let (verdict, open_findings_status) =
+            determine_verification_verdict(&open_findings, &contradictions, &risk_boundary);
+        let verified_claims = build_verified_claims(
+            verdict,
+            &claims_under_test,
+            &evidence_basis,
+            &contract_assumptions,
+        );
+        let rejected_claims =
+            build_rejected_claims(verdict, &explicit_risk_claims, &strong_claims, &challenge_focus);
+        let required_follow_up = build_required_follow_up(
+            has_open_findings,
+            &challenge_focus,
+            &contradictions,
+            &strong_claims,
+        );
+        let rationale = verification_verdict_rationale(verdict, open_findings.len());
 
         let summary = format!(
             "## Challenge Findings\n\n{}\n\n## Contradictions\n\n{}\n\n## Verified Claims\n\n{}\n\n## Rejected Claims\n\n{}\n\n## Open Findings\n\nStatus: {}\n\n{}\n\n## Required Follow-up\n\n{}\n\n## Overall Verdict\n\nStatus: {}\nRationale: {}",
@@ -542,6 +393,257 @@ impl CopilotCliAdapter {
                 occurred_at: OffsetDateTime::now_utc(),
             },
             executor: "copilot-cli(synthetic-summary)".to_string(),
+        }
+    }
+}
+
+const VERIFICATION_VERDICT_SUPPORTED: &str = "supported";
+const VERIFICATION_VERDICT_UNSUPPORTED: &str = "unsupported";
+const VERIFICATION_VERDICT_MIXED: &str = "mixed";
+const VERIFICATION_OPEN_FINDINGS_OPEN: &str = "unresolved-findings-open";
+const VERIFICATION_OPEN_FINDINGS_CLEAR: &str = "no-open-findings";
+
+fn collect_verification_risk_signals(
+    claims_under_test: &[String],
+    evidence_basis: &[String],
+) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let explicit_risk_claims = claims_under_test
+        .iter()
+        .filter(|claim| contains_verification_failure_keyword(claim))
+        .cloned()
+        .collect::<Vec<_>>();
+    let explicit_risk_evidence = evidence_basis
+        .iter()
+        .filter(|entry| contains_verification_failure_keyword(entry))
+        .cloned()
+        .collect::<Vec<_>>();
+    let strong_claims = claims_under_test
+        .iter()
+        .filter(|claim| has_strong_verification_claim_language(claim))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    (explicit_risk_claims, explicit_risk_evidence, strong_claims)
+}
+
+fn build_verification_challenge_findings(
+    challenge_focus: &[String],
+    strong_claims: &[String],
+    explicit_risk_claims: &[String],
+    explicit_risk_evidence: &[String],
+) -> Vec<String> {
+    let mut challenge_findings = Vec::new();
+    for focus in challenge_focus {
+        challenge_findings.push(format!(
+            "Authored challenge focus remains open until explicit evidence answers it: {focus}"
+        ));
+    }
+    for claim in strong_claims {
+        challenge_findings.push(format!(
+            "The packet makes a broad assurance claim that still needs direct evidence: {claim}"
+        ));
+    }
+    for claim in explicit_risk_claims {
+        challenge_findings.push(format!(
+            "The authored claim already signals a contradiction or missing-evidence path: {claim}"
+        ));
+    }
+    for entry in explicit_risk_evidence {
+        challenge_findings.push(format!(
+            "The authored evidence basis already records a contradiction or proof gap: {entry}"
+        ));
+    }
+    challenge_findings
+}
+
+fn build_verification_contradictions(
+    explicit_risk_claims: &[String],
+    explicit_risk_evidence: &[String],
+    challenge_focus: &[String],
+) -> Vec<String> {
+    let mut contradictions = Vec::new();
+    for claim in explicit_risk_claims {
+        contradictions.push(format!(
+            "The authored claim under test already records a contradiction or unresolved support gap: {claim}"
+        ));
+    }
+    for entry in explicit_risk_evidence {
+        contradictions.push(format!(
+            "The evidence basis still names a proof gap or unsupported path: {entry}"
+        ));
+    }
+    for focus in challenge_focus {
+        if contains_verification_failure_keyword(focus) {
+            contradictions.push(format!(
+                "The authored challenge focus already names an unresolved contradiction or evidence gap: {focus}"
+            ));
+        }
+    }
+    contradictions
+}
+
+fn build_verification_open_findings(
+    challenge_focus: &[String],
+    strong_claims: &[String],
+    contradictions: &[String],
+) -> Vec<String> {
+    let mut open_findings = Vec::new();
+    for focus in challenge_focus {
+        open_findings.push(format!(
+            "Answer this authored challenge focus with explicit evidence or narrow the affected claim: {focus}"
+        ));
+    }
+    for claim in strong_claims {
+        open_findings.push(format!(
+            "This broad assurance claim still needs adversarial or contract-backed evidence: {claim}"
+        ));
+    }
+    open_findings.extend(contradictions.iter().cloned());
+    open_findings
+}
+
+fn determine_verification_verdict<'a>(
+    open_findings: &'a [String],
+    contradictions: &'a [String],
+    risk_boundary: &str,
+) -> (&'static str, &'static str) {
+    let risk_boundary_blocks = contains_case_insensitive(risk_boundary, "block")
+        || contains_case_insensitive(risk_boundary, "must")
+        || contains_case_insensitive(risk_boundary, "cannot pass")
+        || contains_case_insensitive(risk_boundary, "should fail");
+    let verdict = if open_findings.is_empty() {
+        VERIFICATION_VERDICT_SUPPORTED
+    } else if !contradictions.is_empty() || risk_boundary_blocks {
+        VERIFICATION_VERDICT_UNSUPPORTED
+    } else {
+        VERIFICATION_VERDICT_MIXED
+    };
+    let open_findings_status = if open_findings.is_empty() {
+        VERIFICATION_OPEN_FINDINGS_CLEAR
+    } else {
+        VERIFICATION_OPEN_FINDINGS_OPEN
+    };
+
+    (verdict, open_findings_status)
+}
+
+fn build_verified_claims(
+    verdict: &str,
+    claims_under_test: &[String],
+    evidence_basis: &[String],
+    contract_assumptions: &[String],
+) -> Vec<String> {
+    if verdict == VERIFICATION_VERDICT_SUPPORTED {
+        if claims_under_test.is_empty() {
+            return vec![
+                "The verification packet remained bounded to the authored evidence basis and contract surface."
+                    .to_string(),
+            ];
+        }
+
+        return claims_under_test.to_vec();
+    }
+
+    let mut supported = Vec::new();
+    if !evidence_basis.is_empty() {
+        supported.push(
+            "The evidence basis is explicit enough for downstream inspection and follow-up."
+                .to_string(),
+        );
+    }
+    if !contract_assumptions.is_empty() {
+        supported.push(
+            "The contract surface or assumptions remain explicit in the verification packet."
+                .to_string(),
+        );
+    }
+    if supported.is_empty() {
+        supported.push(
+            "Only the packet boundaries were captured; the claims themselves remain under challenge."
+                .to_string(),
+        );
+    }
+    supported
+}
+
+fn build_rejected_claims(
+    verdict: &str,
+    explicit_risk_claims: &[String],
+    strong_claims: &[String],
+    challenge_focus: &[String],
+) -> Vec<String> {
+    if verdict == VERIFICATION_VERDICT_SUPPORTED {
+        return Vec::new();
+    }
+
+    let mut rejected_claims = Vec::new();
+    for claim in explicit_risk_claims {
+        rejected_claims.push(format!("Still unsupported from the current packet: {claim}"));
+    }
+    for claim in strong_claims {
+        rejected_claims.push(format!("Still unsupported from the current packet: {claim}"));
+    }
+    if rejected_claims.is_empty() {
+        for focus in challenge_focus {
+            rejected_claims.push(format!(
+                "The packet does not yet close this authored challenge focus: {focus}"
+            ));
+        }
+    }
+    rejected_claims
+}
+
+fn build_required_follow_up(
+    has_open_findings: bool,
+    challenge_focus: &[String],
+    contradictions: &[String],
+    strong_claims: &[String],
+) -> Vec<String> {
+    if !has_open_findings {
+        return vec![
+            "Keep the verification packet attached to downstream release or approval discussion."
+                .to_string(),
+        ];
+    }
+
+    let mut follow_up = Vec::new();
+    if !challenge_focus.is_empty() {
+        follow_up.push(
+            "Address each authored challenge-focus item with explicit evidence or narrow the affected claim."
+                .to_string(),
+        );
+    }
+    if !contradictions.is_empty() {
+        follow_up.push(
+            "Resolve the contradictions or proof gaps before treating the packet as supported."
+                .to_string(),
+        );
+    }
+    if !strong_claims.is_empty() {
+        follow_up.push(
+            "Reduce absolute claim language or add adversarial evidence for the strongest assurances."
+                .to_string(),
+        );
+    }
+    follow_up.push(
+        "Keep the unresolved findings visible in the packet until the next verification or review pass."
+            .to_string(),
+    );
+    follow_up
+}
+
+fn verification_verdict_rationale(verdict: &str, open_findings_count: usize) -> String {
+    match verdict {
+        VERIFICATION_VERDICT_SUPPORTED => {
+            "No explicit contradiction, missing-evidence marker, or open authored challenge remained in the normalized verification packet."
+                .to_string()
+        }
+        VERIFICATION_VERDICT_UNSUPPORTED => format!(
+            "The packet still carries {open_findings_count} unresolved finding(s) against the named claims and evidence basis, so readiness remains blocked."
+        ),
+        _ => {
+            "Some verification concerns remain open and need follow-up before the packet can be treated as fully trusted."
+                .to_string()
         }
     }
 }

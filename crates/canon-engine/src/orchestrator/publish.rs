@@ -311,95 +311,18 @@ pub fn publish_run_with_profile(
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 2);
 
-    let published_to_path = if destination_override.is_some() {
-        if destination.exists() && !destination.is_dir() {
-            return Err(EngineError::Validation(format!(
-                "publish destination `{}` must be a directory",
-                destination.display()
-            )));
-        }
-        fs::create_dir_all(&destination)?;
-
-        match strategy {
-            UpdateStrategy::ManagedBlocks => {
-                for artifact in &artifacts {
-                    if artifact_slug(&artifact.record.file_name)
-                        == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
-                    {
-                        continue;
-                    }
-                    let target = destination.join(&artifact.record.file_name);
-                    write_managed_block(&target, &manifest.run_id, &artifact.contents)?;
-                    published_files.push(display_path(repo_root, &target));
-                }
-            }
-            UpdateStrategy::ProposalFiles => {
-                for artifact in &artifacts {
-                    if artifact_slug(&artifact.record.file_name)
-                        == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
-                    {
-                        continue;
-                    }
-                    let proposal_path = write_proposal_file(
-                        &destination,
-                        &artifact.record.file_name,
-                        &artifact.contents,
-                        &lineage,
-                    )?;
-                    published_files.push(display_path(repo_root, &proposal_path));
-                }
-            }
-            UpdateStrategy::AppendOnlyIndex => {
-                let index_path = destination.join("index.md");
-                let entry = format!(
-                    "## {}\n\n- Run: `{}`\n- Promotion: `{}`\n- Published: `{}`\n\n",
-                    publish_descriptor(&manifest),
-                    manifest.run_id,
-                    promotion.as_str(),
-                    publish_timestamp,
-                );
-                append_index_entry(&index_path, &entry)?;
-                published_files.push(display_path(repo_root, &index_path));
-                let evidence_dir = destination.join(&manifest.run_id);
-                for path in write_supporting_evidence_bundle(&evidence_dir, &artifacts)? {
-                    published_files.push(display_path(repo_root, &path));
-                }
-            }
-        }
-
-        destination.clone()
-    } else {
-        let surface = destination;
-        match strategy {
-            UpdateStrategy::ManagedBlocks => {
-                let bundle = render_project_memory_surface(&artifacts);
-                write_managed_block(&surface, &manifest.run_id, &bundle)?;
-                published_files.push(display_path(repo_root, &surface));
-                surface.clone()
-            }
-            UpdateStrategy::ProposalFiles => {
-                let bundle = render_project_memory_surface(&artifacts);
-                let proposal_path = write_surface_proposal_file(&surface, &bundle, &lineage)?;
-                published_files.push(display_path(repo_root, &proposal_path));
-                proposal_path
-            }
-            UpdateStrategy::AppendOnlyIndex => {
-                let evidence_dir = resolve_profile_evidence_root(repo_root, &manifest);
-                let entry = render_project_memory_index_entry(
-                    &manifest,
-                    &promotion,
-                    &publish_timestamp,
-                    &display_path(repo_root, &evidence_dir),
-                );
-                append_index_entry(&surface, &entry)?;
-                published_files.push(display_path(repo_root, &surface));
-                for path in write_supporting_evidence_bundle(&evidence_dir, &artifacts)? {
-                    published_files.push(display_path(repo_root, &path));
-                }
-                surface.clone()
-            }
-        }
-    };
+    let published_to_path = publish_profile_contents(
+        repo_root,
+        &manifest,
+        &destination,
+        destination_override.is_some(),
+        strategy,
+        promotion,
+        &publish_timestamp,
+        &artifacts,
+        &lineage,
+        &mut published_files,
+    )?;
 
     let metadata_path = profile_metadata_path(&published_to_path);
     if let Some(parent) = metadata_path.parent() {
@@ -438,6 +361,156 @@ pub fn publish_run_with_profile(
         published_to: display_path(repo_root, &published_to_path),
         published_files,
     })
+}
+
+fn publish_profile_contents(
+    repo_root: &Path,
+    manifest: &RunManifest,
+    destination: &Path,
+    destination_is_directory: bool,
+    strategy: UpdateStrategy,
+    promotion: PromotionState,
+    publish_timestamp: &str,
+    artifacts: &[PersistedArtifact],
+    lineage: &LineageMetadata,
+    published_files: &mut Vec<String>,
+) -> Result<PathBuf, EngineError> {
+    if destination_is_directory {
+        publish_profile_directory(
+            repo_root,
+            manifest,
+            destination,
+            strategy,
+            promotion,
+            publish_timestamp,
+            artifacts,
+            lineage,
+            published_files,
+        )
+    } else {
+        publish_profile_surface(
+            repo_root,
+            manifest,
+            destination,
+            strategy,
+            promotion,
+            publish_timestamp,
+            artifacts,
+            lineage,
+            published_files,
+        )
+    }
+}
+
+fn publish_profile_directory(
+    repo_root: &Path,
+    manifest: &RunManifest,
+    destination: &Path,
+    strategy: UpdateStrategy,
+    promotion: PromotionState,
+    publish_timestamp: &str,
+    artifacts: &[PersistedArtifact],
+    lineage: &LineageMetadata,
+    published_files: &mut Vec<String>,
+) -> Result<PathBuf, EngineError> {
+    if destination.exists() && !destination.is_dir() {
+        return Err(EngineError::Validation(format!(
+            "publish destination `{}` must be a directory",
+            destination.display()
+        )));
+    }
+    fs::create_dir_all(destination)?;
+
+    match strategy {
+        UpdateStrategy::ManagedBlocks => {
+            for artifact in artifacts {
+                if artifact_slug(&artifact.record.file_name)
+                    == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
+                {
+                    continue;
+                }
+                let target = destination.join(&artifact.record.file_name);
+                write_managed_block(&target, &manifest.run_id, &artifact.contents)?;
+                published_files.push(display_path(repo_root, &target));
+            }
+        }
+        UpdateStrategy::ProposalFiles => {
+            for artifact in artifacts {
+                if artifact_slug(&artifact.record.file_name)
+                    == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
+                {
+                    continue;
+                }
+                let proposal_path = write_proposal_file(
+                    destination,
+                    &artifact.record.file_name,
+                    &artifact.contents,
+                    lineage,
+                )?;
+                published_files.push(display_path(repo_root, &proposal_path));
+            }
+        }
+        UpdateStrategy::AppendOnlyIndex => {
+            let index_path = destination.join("index.md");
+            let entry = format!(
+                "## {}\n\n- Run: `{}`\n- Promotion: `{}`\n- Published: `{}`\n\n",
+                publish_descriptor(manifest),
+                manifest.run_id,
+                promotion.as_str(),
+                publish_timestamp,
+            );
+            append_index_entry(&index_path, &entry)?;
+            published_files.push(display_path(repo_root, &index_path));
+            let evidence_dir = destination.join(&manifest.run_id);
+            for path in write_supporting_evidence_bundle(&evidence_dir, artifacts)? {
+                published_files.push(display_path(repo_root, &path));
+            }
+        }
+    }
+
+    Ok(destination.to_path_buf())
+}
+
+fn publish_profile_surface(
+    repo_root: &Path,
+    manifest: &RunManifest,
+    destination: &Path,
+    strategy: UpdateStrategy,
+    promotion: PromotionState,
+    publish_timestamp: &str,
+    artifacts: &[PersistedArtifact],
+    lineage: &LineageMetadata,
+    published_files: &mut Vec<String>,
+) -> Result<PathBuf, EngineError> {
+    match strategy {
+        UpdateStrategy::ManagedBlocks => {
+            let bundle = render_project_memory_surface(artifacts);
+            write_managed_block(destination, &manifest.run_id, &bundle)?;
+            published_files.push(display_path(repo_root, destination));
+            Ok(destination.to_path_buf())
+        }
+        UpdateStrategy::ProposalFiles => {
+            let bundle = render_project_memory_surface(artifacts);
+            let proposal_path = write_surface_proposal_file(destination, &bundle, lineage)?;
+            published_files.push(display_path(repo_root, &proposal_path));
+            Ok(proposal_path)
+        }
+        UpdateStrategy::AppendOnlyIndex => {
+            let evidence_dir = resolve_profile_evidence_root(repo_root, manifest);
+            let entry = render_project_memory_index_entry(
+                manifest,
+                &promotion,
+                publish_timestamp,
+                &display_path(repo_root, &evidence_dir),
+            );
+            append_index_entry(destination, &entry)?;
+            published_files.push(display_path(repo_root, destination));
+            for path in write_supporting_evidence_bundle(&evidence_dir, artifacts)? {
+                published_files.push(display_path(repo_root, &path));
+            }
+            Ok(destination.to_path_buf())
+        }
+    }
 }
 
 /// Evaluate the promotion policy for a given mode and run state.
@@ -661,29 +734,41 @@ fn infer_boundline_domain_families(repo_root: &Path) -> Vec<String> {
     let mut families = BTreeSet::new();
     let package_json = read_lowercase_file(repo_root.join("package.json"));
 
-    if let Some(package_json) = package_json.as_deref() {
-        if package_json.contains("\"react\"") {
-            families.insert("react".to_string());
-            families.insert("web_ui".to_string());
-        }
-        if package_json.contains("\"vue\"") {
-            families.insert("vue".to_string());
-            families.insert("web_ui".to_string());
-        }
-        if package_json.contains("\"@angular/") || package_json.contains("\"angular\"") {
-            families.insert("angular".to_string());
-            families.insert("web_ui".to_string());
-        }
-        if package_json.contains("\"express\"")
-            || package_json.contains("\"nest\"")
-            || package_json.contains("\"fastify\"")
-            || package_json.contains("\"koa\"")
-            || package_json.contains("\"hapi\"")
-        {
-            families.insert("node_service".to_string());
-        }
-    }
+    add_package_json_domain_families(&mut families, package_json.as_deref());
+    add_repo_language_domain_families(&mut families, repo_root);
+    add_package_json_fallback_service_family(&mut families, repo_root, package_json.as_deref());
 
+    families.into_iter().collect()
+}
+
+fn add_package_json_domain_families(families: &mut BTreeSet<String>, package_json: Option<&str>) {
+    let Some(package_json) = package_json else {
+        return;
+    };
+
+    if package_json.contains("\"react\"") {
+        families.insert("react".to_string());
+        families.insert("web_ui".to_string());
+    }
+    if package_json.contains("\"vue\"") {
+        families.insert("vue".to_string());
+        families.insert("web_ui".to_string());
+    }
+    if package_json.contains("\"@angular/") || package_json.contains("\"angular\"") {
+        families.insert("angular".to_string());
+        families.insert("web_ui".to_string());
+    }
+    if package_json.contains("\"express\"")
+        || package_json.contains("\"nest\"")
+        || package_json.contains("\"fastify\"")
+        || package_json.contains("\"koa\"")
+        || package_json.contains("\"hapi\"")
+    {
+        families.insert("node_service".to_string());
+    }
+}
+
+fn add_repo_language_domain_families(families: &mut BTreeSet<String>, repo_root: &Path) {
     if repo_root.join("Cargo.toml").exists() || repo_contains_extension(repo_root, "rs", 0) {
         families.insert("systems".to_string());
     }
@@ -708,18 +793,24 @@ fn infer_boundline_domain_families(repo_root: &Path) -> Vec<String> {
     if repo_root.join("composer.json").exists() {
         families.insert("php".to_string());
     }
+}
 
-    if families.is_empty()
-        && package_json.is_some()
-        && (repo_contains_extension(repo_root, "js", 0)
-            || repo_contains_extension(repo_root, "jsx", 0)
-            || repo_contains_extension(repo_root, "ts", 0)
-            || repo_contains_extension(repo_root, "tsx", 0))
+fn add_package_json_fallback_service_family(
+    families: &mut BTreeSet<String>,
+    repo_root: &Path,
+    package_json: Option<&str>,
+) {
+    if !families.is_empty() || package_json.is_none() {
+        return;
+    }
+
+    if repo_contains_extension(repo_root, "js", 0)
+        || repo_contains_extension(repo_root, "jsx", 0)
+        || repo_contains_extension(repo_root, "ts", 0)
+        || repo_contains_extension(repo_root, "tsx", 0)
     {
         families.insert("node_service".to_string());
     }
-
-    families.into_iter().collect()
 }
 
 fn read_lowercase_file(path: PathBuf) -> Option<String> {

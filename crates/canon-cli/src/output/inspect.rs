@@ -5,7 +5,7 @@
 //! `risk-zone` ([`render_risk_zone_text`]) is also kept here because it
 //! operates on the same inspect payload shape.
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use super::primitives::{
     humanize_path, render_kv_field, render_scalar_field, scalar_value, string_list,
@@ -82,14 +82,7 @@ pub(super) fn render_artifacts_markdown(
 ) -> String {
     let mut lines = vec!["# artifacts".to_string()];
 
-    if let Some(run_id) = run_id {
-        lines.push(String::new());
-        lines.push(format!("Run ID: {run_id}"));
-    }
-    if let Some(system_context) = system_context {
-        lines.push(String::new());
-        lines.push(format!("System Context: {system_context}"));
-    }
+    append_inspect_metadata(&mut lines, run_id, system_context);
 
     lines.push(String::new());
     lines.push("## Readable Artifacts".to_string());
@@ -118,24 +111,15 @@ pub(super) fn render_evidence_markdown(
 ) -> String {
     let mut lines = vec!["# evidence".to_string()];
 
-    if let Some(run_id) = run_id {
-        lines.push(String::new());
-        lines.push(format!("Run ID: {run_id}"));
-    }
-    if let Some(system_context) = system_context {
-        lines.push(String::new());
-        lines.push(format!("System Context: {system_context}"));
-    }
+    append_inspect_metadata(&mut lines, run_id, system_context);
 
     if entries.is_empty() {
-        lines.push(String::new());
-        lines.push("- No evidence recorded.".to_string());
+        append_placeholder(&mut lines, "- No evidence recorded.");
         return lines.join("\n");
     }
 
     let Some(entry) = entries.first().and_then(Value::as_object) else {
-        lines.push(String::new());
-        lines.push("- No evidence recorded.".to_string());
+        append_placeholder(&mut lines, "- No evidence recorded.");
         return lines.join("\n");
     };
 
@@ -155,59 +139,12 @@ pub(super) fn render_evidence_markdown(
         entry.get("excluded_upstream_scope"),
     );
 
-    if !upstream_source_refs.is_empty() {
-        lines.push(String::new());
-        lines.push("## Upstream Sources".to_string());
-        lines.push(String::new());
-        for source in upstream_source_refs {
-            lines.push(format!("- {source}"));
-        }
-    }
-
-    if !carried_forward_items.is_empty() {
-        lines.push(String::new());
-        lines.push("## Carried-Forward Context".to_string());
-        lines.push(String::new());
-        for item in carried_forward_items {
-            lines.push(format!("- {item}"));
-        }
-    }
-
-    if !artifact_links.is_empty() {
-        lines.push(String::new());
-        lines.push("## Readable Artifacts".to_string());
-        lines.push(String::new());
-        for path in artifact_links {
-            lines.push(format!("- {}", humanize_path(&path)));
-        }
-    }
-
-    if !generation_paths.is_empty() {
-        lines.push(String::new());
-        lines.push("## Generation Paths".to_string());
-        lines.push(String::new());
-        for path in generation_paths {
-            lines.push(format!("- {path}"));
-        }
-    }
-
-    if !validation_paths.is_empty() {
-        lines.push(String::new());
-        lines.push("## Validation Paths".to_string());
-        lines.push(String::new());
-        for path in validation_paths {
-            lines.push(format!("- {path}"));
-        }
-    }
-
-    if !denied_invocations.is_empty() {
-        lines.push(String::new());
-        lines.push("## Denied Invocations".to_string());
-        lines.push(String::new());
-        for request_id in denied_invocations {
-            lines.push(format!("- {request_id}"));
-        }
-    }
+    append_heading_string_list(&mut lines, "## Upstream Sources", &upstream_source_refs);
+    append_heading_string_list(&mut lines, "## Carried-Forward Context", &carried_forward_items);
+    append_heading_path_list(&mut lines, "## Readable Artifacts", &artifact_links);
+    append_heading_string_list(&mut lines, "## Generation Paths", &generation_paths);
+    append_heading_string_list(&mut lines, "## Validation Paths", &validation_paths);
+    append_heading_string_list(&mut lines, "## Denied Invocations", &denied_invocations);
 
     lines.join("\n")
 }
@@ -220,14 +157,7 @@ pub(super) fn render_invocations_markdown(
 ) -> String {
     let mut lines = vec!["# invocations".to_string()];
 
-    if let Some(run_id) = run_id {
-        lines.push(String::new());
-        lines.push(format!("Run ID: {run_id}"));
-    }
-    if let Some(system_context) = system_context {
-        lines.push(String::new());
-        lines.push(format!("System Context: {system_context}"));
-    }
+    append_inspect_metadata(&mut lines, run_id, system_context);
 
     if entries.is_empty() {
         lines.push(String::new());
@@ -322,8 +252,7 @@ pub(super) fn render_clarity_markdown(entries: &[Value]) -> String {
     let mut lines = vec!["# clarity".to_string()];
 
     let Some(entry) = entries.first().and_then(Value::as_object) else {
-        lines.push(String::new());
-        lines.push("- No clarity inspection recorded.".to_string());
+        append_placeholder(&mut lines, "- No clarity inspection recorded.");
         return lines.join("\n");
     };
 
@@ -331,164 +260,218 @@ pub(super) fn render_clarity_markdown(entries: &[Value]) -> String {
     render_scalar_field(&mut lines, "Mode", entry.get("mode"));
     lines.push(format!("Requires Clarification: {}", yes_no(entry.get("requires_clarification"))));
 
-    if let Some(summary) = scalar_value(entry.get("summary")) {
-        lines.push(String::new());
-        lines.push("## Document Summary".to_string());
-        lines.push(String::new());
-        lines.push(summary);
-    }
-
-    let source_inputs = string_list(entry.get("source_inputs"));
-    if !source_inputs.is_empty() {
-        lines.push(String::new());
-        lines.push("## Source Inputs".to_string());
-        lines.push(String::new());
-        for input in source_inputs {
-            lines.push(format!("- {}", humanize_path(&input)));
-        }
-    }
-
-    if let Some(authoring_lifecycle) = entry.get("authoring_lifecycle").and_then(Value::as_object) {
-        lines.push(String::new());
-        lines.push("## Authoring Lifecycle".to_string());
-        lines.push(String::new());
-
-        if let Some(packet_shape) = scalar_value(authoring_lifecycle.get("packet_shape")) {
-            lines.push(format!("Packet Shape: {packet_shape}"));
-        }
-        if let Some(authority_status) = scalar_value(authoring_lifecycle.get("authority_status")) {
-            lines.push(format!("Authority Status: {authority_status}"));
-        }
-
-        let authoritative_inputs = string_list(authoring_lifecycle.get("authoritative_inputs"));
-        if !authoritative_inputs.is_empty() {
-            lines.push(String::new());
-            lines.push("Authoritative Inputs:".to_string());
-            for input in authoritative_inputs {
-                lines.push(format!("- {}", humanize_path(&input)));
-            }
-        }
-
-        let supporting_inputs = string_list(authoring_lifecycle.get("supporting_inputs"));
-        if !supporting_inputs.is_empty() {
-            lines.push(String::new());
-            lines.push("Supporting Inputs:".to_string());
-            for input in supporting_inputs {
-                lines.push(format!("- {}", humanize_path(&input)));
-            }
-        }
-
-        let readiness_delta = string_list(authoring_lifecycle.get("readiness_delta"));
-        if !readiness_delta.is_empty() {
-            lines.push(String::new());
-            lines.push("Readiness Delta:".to_string());
-            for item in readiness_delta {
-                lines.push(format!("- {item}"));
-            }
-        }
-
-        if let Some(next_authoring_step) =
-            scalar_value(authoring_lifecycle.get("next_authoring_step"))
-        {
-            lines.push(String::new());
-            lines.push("Next Authoring Step:".to_string());
-            lines.push(next_authoring_step);
-        }
-    }
-
-    let reasoning_signals = string_list(entry.get("reasoning_signals"));
-    if !reasoning_signals.is_empty() {
-        lines.push(String::new());
-        lines.push("## Reasoning Signals".to_string());
-        lines.push(String::new());
-        for signal in reasoning_signals {
-            lines.push(format!("- {signal}"));
-        }
-    }
-
-    if let Some(output_quality) = entry.get("output_quality").and_then(Value::as_object) {
-        lines.push(String::new());
-        lines.push("## Output Quality".to_string());
-        lines.push(String::new());
-
-        if let Some(posture) = scalar_value(output_quality.get("posture")) {
-            lines.push(format!("Posture: {posture}"));
-        }
-        if let Some(materially_closed) = scalar_value(output_quality.get("materially_closed")) {
-            lines.push(format!("Materially Closed: {materially_closed}"));
-        }
-
-        let evidence_signals = string_list(output_quality.get("evidence_signals"));
-        if !evidence_signals.is_empty() {
-            lines.push(String::new());
-            lines.push("Evidence Signals:".to_string());
-            for signal in evidence_signals {
-                lines.push(format!("- {signal}"));
-            }
-        }
-
-        let downgrade_reasons = string_list(output_quality.get("downgrade_reasons"));
-        if !downgrade_reasons.is_empty() {
-            lines.push(String::new());
-            lines.push("Downgrade Reasons:".to_string());
-            for reason in downgrade_reasons {
-                lines.push(format!("- {reason}"));
-            }
-        }
-    }
-
-    let missing_context = string_list(entry.get("missing_context"));
-    if !missing_context.is_empty() {
-        lines.push(String::new());
-        lines.push("## Missing Context".to_string());
-        lines.push(String::new());
-        for gap in missing_context {
-            lines.push(format!("- {gap}"));
-        }
-    }
-
-    let clarification_questions =
-        entry.get("clarification_questions").and_then(Value::as_array).cloned().unwrap_or_default();
-    if !clarification_questions.is_empty() {
-        lines.push(String::new());
-        lines.push("## Clarification Questions".to_string());
-        lines.push(String::new());
-
-        for (index, question) in clarification_questions.iter().enumerate() {
-            let Some(question) = question.as_object() else {
-                continue;
-            };
-
-            let prompt = scalar_value(question.get("prompt"))
-                .unwrap_or_else(|| "Missing clarification prompt".to_string());
-            lines.push(format!("{}. {prompt}", index + 1));
-            if let Some(rationale) = scalar_value(question.get("rationale")) {
-                lines.push(format!("Why: {rationale}"));
-            }
-            if let Some(evidence) = scalar_value(question.get("evidence")) {
-                lines.push(format!("Evidence: {evidence}"));
-            }
-            if let Some(affects) = scalar_value(question.get("affects")) {
-                lines.push(format!("Affects: {affects}"));
-            }
-            if let Some(default_if_skipped) = scalar_value(question.get("default_if_skipped")) {
-                lines.push(format!("Default if skipped: {default_if_skipped}"));
-            }
-            if let Some(status) = scalar_value(question.get("status")) {
-                lines.push(format!("Status: {status}"));
-            }
-            if index + 1 < clarification_questions.len() {
-                lines.push(String::new());
-            }
-        }
-    }
-
-    if let Some(recommended_focus) = scalar_value(entry.get("recommended_focus")) {
-        lines.push(String::new());
-        lines.push("## Recommended Focus".to_string());
-        lines.push(String::new());
-        lines.push(recommended_focus);
-    }
+    append_optional_text_section(
+        &mut lines,
+        "## Document Summary",
+        scalar_value(entry.get("summary")),
+    );
+    append_heading_path_list(
+        &mut lines,
+        "## Source Inputs",
+        &string_list(entry.get("source_inputs")),
+    );
+    append_authoring_lifecycle_section(&mut lines, entry.get("authoring_lifecycle"));
+    append_heading_string_list(
+        &mut lines,
+        "## Reasoning Signals",
+        &string_list(entry.get("reasoning_signals")),
+    );
+    append_output_quality_section(&mut lines, entry.get("output_quality"));
+    append_heading_string_list(
+        &mut lines,
+        "## Missing Context",
+        &string_list(entry.get("missing_context")),
+    );
+    append_clarification_questions_section(&mut lines, entry.get("clarification_questions"));
+    append_optional_text_section(
+        &mut lines,
+        "## Recommended Focus",
+        scalar_value(entry.get("recommended_focus")),
+    );
 
     lines.join("\n")
+}
+
+fn append_inspect_metadata(
+    lines: &mut Vec<String>,
+    run_id: Option<&str>,
+    system_context: Option<&str>,
+) {
+    if let Some(run_id) = run_id {
+        lines.push(String::new());
+        lines.push(format!("Run ID: {run_id}"));
+    }
+    if let Some(system_context) = system_context {
+        lines.push(String::new());
+        lines.push(format!("System Context: {system_context}"));
+    }
+}
+
+fn append_placeholder(lines: &mut Vec<String>, message: &str) {
+    lines.push(String::new());
+    lines.push(message.to_string());
+}
+
+fn push_heading(lines: &mut Vec<String>, heading: &str) {
+    lines.push(String::new());
+    lines.push(heading.to_string());
+    lines.push(String::new());
+}
+
+fn append_heading_string_list(lines: &mut Vec<String>, heading: &str, items: &[String]) {
+    if items.is_empty() {
+        return;
+    }
+
+    push_heading(lines, heading);
+    for item in items {
+        lines.push(format!("- {item}"));
+    }
+}
+
+fn append_heading_path_list(lines: &mut Vec<String>, heading: &str, items: &[String]) {
+    if items.is_empty() {
+        return;
+    }
+
+    push_heading(lines, heading);
+    for item in items {
+        lines.push(format!("- {}", humanize_path(item)));
+    }
+}
+
+fn append_labeled_string_list(lines: &mut Vec<String>, label: &str, items: &[String]) {
+    if items.is_empty() {
+        return;
+    }
+
+    lines.push(String::new());
+    lines.push(label.to_string());
+    for item in items {
+        lines.push(format!("- {item}"));
+    }
+}
+
+fn append_labeled_path_list(lines: &mut Vec<String>, label: &str, items: &[String]) {
+    if items.is_empty() {
+        return;
+    }
+
+    lines.push(String::new());
+    lines.push(label.to_string());
+    for item in items {
+        lines.push(format!("- {}", humanize_path(item)));
+    }
+}
+
+fn append_optional_text_section(lines: &mut Vec<String>, heading: &str, text: Option<String>) {
+    let Some(text) = text else {
+        return;
+    };
+
+    push_heading(lines, heading);
+    lines.push(text);
+}
+
+fn append_optional_detail_line(lines: &mut Vec<String>, label: &str, value: Option<&Value>) {
+    if let Some(value) = scalar_value(value) {
+        lines.push(format!("{label}: {value}"));
+    }
+}
+
+fn append_authoring_lifecycle_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let Some(authoring_lifecycle) = value.and_then(Value::as_object) else {
+        return;
+    };
+
+    push_heading(lines, "## Authoring Lifecycle");
+    append_optional_detail_line(lines, "Packet Shape", authoring_lifecycle.get("packet_shape"));
+    append_optional_detail_line(
+        lines,
+        "Authority Status",
+        authoring_lifecycle.get("authority_status"),
+    );
+    append_labeled_path_list(
+        lines,
+        "Authoritative Inputs:",
+        &string_list(authoring_lifecycle.get("authoritative_inputs")),
+    );
+    append_labeled_path_list(
+        lines,
+        "Supporting Inputs:",
+        &string_list(authoring_lifecycle.get("supporting_inputs")),
+    );
+    append_labeled_string_list(
+        lines,
+        "Readiness Delta:",
+        &string_list(authoring_lifecycle.get("readiness_delta")),
+    );
+
+    if let Some(next_authoring_step) = scalar_value(authoring_lifecycle.get("next_authoring_step"))
+    {
+        lines.push(String::new());
+        lines.push("Next Authoring Step:".to_string());
+        lines.push(next_authoring_step);
+    }
+}
+
+fn append_output_quality_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let Some(output_quality) = value.and_then(Value::as_object) else {
+        return;
+    };
+
+    push_heading(lines, "## Output Quality");
+    append_optional_detail_line(lines, "Posture", output_quality.get("posture"));
+    append_optional_detail_line(
+        lines,
+        "Materially Closed",
+        output_quality.get("materially_closed"),
+    );
+    append_labeled_string_list(
+        lines,
+        "Evidence Signals:",
+        &string_list(output_quality.get("evidence_signals")),
+    );
+    append_labeled_string_list(
+        lines,
+        "Downgrade Reasons:",
+        &string_list(output_quality.get("downgrade_reasons")),
+    );
+}
+
+fn append_clarification_questions_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let questions = value.and_then(Value::as_array).cloned().unwrap_or_default();
+    if questions.is_empty() {
+        return;
+    }
+
+    push_heading(lines, "## Clarification Questions");
+    let last_index = questions.len().saturating_sub(1);
+    for (index, question) in questions.iter().enumerate() {
+        let Some(question) = question.as_object() else {
+            continue;
+        };
+
+        append_clarification_question(lines, question, index, index < last_index);
+    }
+}
+
+fn append_clarification_question(
+    lines: &mut Vec<String>,
+    question: &Map<String, Value>,
+    index: usize,
+    has_following_question: bool,
+) {
+    let prompt = scalar_value(question.get("prompt"))
+        .unwrap_or_else(|| "Missing clarification prompt".to_string());
+    lines.push(format!("{}. {prompt}", index + 1));
+    append_optional_detail_line(lines, "Why", question.get("rationale"));
+    append_optional_detail_line(lines, "Evidence", question.get("evidence"));
+    append_optional_detail_line(lines, "Affects", question.get("affects"));
+    append_optional_detail_line(lines, "Default if skipped", question.get("default_if_skipped"));
+    append_optional_detail_line(lines, "Status", question.get("status"));
+
+    if has_following_question {
+        lines.push(String::new());
+    }
 }

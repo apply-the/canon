@@ -146,366 +146,18 @@ impl EngineService {
         let artifacts =
             store.load_persisted_artifacts(run_id, manifest.mode, &contract).unwrap_or_default();
 
-        if matches!(manifest.mode, Mode::Requirements) && artifacts.is_empty() {
-            let generation_request_id = format!("{run_id}-generate");
-            let approved_generation = approvals.iter().any(|approval| {
-                approval.matches_invocation(&generation_request_id)
-                    && matches!(approval.decision, ApprovalDecision::Approve)
-            });
-
-            if !approved_generation {
-                return self.summarize_run(
-                    &store,
-                    RunSummarySpec {
-                        run_id,
-                        mode: manifest.mode,
-                        risk: manifest.risk,
-                        zone: manifest.zone,
-                        state: RunState::AwaitingApproval,
-                        artifact_count: 0,
-                    },
-                );
-            }
-
-            let policy_set = store.load_policy_set(None)?;
-            let request = RunRequest {
-                mode: manifest.mode,
-                risk: manifest.risk,
-                zone: manifest.zone,
-                system_context: context.system_context,
-                classification: manifest.classification.clone(),
-                owner: manifest.owner.clone(),
-                inputs: self.resume_inputs(&context),
-                inline_inputs: Vec::new(),
-                excluded_paths: context.excluded_paths.clone(),
-                policy_root: None,
-                method_root: None,
-            };
-            let input_scope = request.merged_input_sources();
-            let now = OffsetDateTime::now_utc();
-            let evidence_path = format!("runs/{run_id}/evidence.toml");
-            let context_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::ReadRepository,
-                summary: "capture repository and idea context",
-                scope: input_scope.clone(),
-            });
-            let context_decision =
-                invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
-            let context_summary =
-                self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
-            let context_attempt = self.completed_attempt(
-                &context_request,
-                1,
-                "filesystem",
-                ToolOutcome {
-                    kind: ToolOutcomeKind::Succeeded,
-                    summary: format!(
-                        "Captured requirements context from {} input(s).",
-                        request.authored_input_count()
-                    ),
-                    exit_code: Some(0),
-                    payload_refs: Vec::new(),
-                    candidate_artifacts: Vec::new(),
-                    recorded_at: OffsetDateTime::now_utc(),
-                },
-            );
-            let generation_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::GenerateContent,
-                summary: "generate bounded requirements framing",
-                scope: input_scope.clone(),
-            });
-            let generation_decision =
-                invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
-            let denied_edit_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::ProposeWorkspaceEdit,
-                summary: "attempt workspace mutation from requirements mode",
-                scope: input_scope.clone(),
-            });
-            let denied_edit_decision =
-                invocation_runtime::evaluate_request_policy(&denied_edit_request, &policy_set);
-            let denied_invocations =
-                if matches!(denied_edit_decision.kind, PolicyDecisionKind::Deny) {
-                    vec![DeniedInvocation {
-                        request_id: denied_edit_request.request_id.clone(),
-                        rationale: denied_edit_decision.rationale.clone(),
-                        policy_refs: denied_edit_decision.policy_refs.clone(),
-                        recorded_at: denied_edit_decision.decided_at,
-                    }]
-                } else {
-                    Vec::new()
-                };
-
-            let copilot = CopilotCliAdapter;
-            let generation_output = copilot.generate(&context_summary);
-            let generation_attempt = self.completed_attempt(
-                &generation_request,
-                1,
-                &generation_output.executor,
-                ToolOutcome {
-                    kind: ToolOutcomeKind::Succeeded,
-                    summary: generation_output.summary.clone(),
-                    exit_code: Some(0),
-                    payload_refs: Vec::new(),
-                    candidate_artifacts: contract
-                        .artifact_requirements
-                        .iter()
-                        .map(|requirement| requirement.file_name.clone())
-                        .collect(),
-                    recorded_at: OffsetDateTime::now_utc(),
-                },
-            );
-            let critique_request = self.requirements_request(RequirementsRequestSpec {
-                run_id,
-                risk: request.risk,
-                zone: request.zone,
-                system_context: request.system_context,
-                owner: &request.owner,
-                capability: CapabilityKind::CritiqueContent,
-                summary: "critique generated requirements framing",
-                scope: input_scope.clone(),
-            });
-            let critique_decision =
-                invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
-            let critique_output = copilot.critique(&generation_output.summary);
-            let critique_attempt = self.completed_attempt(
-                &critique_request,
-                1,
-                &critique_output.executor,
-                ToolOutcome {
-                    kind: ToolOutcomeKind::Succeeded,
-                    summary: critique_output.summary.clone(),
-                    exit_code: Some(0),
-                    payload_refs: Vec::new(),
-                    candidate_artifacts: Vec::new(),
-                    recorded_at: OffsetDateTime::now_utc(),
-                },
-            );
-
-            let generation_path = GenerationPath {
-                path_id: format!("generation:{}", generation_request.request_id),
-                request_ids: vec![generation_request.request_id.clone()],
-                lineage_classes: vec![LineageClass::AiVendorFamily],
-                derived_artifacts: contract
-                    .artifact_requirements
-                    .iter()
-                    .map(|requirement| {
-                        format!(
-                            "artifacts/{}/{}/{}",
-                            run_id,
-                            request.mode.as_str(),
-                            requirement.file_name
-                        )
-                    })
-                    .collect(),
-            };
-            let validation_path = ValidationPath {
-                path_id: format!("validation:{}", critique_request.request_id),
-                request_ids: vec![critique_request.request_id.clone()],
-                lineage_classes: vec![LineageClass::AiVendorFamily],
-                verification_refs: vec![format!(
-                    "runs/{run_id}/invocations/{}/attempt-01.toml",
-                    critique_request.request_id
-                )],
-                independence: evidence_builder::default_independence(&generation_path.path_id),
-            };
-            let validation_path = ValidationPath {
-                independence: evidence_builder::assess_validation_independence(
-                    &generation_path,
-                    &validation_path,
-                ),
-                ..validation_path
-            };
-            let denied_summary = if denied_invocations.is_empty() {
-                "No governed invocations were denied during requirements mode.".to_string()
-            } else {
-                denied_invocations
-                    .iter()
-                    .map(|denied| denied.rationale.clone())
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            };
-            let artifacts = contract
-                .artifact_requirements
-                .iter()
-                .map(|requirement| PersistedArtifact {
-                    record: ArtifactRecord {
-                        file_name: requirement.file_name.clone(),
-                        relative_path: format!(
-                            "artifacts/{}/{}/{}",
-                            run_id,
-                            request.mode.as_str(),
-                            requirement.file_name
-                        ),
-                        format: requirement.format,
-                        provenance: Some(crate::domain::artifact::ArtifactProvenance {
-                            request_ids: vec![
-                                context_request.request_id.clone(),
-                                generation_request.request_id.clone(),
-                                critique_request.request_id.clone(),
-                            ],
-                            evidence_bundle: Some(evidence_path.clone()),
-                            disposition: crate::domain::execution::EvidenceDisposition::Supporting,
-                        }),
-                    },
-                    contents: render_requirements_artifact_from_evidence(
-                        &requirement.file_name,
-                        &context_summary,
-                        &context_summary,
-                        &generation_output.summary,
-                        &critique_output.summary,
-                        &denied_summary,
-                    ),
-                })
-                .collect::<Vec<_>>();
-            let gate_inputs = artifacts
-                .iter()
-                .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
-                .collect::<Vec<_>>();
-            let gates = gatekeeper::evaluate_requirements_gates(
-                &contract,
-                &gate_inputs,
-                &request.owner,
-                &denied_invocations,
-                true,
-            );
-            let state = run_state_from_gates(&gates);
-            let artifact_paths = artifacts
-                .iter()
-                .map(|artifact| artifact.record.relative_path.clone())
-                .collect::<Vec<_>>();
-            let mut verification_records =
-                verification_runner::requirements_verification_records(&artifact_paths);
-            for record in &mut verification_records {
-                record.request_ids = vec![
-                    generation_request.request_id.clone(),
-                    critique_request.request_id.clone(),
-                ];
-                record.validation_path_id = Some(validation_path.path_id.clone());
-                record.evidence_bundle = Some(evidence_path.clone());
-            }
-            let evidence = EvidenceBundle {
-                run_id: run_id.to_string(),
-                generation_paths: vec![generation_path],
-                validation_paths: vec![validation_path],
-                denied_invocations,
-                trace_refs: vec![format!("traces/{run_id}.jsonl")],
-                artifact_refs: artifact_paths,
-                decision_refs: vec![
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        context_request.request_id
-                    ),
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        generation_request.request_id
-                    ),
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        critique_request.request_id
-                    ),
-                    format!(
-                        "runs/{run_id}/invocations/{}/decision.toml",
-                        denied_edit_request.request_id
-                    ),
-                ],
-                approval_refs: approvals
-                    .iter()
-                    .filter_map(|approval| {
-                        approval
-                            .invocation_request_id
-                            .as_ref()
-                            .map(|request_id| format!("runs/{run_id}/approvals/{}", request_id))
-                    })
-                    .collect(),
-            };
-
-            let bundle = PersistedRunBundle {
-                run: manifest.clone(),
-                context: context.clone(),
-                state: RunStateManifest { state, updated_at: now },
-                artifact_contract: contract.clone(),
-                links: LinkManifest {
-                    artifacts: artifacts
-                        .iter()
-                        .map(|artifact| artifact.record.relative_path.clone())
-                        .collect(),
-                    decisions: Vec::new(),
-                    traces: Vec::new(),
-                    invocations: Vec::new(),
-                    evidence: Some(evidence_path.clone()),
-                },
-                verification_records,
-                artifacts,
-                gates,
-                approvals: approvals.clone(),
-                evidence: Some(evidence),
-                invocations: vec![
-                    PersistedInvocation {
-                        request: context_request,
-                        decision: context_decision,
-                        attempts: vec![context_attempt],
-                        approvals: Vec::new(),
-                    },
-                    PersistedInvocation {
-                        request: generation_request,
-                        decision: generation_decision,
-                        attempts: vec![generation_attempt],
-                        approvals: approvals
-                            .iter()
-                            .filter(|approval| approval.matches_invocation(&generation_request_id))
-                            .cloned()
-                            .collect(),
-                    },
-                    PersistedInvocation {
-                        request: critique_request,
-                        decision: critique_decision,
-                        attempts: vec![critique_attempt],
-                        approvals: Vec::new(),
-                    },
-                    PersistedInvocation {
-                        request: denied_edit_request,
-                        decision: denied_edit_decision,
-                        attempts: Vec::new(),
-                        approvals: Vec::new(),
-                    },
-                ],
-            };
-            store.persist_run_bundle(&bundle)?;
-            return self.summarize_run(
-                &store,
-                RunSummarySpec {
-                    run_id,
-                    mode: manifest.mode,
-                    risk: manifest.risk,
-                    zone: manifest.zone,
-                    state,
-                    artifact_count: bundle.artifacts.len(),
-                },
-            );
+        if let Some(summary) = self.resume_requirements_without_artifacts(
+            &store, run_id, &manifest, &context, &contract, &approvals, &artifacts,
+        )? {
+            return Ok(summary);
         }
 
-        let should_resume_change_execution = match manifest.mode {
-            Mode::Change => artifacts.is_empty(),
-            Mode::Implementation | Mode::Refactor => {
-                execution_continuation_pending(&context, &approvals)
-            }
-            _ => false,
-        };
+        let should_resume_change_execution = Self::should_resume_change_execution(
+            manifest.mode,
+            artifacts.is_empty(),
+            &context,
+            &approvals,
+        );
 
         if should_resume_change_execution {
             let policy_set = store.load_policy_set(None)?;
@@ -549,6 +201,382 @@ impl EngineService {
                 artifact_count: artifacts.len(),
             },
         )
+    }
+
+    fn resume_requirements_without_artifacts(
+        &self,
+        store: &WorkspaceStore,
+        run_id: &str,
+        manifest: &RunManifest,
+        context: &RunContext,
+        contract: &crate::domain::artifact::ArtifactContract,
+        approvals: &[ApprovalRecord],
+        artifacts: &[PersistedArtifact],
+    ) -> Result<Option<RunSummary>, EngineError> {
+        if !matches!(manifest.mode, Mode::Requirements) || !artifacts.is_empty() {
+            return Ok(None);
+        }
+
+        let generation_request_id = format!("{run_id}-generate");
+        let approved_generation = approvals.iter().any(|approval| {
+            approval.matches_invocation(&generation_request_id)
+                && matches!(approval.decision, ApprovalDecision::Approve)
+        });
+
+        if !approved_generation {
+            return self
+                .summarize_run(
+                    store,
+                    RunSummarySpec {
+                        run_id,
+                        mode: manifest.mode,
+                        risk: manifest.risk,
+                        zone: manifest.zone,
+                        state: RunState::AwaitingApproval,
+                        artifact_count: 0,
+                    },
+                )
+                .map(Some);
+        }
+
+        let policy_set = store.load_policy_set(None)?;
+        let request = RunRequest {
+            mode: manifest.mode,
+            risk: manifest.risk,
+            zone: manifest.zone,
+            system_context: context.system_context,
+            classification: manifest.classification.clone(),
+            owner: manifest.owner.clone(),
+            inputs: self.resume_inputs(context),
+            inline_inputs: Vec::new(),
+            excluded_paths: context.excluded_paths.clone(),
+            policy_root: None,
+            method_root: None,
+        };
+        let input_scope = request.merged_input_sources();
+        let now = OffsetDateTime::now_utc();
+        let evidence_path = format!("runs/{run_id}/evidence.toml");
+        let context_request = self.requirements_request(RequirementsRequestSpec {
+            run_id,
+            risk: request.risk,
+            zone: request.zone,
+            system_context: request.system_context,
+            owner: &request.owner,
+            capability: CapabilityKind::ReadRepository,
+            summary: "capture repository and idea context",
+            scope: input_scope.clone(),
+        });
+        let context_decision =
+            invocation_runtime::evaluate_request_policy(&context_request, &policy_set);
+        let context_summary =
+            self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
+        let context_attempt = self.completed_attempt(
+            &context_request,
+            1,
+            "filesystem",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: format!(
+                    "Captured requirements context from {} input(s).",
+                    request.authored_input_count()
+                ),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+        let generation_request = self.requirements_request(RequirementsRequestSpec {
+            run_id,
+            risk: request.risk,
+            zone: request.zone,
+            system_context: request.system_context,
+            owner: &request.owner,
+            capability: CapabilityKind::GenerateContent,
+            summary: "generate bounded requirements framing",
+            scope: input_scope.clone(),
+        });
+        let generation_decision =
+            invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
+        let denied_edit_request = self.requirements_request(RequirementsRequestSpec {
+            run_id,
+            risk: request.risk,
+            zone: request.zone,
+            system_context: request.system_context,
+            owner: &request.owner,
+            capability: CapabilityKind::ProposeWorkspaceEdit,
+            summary: "attempt workspace mutation from requirements mode",
+            scope: input_scope.clone(),
+        });
+        let denied_edit_decision =
+            invocation_runtime::evaluate_request_policy(&denied_edit_request, &policy_set);
+        let denied_invocations = if matches!(denied_edit_decision.kind, PolicyDecisionKind::Deny) {
+            vec![DeniedInvocation {
+                request_id: denied_edit_request.request_id.clone(),
+                rationale: denied_edit_decision.rationale.clone(),
+                policy_refs: denied_edit_decision.policy_refs.clone(),
+                recorded_at: denied_edit_decision.decided_at,
+            }]
+        } else {
+            Vec::new()
+        };
+
+        let copilot = CopilotCliAdapter;
+        let generation_output = copilot.generate(&context_summary);
+        let generation_attempt = self.completed_attempt(
+            &generation_request,
+            1,
+            &generation_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: generation_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: contract
+                    .artifact_requirements
+                    .iter()
+                    .map(|requirement| requirement.file_name.clone())
+                    .collect(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+        let critique_request = self.requirements_request(RequirementsRequestSpec {
+            run_id,
+            risk: request.risk,
+            zone: request.zone,
+            system_context: request.system_context,
+            owner: &request.owner,
+            capability: CapabilityKind::CritiqueContent,
+            summary: "critique generated requirements framing",
+            scope: input_scope.clone(),
+        });
+        let critique_decision =
+            invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
+        let critique_output = copilot.critique(&generation_output.summary);
+        let critique_attempt = self.completed_attempt(
+            &critique_request,
+            1,
+            &critique_output.executor,
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: critique_output.summary.clone(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+
+        let generation_path = GenerationPath {
+            path_id: format!("generation:{}", generation_request.request_id),
+            request_ids: vec![generation_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            derived_artifacts: contract
+                .artifact_requirements
+                .iter()
+                .map(|requirement| {
+                    format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    )
+                })
+                .collect(),
+        };
+        let validation_path = ValidationPath {
+            path_id: format!("validation:{}", critique_request.request_id),
+            request_ids: vec![critique_request.request_id.clone()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            verification_refs: vec![format!(
+                "runs/{run_id}/invocations/{}/attempt-01.toml",
+                critique_request.request_id
+            )],
+            independence: evidence_builder::default_independence(&generation_path.path_id),
+        };
+        let validation_path = ValidationPath {
+            independence: evidence_builder::assess_validation_independence(
+                &generation_path,
+                &validation_path,
+            ),
+            ..validation_path
+        };
+        let denied_summary = if denied_invocations.is_empty() {
+            "No governed invocations were denied during requirements mode.".to_string()
+        } else {
+            denied_invocations
+                .iter()
+                .map(|denied| denied.rationale.clone())
+                .collect::<Vec<_>>()
+                .join(" ")
+        };
+        let artifacts = contract
+            .artifact_requirements
+            .iter()
+            .map(|requirement| PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: requirement.file_name.clone(),
+                    relative_path: format!(
+                        "artifacts/{}/{}/{}",
+                        run_id,
+                        request.mode.as_str(),
+                        requirement.file_name
+                    ),
+                    format: requirement.format,
+                    provenance: Some(crate::domain::artifact::ArtifactProvenance {
+                        request_ids: vec![
+                            context_request.request_id.clone(),
+                            generation_request.request_id.clone(),
+                            critique_request.request_id.clone(),
+                        ],
+                        evidence_bundle: Some(evidence_path.clone()),
+                        disposition: crate::domain::execution::EvidenceDisposition::Supporting,
+                    }),
+                },
+                contents: render_requirements_artifact_from_evidence(
+                    &requirement.file_name,
+                    &context_summary,
+                    &context_summary,
+                    &generation_output.summary,
+                    &critique_output.summary,
+                    &denied_summary,
+                ),
+            })
+            .collect::<Vec<_>>();
+        let gate_inputs = artifacts
+            .iter()
+            .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
+            .collect::<Vec<_>>();
+        let gates = gatekeeper::evaluate_requirements_gates(
+            contract,
+            &gate_inputs,
+            &request.owner,
+            &denied_invocations,
+            true,
+        );
+        let state = run_state_from_gates(&gates);
+        let artifact_paths = artifacts
+            .iter()
+            .map(|artifact| artifact.record.relative_path.clone())
+            .collect::<Vec<_>>();
+        let mut verification_records =
+            verification_runner::requirements_verification_records(&artifact_paths);
+        for record in &mut verification_records {
+            record.request_ids =
+                vec![generation_request.request_id.clone(), critique_request.request_id.clone()];
+            record.validation_path_id = Some(validation_path.path_id.clone());
+            record.evidence_bundle = Some(evidence_path.clone());
+        }
+        let evidence = EvidenceBundle {
+            run_id: run_id.to_string(),
+            generation_paths: vec![generation_path],
+            validation_paths: vec![validation_path],
+            denied_invocations,
+            trace_refs: vec![format!("traces/{run_id}.jsonl")],
+            artifact_refs: artifact_paths,
+            decision_refs: vec![
+                format!("runs/{run_id}/invocations/{}/decision.toml", context_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    generation_request.request_id
+                ),
+                format!("runs/{run_id}/invocations/{}/decision.toml", critique_request.request_id),
+                format!(
+                    "runs/{run_id}/invocations/{}/decision.toml",
+                    denied_edit_request.request_id
+                ),
+            ],
+            approval_refs: approvals
+                .iter()
+                .filter_map(|approval| {
+                    approval
+                        .invocation_request_id
+                        .as_ref()
+                        .map(|request_id| format!("runs/{run_id}/approvals/{}", request_id))
+                })
+                .collect(),
+        };
+
+        let bundle = PersistedRunBundle {
+            run: manifest.clone(),
+            context: context.clone(),
+            state: RunStateManifest { state, updated_at: now },
+            artifact_contract: contract.clone(),
+            links: LinkManifest {
+                artifacts: artifacts
+                    .iter()
+                    .map(|artifact| artifact.record.relative_path.clone())
+                    .collect(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: Some(evidence_path.clone()),
+            },
+            verification_records,
+            artifacts,
+            gates,
+            approvals: approvals.to_vec(),
+            evidence: Some(evidence),
+            invocations: vec![
+                PersistedInvocation {
+                    request: context_request,
+                    decision: context_decision,
+                    attempts: vec![context_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: generation_request,
+                    decision: generation_decision,
+                    attempts: vec![generation_attempt],
+                    approvals: approvals
+                        .iter()
+                        .filter(|approval| approval.matches_invocation(&generation_request_id))
+                        .cloned()
+                        .collect(),
+                },
+                PersistedInvocation {
+                    request: critique_request,
+                    decision: critique_decision,
+                    attempts: vec![critique_attempt],
+                    approvals: Vec::new(),
+                },
+                PersistedInvocation {
+                    request: denied_edit_request,
+                    decision: denied_edit_decision,
+                    attempts: Vec::new(),
+                    approvals: Vec::new(),
+                },
+            ],
+        };
+        store.persist_run_bundle(&bundle)?;
+
+        self.summarize_run(
+            store,
+            RunSummarySpec {
+                run_id,
+                mode: manifest.mode,
+                risk: manifest.risk,
+                zone: manifest.zone,
+                state,
+                artifact_count: bundle.artifacts.len(),
+            },
+        )
+        .map(Some)
+    }
+
+    fn should_resume_change_execution(
+        mode: Mode,
+        artifacts_empty: bool,
+        context: &RunContext,
+        approvals: &[ApprovalRecord],
+    ) -> bool {
+        match mode {
+            Mode::Change => artifacts_empty,
+            Mode::Implementation | Mode::Refactor => {
+                execution_continuation_pending(context, approvals)
+            }
+            _ => false,
+        }
     }
 
     /// Returns a full status summary for the named run, including gates, approvals, and actions.

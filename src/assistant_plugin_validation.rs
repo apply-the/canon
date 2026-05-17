@@ -103,16 +103,30 @@ pub fn string_contains_any(value: &Value, prohibited: &[&str]) -> Option<String>
 pub fn manifest_errors(manifest: &Value, version: &str, root: &Path) -> Vec<String> {
     let mut errors = Vec::new();
 
+    append_missing_metadata_errors(manifest, &mut errors);
+    append_version_error(manifest, version, &mut errors);
+    append_required_capability_errors(manifest, &mut errors);
+    append_path_errors(manifest, root, &mut errors);
+    append_positioning_errors(manifest, &mut errors);
+
+    errors
+}
+
+fn append_missing_metadata_errors(manifest: &Value, errors: &mut Vec<String>) {
     for field in REQUIRED_METADATA_FIELDS {
         if manifest.get(field).is_none() {
             errors.push(format!("missing required field: {field}"));
         }
     }
+}
 
+fn append_version_error(manifest: &Value, version: &str, errors: &mut Vec<String>) {
     if manifest.get("version").and_then(Value::as_str) != Some(version) {
         errors.push("manifest version does not match workspace version".to_string());
     }
+}
 
+fn append_required_capability_errors(manifest: &Value, errors: &mut Vec<String>) {
     match capability_ids(manifest) {
         Ok(capabilities) => {
             for required in REQUIRED_METHODS {
@@ -123,24 +137,27 @@ pub fn manifest_errors(manifest: &Value, version: &str, root: &Path) -> Vec<Stri
         }
         Err(error) => errors.push(error),
     }
+}
 
-    if let Some(paths) = manifest.get("paths").and_then(Value::as_object) {
-        for value in paths.values() {
-            let Some(path) = value.as_str() else {
-                errors.push("path references must be strings".to_string());
-                continue;
-            };
-            if !root.join(path).exists() {
-                errors.push(format!("referenced path does not exist: {path}"));
-            }
-        }
-    } else {
+fn append_path_errors(manifest: &Value, root: &Path, errors: &mut Vec<String>) {
+    let Some(paths) = manifest.get("paths").and_then(Value::as_object) else {
         errors.push("missing paths object".to_string());
-    }
+        return;
+    };
 
+    for value in paths.values() {
+        let Some(path) = value.as_str() else {
+            errors.push("path references must be strings".to_string());
+            continue;
+        };
+        if !root.join(path).exists() {
+            errors.push(format!("referenced path does not exist: {path}"));
+        }
+    }
+}
+
+fn append_positioning_errors(manifest: &Value, errors: &mut Vec<String>) {
     if let Some(term) = string_contains_any(manifest, PROHIBITED_POSITIONING) {
         errors.push(format!("prohibited positioning term found: {term}"));
     }
-
-    errors
 }

@@ -548,30 +548,51 @@ fn extract_declared_value(source: &str, markers: &[&str]) -> Option<String> {
         let normalized = trimmed.trim_start_matches('#').trim().to_lowercase();
 
         for marker in markers {
-            if normalized == *marker {
-                for candidate in lines.iter().skip(index + 1) {
-                    let value = candidate.trim();
-                    if value.is_empty() {
-                        continue;
-                    }
-                    if value.starts_with('#') {
-                        break;
-                    }
-                    return Some(value.to_string());
-                }
+            if let Some(value) = extract_value_below_marker(&lines, index, &normalized, marker) {
+                return Some(value);
             }
 
-            let inline = format!("{marker}:");
-            if normalized.starts_with(&inline) {
-                let value = trimmed[trimmed.find(':')? + 1..].trim();
-                if !value.is_empty() {
-                    return Some(value.to_string());
-                }
+            if let Some(value) = extract_inline_marker_value(trimmed, &normalized, marker) {
+                return Some(value);
             }
         }
     }
 
     None
+}
+
+fn extract_value_below_marker(
+    lines: &[&str],
+    index: usize,
+    normalized: &str,
+    marker: &str,
+) -> Option<String> {
+    if normalized != marker {
+        return None;
+    }
+
+    for candidate in lines.iter().skip(index + 1) {
+        let value = candidate.trim();
+        if value.is_empty() {
+            continue;
+        }
+        if value.starts_with('#') {
+            return None;
+        }
+        return Some(value.to_string());
+    }
+
+    None
+}
+
+fn extract_inline_marker_value(trimmed: &str, normalized: &str, marker: &str) -> Option<String> {
+    let inline = format!("{marker}:");
+    if !normalized.starts_with(&inline) {
+        return None;
+    }
+
+    let value = trimmed[trimmed.find(':')? + 1..].trim();
+    if value.is_empty() { None } else { Some(value.to_string()) }
 }
 
 #[cfg(test)]

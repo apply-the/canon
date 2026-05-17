@@ -351,23 +351,15 @@ impl PolicySet {
     /// Applies partial overrides from a [`PolicySetOverrides`] onto this policy set.
     pub fn apply_overrides(&mut self, overrides: PolicySetOverrides) {
         for override_class in overrides.risk_classes {
-            if let Some(existing) =
-                self.risk_classes.iter_mut().find(|class| class.name == override_class.name)
-            {
-                *existing = override_class;
-            } else {
-                self.risk_classes.push(override_class);
-            }
+            replace_or_push_by(&mut self.risk_classes, override_class, |existing, candidate| {
+                existing.name == candidate.name
+            });
         }
 
         for override_zone in overrides.zones {
-            if let Some(existing) =
-                self.zones.iter_mut().find(|zone| zone.name == override_zone.name)
-            {
-                *existing = override_zone;
-            } else {
-                self.zones.push(override_zone);
-            }
+            replace_or_push_by(&mut self.zones, override_zone, |existing, candidate| {
+                existing.name == candidate.name
+            });
         }
 
         if let Some(gate_policy) = overrides.gate_policy {
@@ -375,25 +367,17 @@ impl PolicySet {
         }
 
         for override_adapter in overrides.adapter_matrix {
-            if let Some(existing) = self
-                .adapter_matrix
-                .iter_mut()
-                .find(|entry| entry.adapter == override_adapter.adapter)
-            {
-                *existing = override_adapter;
-            } else {
-                self.adapter_matrix.push(override_adapter);
-            }
+            replace_or_push_by(
+                &mut self.adapter_matrix,
+                override_adapter,
+                |existing, candidate| existing.adapter == candidate.adapter,
+            );
         }
 
         for profile in overrides.constraint_profiles {
-            if let Some(existing) =
-                self.constraint_profiles.iter_mut().find(|entry| entry.id == profile.id)
-            {
-                *existing = profile;
-            } else {
-                self.constraint_profiles.push(profile);
-            }
+            replace_or_push_by(&mut self.constraint_profiles, profile, |existing, candidate| {
+                existing.id == candidate.id
+            });
         }
 
         if let Some(runtime_disabled_adapters) = overrides.runtime_disabled_adapters {
@@ -409,6 +393,17 @@ impl PolicySet {
         {
             self.block_mutation_for_red_or_systemic = block_mutation_for_red_or_systemic;
         }
+    }
+}
+
+fn replace_or_push_by<T, F>(entries: &mut Vec<T>, candidate: T, matches: F)
+where
+    F: Fn(&T, &T) -> bool,
+{
+    if let Some(existing) = entries.iter_mut().find(|existing| matches(existing, &candidate)) {
+        *existing = candidate;
+    } else {
+        entries.push(candidate);
     }
 }
 

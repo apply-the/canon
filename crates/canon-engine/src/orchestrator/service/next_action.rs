@@ -30,28 +30,11 @@ pub(crate) fn recommend_next_action(
     approval_targets: &[String],
 ) -> Option<RecommendedActionSummary> {
     if !approval_targets.is_empty() {
-        if !artifact_paths.is_empty() {
-            return Some(RecommendedActionSummary {
-                action: "inspect-artifacts".to_string(),
-                rationale: "Review the emitted packet before recording approval.".to_string(),
-                target: None,
-            });
-        }
-
-        if has_evidence_bundle {
-            return Some(RecommendedActionSummary {
-                action: "inspect-evidence".to_string(),
-                rationale: "Approval is required; inspect the evidence lineage before deciding."
-                    .to_string(),
-                target: None,
-            });
-        }
-
-        return Some(RecommendedActionSummary {
-            action: "approve".to_string(),
-            rationale: "Canon is explicitly waiting for approval on a real target.".to_string(),
-            target: approval_targets.first().cloned(),
-        });
+        return recommend_approval_gated_next_action(
+            artifact_paths,
+            has_evidence_bundle,
+            approval_targets,
+        );
     }
 
     if matches!(state, RunState::AwaitingApproval) {
@@ -64,47 +47,95 @@ pub(crate) fn recommend_next_action(
     }
 
     if !blocked_gates.is_empty() || matches!(state, RunState::Blocked) {
-        if !artifact_paths.is_empty() {
-            return Some(RecommendedActionSummary {
-                action: "inspect-artifacts".to_string(),
-                rationale: "The run is blocked by gate blockers in the emitted packet, not by a pending approval."
-                    .to_string(),
-                target: None,
-            });
-        }
-
-        if has_evidence_bundle {
-            return Some(RecommendedActionSummary {
-                action: "inspect-evidence".to_string(),
-                rationale: "The run is blocked but no readable artifact packet was found; inspect the evidence bundle next."
-                    .to_string(),
-                target: None,
-            });
-        }
+        return recommend_blocked_next_action(artifact_paths, has_evidence_bundle);
     }
 
     if matches!(state, RunState::Completed) {
-        if mode_result.is_some() {
-            return None;
-        }
+        return recommend_completed_next_action(mode_result, artifact_paths, has_evidence_bundle);
+    }
 
-        if !artifact_paths.is_empty() {
-            return Some(RecommendedActionSummary {
-                action: "inspect-artifacts".to_string(),
-                rationale: "The run completed and emitted readable artifacts worth reviewing."
-                    .to_string(),
-                target: None,
-            });
-        }
+    None
+}
 
-        if has_evidence_bundle {
-            return Some(RecommendedActionSummary {
-                action: "inspect-evidence".to_string(),
-                rationale: "The run completed; inspect the evidence bundle for execution lineage."
-                    .to_string(),
-                target: None,
-            });
-        }
+fn recommend_approval_gated_next_action(
+    artifact_paths: &[String],
+    has_evidence_bundle: bool,
+    approval_targets: &[String],
+) -> Option<RecommendedActionSummary> {
+    if !artifact_paths.is_empty() {
+        return Some(RecommendedActionSummary {
+            action: "inspect-artifacts".to_string(),
+            rationale: "Review the emitted packet before recording approval.".to_string(),
+            target: None,
+        });
+    }
+
+    if has_evidence_bundle {
+        return Some(RecommendedActionSummary {
+            action: "inspect-evidence".to_string(),
+            rationale: "Approval is required; inspect the evidence lineage before deciding."
+                .to_string(),
+            target: None,
+        });
+    }
+
+    Some(RecommendedActionSummary {
+        action: "approve".to_string(),
+        rationale: "Canon is explicitly waiting for approval on a real target.".to_string(),
+        target: approval_targets.first().cloned(),
+    })
+}
+
+fn recommend_blocked_next_action(
+    artifact_paths: &[String],
+    has_evidence_bundle: bool,
+) -> Option<RecommendedActionSummary> {
+    if !artifact_paths.is_empty() {
+        return Some(RecommendedActionSummary {
+            action: "inspect-artifacts".to_string(),
+            rationale: "The run is blocked by gate blockers in the emitted packet, not by a pending approval."
+                .to_string(),
+            target: None,
+        });
+    }
+
+    if has_evidence_bundle {
+        return Some(RecommendedActionSummary {
+            action: "inspect-evidence".to_string(),
+            rationale: "The run is blocked but no readable artifact packet was found; inspect the evidence bundle next."
+                .to_string(),
+            target: None,
+        });
+    }
+
+    None
+}
+
+fn recommend_completed_next_action(
+    mode_result: Option<&ModeResultSummary>,
+    artifact_paths: &[String],
+    has_evidence_bundle: bool,
+) -> Option<RecommendedActionSummary> {
+    if mode_result.is_some() {
+        return None;
+    }
+
+    if !artifact_paths.is_empty() {
+        return Some(RecommendedActionSummary {
+            action: "inspect-artifacts".to_string(),
+            rationale: "The run completed and emitted readable artifacts worth reviewing."
+                .to_string(),
+            target: None,
+        });
+    }
+
+    if has_evidence_bundle {
+        return Some(RecommendedActionSummary {
+            action: "inspect-evidence".to_string(),
+            rationale: "The run completed; inspect the evidence bundle for execution lineage."
+                .to_string(),
+            target: None,
+        });
     }
 
     None

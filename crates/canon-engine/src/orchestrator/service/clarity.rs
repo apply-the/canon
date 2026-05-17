@@ -828,47 +828,108 @@ pub(crate) fn authored_mode_missing_context(brief: &AuthoredModeBrief) -> Vec<St
     let mut missing = Vec::new();
 
     if !has_authored_value(&brief.primary_subject) {
-        missing.push(match brief.family {
-            AuthoredClarityFamily::Planning => {
-                "Planning intent is missing; Canon cannot tell what bounded problem or decision this packet is meant to drive.".to_string()
-            }
-            AuthoredClarityFamily::Execution => {
-                "Execution target is missing; Canon cannot tell which bounded change, refactor, or migration surface this packet controls.".to_string()
-            }
-            AuthoredClarityFamily::Assessment => {
-                "Assessment target is missing; Canon cannot tell what claim, incident, or system slice this packet is evaluating.".to_string()
-            }
-        });
+        missing.push(authored_missing_primary_subject_message(brief.family));
     }
 
     if !has_authored_value(&brief.boundary) {
-        missing.push(match brief.family {
-            AuthoredClarityFamily::Planning => {
-                "Planning boundary is missing; the packet does not yet state the scope, slice, or constraint Canon must preserve.".to_string()
-            }
-            AuthoredClarityFamily::Execution => {
-                "Mutation boundary is missing; execution output would otherwise overreach beyond the authored scope.".to_string()
-            }
-            AuthoredClarityFamily::Assessment => {
-                "Assessment boundary is missing; the packet does not yet say which evidence surface is actually in scope.".to_string()
-            }
-        });
+        missing.push(authored_missing_boundary_message(brief.family));
     }
 
     if !has_authored_value(&brief.support_evidence) {
-        missing.push(match brief.family {
-            AuthoredClarityFamily::Planning => {
-                "Planning support is missing; the packet has no explicit rationale or decision evidence anchoring its direction.".to_string()
-            }
-            AuthoredClarityFamily::Execution => {
-                "Execution evidence is missing; the packet lacks safety-net, rollback, or validation support for the proposed work.".to_string()
-            }
-            AuthoredClarityFamily::Assessment => {
-                "Evidence basis is missing; assessment output would otherwise rely on inferred confidence instead of authored support.".to_string()
-            }
-        });
+        missing.push(authored_missing_support_message(brief.family));
     }
 
+    append_family_specific_missing_context(brief, &mut missing);
+
+    missing
+}
+
+pub(crate) fn prioritized_authored_mode_clarification_questions(
+    brief: &AuthoredModeBrief,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+
+    if !has_authored_value(&brief.primary_subject) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-authored-target",
+            authored_target_prompt(brief.family),
+            "Without a bounded target, Canon cannot tell whether the packet is actually reasoning about the intended surface.",
+            authored_primary_fallback(brief.family),
+        );
+    }
+
+    if !has_authored_value(&brief.boundary) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-authored-boundary",
+            authored_boundary_prompt(brief.family),
+            "Boundaries keep the packet honest about what Canon is allowed to interpret or recommend.",
+            authored_boundary_fallback(brief.family),
+        );
+    }
+
+    if !has_authored_value(&brief.support_evidence) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-authored-support",
+            authored_support_prompt(brief.family),
+            "Without explicit support, the packet risks sounding more grounded than it actually is.",
+            authored_support_fallback(brief.family),
+        );
+    }
+
+    push_family_specific_authored_questions(brief, &mut questions);
+
+    push_authored_gap_questions(brief, &mut questions);
+
+    questions.truncate(5);
+    questions
+}
+
+fn authored_missing_primary_subject_message(family: AuthoredClarityFamily) -> String {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "Planning intent is missing; Canon cannot tell what bounded problem or decision this packet is meant to drive.".to_string()
+        }
+        AuthoredClarityFamily::Execution => {
+            "Execution target is missing; Canon cannot tell which bounded change, refactor, or migration surface this packet controls.".to_string()
+        }
+        AuthoredClarityFamily::Assessment => {
+            "Assessment target is missing; Canon cannot tell what claim, incident, or system slice this packet is evaluating.".to_string()
+        }
+    }
+}
+
+fn authored_missing_boundary_message(family: AuthoredClarityFamily) -> String {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "Planning boundary is missing; the packet does not yet state the scope, slice, or constraint Canon must preserve.".to_string()
+        }
+        AuthoredClarityFamily::Execution => {
+            "Mutation boundary is missing; execution output would otherwise overreach beyond the authored scope.".to_string()
+        }
+        AuthoredClarityFamily::Assessment => {
+            "Assessment boundary is missing; the packet does not yet say which evidence surface is actually in scope.".to_string()
+        }
+    }
+}
+
+fn authored_missing_support_message(family: AuthoredClarityFamily) -> String {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "Planning support is missing; the packet has no explicit rationale or decision evidence anchoring its direction.".to_string()
+        }
+        AuthoredClarityFamily::Execution => {
+            "Execution evidence is missing; the packet lacks safety-net, rollback, or validation support for the proposed work.".to_string()
+        }
+        AuthoredClarityFamily::Assessment => {
+            "Evidence basis is missing; assessment output would otherwise rely on inferred confidence instead of authored support.".to_string()
+        }
+    }
+}
+
+fn append_family_specific_missing_context(brief: &AuthoredModeBrief, missing: &mut Vec<String>) {
     match brief.family {
         AuthoredClarityFamily::Planning => {
             if count_captured_list_items(&brief.options) == 0
@@ -901,103 +962,60 @@ pub(crate) fn authored_mode_missing_context(brief: &AuthoredModeBrief) -> Vec<St
             }
         }
     }
-
-    missing
 }
 
-pub(crate) fn prioritized_authored_mode_clarification_questions(
+fn authored_target_prompt(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "What concrete planning target or decision should this packet drive?"
+        }
+        AuthoredClarityFamily::Execution => {
+            "Which implementation, refactor, or migration surface is actually in scope?"
+        }
+        AuthoredClarityFamily::Assessment => {
+            "What exact review, verification, incident, or assessment target is under examination?"
+        }
+    }
+}
+
+fn authored_boundary_prompt(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "Which boundary, slice, or scope limit must this packet preserve?"
+        }
+        AuthoredClarityFamily::Execution => {
+            "Which paths, mutation bounds, or transition boundaries are explicitly allowed?"
+        }
+        AuthoredClarityFamily::Assessment => {
+            "Which evidence surfaces are in scope, and which ones are explicitly excluded?"
+        }
+    }
+}
+
+fn authored_support_prompt(family: AuthoredClarityFamily) -> &'static str {
+    match family {
+        AuthoredClarityFamily::Planning => {
+            "What explicit rationale or evidence supports the chosen planning direction?"
+        }
+        AuthoredClarityFamily::Execution => {
+            "What safety-net, validation, or rollback evidence makes this execution plan safe?"
+        }
+        AuthoredClarityFamily::Assessment => {
+            "What evidence basis supports this packet instead of inferred reasoning?"
+        }
+    }
+}
+
+fn push_family_specific_authored_questions(
     brief: &AuthoredModeBrief,
-) -> Vec<ClarificationQuestionSummary> {
-    let mut questions = Vec::new();
-
-    if !has_authored_value(&brief.primary_subject) {
-        let prompt = match brief.family {
-            AuthoredClarityFamily::Planning => {
-                "What concrete planning target or decision should this packet drive?"
-            }
-            AuthoredClarityFamily::Execution => {
-                "Which implementation, refactor, or migration surface is actually in scope?"
-            }
-            AuthoredClarityFamily::Assessment => {
-                "What exact review, verification, incident, or assessment target is under examination?"
-            }
-        };
-
-        push_clarification_question(
-            &mut questions,
-            "clarify-authored-target",
-            prompt,
-            "Without a bounded target, Canon cannot tell whether the packet is actually reasoning about the intended surface.",
-            authored_primary_fallback(brief.family),
-        );
-    }
-
-    if !has_authored_value(&brief.boundary) {
-        let prompt = match brief.family {
-            AuthoredClarityFamily::Planning => {
-                "Which boundary, slice, or scope limit must this packet preserve?"
-            }
-            AuthoredClarityFamily::Execution => {
-                "Which paths, mutation bounds, or transition boundaries are explicitly allowed?"
-            }
-            AuthoredClarityFamily::Assessment => {
-                "Which evidence surfaces are in scope, and which ones are explicitly excluded?"
-            }
-        };
-
-        push_clarification_question(
-            &mut questions,
-            "clarify-authored-boundary",
-            prompt,
-            "Boundaries keep the packet honest about what Canon is allowed to interpret or recommend.",
-            authored_boundary_fallback(brief.family),
-        );
-    }
-
-    if !has_authored_value(&brief.support_evidence) {
-        let prompt = match brief.family {
-            AuthoredClarityFamily::Planning => {
-                "What explicit rationale or evidence supports the chosen planning direction?"
-            }
-            AuthoredClarityFamily::Execution => {
-                "What safety-net, validation, or rollback evidence makes this execution plan safe?"
-            }
-            AuthoredClarityFamily::Assessment => {
-                "What evidence basis supports this packet instead of inferred reasoning?"
-            }
-        };
-
-        push_clarification_question(
-            &mut questions,
-            "clarify-authored-support",
-            prompt,
-            "Without explicit support, the packet risks sounding more grounded than it actually is.",
-            authored_support_fallback(brief.family),
-        );
-    }
-
+    questions: &mut Vec<ClarificationQuestionSummary>,
+) {
     match brief.family {
         AuthoredClarityFamily::Planning => {
             if count_captured_list_items(&brief.options) == 0
                 && !has_authored_value(&brief.decision_state)
             {
-                if matches!(brief.mode, Mode::Architecture) {
-                    push_architecture_clarification_question(
-                        &mut questions,
-                        "clarify-authored-decision-posture",
-                        "Which options were considered, or is the decision already materially closed?",
-                        "Architecture packets should either preserve viable alternatives or say directly that the decision is already closed.",
-                        authored_decision_fallback(brief.family),
-                    );
-                } else {
-                    push_clarification_question(
-                        &mut questions,
-                        "clarify-authored-decision-posture",
-                        "Which options were considered, or is the decision already materially closed?",
-                        "Planning packets should either preserve viable alternatives or say directly that the decision is already closed.",
-                        authored_decision_fallback(brief.family),
-                    );
-                }
+                push_planning_decision_posture_question(brief, questions);
             }
 
             if matches!(brief.mode, Mode::Architecture)
@@ -1005,7 +1023,7 @@ pub(crate) fn prioritized_authored_mode_clarification_questions(
                 && !brief.materially_closed()
             {
                 push_architecture_clarification_question(
-                    &mut questions,
+                    questions,
                     "clarify-authored-tradeoffs",
                     "Which tradeoffs would actually change the architectural choice?",
                     "Architecture clarification should stay limited to tradeoffs that could change the structural decision or next-mode routing.",
@@ -1016,7 +1034,7 @@ pub(crate) fn prioritized_authored_mode_clarification_questions(
         AuthoredClarityFamily::Execution => {
             if !has_authored_value(&brief.preserved_boundary) {
                 push_clarification_question(
-                    &mut questions,
+                    questions,
                     "clarify-authored-preservation",
                     "Which behavior, compatibility, or invariant guarantees must remain intact?",
                     "Execution packets need an explicit preservation boundary before they can claim grounded reasoning.",
@@ -1029,7 +1047,7 @@ pub(crate) fn prioritized_authored_mode_clarification_questions(
                 && !has_authored_value(&brief.decision_state)
             {
                 push_clarification_question(
-                    &mut questions,
+                    questions,
                     "clarify-authored-disposition",
                     "What disposition or verdict is actually justified by the authored evidence?",
                     "Review-family packets should not imply approval, contradiction, or rejection without an authored conclusion.",
@@ -1038,34 +1056,60 @@ pub(crate) fn prioritized_authored_mode_clarification_questions(
             }
         }
     }
+}
 
+fn push_planning_decision_posture_question(
+    brief: &AuthoredModeBrief,
+    questions: &mut Vec<ClarificationQuestionSummary>,
+) {
+    if matches!(brief.mode, Mode::Architecture) {
+        push_architecture_clarification_question(
+            questions,
+            "clarify-authored-decision-posture",
+            "Which options were considered, or is the decision already materially closed?",
+            "Architecture packets should either preserve viable alternatives or say directly that the decision is already closed.",
+            authored_decision_fallback(brief.family),
+        );
+    } else {
+        push_clarification_question(
+            questions,
+            "clarify-authored-decision-posture",
+            "Which options were considered, or is the decision already materially closed?",
+            "Planning packets should either preserve viable alternatives or say directly that the decision is already closed.",
+            authored_decision_fallback(brief.family),
+        );
+    }
+}
+
+fn push_authored_gap_questions(
+    brief: &AuthoredModeBrief,
+    questions: &mut Vec<ClarificationQuestionSummary>,
+) {
     for (index, gap) in brief.questions_or_gaps.iter().enumerate() {
         if !is_authored_gap_question(gap) {
             continue;
         }
 
         let prompt = question_prompt(gap);
+        let id = format!("authored-gap-question-{}", index + 1);
         if matches!(brief.mode, Mode::Architecture) {
             push_architecture_clarification_question(
-                &mut questions,
-                &format!("authored-gap-question-{}", index + 1),
+                questions,
+                &id,
                 &prompt,
                 "This unresolved architecture question is already authored in the packet and should stay visible before a governed run starts.",
                 "Captured from the authored gaps, open questions, or evidence-gap section.",
             );
         } else {
             push_clarification_question(
-                &mut questions,
-                &format!("authored-gap-question-{}", index + 1),
+                questions,
+                &id,
                 &prompt,
                 "This unresolved question is already authored in the packet and should stay visible before a governed run starts.",
                 "Captured from the authored gaps, open questions, or evidence-gap section.",
             );
         }
     }
-
-    questions.truncate(5);
-    questions
 }
 
 pub(crate) fn authored_mode_reasoning_signals(

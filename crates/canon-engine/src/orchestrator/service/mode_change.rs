@@ -249,39 +249,19 @@ impl EngineService {
             None
         };
 
-        if execution_gate_approved
-            && mutation_patch.is_some()
-            && matches!(
-                mutation_decision.kind,
-                PolicyDecisionKind::Allow | PolicyDecisionKind::AllowConstrained
-            )
-            && !mutation_decision.constraints.patch_disabled
-        {
-            mutation_decision.constraints.recommendation_only = false;
-            mutation_decision.requires_approval = false;
-            mutation_decision.rationale = approved_execution_mutation_rationale(
-                request.mode,
-                &request_summaries.declared_execution_scope,
-                mutation_patch
-                    .as_ref()
-                    .map(|patch| patch.relative_path.as_str())
-                    .unwrap_or_default(),
-            );
-        }
+        Self::update_mutation_decision_for_approved_execution(
+            request.mode,
+            &request_summaries.declared_execution_scope,
+            execution_gate_approved,
+            mutation_patch.as_ref(),
+            &mut mutation_decision,
+        );
 
-        let mutation_attempt = if matches!(
-            mutation_decision.kind,
-            PolicyDecisionKind::Allow | PolicyDecisionKind::AllowConstrained
-        ) && !mutation_decision.constraints.recommendation_only
-            && !mutation_decision.constraints.patch_disabled
-        {
-            match mutation_patch.as_ref() {
-                Some(patch) => self.apply_authored_mutation_patch(&mutation_request, patch)?,
-                None => self.policy_decision_attempt(&mutation_request, &mutation_decision),
-            }
-        } else {
-            self.policy_decision_attempt(&mutation_request, &mutation_decision)
-        };
+        let mutation_attempt = self.change_mutation_attempt(
+            &mutation_request,
+            &mutation_decision,
+            mutation_patch.as_ref(),
+        )?;
 
         if matches!(generation_decision.kind, PolicyDecisionKind::NeedsApproval)
             && !approved_generation
@@ -376,11 +356,7 @@ impl EngineService {
         }
 
         let copilot = CopilotCliAdapter;
-        let generation_context = if context_summary == brief_summary {
-            brief_summary.clone()
-        } else {
-            format!("{brief_summary}\n\n{context_summary}")
-        };
+        let generation_context = merge_generation_context(&brief_summary, &context_summary);
         let generation_output = copilot.generate(&generation_context);
         let generation_attempt = self.completed_attempt(
             &generation_request,
@@ -511,48 +487,17 @@ impl EngineService {
             .iter()
             .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
             .collect::<Vec<_>>();
-        let gates = match request.mode {
-            Mode::Change => gatekeeper::evaluate_change_gates(
-                &artifact_contract,
-                &gate_inputs,
-                gatekeeper::ChangeGateContext {
-                    owner: &request.owner,
-                    risk: request.risk,
-                    zone: request.zone,
-                    approvals: &approvals,
-                    system_context: request.system_context,
-                    validation_independence_satisfied: validation_path.independence.sufficient,
-                    evidence_complete: true,
-                },
-            ),
-            Mode::Implementation => gatekeeper::evaluate_implementation_gates(
-                &artifact_contract,
-                &gate_inputs,
-                gatekeeper::ImplementationGateContext {
-                    owner: &request.owner,
-                    risk: request.risk,
-                    zone: request.zone,
-                    approvals: &approvals,
-                    system_context: request.system_context,
-                    validation_independence_satisfied: validation_path.independence.sufficient,
-                    evidence_complete: true,
-                },
-            ),
-            Mode::Refactor => gatekeeper::evaluate_refactor_gates(
-                &artifact_contract,
-                &gate_inputs,
-                gatekeeper::RefactorGateContext {
-                    owner: &request.owner,
-                    risk: request.risk,
-                    zone: request.zone,
-                    approvals: &approvals,
-                    system_context: request.system_context,
-                    validation_independence_satisfied: validation_path.independence.sufficient,
-                    evidence_complete: true,
-                },
-            ),
-            other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
-        };
+        let gates = Self::evaluate_change_like_gates(
+            request.mode,
+            &artifact_contract,
+            &gate_inputs,
+            &request.owner,
+            request.risk,
+            request.zone,
+            approvals.as_slice(),
+            request.system_context,
+            validation_path.independence.sufficient,
+        )?;
         let mut state = run_state_from_gates(&gates);
         if mutation_decision.requires_approval
             && !approved_mutation
@@ -601,13 +546,13 @@ impl EngineService {
                 vec![generation_attempt]
             };
 
-        let mut run_context = self.build_run_context(&request, input_fingerprints, now);
-        if matches!(mutation_attempt.outcome.kind, ToolOutcomeKind::Succeeded) {
-            set_execution_posture(&mut run_context, ExecutionPosture::Mutating);
-        }
-        if execution_gate_approved {
-            set_post_approval_execution_consumed(&mut run_context, true);
-        }
+        let run_context = self.change_run_context(
+            &request,
+            input_fingerprints,
+            now,
+            &mutation_attempt,
+            execution_gate_approved,
+        );
 
         let bundle = PersistedRunBundle {
             run: RunManifest {
@@ -679,6 +624,137 @@ impl EngineService {
                 artifact_count: bundle.artifacts.len(),
             },
         )
+    }
+
+    fn update_mutation_decision_for_approved_execution(
+        mode: Mode,
+        declared_execution_scope: &[String],
+        execution_gate_approved: bool,
+        mutation_patch: Option<&AuthoredMutationPatch>,
+        mutation_decision: &mut crate::domain::execution::InvocationPolicyDecision,
+    ) {
+        if !execution_gate_approved
+            || mutation_patch.is_none()
+            || !matches!(
+                mutation_decision.kind,
+                PolicyDecisionKind::Allow | PolicyDecisionKind::AllowConstrained
+            )
+            || mutation_decision.constraints.patch_disabled
+        {
+            return;
+        }
+
+        mutation_decision.constraints.recommendation_only = false;
+        mutation_decision.requires_approval = false;
+        mutation_decision.rationale = approved_execution_mutation_rationale(
+            mode,
+            declared_execution_scope,
+            mutation_patch.map(|patch| patch.relative_path.as_str()).unwrap_or_default(),
+        );
+    }
+
+    fn change_mutation_attempt(
+        &self,
+        mutation_request: &InvocationRequest,
+        mutation_decision: &crate::domain::execution::InvocationPolicyDecision,
+        mutation_patch: Option<&AuthoredMutationPatch>,
+    ) -> Result<InvocationAttempt, EngineError> {
+        if !matches!(
+            mutation_decision.kind,
+            PolicyDecisionKind::Allow | PolicyDecisionKind::AllowConstrained
+        ) || mutation_decision.constraints.recommendation_only
+            || mutation_decision.constraints.patch_disabled
+        {
+            return Ok(self.policy_decision_attempt(mutation_request, mutation_decision));
+        }
+
+        match mutation_patch {
+            Some(patch) => self.apply_authored_mutation_patch(mutation_request, patch),
+            None => Ok(self.policy_decision_attempt(mutation_request, mutation_decision)),
+        }
+    }
+
+    fn evaluate_change_like_gates(
+        mode: Mode,
+        artifact_contract: &crate::domain::artifact::ArtifactContract,
+        gate_inputs: &[(String, String)],
+        owner: &str,
+        risk: RiskClass,
+        zone: UsageZone,
+        approvals: &[ApprovalRecord],
+        system_context: Option<SystemContext>,
+        validation_independence_satisfied: bool,
+    ) -> Result<Vec<crate::domain::gate::GateEvaluation>, EngineError> {
+        let gates = match mode {
+            Mode::Change => gatekeeper::evaluate_change_gates(
+                artifact_contract,
+                gate_inputs,
+                gatekeeper::ChangeGateContext {
+                    owner,
+                    risk,
+                    zone,
+                    approvals,
+                    system_context,
+                    validation_independence_satisfied,
+                    evidence_complete: true,
+                },
+            ),
+            Mode::Implementation => gatekeeper::evaluate_implementation_gates(
+                artifact_contract,
+                gate_inputs,
+                gatekeeper::ImplementationGateContext {
+                    owner,
+                    risk,
+                    zone,
+                    approvals,
+                    system_context,
+                    validation_independence_satisfied,
+                    evidence_complete: true,
+                },
+            ),
+            Mode::Refactor => gatekeeper::evaluate_refactor_gates(
+                artifact_contract,
+                gate_inputs,
+                gatekeeper::RefactorGateContext {
+                    owner,
+                    risk,
+                    zone,
+                    approvals,
+                    system_context,
+                    validation_independence_satisfied,
+                    evidence_complete: true,
+                },
+            ),
+            other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
+        };
+
+        Ok(gates)
+    }
+
+    fn change_run_context(
+        &self,
+        request: &RunRequest,
+        input_fingerprints: Vec<InputFingerprint>,
+        now: OffsetDateTime,
+        mutation_attempt: &InvocationAttempt,
+        execution_gate_approved: bool,
+    ) -> RunContext {
+        let mut run_context = self.build_run_context(request, input_fingerprints, now);
+        if matches!(mutation_attempt.outcome.kind, ToolOutcomeKind::Succeeded) {
+            set_execution_posture(&mut run_context, ExecutionPosture::Mutating);
+        }
+        if execution_gate_approved {
+            set_post_approval_execution_consumed(&mut run_context, true);
+        }
+        run_context
+    }
+}
+
+fn merge_generation_context(brief_summary: &str, context_summary: &str) -> String {
+    if context_summary == brief_summary {
+        brief_summary.to_string()
+    } else {
+        format!("{brief_summary}\n\n{context_summary}")
     }
 }
 
