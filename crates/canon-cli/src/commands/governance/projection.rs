@@ -49,6 +49,7 @@ pub(super) fn project_run_response(
         reason_code,
         authority_governance: projection.authority_governance,
         adaptive_governance: projection.adaptive_governance,
+        semantic_descriptor: projection.semantic_descriptor,
     }
 }
 
@@ -178,6 +179,9 @@ pub(super) fn load_run_projection(
         adaptive_governance: packet_metadata
             .as_ref()
             .and_then(|metadata| metadata.adaptive_governance.clone()),
+        semantic_descriptor: packet_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.semantic_descriptor.clone()),
     })
 }
 
@@ -230,6 +234,11 @@ pub(super) fn project_runtime_packet_metadata(
         expertise_input: None,
         publication_target_class: None,
         artifact_indexing: None,
+        semantic_descriptor: projected_semantic_descriptor(
+            manifest.mode,
+            expected_document_refs,
+            document_refs,
+        ),
         authority_governance: Some(AuthorityGovernanceV1Envelope::from_runtime_inputs(
             AuthorityGovernanceV1RuntimeInputs {
                 mode: manifest.mode,
@@ -253,10 +262,31 @@ pub(super) fn project_runtime_packet_metadata(
     }
 }
 
+fn projected_semantic_descriptor(
+    mode: Mode,
+    expected_document_refs: &[String],
+    document_refs: &[String],
+) -> Option<SemanticArtifactDescriptor> {
+    let source_refs = if document_refs.is_empty() { expected_document_refs } else { document_refs };
+    let semantic_provenance_ref = source_refs.iter().find_map(|reference| {
+        let file_name = Path::new(reference).file_name()?.to_str()?;
+        (file_name != RUNTIME_PACKET_METADATA_FILE_NAME).then(|| reference.clone())
+    })?;
+
+    Some(SemanticArtifactDescriptor {
+        semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
+        semantic_eligibility: SemanticEligibilityState::Eligible,
+        semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
+        semantic_provenance_ref: Some(semantic_provenance_ref),
+        semantic_labels: vec![mode.as_str().to_string()],
+        semantic_exclusion_reason: None,
+    })
+}
+
 /// Fills in any missing governance envelope fields in `metadata` from the
 /// `projected` snapshot.
 ///
-/// Only `authority_governance` and `adaptive_governance` are back-filled;
+/// Only `authority_governance`, `adaptive_governance`, and `semantic_descriptor` are back-filled;
 /// all other fields from the persisted metadata are kept as-is.
 pub(super) fn merge_projected_governance_metadata(
     mut metadata: RuntimePacketMetadata,
@@ -267,6 +297,9 @@ pub(super) fn merge_projected_governance_metadata(
     }
     if metadata.adaptive_governance.is_none() {
         metadata.adaptive_governance = projected.adaptive_governance.clone();
+    }
+    if metadata.semantic_descriptor.is_none() {
+        metadata.semantic_descriptor = projected.semantic_descriptor.clone();
     }
     metadata
 }
@@ -303,6 +336,9 @@ mod tests {
     use canon_engine::domain::mode::Mode;
     use canon_engine::domain::policy::{RiskClass, UsageZone};
     use canon_engine::domain::publish_profile::PublicationTargetClass;
+    use canon_engine::domain::publish_profile::{
+        SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticEligibilityState, SemanticProvenanceBoundary,
+    };
     use canon_engine::domain::run::ClassificationProvenance;
     use canon_engine::domain::run::RunState;
     use canon_engine::persistence::manifests::{RunManifest, RunStateManifest};
@@ -346,6 +382,18 @@ mod tests {
         assert_eq!(metadata.artifact_order, vec!["overview.md".to_string()]);
         assert!(metadata.publication_target_class.is_none());
         assert!(metadata.artifact_indexing.is_none());
+        let semantic =
+            metadata.semantic_descriptor.as_ref().expect("semantic descriptor should be projected");
+        assert_eq!(semantic.semantic_contract_line, SEMANTIC_ARTIFACT_CONTRACT_LINE_V1);
+        assert_eq!(semantic.semantic_eligibility, SemanticEligibilityState::Eligible);
+        assert_eq!(
+            semantic.semantic_provenance_boundary,
+            Some(SemanticProvenanceBoundary::Surface)
+        );
+        assert_eq!(
+            semantic.semantic_provenance_ref.as_deref(),
+            Some(".canon/artifacts/R-20260517-abcd1234/architecture/overview.md")
+        );
         assert!(metadata.authority_governance.is_some());
         assert!(metadata.adaptive_governance.is_some());
     }
@@ -375,6 +423,7 @@ mod tests {
         assert!(merged.artifact_indexing.is_none());
         assert!(merged.authority_governance.is_some());
         assert!(merged.adaptive_governance.is_some());
+        assert!(merged.semantic_descriptor.is_some());
 
         assert_eq!(
             projected_artifact_order(

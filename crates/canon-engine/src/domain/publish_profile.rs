@@ -19,6 +19,8 @@ pub const GOVERNED_EXPERTISE_INPUT_CONTRACT_VERSION: &str = "v1";
 pub const AUTHORITY_GOVERNANCE_V1_CONTRACT_LINE: &str = "authority-governance-v1";
 /// Contract line string for the first adaptive-governance companion slice.
 pub const ADAPTIVE_GOVERNANCE_V1_CONTRACT_LINE: &str = "adaptive-governance-v1";
+/// Contract line string for the first semantic artifact descriptor slice.
+pub const SEMANTIC_ARTIFACT_CONTRACT_LINE_V1: &str = "v1";
 /// Required field names for V1 lineage metadata envelopes.
 pub const REQUIRED_V1_LINEAGE_FIELDS: &[&str] = &[
     "contract_version",
@@ -394,6 +396,102 @@ pub struct ArtifactIndexingMetadata {
     pub discovery_rule: String,
 }
 
+/// Canon semantic eligibility posture for one published artifact surface.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SemanticEligibilityState {
+    Eligible,
+    Excluded,
+}
+
+impl SemanticEligibilityState {
+    /// Returns the kebab-case string representation of this eligibility state.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Eligible => "eligible",
+            Self::Excluded => "excluded",
+        }
+    }
+}
+
+impl std::fmt::Display for SemanticEligibilityState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Canon-owned semantic provenance boundary for one published artifact surface.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SemanticProvenanceBoundary {
+    Surface,
+    ManagedBlock,
+    Section,
+}
+
+impl SemanticProvenanceBoundary {
+    /// Returns the stable serialized representation of this provenance boundary.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Surface => "surface",
+            Self::ManagedBlock => "managed_block",
+            Self::Section => "section",
+        }
+    }
+}
+
+impl std::fmt::Display for SemanticProvenanceBoundary {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Canon-owned semantic descriptor carried through existing packet metadata surfaces.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticArtifactDescriptor {
+    pub semantic_contract_line: String,
+    pub semantic_eligibility: SemanticEligibilityState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub semantic_provenance_boundary: Option<SemanticProvenanceBoundary>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub semantic_provenance_ref: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_labels: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub semantic_exclusion_reason: Option<String>,
+}
+
+impl SemanticArtifactDescriptor {
+    /// Validates the semantic descriptor shape before it is published.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.semantic_contract_line.trim().is_empty() {
+            return Err("semantic descriptor requires a semantic_contract_line".to_string());
+        }
+
+        for label in &self.semantic_labels {
+            if label.trim().is_empty() {
+                return Err(
+                    "semantic descriptor labels must not be empty when provided".to_string()
+                );
+            }
+        }
+
+        if self.semantic_provenance_boundary.is_none() {
+            return Err("semantic descriptor requires semantic_provenance_boundary".to_string());
+        }
+        if self.semantic_provenance_ref.as_deref().map(str::trim).unwrap_or_default().is_empty() {
+            return Err("semantic descriptor requires semantic_provenance_ref".to_string());
+        }
+
+        if self.semantic_exclusion_reason.as_deref().is_some_and(|reason| reason.trim().is_empty())
+        {
+            return Err("semantic exclusion reason must not be empty when provided".to_string());
+        }
+
+        Ok(())
+    }
+}
+
 impl ArtifactIndexingMetadata {
     /// Builds typed indexing metadata from the effective publication class and
     /// update strategy, rejecting ambiguous combinations.
@@ -589,7 +687,8 @@ mod authority_governance_tests {
         AdaptiveRolloutProfile, ArtifactIndexingMetadata, ArtifactMetadataCarrier,
         AuthorityApprovalState, AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs,
         AuthorityPacketReadiness, AuthorityRiskClass, IndexableArtifactClass,
-        PublicationTargetClass, UpdateStrategy,
+        PublicationTargetClass, SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor,
+        SemanticEligibilityState, SemanticProvenanceBoundary, UpdateStrategy,
     };
     use crate::domain::mode::{IntendedPersona, Mode};
     use crate::domain::policy::{AuthorityZone, ChangeClass, RiskClass, UsageZone};
@@ -706,6 +805,68 @@ mod authority_governance_tests {
         .unwrap_err();
 
         assert!(error.contains("requires discovery rule"));
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_requires_provenance_when_eligible() {
+        let error = SemanticArtifactDescriptor {
+            semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
+            semantic_eligibility: SemanticEligibilityState::Eligible,
+            semantic_provenance_boundary: None,
+            semantic_provenance_ref: None,
+            semantic_labels: vec!["project-memory".to_string()],
+            semantic_exclusion_reason: None,
+        }
+        .validate()
+        .unwrap_err();
+
+        assert!(error.contains("semantic_provenance_boundary"));
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_requires_provenance_for_excluded_surfaces() {
+        let error = SemanticArtifactDescriptor {
+            semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
+            semantic_eligibility: SemanticEligibilityState::Excluded,
+            semantic_provenance_boundary: None,
+            semantic_provenance_ref: None,
+            semantic_labels: Vec::new(),
+            semantic_exclusion_reason: Some("excluded from semantic retrieval".to_string()),
+        }
+        .validate()
+        .unwrap_err();
+
+        assert!(error.contains("semantic_provenance_boundary"));
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_accepts_excluded_surface_with_provenance() {
+        let descriptor = SemanticArtifactDescriptor {
+            semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
+            semantic_eligibility: SemanticEligibilityState::Excluded,
+            semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
+            semantic_provenance_ref: Some("docs/project/open-risks.md".to_string()),
+            semantic_labels: vec!["visibility-only".to_string()],
+            semantic_exclusion_reason: Some(
+                "index surfaces stay excluded from retrieval".to_string(),
+            ),
+        };
+
+        assert!(descriptor.validate().is_ok());
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_accepts_eligible_managed_block_shape() {
+        let descriptor = SemanticArtifactDescriptor {
+            semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
+            semantic_eligibility: SemanticEligibilityState::Eligible,
+            semantic_provenance_boundary: Some(SemanticProvenanceBoundary::ManagedBlock),
+            semantic_provenance_ref: Some("docs/project/overview.md#managed-block-1".to_string()),
+            semantic_labels: vec!["project-memory".to_string(), "overview".to_string()],
+            semantic_exclusion_reason: None,
+        };
+
+        assert!(descriptor.validate().is_ok());
     }
 
     #[test]
@@ -1306,5 +1467,110 @@ mod tests {
             domain_families: vec!["   ".to_string()],
         };
         assert_eq!(empty.normalized(), None);
+    }
+
+    #[test]
+    fn adaptive_governance_state_as_str_and_display_cover_all_variants() {
+        let cases = [
+            (AdaptiveGovernanceState::Advisory, "advisory"),
+            (AdaptiveGovernanceState::Catch, "catch"),
+            (AdaptiveGovernanceState::Rule, "rule"),
+            (AdaptiveGovernanceState::Hook, "hook"),
+        ];
+        for (state, expected) in cases {
+            assert_eq!(state.as_str(), expected);
+            assert_eq!(state.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn adaptive_rollout_profile_as_str_and_display_cover_all_variants() {
+        let cases = [
+            (AdaptiveRolloutProfile::Minimal, "minimal"),
+            (AdaptiveRolloutProfile::Guided, "guided"),
+            (AdaptiveRolloutProfile::Governed, "governed"),
+            (AdaptiveRolloutProfile::Strict, "strict"),
+        ];
+        for (profile, expected) in cases {
+            assert_eq!(profile.as_str(), expected);
+            assert_eq!(profile.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn semantic_eligibility_state_as_str_and_display_cover_both_variants() {
+        assert_eq!(SemanticEligibilityState::Eligible.as_str(), "eligible");
+        assert_eq!(SemanticEligibilityState::Excluded.as_str(), "excluded");
+        assert_eq!(SemanticEligibilityState::Eligible.to_string(), "eligible");
+        assert_eq!(SemanticEligibilityState::Excluded.to_string(), "excluded");
+    }
+
+    #[test]
+    fn semantic_provenance_boundary_as_str_and_display_cover_all_variants() {
+        let cases = [
+            (SemanticProvenanceBoundary::Surface, "surface"),
+            (SemanticProvenanceBoundary::ManagedBlock, "managed_block"),
+            (SemanticProvenanceBoundary::Section, "section"),
+        ];
+        for (boundary, expected) in cases {
+            assert_eq!(boundary.as_str(), expected);
+            assert_eq!(boundary.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_validate_rejects_empty_contract_line() {
+        let descriptor = SemanticArtifactDescriptor {
+            semantic_contract_line: "   ".to_string(),
+            semantic_eligibility: SemanticEligibilityState::Eligible,
+            semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
+            semantic_provenance_ref: Some("docs/architecture.md".to_string()),
+            semantic_labels: vec![],
+            semantic_exclusion_reason: None,
+        };
+        let error = descriptor.validate().expect_err("empty contract line should fail");
+        assert!(error.contains("semantic_contract_line"));
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_validate_rejects_empty_label() {
+        let descriptor = SemanticArtifactDescriptor {
+            semantic_contract_line: "architecture-v1".to_string(),
+            semantic_eligibility: SemanticEligibilityState::Eligible,
+            semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
+            semantic_provenance_ref: Some("docs/architecture.md".to_string()),
+            semantic_labels: vec!["  ".to_string()], // empty after trim
+            semantic_exclusion_reason: None,
+        };
+        let error = descriptor.validate().expect_err("empty label should fail");
+        assert!(error.contains("labels"));
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_validate_rejects_empty_provenance_ref() {
+        let descriptor = SemanticArtifactDescriptor {
+            semantic_contract_line: "architecture-v1".to_string(),
+            semantic_eligibility: SemanticEligibilityState::Eligible,
+            semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Section),
+            semantic_provenance_ref: Some("   ".to_string()), // empty after trim
+            semantic_labels: vec![],
+            semantic_exclusion_reason: None,
+        };
+        let error = descriptor.validate().expect_err("empty provenance_ref should fail");
+        assert!(error.contains("semantic_provenance_ref"));
+    }
+
+    #[test]
+    fn semantic_artifact_descriptor_validate_rejects_empty_exclusion_reason() {
+        let descriptor = SemanticArtifactDescriptor {
+            semantic_contract_line: "architecture-v1".to_string(),
+            semantic_eligibility: SemanticEligibilityState::Excluded,
+            semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
+            semantic_provenance_ref: Some("docs/architecture.md".to_string()),
+            semantic_labels: vec![],
+            semantic_exclusion_reason: Some("   ".to_string()), // provided but empty
+        };
+        let error = descriptor.validate().expect_err("empty exclusion reason should fail");
+        assert!(error.contains("exclusion reason"));
     }
 }

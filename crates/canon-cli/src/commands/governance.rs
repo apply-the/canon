@@ -11,6 +11,8 @@ use canon_engine::domain::policy::{RiskClass, UsageZone};
 use canon_engine::domain::publish_profile::{
     AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs, AuthorityApprovalState,
     AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs, AuthorityPacketReadiness,
+    SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor, SemanticEligibilityState,
+    SemanticProvenanceBoundary,
 };
 use canon_engine::domain::run::{
     ClassificationFieldProvenance, ClassificationProvenance, ClassificationSource, RunState,
@@ -226,6 +228,8 @@ struct GovernanceResponse {
     authority_governance: Option<AuthorityGovernanceV1Envelope>,
     #[serde(skip_serializing_if = "Option::is_none")]
     adaptive_governance: Option<AdaptiveGovernanceV1Envelope>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    semantic_descriptor: Option<SemanticArtifactDescriptor>,
 }
 
 impl GovernanceResponse {
@@ -250,6 +254,7 @@ impl GovernanceResponse {
             reason_code: Some(reason_code),
             authority_governance: None,
             adaptive_governance: None,
+            semantic_descriptor: None,
         }
     }
 
@@ -274,6 +279,7 @@ impl GovernanceResponse {
             reason_code: Some(reason_code),
             authority_governance: None,
             adaptive_governance: None,
+            semantic_descriptor: None,
         }
     }
 }
@@ -306,6 +312,7 @@ struct RunProjection {
     missing_sections: Vec<String>,
     authority_governance: Option<AuthorityGovernanceV1Envelope>,
     adaptive_governance: Option<AdaptiveGovernanceV1Envelope>,
+    semantic_descriptor: Option<SemanticArtifactDescriptor>,
 }
 
 #[cfg(test)]

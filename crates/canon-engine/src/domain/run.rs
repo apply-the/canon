@@ -728,4 +728,97 @@ mod tests {
         assert!(serialized.contains("[backlog_planning]"));
         assert!(serialized.contains("desired_granularity = \"epic-plus-slice\""));
     }
+
+    #[test]
+    fn is_canonical_display_id_accepts_well_formed_id() {
+        use super::is_canonical_display_id;
+        assert!(is_canonical_display_id("R-20260422-ab12ef56"));
+        assert!(is_canonical_display_id("R-00000000-00000000"));
+    }
+
+    #[test]
+    fn is_canonical_display_id_rejects_wrong_length() {
+        use super::is_canonical_display_id;
+        assert!(!is_canonical_display_id("R-2026042-ab12ef56")); // too short date
+        assert!(!is_canonical_display_id("R-202604220-ab12ef56")); // too long date
+        assert!(!is_canonical_display_id("")); // empty
+    }
+
+    #[test]
+    fn is_canonical_display_id_rejects_wrong_prefix_or_separator() {
+        use super::is_canonical_display_id;
+        assert!(!is_canonical_display_id("X-20260422-ab12ef56")); // wrong prefix
+        assert!(!is_canonical_display_id("R-20260422.ab12ef56")); // wrong separator
+    }
+
+    #[test]
+    fn is_canonical_display_id_rejects_uppercase_hex_suffix() {
+        use super::is_canonical_display_id;
+        assert!(!is_canonical_display_id("R-20260422-AB12EF56")); // uppercase hex
+    }
+
+    #[test]
+    fn is_canonical_display_id_rejects_non_digit_date_segment() {
+        use super::is_canonical_display_id;
+        assert!(!is_canonical_display_id("R-2026042A-ab12ef56")); // letter in date
+    }
+
+    #[test]
+    fn backlog_granularity_as_str_covers_all_variants() {
+        assert_eq!(BacklogGranularity::EpicOnly.as_str(), "epic-only");
+        assert_eq!(BacklogGranularity::EpicPlusSlice.as_str(), "epic-plus-slice");
+        assert_eq!(
+            BacklogGranularity::EpicPlusSlicePlusStoryCandidate.as_str(),
+            "epic-plus-slice-plus-story-candidate"
+        );
+    }
+
+    #[test]
+    fn backlog_granularity_from_label_parses_all_known_variants() {
+        assert_eq!(BacklogGranularity::from_label("epic-only"), Some(BacklogGranularity::EpicOnly));
+        assert_eq!(
+            BacklogGranularity::from_label("epic-plus-slice"),
+            Some(BacklogGranularity::EpicPlusSlice)
+        );
+        assert_eq!(
+            BacklogGranularity::from_label("epic-plus-slice-plus-story-candidate"),
+            Some(BacklogGranularity::EpicPlusSlicePlusStoryCandidate)
+        );
+        assert_eq!(BacklogGranularity::from_label("unknown-label"), None);
+    }
+
+    #[test]
+    fn closure_status_as_str_covers_all_variants() {
+        assert_eq!(ClosureStatus::Sufficient.as_str(), "sufficient");
+        assert_eq!(ClosureStatus::Downgraded.as_str(), "downgraded");
+        assert_eq!(ClosureStatus::Blocked.as_str(), "blocked");
+    }
+
+    #[test]
+    fn closure_finding_severity_as_str_covers_both_variants() {
+        assert_eq!(ClosureFindingSeverity::Warning.as_str(), "warning");
+        assert_eq!(ClosureFindingSeverity::Blocking.as_str(), "blocking");
+    }
+
+    #[test]
+    fn closure_decomposition_scope_as_str_covers_both_variants() {
+        assert_eq!(ClosureDecompositionScope::FullPacket.as_str(), "full-packet");
+        assert_eq!(ClosureDecompositionScope::RiskOnlyPacket.as_str(), "risk-only-packet");
+    }
+
+    #[test]
+    fn closure_assessment_sufficient_returns_minimal_assessment() {
+        let assessment = ClosureAssessment::sufficient();
+        assert_eq!(assessment.status, ClosureStatus::Sufficient);
+        assert!(assessment.findings.is_empty());
+        assert_eq!(assessment.decomposition_scope, ClosureDecompositionScope::FullPacket);
+        assert!(assessment.notes.is_none());
+    }
+
+    #[test]
+    fn system_context_as_str_returns_kebab_case() {
+        use super::SystemContext;
+        assert_eq!(SystemContext::New.as_str(), "new");
+        assert_eq!(SystemContext::Existing.as_str(), "existing");
+    }
 }

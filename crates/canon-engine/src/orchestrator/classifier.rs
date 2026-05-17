@@ -678,4 +678,219 @@ mod tests {
             ClassificationConfidence::Moderate | ClassificationConfidence::High
         ));
     }
+
+    #[test]
+    fn architecture_accepts_new_system_context() {
+        // Architecture requires explicit system_context but accepts both new and existing.
+        assert!(validate_system_context(Mode::Architecture, Some(SystemContext::New)).is_ok());
+        assert!(validate_system_context(Mode::Architecture, Some(SystemContext::Existing)).is_ok());
+    }
+
+    #[test]
+    fn system_shaping_accepts_new_system_context() {
+        assert!(validate_system_context(Mode::SystemShaping, Some(SystemContext::New)).is_ok());
+    }
+
+    #[test]
+    fn supply_chain_analysis_rejects_new_system_context() {
+        let error = validate_system_context(Mode::SupplyChainAnalysis, Some(SystemContext::New))
+            .expect_err("supply-chain-analysis should reject new-system context");
+        assert!(error.contains("only --system-context existing"));
+    }
+
+    #[test]
+    fn classification_confidence_min_returns_lower_of_two() {
+        use super::ClassificationConfidence::{High, Low, Moderate};
+
+        assert_eq!(Low.min(Low), Low);
+        assert_eq!(Low.min(Moderate), Low);
+        assert_eq!(Low.min(High), Low);
+        assert_eq!(Moderate.min(Low), Low);
+        assert_eq!(Moderate.min(Moderate), Moderate);
+        assert_eq!(Moderate.min(High), Moderate);
+        assert_eq!(High.min(Low), Low);
+        assert_eq!(High.min(Moderate), Moderate);
+        assert_eq!(High.min(High), High);
+    }
+
+    #[test]
+    fn classification_confidence_as_str_round_trips() {
+        assert_eq!(ClassificationConfidence::Low.as_str(), "low");
+        assert_eq!(ClassificationConfidence::Moderate.as_str(), "moderate");
+        assert_eq!(ClassificationConfidence::High.as_str(), "high");
+    }
+
+    #[test]
+    fn infer_risk_zone_with_only_explicit_risk_still_infers_zone() {
+        // Risk is explicit but zone is not: zone is inferred from intake.
+        let summary = "We need to push an emergency hotfix to the live payment service.";
+        let inferred = infer_risk_zone(
+            Mode::Change,
+            Some(RiskClass::SystemicImpact),
+            None,
+            summary,
+            &["brief.md".to_string()],
+            &[],
+        );
+        assert_eq!(inferred.risk, RiskClass::SystemicImpact);
+        assert!(inferred.risk_was_supplied);
+        assert!(!inferred.zone_was_supplied);
+        assert_eq!(inferred.zone, UsageZone::Red);
+        assert!(inferred.requires_confirmation);
+    }
+
+    #[test]
+    fn infer_risk_zone_with_only_explicit_zone_still_infers_risk() {
+        // Zone is explicit but risk is not: risk is inferred from intake keywords.
+        let summary = "Refactor the auth module boundary to remove coupling.";
+        let inferred = infer_risk_zone(
+            Mode::Discovery,
+            None,
+            Some(UsageZone::Green),
+            summary,
+            &["brief.md".to_string()],
+            &[],
+        );
+        assert!(!inferred.risk_was_supplied);
+        assert!(inferred.zone_was_supplied);
+        assert_eq!(inferred.zone, UsageZone::Green);
+        assert!(inferred.requires_confirmation);
+    }
+
+    #[test]
+    fn infer_risk_zone_fully_explicit_needs_no_confirmation() {
+        let summary = "Some discovery work.";
+        let inferred = infer_risk_zone(
+            Mode::Discovery,
+            Some(RiskClass::LowImpact),
+            Some(UsageZone::Green),
+            summary,
+            &[],
+            &[],
+        );
+        assert!(!inferred.requires_confirmation);
+        assert_eq!(inferred.confidence, ClassificationConfidence::High);
+    }
+
+    #[test]
+    fn infer_risk_zone_multiple_systemic_keywords_yields_high_confidence() {
+        // Two systemic keywords trigger High confidence inside infer_risk.
+        let summary = "Cross-service customer data migration with payment integration.";
+        let inferred =
+            infer_risk_zone(Mode::Discovery, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.risk, RiskClass::SystemicImpact);
+        // risk_signals holds signals from the risk inference; >= 2 means High confidence branch ran.
+        assert!(
+            inferred.risk_signals.len() >= 2,
+            "expected >= 2 risk signals, got: {:?}",
+            inferred.risk_signals
+        );
+    }
+
+    #[test]
+    fn infer_risk_zone_single_systemic_keyword_yields_moderate_risk_confidence() {
+        // Single systemic keyword: exactly one risk_signal, so Moderate path runs inside infer_risk.
+        let summary = "Patch the safety-critical component to fix a narrowly scoped defect.";
+        let inferred =
+            infer_risk_zone(Mode::Discovery, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.risk, RiskClass::SystemicImpact);
+        assert_eq!(
+            inferred.risk_signals.len(),
+            1,
+            "expected exactly one systemic signal, got: {:?}",
+            inferred.risk_signals
+        );
+    }
+
+    #[test]
+    fn infer_risk_zone_bounded_keywords_without_mode_default_yield_bounded_risk() {
+        // Mode::Discovery doesn't default to bounded, but "database" keyword triggers it.
+        let summary = "Migrate the database schema and update legacy migration scripts.";
+        let inferred =
+            infer_risk_zone(Mode::Discovery, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.risk, RiskClass::BoundedImpact);
+    }
+
+    #[test]
+    fn infer_risk_zone_no_keywords_yields_low_impact_risk() {
+        let summary = "Explore ideas for a new internal tool.";
+        // Mode::Requirements is Optional and doesn't default to bounded.
+        let inferred = infer_risk_zone(
+            Mode::Requirements,
+            None,
+            None,
+            summary,
+            &["brief.md".to_string()],
+            &[],
+        );
+        assert_eq!(inferred.risk, RiskClass::LowImpact);
+        assert_eq!(inferred.confidence, ClassificationConfidence::Low);
+        // With non-empty inputs, extra "no higher-risk keywords" signal is added.
+        assert!(inferred.signals.iter().any(|s| s.contains("No higher-risk")));
+    }
+
+    #[test]
+    fn infer_risk_zone_low_impact_with_empty_inputs_omits_keyword_signal() {
+        let summary = "Explore ideas for a new internal tool.";
+        let inferred = infer_risk_zone(Mode::Requirements, None, None, summary, &[], &[]);
+        assert_eq!(inferred.risk, RiskClass::LowImpact);
+        // Empty inputs: only the mode-exploratory signal, no "no higher-risk" signal.
+        assert!(!inferred.signals.iter().any(|s| s.contains("No higher-risk")));
+    }
+
+    #[test]
+    fn infer_risk_zone_red_zone_from_single_emergency_keyword() {
+        let summary = "Apply an emergency hotfix to the live payment endpoint.";
+        let inferred =
+            infer_risk_zone(Mode::Incident, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.zone, UsageZone::Red);
+        assert_eq!(inferred.confidence, ClassificationConfidence::Moderate);
+    }
+
+    #[test]
+    fn infer_risk_zone_red_zone_from_multiple_emergency_keywords() {
+        // Multiple red-zone keywords trigger High confidence inside infer_zone.
+        let summary = "We have an ongoing outage causing data loss (emergency sev-1 hotfix).";
+        let inferred =
+            infer_risk_zone(Mode::Incident, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.zone, UsageZone::Red);
+        // zone_signals holds the per-keyword signals from infer_zone; >= 2 means High-confidence branch ran.
+        assert!(
+            inferred.zone_signals.len() >= 2,
+            "expected >= 2 zone signals, got: {:?}",
+            inferred.zone_signals
+        );
+    }
+
+    #[test]
+    fn infer_risk_zone_yellow_zone_from_production_keyword() {
+        // Mode::Discovery doesn't default to yellow, but "production" keyword triggers it.
+        let summary = "Inspect the production database for stale records.";
+        let inferred =
+            infer_risk_zone(Mode::Discovery, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.zone, UsageZone::Yellow);
+    }
+
+    #[test]
+    fn infer_risk_zone_green_zone_as_fallback() {
+        // No red/yellow keywords and mode doesn't default to yellow.
+        let summary = "Explore ideas for isolating a unit of work.";
+        let inferred = infer_risk_zone(Mode::Discovery, None, None, summary, &[], &[]);
+        assert_eq!(inferred.zone, UsageZone::Green);
+        assert_eq!(inferred.confidence, ClassificationConfidence::Low);
+    }
+
+    #[test]
+    fn infer_risk_zone_zone_declared_in_intake_overrides_inference() {
+        // "Zone: yellow" in the intake should be picked up by extract_declared_zone.
+        let summary = "## Zone\nyellow\n\nSome discovery notes.";
+        let inferred =
+            infer_risk_zone(Mode::Discovery, None, None, summary, &["brief.md".to_string()], &[]);
+        assert_eq!(inferred.zone, UsageZone::Yellow);
+        assert!(!inferred.zone_was_supplied); // extracted from intake, not explicitly supplied
+        assert_eq!(
+            inferred.zone_signals.iter().find(|s| s.contains("resolves directly")),
+            inferred.zone_signals.iter().find(|s| s.contains("resolves directly"))
+        );
+    }
 }

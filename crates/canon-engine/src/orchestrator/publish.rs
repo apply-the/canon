@@ -16,7 +16,7 @@ use crate::domain::publish_profile::{
     ArtifactIndexingMetadata, CANON_PRODUCER, ExpertiseInputMetadata, LineageMetadata,
     ManagedBlockDescriptor, PROJECT_MEMORY_CONTRACT_VERSION,
     PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublicationTargetClass,
-    PublishProfile, UpdateStrategy, classify_governed_expertise_input,
+    PublishProfile, SemanticArtifactDescriptor, UpdateStrategy, classify_governed_expertise_input,
 };
 use crate::domain::run::RunState;
 use crate::persistence::manifests::RunManifest;
@@ -78,6 +78,8 @@ struct PublishMetadata {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     artifact_indexing: Option<ArtifactIndexingMetadata>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
+    semantic_descriptor: Option<SemanticArtifactDescriptor>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     profile: Option<PublishProfile>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     promotion_state: Option<PromotionState>,
@@ -89,6 +91,17 @@ struct PublishMetadata {
     expertise_input: Option<ExpertiseInputMetadata>,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     lineage: Option<LineageMetadata>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct PublishProfileWriteContext<'a> {
+    repo_root: &'a Path,
+    manifest: &'a RunManifest,
+    strategy: UpdateStrategy,
+    promotion: PromotionState,
+    publish_timestamp: &'a str,
+    artifacts: &'a [PersistedArtifact],
+    lineage: &'a LineageMetadata,
 }
 
 /// Publishes the artifacts from the named run to the given destination using the default profile.
@@ -164,6 +177,7 @@ pub fn publish_run(
         .collect::<Vec<_>>();
     let packet_metadata = runtime_packet_metadata(&artifacts);
     packet_metadata.validate_artifact_indexing().map_err(EngineError::Validation)?;
+    packet_metadata.validate_semantic_descriptor().map_err(EngineError::Validation)?;
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 1);
     for artifact in &artifacts {
@@ -192,6 +206,7 @@ pub fn publish_run(
         publish_order: packet_metadata.publish_order,
         legacy_aliases: packet_metadata.legacy_aliases,
         artifact_indexing: packet_metadata.artifact_indexing,
+        semantic_descriptor: packet_metadata.semantic_descriptor,
         profile: None,
         promotion_state: None,
         update_strategy: None,
@@ -274,6 +289,7 @@ pub fn publish_run_with_profile(
         .collect::<Vec<_>>();
     let mut packet_metadata = runtime_packet_metadata(&artifacts);
     packet_metadata.validate_artifact_indexing().map_err(EngineError::Validation)?;
+    packet_metadata.validate_semantic_descriptor().map_err(EngineError::Validation)?;
     let expertise_input =
         resolve_expertise_input_metadata(repo_root, manifest.mode, &packet_metadata);
     let publication_target_class = PublicationTargetClass::for_publication(promotion, strategy);
@@ -310,19 +326,21 @@ pub fn publish_run_with_profile(
     };
 
     let mut published_files = Vec::with_capacity(artifacts.len() + 2);
-
-    let published_to_path = publish_profile_contents(
+    let publish_context = PublishProfileWriteContext {
         repo_root,
-        &manifest,
-        &destination,
-        destination_override.is_some(),
+        manifest: &manifest,
         strategy,
         promotion,
-        &publish_timestamp,
-        &artifacts,
-        &lineage,
-        &mut published_files,
-    )?;
+        publish_timestamp: &publish_timestamp,
+        artifacts: &artifacts,
+        lineage: &lineage,
+    };
+
+    let published_to_path = if destination_override.is_some() {
+        publish_profile_directory(&publish_context, &destination, &mut published_files)?
+    } else {
+        publish_profile_surface(&publish_context, &destination, &mut published_files)?
+    };
 
     let metadata_path = profile_metadata_path(&published_to_path);
     if let Some(parent) = metadata_path.parent() {
@@ -342,6 +360,7 @@ pub fn publish_run_with_profile(
         publish_order: packet_metadata.publish_order,
         legacy_aliases: packet_metadata.legacy_aliases,
         artifact_indexing: Some(artifact_indexing),
+        semantic_descriptor: packet_metadata.semantic_descriptor,
         profile: Some(profile),
         promotion_state: Some(promotion),
         update_strategy: Some(strategy),
@@ -363,54 +382,9 @@ pub fn publish_run_with_profile(
     })
 }
 
-fn publish_profile_contents(
-    repo_root: &Path,
-    manifest: &RunManifest,
-    destination: &Path,
-    destination_is_directory: bool,
-    strategy: UpdateStrategy,
-    promotion: PromotionState,
-    publish_timestamp: &str,
-    artifacts: &[PersistedArtifact],
-    lineage: &LineageMetadata,
-    published_files: &mut Vec<String>,
-) -> Result<PathBuf, EngineError> {
-    if destination_is_directory {
-        publish_profile_directory(
-            repo_root,
-            manifest,
-            destination,
-            strategy,
-            promotion,
-            publish_timestamp,
-            artifacts,
-            lineage,
-            published_files,
-        )
-    } else {
-        publish_profile_surface(
-            repo_root,
-            manifest,
-            destination,
-            strategy,
-            promotion,
-            publish_timestamp,
-            artifacts,
-            lineage,
-            published_files,
-        )
-    }
-}
-
 fn publish_profile_directory(
-    repo_root: &Path,
-    manifest: &RunManifest,
+    context: &PublishProfileWriteContext<'_>,
     destination: &Path,
-    strategy: UpdateStrategy,
-    promotion: PromotionState,
-    publish_timestamp: &str,
-    artifacts: &[PersistedArtifact],
-    lineage: &LineageMetadata,
     published_files: &mut Vec<String>,
 ) -> Result<PathBuf, EngineError> {
     if destination.exists() && !destination.is_dir() {
@@ -421,21 +395,21 @@ fn publish_profile_directory(
     }
     fs::create_dir_all(destination)?;
 
-    match strategy {
+    match context.strategy {
         UpdateStrategy::ManagedBlocks => {
-            for artifact in artifacts {
+            for artifact in context.artifacts {
                 if artifact_slug(&artifact.record.file_name)
                     == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
                 {
                     continue;
                 }
                 let target = destination.join(&artifact.record.file_name);
-                write_managed_block(&target, &manifest.run_id, &artifact.contents)?;
-                published_files.push(display_path(repo_root, &target));
+                write_managed_block(&target, &context.manifest.run_id, &artifact.contents)?;
+                published_files.push(display_path(context.repo_root, &target));
             }
         }
         UpdateStrategy::ProposalFiles => {
-            for artifact in artifacts {
+            for artifact in context.artifacts {
                 if artifact_slug(&artifact.record.file_name)
                     == PROJECT_MEMORY_PACKET_METADATA_FILE_NAME
                 {
@@ -445,25 +419,25 @@ fn publish_profile_directory(
                     destination,
                     &artifact.record.file_name,
                     &artifact.contents,
-                    lineage,
+                    context.lineage,
                 )?;
-                published_files.push(display_path(repo_root, &proposal_path));
+                published_files.push(display_path(context.repo_root, &proposal_path));
             }
         }
         UpdateStrategy::AppendOnlyIndex => {
             let index_path = destination.join("index.md");
             let entry = format!(
                 "## {}\n\n- Run: `{}`\n- Promotion: `{}`\n- Published: `{}`\n\n",
-                publish_descriptor(manifest),
-                manifest.run_id,
-                promotion.as_str(),
-                publish_timestamp,
+                publish_descriptor(context.manifest),
+                context.manifest.run_id,
+                context.promotion.as_str(),
+                context.publish_timestamp,
             );
             append_index_entry(&index_path, &entry)?;
-            published_files.push(display_path(repo_root, &index_path));
-            let evidence_dir = destination.join(&manifest.run_id);
-            for path in write_supporting_evidence_bundle(&evidence_dir, artifacts)? {
-                published_files.push(display_path(repo_root, &path));
+            published_files.push(display_path(context.repo_root, &index_path));
+            let evidence_dir = destination.join(&context.manifest.run_id);
+            for path in write_supporting_evidence_bundle(&evidence_dir, context.artifacts)? {
+                published_files.push(display_path(context.repo_root, &path));
             }
         }
     }
@@ -472,41 +446,35 @@ fn publish_profile_directory(
 }
 
 fn publish_profile_surface(
-    repo_root: &Path,
-    manifest: &RunManifest,
+    context: &PublishProfileWriteContext<'_>,
     destination: &Path,
-    strategy: UpdateStrategy,
-    promotion: PromotionState,
-    publish_timestamp: &str,
-    artifacts: &[PersistedArtifact],
-    lineage: &LineageMetadata,
     published_files: &mut Vec<String>,
 ) -> Result<PathBuf, EngineError> {
-    match strategy {
+    match context.strategy {
         UpdateStrategy::ManagedBlocks => {
-            let bundle = render_project_memory_surface(artifacts);
-            write_managed_block(destination, &manifest.run_id, &bundle)?;
-            published_files.push(display_path(repo_root, destination));
+            let bundle = render_project_memory_surface(context.artifacts);
+            write_managed_block(destination, &context.manifest.run_id, &bundle)?;
+            published_files.push(display_path(context.repo_root, destination));
             Ok(destination.to_path_buf())
         }
         UpdateStrategy::ProposalFiles => {
-            let bundle = render_project_memory_surface(artifacts);
-            let proposal_path = write_surface_proposal_file(destination, &bundle, lineage)?;
-            published_files.push(display_path(repo_root, &proposal_path));
+            let bundle = render_project_memory_surface(context.artifacts);
+            let proposal_path = write_surface_proposal_file(destination, &bundle, context.lineage)?;
+            published_files.push(display_path(context.repo_root, &proposal_path));
             Ok(proposal_path)
         }
         UpdateStrategy::AppendOnlyIndex => {
-            let evidence_dir = resolve_profile_evidence_root(repo_root, manifest);
+            let evidence_dir = resolve_profile_evidence_root(context.repo_root, context.manifest);
             let entry = render_project_memory_index_entry(
-                manifest,
-                &promotion,
-                publish_timestamp,
-                &display_path(repo_root, &evidence_dir),
+                context.manifest,
+                &context.promotion,
+                context.publish_timestamp,
+                &display_path(context.repo_root, &evidence_dir),
             );
             append_index_entry(destination, &entry)?;
-            published_files.push(display_path(repo_root, destination));
-            for path in write_supporting_evidence_bundle(&evidence_dir, artifacts)? {
-                published_files.push(display_path(repo_root, &path));
+            published_files.push(display_path(context.repo_root, destination));
+            for path in write_supporting_evidence_bundle(&evidence_dir, context.artifacts)? {
+                published_files.push(display_path(context.repo_root, &path));
             }
             Ok(destination.to_path_buf())
         }
@@ -713,6 +681,7 @@ fn infer_runtime_packet_metadata(artifacts: &[PersistedArtifact]) -> RuntimePack
         expertise_input: None,
         publication_target_class: None,
         artifact_indexing: None,
+        semantic_descriptor: None,
         authority_governance: None,
         adaptive_governance: None,
     }
@@ -1490,7 +1459,9 @@ mod tests {
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
     use crate::domain::publish_profile::{
-        PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile, UpdateStrategy,
+        PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile,
+        SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor, SemanticEligibilityState,
+        SemanticProvenanceBoundary, UpdateStrategy,
     };
     use crate::domain::run::{ClassificationProvenance, RunState, SystemContext};
     use crate::persistence::manifests::RunManifest;
@@ -1637,6 +1608,49 @@ mod tests {
     }
 
     #[test]
+    fn publish_metadata_round_trips_semantic_descriptor() {
+        let metadata = PublishMetadata {
+            run_id: "R-test".to_string(),
+            mode: "requirements".to_string(),
+            risk: "low-impact".to_string(),
+            zone: "green".to_string(),
+            publish_timestamp: "2026-04-22T08:00:00Z".to_string(),
+            descriptor: "publish-scope".to_string(),
+            destination: "specs/2026-04-22-publish-scope".to_string(),
+            source_artifacts: vec![
+                ".canon/artifacts/R-test/requirements/01-problem-statement.md".to_string(),
+            ],
+            primary_artifact: "01-problem-statement.md".to_string(),
+            artifact_order: vec!["01-problem-statement.md".to_string()],
+            publish_order: None,
+            legacy_aliases: None,
+            artifact_indexing: None,
+            semantic_descriptor: Some(SemanticArtifactDescriptor {
+                semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
+                semantic_eligibility: SemanticEligibilityState::Eligible,
+                semantic_provenance_boundary: Some(SemanticProvenanceBoundary::ManagedBlock),
+                semantic_provenance_ref: Some(
+                    "docs/project/overview.md#managed-block-1".to_string(),
+                ),
+                semantic_labels: vec!["project-memory".to_string()],
+                semantic_exclusion_reason: None,
+            }),
+            profile: Some(PublishProfile::ProjectMemory),
+            promotion_state: Some(PromotionState::Auto),
+            update_strategy: Some(UpdateStrategy::ManagedBlocks),
+            publication_target_class: None,
+            expertise_input: None,
+            lineage: None,
+        };
+
+        let round_trip: PublishMetadata =
+            serde_json::from_value(serde_json::to_value(&metadata).expect("serialize metadata"))
+                .expect("deserialize metadata");
+
+        assert_eq!(round_trip.semantic_descriptor, metadata.semantic_descriptor);
+    }
+
+    #[test]
     fn profile_metadata_path_uses_directory_and_file_conventions() {
         assert_eq!(
             super::profile_metadata_path(Path::new("docs/project/custom-dest")),
@@ -1714,6 +1728,7 @@ mod tests {
                 publish_order: None,
                 legacy_aliases: None,
                 artifact_indexing: None,
+                semantic_descriptor: None,
                 profile: None,
                 promotion_state: None,
                 update_strategy: None,

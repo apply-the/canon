@@ -1,6 +1,14 @@
 use super::EngineService;
 use super::*;
 
+struct RequirementsResumeState<'a> {
+    manifest: &'a RunManifest,
+    context: &'a RunContext,
+    contract: &'a crate::domain::artifact::ArtifactContract,
+    approvals: &'a [ApprovalRecord],
+    artifacts: &'a [PersistedArtifact],
+}
+
 impl EngineService {
     /// Executes a managed run according to the provided request parameters.
     /// This handles policy validation, risk classification, and artifact emission.
@@ -146,9 +154,17 @@ impl EngineService {
         let artifacts =
             store.load_persisted_artifacts(run_id, manifest.mode, &contract).unwrap_or_default();
 
-        if let Some(summary) = self.resume_requirements_without_artifacts(
-            &store, run_id, &manifest, &context, &contract, &approvals, &artifacts,
-        )? {
+        let resume_state = RequirementsResumeState {
+            manifest: &manifest,
+            context: &context,
+            contract: &contract,
+            approvals: &approvals,
+            artifacts: &artifacts,
+        };
+
+        if let Some(summary) =
+            self.resume_requirements_without_artifacts(&store, run_id, &resume_state)?
+        {
             return Ok(summary);
         }
 
@@ -207,18 +223,14 @@ impl EngineService {
         &self,
         store: &WorkspaceStore,
         run_id: &str,
-        manifest: &RunManifest,
-        context: &RunContext,
-        contract: &crate::domain::artifact::ArtifactContract,
-        approvals: &[ApprovalRecord],
-        artifacts: &[PersistedArtifact],
+        state: &RequirementsResumeState<'_>,
     ) -> Result<Option<RunSummary>, EngineError> {
-        if !matches!(manifest.mode, Mode::Requirements) || !artifacts.is_empty() {
+        if !matches!(state.manifest.mode, Mode::Requirements) || !state.artifacts.is_empty() {
             return Ok(None);
         }
 
         let generation_request_id = format!("{run_id}-generate");
-        let approved_generation = approvals.iter().any(|approval| {
+        let approved_generation = state.approvals.iter().any(|approval| {
             approval.matches_invocation(&generation_request_id)
                 && matches!(approval.decision, ApprovalDecision::Approve)
         });
@@ -229,9 +241,9 @@ impl EngineService {
                     store,
                     RunSummarySpec {
                         run_id,
-                        mode: manifest.mode,
-                        risk: manifest.risk,
-                        zone: manifest.zone,
+                        mode: state.manifest.mode,
+                        risk: state.manifest.risk,
+                        zone: state.manifest.zone,
                         state: RunState::AwaitingApproval,
                         artifact_count: 0,
                     },
@@ -241,15 +253,15 @@ impl EngineService {
 
         let policy_set = store.load_policy_set(None)?;
         let request = RunRequest {
-            mode: manifest.mode,
-            risk: manifest.risk,
-            zone: manifest.zone,
-            system_context: context.system_context,
-            classification: manifest.classification.clone(),
-            owner: manifest.owner.clone(),
-            inputs: self.resume_inputs(context),
+            mode: state.manifest.mode,
+            risk: state.manifest.risk,
+            zone: state.manifest.zone,
+            system_context: state.context.system_context,
+            classification: state.manifest.classification.clone(),
+            owner: state.manifest.owner.clone(),
+            inputs: self.resume_inputs(state.context),
             inline_inputs: Vec::new(),
-            excluded_paths: context.excluded_paths.clone(),
+            excluded_paths: state.context.excluded_paths.clone(),
             policy_root: None,
             method_root: None,
         };
@@ -332,7 +344,8 @@ impl EngineService {
                 summary: generation_output.summary.clone(),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
-                candidate_artifacts: contract
+                candidate_artifacts: state
+                    .contract
                     .artifact_requirements
                     .iter()
                     .map(|requirement| requirement.file_name.clone())
@@ -371,7 +384,8 @@ impl EngineService {
             path_id: format!("generation:{}", generation_request.request_id),
             request_ids: vec![generation_request.request_id.clone()],
             lineage_classes: vec![LineageClass::AiVendorFamily],
-            derived_artifacts: contract
+            derived_artifacts: state
+                .contract
                 .artifact_requirements
                 .iter()
                 .map(|requirement| {
@@ -410,7 +424,8 @@ impl EngineService {
                 .collect::<Vec<_>>()
                 .join(" ")
         };
-        let artifacts = contract
+        let artifacts = state
+            .contract
             .artifact_requirements
             .iter()
             .map(|requirement| PersistedArtifact {
@@ -448,13 +463,13 @@ impl EngineService {
             .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
             .collect::<Vec<_>>();
         let gates = gatekeeper::evaluate_requirements_gates(
-            contract,
+            state.contract,
             &gate_inputs,
             &request.owner,
             &denied_invocations,
             true,
         );
-        let state = run_state_from_gates(&gates);
+        let run_state = run_state_from_gates(&gates);
         let artifact_paths = artifacts
             .iter()
             .map(|artifact| artifact.record.relative_path.clone())
@@ -486,7 +501,8 @@ impl EngineService {
                     denied_edit_request.request_id
                 ),
             ],
-            approval_refs: approvals
+            approval_refs: state
+                .approvals
                 .iter()
                 .filter_map(|approval| {
                     approval
@@ -498,10 +514,10 @@ impl EngineService {
         };
 
         let bundle = PersistedRunBundle {
-            run: manifest.clone(),
-            context: context.clone(),
-            state: RunStateManifest { state, updated_at: now },
-            artifact_contract: contract.clone(),
+            run: state.manifest.clone(),
+            context: state.context.clone(),
+            state: RunStateManifest { state: run_state, updated_at: now },
+            artifact_contract: state.contract.clone(),
             links: LinkManifest {
                 artifacts: artifacts
                     .iter()
@@ -515,7 +531,7 @@ impl EngineService {
             verification_records,
             artifacts,
             gates,
-            approvals: approvals.to_vec(),
+            approvals: state.approvals.to_vec(),
             evidence: Some(evidence),
             invocations: vec![
                 PersistedInvocation {
@@ -528,7 +544,8 @@ impl EngineService {
                     request: generation_request,
                     decision: generation_decision,
                     attempts: vec![generation_attempt],
-                    approvals: approvals
+                    approvals: state
+                        .approvals
                         .iter()
                         .filter(|approval| approval.matches_invocation(&generation_request_id))
                         .cloned()
@@ -554,10 +571,10 @@ impl EngineService {
             store,
             RunSummarySpec {
                 run_id,
-                mode: manifest.mode,
-                risk: manifest.risk,
-                zone: manifest.zone,
-                state,
+                mode: state.manifest.mode,
+                risk: state.manifest.risk,
+                zone: state.manifest.zone,
+                state: run_state,
                 artifact_count: bundle.artifacts.len(),
             },
         )

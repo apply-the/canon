@@ -337,7 +337,9 @@ mod tests {
     };
     use crate::domain::verification::VerificationLayer;
 
-    use super::{evaluate_request_policy, placeholder_decision};
+    use super::{
+        evaluate_request_policy, placeholder_decision, placeholder_descriptor, placeholder_outcome,
+    };
 
     fn sample_policy_set() -> PolicySet {
         PolicySet {
@@ -763,5 +765,135 @@ mod tests {
             crate::domain::execution::PolicyDecisionKind::NeedsApproval
         ));
         assert!(decision.requires_approval);
+    }
+
+    #[test]
+    fn placeholder_descriptor_returns_filesystem_adapter_with_read_capability() {
+        let descriptor = placeholder_descriptor();
+        assert_eq!(descriptor.adapter, canon_adapters::AdapterKind::Filesystem);
+        assert!(descriptor.available);
+        assert!(
+            descriptor
+                .supported_capabilities
+                .contains(&canon_adapters::CapabilityKind::ReadRepository)
+        );
+    }
+
+    #[test]
+    fn placeholder_outcome_returns_succeeded_with_given_summary() {
+        let outcome = placeholder_outcome("computed the diff");
+        assert!(matches!(outcome.kind, crate::domain::execution::ToolOutcomeKind::Succeeded));
+        assert_eq!(outcome.summary, "computed the diff");
+        assert_eq!(outcome.exit_code, Some(0));
+        assert!(outcome.payload_refs.is_empty());
+    }
+
+    #[test]
+    fn evaluate_request_policy_denies_disabled_adapter() {
+        let mut req = request(
+            "requirements",
+            CapabilityKind::GenerateContent,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+        );
+        // McpStdio is in the disabled list of sample_policy_set.
+        req.adapter = AdapterKind::McpStdio;
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(decision.kind, crate::domain::execution::PolicyDecisionKind::Deny));
+    }
+
+    #[test]
+    fn evaluate_request_policy_denies_unsupported_capability() {
+        let mut req = request(
+            "requirements",
+            CapabilityKind::ReadRepository,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+        );
+        // Filesystem adapter does not support GenerateContent.
+        req.adapter = AdapterKind::Filesystem;
+        req.capability = CapabilityKind::GenerateContent;
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(decision.kind, crate::domain::execution::PolicyDecisionKind::Deny));
+    }
+
+    #[test]
+    fn evaluate_request_policy_allows_constrained_for_requirements_read_context() {
+        // requirements + ReadRepository → AllowConstrained with "requirements-context" profile.
+        let req = request(
+            "requirements",
+            CapabilityKind::ReadRepository,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+        );
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::AllowConstrained
+        ));
+    }
+
+    #[test]
+    fn evaluate_request_policy_allows_constrained_for_change_read_context() {
+        // change + ReadRepository → AllowConstrained with "change-context" profile.
+        let req = request(
+            "change",
+            CapabilityKind::ReadRepository,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+        );
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::AllowConstrained
+        ));
+    }
+
+    #[test]
+    fn evaluate_request_policy_allows_constrained_for_pr_review_inspect_diff() {
+        // pr-review + InspectDiff → AllowConstrained with "pr-review-diff" profile.
+        let req = request(
+            "pr-review",
+            CapabilityKind::InspectDiff,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+        );
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::AllowConstrained
+        ));
+    }
+
+    #[test]
+    fn evaluate_request_policy_allows_constrained_for_change_validation() {
+        // change + ValidateWithTool → AllowConstrained with "change-validation" profile.
+        let req = request(
+            "change",
+            CapabilityKind::ValidateWithTool,
+            RiskClass::BoundedImpact,
+            UsageZone::Yellow,
+        );
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::AllowConstrained
+        ));
+    }
+
+    #[test]
+    fn evaluate_request_policy_requirements_generation_needs_approval_for_systemic_risk() {
+        // requirements + GenerateContent + SystemicImpact → NeedsApproval.
+        let req = request(
+            "requirements",
+            CapabilityKind::GenerateContent,
+            RiskClass::SystemicImpact,
+            UsageZone::Yellow,
+        );
+        let decision = evaluate_request_policy(&req, &sample_policy_set());
+        assert!(matches!(
+            decision.kind,
+            crate::domain::execution::PolicyDecisionKind::NeedsApproval
+        ));
     }
 }

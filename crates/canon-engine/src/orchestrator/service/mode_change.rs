@@ -488,14 +488,10 @@ impl EngineService {
             .map(|artifact| (artifact.record.file_name.clone(), artifact.contents.clone()))
             .collect::<Vec<_>>();
         let gates = Self::evaluate_change_like_gates(
-            request.mode,
+            &request,
             &artifact_contract,
             &gate_inputs,
-            &request.owner,
-            request.risk,
-            request.zone,
             approvals.as_slice(),
-            request.system_context,
             validation_path.independence.sufficient,
         )?;
         let mut state = run_state_from_gates(&gates);
@@ -675,26 +671,22 @@ impl EngineService {
     }
 
     fn evaluate_change_like_gates(
-        mode: Mode,
+        request: &RunRequest,
         artifact_contract: &crate::domain::artifact::ArtifactContract,
         gate_inputs: &[(String, String)],
-        owner: &str,
-        risk: RiskClass,
-        zone: UsageZone,
         approvals: &[ApprovalRecord],
-        system_context: Option<SystemContext>,
         validation_independence_satisfied: bool,
     ) -> Result<Vec<crate::domain::gate::GateEvaluation>, EngineError> {
-        let gates = match mode {
+        let gates = match request.mode {
             Mode::Change => gatekeeper::evaluate_change_gates(
                 artifact_contract,
                 gate_inputs,
                 gatekeeper::ChangeGateContext {
-                    owner,
-                    risk,
-                    zone,
+                    owner: &request.owner,
+                    risk: request.risk,
+                    zone: request.zone,
                     approvals,
-                    system_context,
+                    system_context: request.system_context,
                     validation_independence_satisfied,
                     evidence_complete: true,
                 },
@@ -703,11 +695,11 @@ impl EngineService {
                 artifact_contract,
                 gate_inputs,
                 gatekeeper::ImplementationGateContext {
-                    owner,
-                    risk,
-                    zone,
+                    owner: &request.owner,
+                    risk: request.risk,
+                    zone: request.zone,
                     approvals,
-                    system_context,
+                    system_context: request.system_context,
                     validation_independence_satisfied,
                     evidence_complete: true,
                 },
@@ -716,11 +708,11 @@ impl EngineService {
                 artifact_contract,
                 gate_inputs,
                 gatekeeper::RefactorGateContext {
-                    owner,
-                    risk,
-                    zone,
+                    owner: &request.owner,
+                    risk: request.risk,
+                    zone: request.zone,
                     approvals,
-                    system_context,
+                    system_context: request.system_context,
                     validation_independence_satisfied,
                     evidence_complete: true,
                 },
