@@ -138,7 +138,7 @@ hold the shared delight-provider helpers.
 | Check | Status | Notes |
 |---|---|---|
 | Contract test suite | Pass | `cargo test --test delight_provider_contract` passed with 9 tests covering identity, inventory, metadata, compatibility, versioning, amendment, deprecation, and drift checks |
-| Documentation and release-surface closeout | Pass | `README.md`, `CHANGELOG.md`, and `ROADMAP.md` updated for the `0.56.0` delivery line and the S7 delight-provider contract |
+| Documentation and release-surface closeout | Pass | `README.md`, `CHANGELOG.md`, and `ROADMAP.md` updated for the `0.57.0` delivery line and the S7 delight-provider contract |
 | Complexity and file-length review | Pass | `tests/delight_provider_contract.rs` is 185 lines and `tests/contract/delight_provider_contract.rs` is 72 lines; helper boundaries keep each assertion focused, so no further refactor was required |
 | Workspace clippy gate | Pass | `cargo clean && cargo clippy --workspace --all-targets --all-features -- -D warnings` passed after reclaiming disk space from a transient `No space left on device` failure |
 | Touched Rust file coverage gate | Pass with repo constraint | The only touched Rust files are under `tests/`; `cargo llvm-cov --test delight_provider_contract --lcov --output-path lcov.delight-provider.info` passed after `cargo clean` but emitted an empty LCOV file, so line coverage for those test-harness files is not measurable in this repository's LCOV flow. The executable contract target still passed all 9 assertions. |

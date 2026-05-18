@@ -15,7 +15,7 @@ current governed mode catalog, publishable packet families, operator run and
 status control, authored-input readiness guidance, architecture visual packets,
 ADR publishing, project-memory promotion, the ordered packet contract, and the
 stable S7 delight-provider contract that bounds Canon-owned downstream delight
-inputs.
+inputs for the paired Boundline `0.61.0` consumer.
 
 ## Open Ideas
 
@@ -41,13 +41,16 @@ secrets out of versioned repository state and prefer environment or
 host-managed credential references over raw token persistence.
 
 A tech-debt refactor should split the remaining large source files to match
-the module decomposition already applied to `service.rs`, `summarizers.rs`,
-and `markdown.rs`. Files above 1000 lines that still need decomposition, in
-descending order:
+the named-file-plus-sibling-directory decomposition already used across the
+orchestrator and markdown surfaces. Current production files above 1000 lines,
+in descending order:
 
 | File | Lines |
 |---|---|
-| `orchestrator/gatekeeper.rs` | 2420 |
+| `domain/publish_profile.rs` | 1576 |
+| `orchestrator/service.rs` | 1062 |
+| `artifacts/markdown/delivery.rs` | 1048 |
+| `copilot_cli.rs` | 1004 |
 
 Each split should follow the same Rust 2024 named-file-plus-sibling-directory
 pattern used in the completed passes: no `mod.rs`, child modules use
