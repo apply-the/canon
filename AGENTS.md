@@ -77,6 +77,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-17
 - Canon packet metadata and governed artifacts under `.canon/`, integration docs under `docs/integration/`, repo-facing guides under `docs/`, and feature-local planning artifacts under `specs/055-adaptive-governance/` (055-adaptive-governance)
 - Rust 1.95.0, Edition 2024, plus Markdown and JSON + existing workspace crates `canon-engine`, (056-semantic-artifact-contract)
 - repository-published Markdown contracts under `docs/integration/` (056-semantic-artifact-contract)
+- Rust 1.95.0, Edition 2024 (existing types only, no new Rust code); + Existing workspace crates `canon-engine`, `canon-cli`, (057-s7-delight-provider)
+- Repository files only; no new persistent schema. (057-s7-delight-provider)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -135,9 +137,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 057-s7-delight-provider: Added Rust 1.95.0, Edition 2024 (existing types only, no new Rust code); + Existing workspace crates `canon-engine`, `canon-cli`,
 - 056-semantic-artifact-contract: Added Rust 1.95.0, Edition 2024, plus Markdown and JSON + existing workspace crates `canon-engine`,
 - 055-adaptive-governance: Added Rust 1.95.0, edition 2024 + Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice
-- 054-authority-zone-contract: Added Rust 1.95.0, edition 2024 + Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

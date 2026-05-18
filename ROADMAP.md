@@ -1,7 +1,7 @@
 # Next Features
 
 The most recent delivered roadmap entry is
-`050-project-memory-control`.
+`057-s7-delight-provider`.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
@@ -13,7 +13,9 @@ Delivered history through `049` is already tracked in `CHANGELOG.md` and the
 feature directories under `specs/`. That delivered baseline now includes the
 current governed mode catalog, publishable packet families, operator run and
 status control, authored-input readiness guidance, architecture visual packets,
-ADR publishing, project-memory promotion, and the ordered packet contract.
+ADR publishing, project-memory promotion, the ordered packet contract, and the
+stable S7 delight-provider contract that bounds Canon-owned downstream delight
+inputs.
 
 ## Open Ideas
 

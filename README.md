@@ -2,17 +2,19 @@
 
 ![Canon banner](docs/images/canon-banner.jpg)
 
+[![Version](https://img.shields.io/github/v/release/apply-the/canon?color=blue&label=version)](https://github.com/apply-the/canon/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/apply-the/canon/actions/workflows/ci.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/ci.yml)
 [![Lint](https://github.com/apply-the/canon/actions/workflows/lint.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/lint.yml)
 [![Vulnerabilities](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml/badge.svg)](https://github.com/apply-the/canon/actions/workflows/vulnerabilities.yml)
 [![Coverage](https://codecov.io/gh/apply-the/canon/branch/main/graph/badge.svg)](https://codecov.io/gh/apply-the/canon)
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=apply-the_boundline&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=apply-the_boundline)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_boundline&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_boundline)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_boundline&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_boundline)
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=apply-the_canon&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=apply-the_canon)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_canon&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_canon)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_canon&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_canon)
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.55.0`.
+The current delivery line in this repository targets Canon `0.56.0`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON
@@ -76,6 +78,11 @@ Boundline.
 Use `docs/governance-semantics-and-authority-zones.md` for the semantic
 vocabulary and authority-boundary rules, and
 `docs/integration/governance-adapter.md` for the machine-facing projection.
+
+For Boundline S7 delight consumption specifically, use
+`docs/integration/delight-provider-contract.md` as the stable Canon-owned
+contract for packets, approval states, readiness signals, security findings,
+audit findings, and promotion references.
 
 ## Assistant Plugin Packages
 
