@@ -153,6 +153,7 @@ If your change touches packaging, install guidance, or release automation,
 update the full release surface together:
 
 - `README.md`
+- `docs/release-checklist.md`
 - `.github/release-notes-template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/release.yml`
@@ -177,6 +178,18 @@ If your change touches `.agents/skills/`:
 - contributor docs are updated if the development workflow changed
 - local validation commands passed, or any gap is explicitly called out
 - release-surface changes keep install, packaging, and compatibility guidance aligned
+
+## Versioning
+
+Canon follows Semantic Versioning.
+
+Before `1.0.0`, breaking changes may still land in minor releases, but version
+bumps should remain intentional and consistent with the user-visible scope of
+the change.
+
+When advancing the version, follow the checklist in
+`docs/release-checklist.md`, which lists every file that must change and the
+focused validation to run afterward.
 
 ## Code of Conduct
 

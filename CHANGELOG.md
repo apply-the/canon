@@ -15,6 +15,27 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.56.0] - 2026-05-17
+
+Delivered specs:
+
+- `specs/057-s7-delight-provider/`
+
+Highlights:
+
+- Added the stable `docs/integration/delight-provider-contract.md` contract so
+  Boundline S7 can consume Canon-owned packets, approval states, readiness
+  signals, security findings, audit findings, and promotion references without
+  depending on ambient Canon semantics.
+- Defined the five-state `degradation_state` contract (`available`, `stale`,
+  `incompatible`, `absent`, `contradicted`) and the contract-line versioning
+  rules that downstream S7 consumers must respect.
+- Added executable contract coverage in `tests/delight_provider_contract.rs`
+  and `tests/contract/delight_provider_contract.rs` to lock the stable doc and
+  the feature-local brief together and fail closed on drift.
+- Bumped workspace version to `0.56.0` across the Canon crates, assistant
+  package manifests, and runtime compatibility metadata.
+
 ## [0.55.0] - 2026-05-16
 
 Delivered specs:
