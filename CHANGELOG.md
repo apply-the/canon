@@ -15,7 +15,7 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
-## [0.56.0] - 2026-05-17
+## [0.57.0] - 2026-05-17
 
 Delivered specs:
 
@@ -33,7 +33,9 @@ Highlights:
 - Added executable contract coverage in `tests/delight_provider_contract.rs`
   and `tests/contract/delight_provider_contract.rs` to lock the stable doc and
   the feature-local brief together and fail closed on drift.
-- Bumped workspace version to `0.56.0` across the Canon crates, assistant
+- Aligned the documented downstream consumer pairing to Boundline `0.61.0`
+  while keeping Canon the semantic owner of the delight-provider contract.
+- Bumped workspace version to `0.57.0` across the Canon crates, assistant
   package manifests, and runtime compatibility metadata.
 
 ## [0.55.0] - 2026-05-16

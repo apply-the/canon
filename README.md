@@ -14,7 +14,8 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.56.0`.
+The current delivery line in this repository targets Canon `0.57.0`. This is
+the documented governed companion line for Boundline `0.61.0`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON

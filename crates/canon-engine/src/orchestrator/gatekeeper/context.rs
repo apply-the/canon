@@ -1,4 +1,7 @@
-use super::*;
+use crate::domain::approval::ApprovalRecord;
+use crate::domain::execution::DeniedInvocation;
+use crate::domain::policy::{RiskClass, UsageZone};
+use crate::domain::run::{ClosureAssessment, SystemContext};
 
 /// Evaluation context for Discovery mode gate checks.
 pub struct DiscoveryGateContext<'a> {
