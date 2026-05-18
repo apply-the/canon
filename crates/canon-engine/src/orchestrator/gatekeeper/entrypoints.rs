@@ -1,8 +1,61 @@
 use super::{rules, *};
+use crate::domain::approval::ApprovalRecord;
 use crate::domain::artifact::ArtifactContract;
 use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
+use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::run::ClosureDecompositionScope;
+
+#[derive(Clone, Copy)]
+struct AnalysisModeSpec<'a> {
+    review_gate: GateKind,
+    review_artifacts: &'a [&'a str],
+    review_message: &'a str,
+    approval_message: &'a str,
+    readiness_message: &'a str,
+}
+
+#[derive(Clone, Copy)]
+struct AnalysisModeContext<'a> {
+    owner: &'a str,
+    risk: RiskClass,
+    zone: UsageZone,
+    approvals: &'a [ApprovalRecord],
+    validation_independence_satisfied: bool,
+    evidence_complete: bool,
+}
+
+fn analysis_mode_gate_set(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    spec: AnalysisModeSpec<'_>,
+    context: AnalysisModeContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        rules::named_artifact_gate(
+            spec.review_gate,
+            contract,
+            artifacts,
+            spec.review_artifacts,
+            spec.review_message,
+        ),
+        rules::approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            spec.approval_message,
+        ),
+        rules::analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            spec.readiness_message,
+        ),
+    ]
+}
 
 /// Evaluates the gate set for a Requirements mode run.
 pub fn evaluate_requirements_gates(
@@ -30,30 +83,25 @@ pub fn evaluate_discovery_gates(
     artifacts: &[(String, String)],
     context: DiscoveryGateContext<'_>,
 ) -> Vec<GateEvaluation> {
-    vec![
-        rules::named_artifact_gate(
-            GateKind::Exploration,
-            contract,
-            artifacts,
-            &["problem-map.md", "context-boundary.md"],
-            "discovery requires a bounded problem domain and explicit context boundary",
-        ),
-        rules::approval_aware_risk_gate(
-            context.owner,
-            context.risk,
-            context.zone,
-            context.approvals,
-            "systemic-impact or red-zone discovery work requires explicit approval before it can proceed",
-        ),
-        rules::analysis_release_readiness_gate(
-            GateKind::ReleaseReadiness,
-            contract,
-            artifacts,
-            context.validation_independence_satisfied,
-            context.evidence_complete,
-            "discovery readiness requires persisted context, critique, and repository validation evidence",
-        ),
-    ]
+    analysis_mode_gate_set(
+        contract,
+        artifacts,
+        AnalysisModeSpec {
+            review_gate: GateKind::Exploration,
+            review_artifacts: &["problem-map.md", "context-boundary.md"],
+            review_message: "discovery requires a bounded problem domain and explicit context boundary",
+            approval_message: "systemic-impact or red-zone discovery work requires explicit approval before it can proceed",
+            readiness_message: "discovery readiness requires persisted context, critique, and repository validation evidence",
+        },
+        AnalysisModeContext {
+            owner: context.owner,
+            risk: context.risk,
+            zone: context.zone,
+            approvals: context.approvals,
+            validation_independence_satisfied: context.validation_independence_satisfied,
+            evidence_complete: context.evidence_complete,
+        },
+    )
 }
 
 /// Evaluates the gate set for a System Shaping mode run.
@@ -375,30 +423,30 @@ pub fn evaluate_security_assessment_gates(
     artifacts: &[(String, String)],
     context: SecurityAssessmentGateContext<'_>,
 ) -> Vec<GateEvaluation> {
-    vec![
-        rules::named_artifact_gate(
-            GateKind::Architecture,
-            contract,
-            artifacts,
-            &["assessment-overview.md", "threat-model.md", "risk-register.md", "mitigations.md"],
-            "security assessment review requires scope, threats, risks, and mitigation guidance",
-        ),
-        rules::approval_aware_risk_gate(
-            context.owner,
-            context.risk,
-            context.zone,
-            context.approvals,
-            "systemic-impact or red-zone security-assessment work requires explicit approval before it can proceed",
-        ),
-        rules::analysis_release_readiness_gate(
-            GateKind::ReleaseReadiness,
-            contract,
-            artifacts,
-            context.validation_independence_satisfied,
-            context.evidence_complete,
-            "security-assessment readiness requires persisted context, critique, and verification evidence",
-        ),
-    ]
+    analysis_mode_gate_set(
+        contract,
+        artifacts,
+        AnalysisModeSpec {
+            review_gate: GateKind::Architecture,
+            review_artifacts: &[
+                "assessment-overview.md",
+                "threat-model.md",
+                "risk-register.md",
+                "mitigations.md",
+            ],
+            review_message: "security assessment review requires scope, threats, risks, and mitigation guidance",
+            approval_message: "systemic-impact or red-zone security-assessment work requires explicit approval before it can proceed",
+            readiness_message: "security-assessment readiness requires persisted context, critique, and verification evidence",
+        },
+        AnalysisModeContext {
+            owner: context.owner,
+            risk: context.risk,
+            zone: context.zone,
+            approvals: context.approvals,
+            validation_independence_satisfied: context.validation_independence_satisfied,
+            evidence_complete: context.evidence_complete,
+        },
+    )
 }
 
 /// Evaluates the gate set for a System Assessment mode run.
@@ -407,35 +455,30 @@ pub fn evaluate_system_assessment_gates(
     artifacts: &[(String, String)],
     context: SystemAssessmentGateContext<'_>,
 ) -> Vec<GateEvaluation> {
-    vec![
-        rules::named_artifact_gate(
-            GateKind::Architecture,
-            contract,
-            artifacts,
-            &[
+    analysis_mode_gate_set(
+        contract,
+        artifacts,
+        AnalysisModeSpec {
+            review_gate: GateKind::Architecture,
+            review_artifacts: &[
                 "assessment-overview.md",
                 "coverage-map.md",
                 "component-view.md",
                 "integration-view.md",
             ],
-            "system assessment review requires scope, coverage, component mapping, and integration evidence",
-        ),
-        rules::approval_aware_risk_gate(
-            context.owner,
-            context.risk,
-            context.zone,
-            context.approvals,
-            "systemic-impact or red-zone system-assessment work requires explicit approval before it can proceed",
-        ),
-        rules::analysis_release_readiness_gate(
-            GateKind::ReleaseReadiness,
-            contract,
-            artifacts,
-            context.validation_independence_satisfied,
-            context.evidence_complete,
-            "system-assessment readiness requires persisted context, critique, and verification evidence",
-        ),
-    ]
+            review_message: "system assessment review requires scope, coverage, component mapping, and integration evidence",
+            approval_message: "systemic-impact or red-zone system-assessment work requires explicit approval before it can proceed",
+            readiness_message: "system-assessment readiness requires persisted context, critique, and verification evidence",
+        },
+        AnalysisModeContext {
+            owner: context.owner,
+            risk: context.risk,
+            zone: context.zone,
+            approvals: context.approvals,
+            validation_independence_satisfied: context.validation_independence_satisfied,
+            evidence_complete: context.evidence_complete,
+        },
+    )
 }
 
 /// Evaluates the gate set for a Supply Chain Analysis mode run.
@@ -633,30 +676,29 @@ pub fn evaluate_domain_language_gates(
     artifacts: &[(String, String)],
     context: DomainLanguageGateContext<'_>,
 ) -> Vec<GateEvaluation> {
-    vec![
-        rules::named_artifact_gate(
-            GateKind::Architecture,
-            contract,
-            artifacts,
-            &["language-overview.md", "domain-glossary.md", "preferred-language.md"],
-            "domain-language review requires scope, glossary, and preferred language evidence",
-        ),
-        rules::approval_aware_risk_gate(
-            context.owner,
-            context.risk,
-            context.zone,
-            context.approvals,
-            "systemic-impact or red-zone domain-language work requires explicit approval before it can proceed",
-        ),
-        rules::analysis_release_readiness_gate(
-            GateKind::ReleaseReadiness,
-            contract,
-            artifacts,
-            context.validation_independence_satisfied,
-            context.evidence_complete,
-            "domain-language readiness requires persisted context, critique, and verification evidence",
-        ),
-    ]
+    analysis_mode_gate_set(
+        contract,
+        artifacts,
+        AnalysisModeSpec {
+            review_gate: GateKind::Architecture,
+            review_artifacts: &[
+                "language-overview.md",
+                "domain-glossary.md",
+                "preferred-language.md",
+            ],
+            review_message: "domain-language review requires scope, glossary, and preferred language evidence",
+            approval_message: "systemic-impact or red-zone domain-language work requires explicit approval before it can proceed",
+            readiness_message: "domain-language readiness requires persisted context, critique, and verification evidence",
+        },
+        AnalysisModeContext {
+            owner: context.owner,
+            risk: context.risk,
+            zone: context.zone,
+            approvals: context.approvals,
+            validation_independence_satisfied: context.validation_independence_satisfied,
+            evidence_complete: context.evidence_complete,
+        },
+    )
 }
 
 /// Evaluates the gate set for a Domain Model mode run.
@@ -665,33 +707,28 @@ pub fn evaluate_domain_model_gates(
     artifacts: &[(String, String)],
     context: DomainModelGateContext<'_>,
 ) -> Vec<GateEvaluation> {
-    vec![
-        rules::named_artifact_gate(
-            GateKind::Architecture,
-            contract,
-            artifacts,
-            &[
+    analysis_mode_gate_set(
+        contract,
+        artifacts,
+        AnalysisModeSpec {
+            review_gate: GateKind::Architecture,
+            review_artifacts: &[
                 "model-overview.md",
                 "concept-catalog.md",
                 "relationship-map.md",
                 "bounded-context-map.md",
             ],
-            "domain-model review requires scope, concepts, relationships, and bounded context evidence",
-        ),
-        rules::approval_aware_risk_gate(
-            context.owner,
-            context.risk,
-            context.zone,
-            context.approvals,
-            "systemic-impact or red-zone domain-model work requires explicit approval before it can proceed",
-        ),
-        rules::analysis_release_readiness_gate(
-            GateKind::ReleaseReadiness,
-            contract,
-            artifacts,
-            context.validation_independence_satisfied,
-            context.evidence_complete,
-            "domain-model readiness requires persisted context, critique, and verification evidence",
-        ),
-    ]
+            review_message: "domain-model review requires scope, concepts, relationships, and bounded context evidence",
+            approval_message: "systemic-impact or red-zone domain-model work requires explicit approval before it can proceed",
+            readiness_message: "domain-model readiness requires persisted context, critique, and verification evidence",
+        },
+        AnalysisModeContext {
+            owner: context.owner,
+            risk: context.risk,
+            zone: context.zone,
+            approvals: context.approvals,
+            validation_independence_satisfied: context.validation_independence_satisfied,
+            evidence_complete: context.evidence_complete,
+        },
+    )
 }

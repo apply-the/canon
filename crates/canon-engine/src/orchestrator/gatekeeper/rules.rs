@@ -2,7 +2,9 @@ use time::OffsetDateTime;
 
 use crate::artifacts::contract::validate_release_bundle;
 use crate::domain::approval::ApprovalRecord;
-use crate::domain::artifact::{ArtifactContract, REVIEW_SUMMARY_ARTIFACT_SLUG, artifact_slug};
+use crate::domain::artifact::{
+    ArtifactContract, ArtifactRequirement, REVIEW_SUMMARY_ARTIFACT_SLUG, artifact_slug,
+};
 use crate::domain::execution::DeniedInvocation;
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::policy::{RiskClass, UsageZone};
@@ -40,47 +42,86 @@ pub(super) fn operational_capture_gate(
     evaluation
 }
 
+fn requirement_blockers(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    predicate: impl Fn(&ArtifactRequirement) -> bool,
+) -> Vec<String> {
+    contract
+        .artifact_requirements
+        .iter()
+        .filter(|requirement| predicate(requirement))
+        .flat_map(|requirement| validate_requirement_blockers(requirement, artifacts))
+        .collect::<Vec<_>>()
+}
+
+fn validate_requirement_blockers(
+    requirement: &ArtifactRequirement,
+    artifacts: &[(String, String)],
+) -> Vec<String> {
+    artifacts
+        .iter()
+        .find(|(file_name, _)| file_name == &requirement.file_name)
+        .map(|(_, contents)| crate::artifacts::contract::validate_artifact(requirement, contents))
+        .unwrap_or_else(|| {
+            if requirement.required {
+                vec![format!("missing required artifact `{}`", requirement.file_name)]
+            } else {
+                Vec::new()
+            }
+        })
+}
+
+fn existing_system_requirement_gate(
+    gate: GateKind,
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    predicate: impl Fn(&ArtifactRequirement) -> bool,
+    system_context: Option<SystemContext>,
+    missing_context_message: &str,
+) -> GateEvaluation {
+    let mut blockers = requirement_blockers(contract, artifacts, predicate);
+
+    if !matches!(system_context, Some(SystemContext::Existing)) {
+        blockers.push(missing_context_message.to_string());
+    }
+
+    GateEvaluation {
+        gate,
+        status: gate_status_from_blockers(&blockers),
+        blockers,
+        evaluated_at: OffsetDateTime::now_utc(),
+    }
+}
+
+fn blocked_risk_gate_without_owner(owner: &str) -> Option<GateEvaluation> {
+    if owner.trim().is_empty() {
+        Some(GateEvaluation {
+            gate: GateKind::Risk,
+            status: GateStatus::Blocked,
+            blockers: vec![
+                "human ownership is required before risk classification can pass".to_string(),
+            ],
+            evaluated_at: OffsetDateTime::now_utc(),
+        })
+    } else {
+        None
+    }
+}
+
 pub(super) fn change_preservation_gate(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
     system_context: Option<SystemContext>,
 ) -> GateEvaluation {
-    let mut blockers = contract
-        .artifact_requirements
-        .iter()
-        .filter(|requirement| {
-            matches!(requirement.slug(), "legacy-invariants.md" | "change-surface.md")
-        })
-        .flat_map(|requirement| {
-            artifacts
-                .iter()
-                .find(|(file_name, _)| file_name == &requirement.file_name)
-                .map(|(_, contents)| {
-                    crate::artifacts::contract::validate_artifact(requirement, contents)
-                })
-                .unwrap_or_else(|| {
-                    if requirement.required {
-                        vec![format!("missing required artifact `{}`", requirement.file_name)]
-                    } else {
-                        Vec::new()
-                    }
-                })
-        })
-        .collect::<Vec<_>>();
-
-    if !matches!(system_context, Some(SystemContext::Existing)) {
-        blockers.push(
-            "change preservation requires `system_context = existing` so gating stays bound to an existing system"
-                .to_string(),
-        );
-    }
-
-    GateEvaluation {
-        gate: GateKind::ChangePreservation,
-        status: gate_status_from_blockers(&blockers),
-        blockers,
-        evaluated_at: OffsetDateTime::now_utc(),
-    }
+    existing_system_requirement_gate(
+        GateKind::ChangePreservation,
+        contract,
+        artifacts,
+        |requirement| matches!(requirement.slug(), "legacy-invariants.md" | "change-surface.md"),
+        system_context,
+        "change preservation requires `system_context = existing` so gating stays bound to an existing system",
+    )
 }
 
 pub(super) fn exploration_gate(artifacts: &[(String, String)]) -> GateEvaluation {
@@ -191,10 +232,11 @@ pub(super) fn implementation_readiness_gate(
     artifacts: &[(String, String)],
     system_context: Option<SystemContext>,
 ) -> GateEvaluation {
-    let mut blockers = contract
-        .artifact_requirements
-        .iter()
-        .filter(|requirement| {
+    existing_system_requirement_gate(
+        GateKind::ImplementationReadiness,
+        contract,
+        artifacts,
+        |requirement| {
             matches!(
                 requirement.slug(),
                 "task-mapping.md"
@@ -202,37 +244,10 @@ pub(super) fn implementation_readiness_gate(
                     | "validation-hooks.md"
                     | "rollback-notes.md"
             )
-        })
-        .flat_map(|requirement| {
-            artifacts
-                .iter()
-                .find(|(file_name, _)| file_name == &requirement.file_name)
-                .map(|(_, contents)| {
-                    crate::artifacts::contract::validate_artifact(requirement, contents)
-                })
-                .unwrap_or_else(|| {
-                    if requirement.required {
-                        vec![format!("missing required artifact `{}`", requirement.file_name)]
-                    } else {
-                        Vec::new()
-                    }
-                })
-        })
-        .collect::<Vec<_>>();
-
-    if !matches!(system_context, Some(SystemContext::Existing)) {
-        blockers.push(
-            "implementation planning requires `system_context = existing` so mutation bounds stay attached to an existing system"
-                .to_string(),
-        );
-    }
-
-    GateEvaluation {
-        gate: GateKind::ImplementationReadiness,
-        status: gate_status_from_blockers(&blockers),
-        blockers,
-        evaluated_at: OffsetDateTime::now_utc(),
-    }
+        },
+        system_context,
+        "implementation planning requires `system_context = existing` so mutation bounds stay attached to an existing system",
+    )
 }
 
 pub(super) fn refactor_preservation_gate(
@@ -240,45 +255,19 @@ pub(super) fn refactor_preservation_gate(
     artifacts: &[(String, String)],
     system_context: Option<SystemContext>,
 ) -> GateEvaluation {
-    let mut blockers = contract
-        .artifact_requirements
-        .iter()
-        .filter(|requirement| {
+    existing_system_requirement_gate(
+        GateKind::ChangePreservation,
+        contract,
+        artifacts,
+        |requirement| {
             matches!(
                 requirement.slug(),
                 "preserved-behavior.md" | "refactor-scope.md" | "no-feature-addition.md"
             )
-        })
-        .flat_map(|requirement| {
-            artifacts
-                .iter()
-                .find(|(file_name, _)| file_name == &requirement.file_name)
-                .map(|(_, contents)| {
-                    crate::artifacts::contract::validate_artifact(requirement, contents)
-                })
-                .unwrap_or_else(|| {
-                    if requirement.required {
-                        vec![format!("missing required artifact `{}`", requirement.file_name)]
-                    } else {
-                        Vec::new()
-                    }
-                })
-        })
-        .collect::<Vec<_>>();
-
-    if !matches!(system_context, Some(SystemContext::Existing)) {
-        blockers.push(
-            "refactor preservation requires `system_context = existing` so structural work stays attached to an existing system"
-                .to_string(),
-        );
-    }
-
-    GateEvaluation {
-        gate: GateKind::ChangePreservation,
-        status: gate_status_from_blockers(&blockers),
-        blockers,
-        evaluated_at: OffsetDateTime::now_utc(),
-    }
+        },
+        system_context,
+        "refactor preservation requires `system_context = existing` so structural work stays attached to an existing system",
+    )
 }
 
 pub(super) fn change_risk_gate(
@@ -287,19 +276,8 @@ pub(super) fn change_risk_gate(
     zone: UsageZone,
     approvals: &[ApprovalRecord],
 ) -> GateEvaluation {
-    let owner_blockers = if owner.trim().is_empty() {
-        vec!["human ownership is required before risk classification can pass".to_string()]
-    } else {
-        Vec::new()
-    };
-
-    if !owner_blockers.is_empty() {
-        return GateEvaluation {
-            gate: GateKind::Risk,
-            status: GateStatus::Blocked,
-            blockers: owner_blockers,
-            evaluated_at: OffsetDateTime::now_utc(),
-        };
+    if let Some(evaluation) = blocked_risk_gate_without_owner(owner) {
+        return evaluation;
     }
 
     let approval_required =
@@ -531,19 +509,8 @@ pub(super) fn approval_aware_risk_gate(
     approvals: &[ApprovalRecord],
     approval_message: &str,
 ) -> GateEvaluation {
-    let owner_blockers = if owner.trim().is_empty() {
-        vec!["human ownership is required before risk classification can pass".to_string()]
-    } else {
-        Vec::new()
-    };
-
-    if !owner_blockers.is_empty() {
-        return GateEvaluation {
-            gate: GateKind::Risk,
-            status: GateStatus::Blocked,
-            blockers: owner_blockers,
-            evaluated_at: OffsetDateTime::now_utc(),
-        };
+    if let Some(evaluation) = blocked_risk_gate_without_owner(owner) {
+        return evaluation;
     }
 
     let approval_required =
@@ -572,28 +539,9 @@ pub(super) fn pr_review_architecture_gate(
     contract: &ArtifactContract,
     artifacts: &[(String, String)],
 ) -> GateEvaluation {
-    let mut blockers = contract
-        .artifact_requirements
-        .iter()
-        .filter(|requirement| {
-            matches!(requirement.slug(), "boundary-check.md" | "contract-drift.md")
-        })
-        .flat_map(|requirement| {
-            artifacts
-                .iter()
-                .find(|(file_name, _)| file_name == &requirement.file_name)
-                .map(|(_, contents)| {
-                    crate::artifacts::contract::validate_artifact(requirement, contents)
-                })
-                .unwrap_or_else(|| {
-                    if requirement.required {
-                        vec![format!("missing required artifact `{}`", requirement.file_name)]
-                    } else {
-                        Vec::new()
-                    }
-                })
-        })
-        .collect::<Vec<_>>();
+    let mut blockers = requirement_blockers(contract, artifacts, |requirement| {
+        matches!(requirement.slug(), "boundary-check.md" | "contract-drift.md")
+    });
 
     for (file_name, contents) in artifacts {
         if artifact_slug(file_name) == "boundary-check.md"

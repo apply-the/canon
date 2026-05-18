@@ -36,189 +36,206 @@ pub(super) fn authored_clarity_family(mode: Mode) -> AuthoredClarityFamily {
     }
 }
 
-pub(super) fn authored_primary_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+struct AuthoredFamilyMarkers {
+    primary: &'static [&'static str],
+    boundary: &'static [&'static str],
+    support: &'static [&'static str],
+    decision: &'static [&'static str],
+    tradeoff: &'static [&'static str],
+    option: &'static [&'static str],
+    gap: &'static [&'static str],
+}
+
+const PLANNING_MARKERS: AuthoredFamilyMarkers = AuthoredFamilyMarkers {
+    primary: &["system shape", "decision", "delivery intent", "intended change", "problem"],
+    boundary: &[
+        "constraints",
+        "boundary decisions",
+        "candidate boundaries",
+        "change surface",
+        "system slice",
+        "desired granularity",
+        "planning horizon",
+        "domain slice",
+        "excluded areas",
+        "out of scope",
+    ],
+    support: &[
+        "rationale",
+        "decision evidence",
+        "decision drivers",
+        "sequencing rationale",
+        "source references",
+        "validation strategy",
+        "independent checks",
+    ],
+    decision: &[
+        "selected boundaries",
+        "recommendation",
+        "decision record",
+        "recommended direction",
+        "recommended path",
+        "decision",
+    ],
+    tradeoff: &[
+        "boundary tradeoffs",
+        "tradeoffs",
+        "consequences",
+        "pros",
+        "cons",
+        "cross-context risks",
+        "risk per phase",
+    ],
+    option: &[
+        "structural options",
+        "options considered",
+        "options",
+        "candidate bounded contexts",
+        "candidate boundaries",
+        "why not the others",
+    ],
+    gap: &[
+        "boundary risks and open questions",
+        "unresolved risks",
+        "unresolved questions",
+        "gaps",
+        "open questions",
+    ],
+};
+
+const EXECUTION_MARKERS: AuthoredFamilyMarkers = AuthoredFamilyMarkers {
+    primary: &["task mapping", "refactor scope", "current state", "target state"],
+    boundary: &[
+        "bounded changes",
+        "mutation bounds",
+        "allowed paths",
+        "transition boundaries",
+        "rollback triggers",
+        "fallback paths",
+        "refactor scope",
+    ],
+    support: &[
+        "decision evidence",
+        "completion evidence",
+        "safety-net evidence",
+        "verification checks",
+        "independent checks",
+        "rollback steps",
+        "contract drift",
+    ],
+    decision: &["recommendation", "decision", "migration decisions", "approval notes"],
+    tradeoff: &[
+        "adoption implications",
+        "tradeoff analysis",
+        "remaining risks",
+        "residual risks",
+        "temporary incompatibilities",
+    ],
+    option: &[
+        "candidate frameworks",
+        "options matrix",
+        "parallelizable work",
+        "why not the others",
+    ],
+    gap: &[
+        "remaining risks",
+        "residual risks",
+        "deferred decisions",
+        "regression findings",
+        "feature audit",
+    ],
+};
+
+const ASSESSMENT_MARKERS: AuthoredFamilyMarkers = AuthoredFamilyMarkers {
+    primary: &[
+        "review target",
+        "claims under test",
+        "incident scope",
+        "assessment scope",
+        "assessment objective",
+    ],
+    boundary: &[
+        "boundary findings",
+        "assessment scope",
+        "in-scope assets",
+        "trust boundaries",
+        "incident scope",
+        "assessed views",
+        "impacted surfaces",
+        "scope limits",
+        "out of scope",
+    ],
+    support: &[
+        "evidence basis",
+        "known facts",
+        "observed findings",
+        "inferred findings",
+        "evidence sources",
+        "collection priorities",
+        "control families",
+        "verified claims",
+    ],
+    decision: &[
+        "final disposition",
+        "overall verdict",
+        "verification outcome",
+        "decision impact",
+        "immediate actions",
+    ],
+    tradeoff: &[
+        "accepted risks",
+        "reversibility concerns",
+        "tradeoffs",
+        "likelihood and impact",
+        "impact notes",
+    ],
+    option: &[],
+    gap: &[
+        "missing evidence",
+        "evidence gaps",
+        "assessment gaps",
+        "confidence and unknowns",
+        "open findings",
+        "risk findings",
+        "deferred verification",
+        "unobservable surfaces",
+    ],
+};
+
+fn authored_markers(family: AuthoredClarityFamily) -> &'static AuthoredFamilyMarkers {
     match family {
-        AuthoredClarityFamily::Planning => {
-            &["system shape", "decision", "delivery intent", "intended change", "problem"]
-        }
-        AuthoredClarityFamily::Execution => {
-            &["task mapping", "refactor scope", "current state", "target state"]
-        }
-        AuthoredClarityFamily::Assessment => &[
-            "review target",
-            "claims under test",
-            "incident scope",
-            "assessment scope",
-            "assessment objective",
-        ],
+        AuthoredClarityFamily::Planning => &PLANNING_MARKERS,
+        AuthoredClarityFamily::Execution => &EXECUTION_MARKERS,
+        AuthoredClarityFamily::Assessment => &ASSESSMENT_MARKERS,
     }
+}
+
+pub(super) fn authored_primary_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
+    authored_markers(family).primary
 }
 
 pub(super) fn authored_boundary_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
-    match family {
-        AuthoredClarityFamily::Planning => &[
-            "constraints",
-            "boundary decisions",
-            "candidate boundaries",
-            "change surface",
-            "system slice",
-            "desired granularity",
-            "planning horizon",
-            "domain slice",
-            "excluded areas",
-            "out of scope",
-        ],
-        AuthoredClarityFamily::Execution => &[
-            "bounded changes",
-            "mutation bounds",
-            "allowed paths",
-            "transition boundaries",
-            "rollback triggers",
-            "fallback paths",
-            "refactor scope",
-        ],
-        AuthoredClarityFamily::Assessment => &[
-            "boundary findings",
-            "assessment scope",
-            "in-scope assets",
-            "trust boundaries",
-            "incident scope",
-            "assessed views",
-            "impacted surfaces",
-            "scope limits",
-            "out of scope",
-        ],
-    }
+    authored_markers(family).boundary
 }
 
 pub(super) fn authored_support_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
-    match family {
-        AuthoredClarityFamily::Planning => &[
-            "rationale",
-            "decision evidence",
-            "decision drivers",
-            "sequencing rationale",
-            "source references",
-            "validation strategy",
-            "independent checks",
-        ],
-        AuthoredClarityFamily::Execution => &[
-            "decision evidence",
-            "completion evidence",
-            "safety-net evidence",
-            "verification checks",
-            "independent checks",
-            "rollback steps",
-            "contract drift",
-        ],
-        AuthoredClarityFamily::Assessment => &[
-            "evidence basis",
-            "known facts",
-            "observed findings",
-            "inferred findings",
-            "evidence sources",
-            "collection priorities",
-            "control families",
-            "verified claims",
-        ],
-    }
+    authored_markers(family).support
 }
 
 pub(super) fn authored_decision_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
-    match family {
-        AuthoredClarityFamily::Planning => &[
-            "selected boundaries",
-            "recommendation",
-            "decision record",
-            "recommended direction",
-            "recommended path",
-            "decision",
-        ],
-        AuthoredClarityFamily::Execution => {
-            &["recommendation", "decision", "migration decisions", "approval notes"]
-        }
-        AuthoredClarityFamily::Assessment => &[
-            "final disposition",
-            "overall verdict",
-            "verification outcome",
-            "decision impact",
-            "immediate actions",
-        ],
-    }
+    authored_markers(family).decision
 }
 
 pub(super) fn authored_tradeoff_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
-    match family {
-        AuthoredClarityFamily::Planning => &[
-            "boundary tradeoffs",
-            "tradeoffs",
-            "consequences",
-            "pros",
-            "cons",
-            "cross-context risks",
-            "risk per phase",
-        ],
-        AuthoredClarityFamily::Execution => &[
-            "adoption implications",
-            "tradeoff analysis",
-            "remaining risks",
-            "residual risks",
-            "temporary incompatibilities",
-        ],
-        AuthoredClarityFamily::Assessment => &[
-            "accepted risks",
-            "reversibility concerns",
-            "tradeoffs",
-            "likelihood and impact",
-            "impact notes",
-        ],
-    }
+    authored_markers(family).tradeoff
 }
 
 pub(super) fn authored_option_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
-    match family {
-        AuthoredClarityFamily::Planning => &[
-            "structural options",
-            "options considered",
-            "options",
-            "candidate bounded contexts",
-            "candidate boundaries",
-            "why not the others",
-        ],
-        AuthoredClarityFamily::Execution => {
-            &["candidate frameworks", "options matrix", "parallelizable work", "why not the others"]
-        }
-        AuthoredClarityFamily::Assessment => &[],
-    }
+    authored_markers(family).option
 }
 
 pub(super) fn authored_gap_markers(family: AuthoredClarityFamily) -> &'static [&'static str] {
-    match family {
-        AuthoredClarityFamily::Planning => &[
-            "boundary risks and open questions",
-            "unresolved risks",
-            "unresolved questions",
-            "gaps",
-            "open questions",
-        ],
-        AuthoredClarityFamily::Execution => &[
-            "remaining risks",
-            "residual risks",
-            "deferred decisions",
-            "regression findings",
-            "feature audit",
-        ],
-        AuthoredClarityFamily::Assessment => &[
-            "missing evidence",
-            "evidence gaps",
-            "assessment gaps",
-            "confidence and unknowns",
-            "open findings",
-            "risk findings",
-            "deferred verification",
-            "unobservable surfaces",
-        ],
-    }
+    authored_markers(family).gap
 }
 
 pub(super) fn authored_primary_fallback(family: AuthoredClarityFamily) -> &'static str {

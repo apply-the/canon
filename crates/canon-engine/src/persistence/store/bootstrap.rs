@@ -157,73 +157,89 @@ const SKILL_FILES: &[(&str, &str)] = &[
     ),
 ];
 
-const SHARED_SKILL_FILES: &[(&str, &str)] = &[
-    (
-        "canon-shared/scripts/check-runtime.sh",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/scripts/check-runtime.sh"
-        ),
-    ),
-    (
-        "canon-shared/scripts/check-runtime.ps1",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/scripts/check-runtime.ps1"
-        ),
-    ),
-    (
-        "canon-shared/scripts/render-next-steps.sh",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/scripts/render-next-steps.sh"
-        ),
-    ),
-    (
-        "canon-shared/scripts/render-next-steps.ps1",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/scripts/render-next-steps.ps1"
-        ),
-    ),
-    (
-        "canon-shared/scripts/render-support-state.sh",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/scripts/render-support-state.sh"
-        ),
-    ),
-    (
-        "canon-shared/scripts/render-support-state.ps1",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/scripts/render-support-state.ps1"
-        ),
-    ),
-    (
-        "canon-shared/references/runtime-compatibility.toml",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml"
-        ),
-    ),
-    (
-        "canon-shared/references/skill-index.md",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/references/skill-index.md"
-        ),
-    ),
-    (
-        "canon-shared/references/skill-template.md",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/references/skill-template.md"
-        ),
-    ),
-    (
-        "canon-shared/references/output-shapes.md",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/references/output-shapes.md"
-        ),
-    ),
-    (
-        "canon-shared/references/support-states.md",
-        include_str!(
-            "../../../../../defaults/embedded-skills/canon-shared/references/support-states.md"
-        ),
-    ),
+#[derive(Clone, Copy)]
+enum SharedSkillFile {
+    CheckRuntimeSh,
+    CheckRuntimePs1,
+    RenderNextStepsSh,
+    RenderNextStepsPs1,
+    RenderSupportStateSh,
+    RenderSupportStatePs1,
+    RuntimeCompatibilityToml,
+    SkillIndexMd,
+    SkillTemplateMd,
+    OutputShapesMd,
+    SupportStatesMd,
+}
+
+impl SharedSkillFile {
+    fn relative_path(self) -> &'static str {
+        match self {
+            Self::CheckRuntimeSh => "canon-shared/scripts/check-runtime.sh",
+            Self::CheckRuntimePs1 => "canon-shared/scripts/check-runtime.ps1",
+            Self::RenderNextStepsSh => "canon-shared/scripts/render-next-steps.sh",
+            Self::RenderNextStepsPs1 => "canon-shared/scripts/render-next-steps.ps1",
+            Self::RenderSupportStateSh => "canon-shared/scripts/render-support-state.sh",
+            Self::RenderSupportStatePs1 => "canon-shared/scripts/render-support-state.ps1",
+            Self::RuntimeCompatibilityToml => "canon-shared/references/runtime-compatibility.toml",
+            Self::SkillIndexMd => "canon-shared/references/skill-index.md",
+            Self::SkillTemplateMd => "canon-shared/references/skill-template.md",
+            Self::OutputShapesMd => "canon-shared/references/output-shapes.md",
+            Self::SupportStatesMd => "canon-shared/references/support-states.md",
+        }
+    }
+
+    fn contents(self) -> &'static str {
+        match self {
+            Self::CheckRuntimeSh => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/scripts/check-runtime.sh"
+            ),
+            Self::CheckRuntimePs1 => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/scripts/check-runtime.ps1"
+            ),
+            Self::RenderNextStepsSh => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/scripts/render-next-steps.sh"
+            ),
+            Self::RenderNextStepsPs1 => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/scripts/render-next-steps.ps1"
+            ),
+            Self::RenderSupportStateSh => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/scripts/render-support-state.sh"
+            ),
+            Self::RenderSupportStatePs1 => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/scripts/render-support-state.ps1"
+            ),
+            Self::RuntimeCompatibilityToml => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml"
+            ),
+            Self::SkillIndexMd => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/references/skill-index.md"
+            ),
+            Self::SkillTemplateMd => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/references/skill-template.md"
+            ),
+            Self::OutputShapesMd => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/references/output-shapes.md"
+            ),
+            Self::SupportStatesMd => include_str!(
+                "../../../../../defaults/embedded-skills/canon-shared/references/support-states.md"
+            ),
+        }
+    }
+}
+
+const SHARED_SKILL_FILES: &[SharedSkillFile] = &[
+    SharedSkillFile::CheckRuntimeSh,
+    SharedSkillFile::CheckRuntimePs1,
+    SharedSkillFile::RenderNextStepsSh,
+    SharedSkillFile::RenderNextStepsPs1,
+    SharedSkillFile::RenderSupportStateSh,
+    SharedSkillFile::RenderSupportStatePs1,
+    SharedSkillFile::RuntimeCompatibilityToml,
+    SharedSkillFile::SkillIndexMd,
+    SharedSkillFile::SkillTemplateMd,
+    SharedSkillFile::OutputShapesMd,
+    SharedSkillFile::SupportStatesMd,
 ];
 
 impl WorkspaceStore {
@@ -357,7 +373,10 @@ impl WorkspaceStore {
         let skills_dir = target.skills_dir(&self.layout);
         let mut written = 0;
 
-        for (relative_path, contents) in SKILL_FILES.iter().chain(SHARED_SKILL_FILES.iter()) {
+        let shared_skill_files =
+            SHARED_SKILL_FILES.iter().copied().map(|file| (file.relative_path(), file.contents()));
+
+        for (relative_path, contents) in SKILL_FILES.iter().copied().chain(shared_skill_files) {
             let path = skills_dir.join(relative_path);
             if let Some(parent) = path.parent() {
                 fs::create_dir_all(parent)?;
