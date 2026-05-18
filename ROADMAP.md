@@ -47,11 +47,7 @@ descending order:
 
 | File | Lines |
 |---|---|
-| `orchestrator/gatekeeper.rs` | 2692 |
-| `orchestrator/publish.rs` | 2455 |
-| `service/clarity.rs` | 2235 |
-| `commands/governance.rs` | 2039 |
-| `persistence/store.rs` | 1584 |
+| `orchestrator/gatekeeper.rs` | 2420 |
 
 Each split should follow the same Rust 2024 named-file-plus-sibling-directory
 pattern used in the completed passes: no `mod.rs`, child modules use

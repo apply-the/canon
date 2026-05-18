@@ -1,0 +1,727 @@
+use super::*;
+
+// ── SupplyChainAnalysisBrief ────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+pub(crate) struct SupplyChainAnalysisBrief {
+    pub(crate) declared_scope: String,
+    pub(crate) licensing_posture: String,
+    pub(crate) distribution_model: String,
+    pub(crate) ecosystems_in_scope: Vec<String>,
+    pub(crate) out_of_scope_components: Vec<String>,
+    pub(crate) scanner_decisions: Vec<String>,
+    pub(crate) source_refs: Vec<String>,
+}
+
+impl SupplyChainAnalysisBrief {
+    pub(crate) fn from_context(context_summary: String, source_refs: &[String]) -> Self {
+        let normalized = context_summary.to_lowercase();
+        let declared_scope = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["declared scope", "scope"],
+        )
+        .map(|value| condense_context_block(&value, 320))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Declared Scope` section in the supply-chain input."
+                .to_string()
+        });
+        let licensing_posture = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["licensing posture", "license posture"],
+        )
+        .map(|value| condense_context_block(&value, 220))
+        .unwrap_or_else(|| {
+            "MISSING AUTHORED DECISION - Provide a `## Licensing Posture` section in the supply-chain input."
+                .to_string()
+        });
+        let distribution_model = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["distribution model"],
+        )
+        .map(|value| condense_context_block(&value, 220))
+        .unwrap_or_else(|| {
+            "MISSING AUTHORED DECISION - Provide a `## Distribution Model` section in the supply-chain input."
+                .to_string()
+        });
+        let ecosystems_in_scope = default_list(
+            extract_context_list(
+                &context_summary,
+                &normalized,
+                &["ecosystems in scope", "ecosystems", "ecosystem confirmation"],
+            ),
+            "MISSING AUTHORED DECISION - Provide a `## Ecosystems In Scope` section in the supply-chain input.",
+        );
+        let out_of_scope_components = default_list(
+            extract_context_list(
+                &context_summary,
+                &normalized,
+                &["out of scope components", "out of scope", "excluded"],
+            ),
+            "MISSING AUTHORED DECISION - Provide a `## Out Of Scope Components` section in the supply-chain input.",
+        );
+        let scanner_decisions = default_list(
+            extract_context_list(
+                &context_summary,
+                &normalized,
+                &["scanner decisions", "non-oss tool policy", "non oss tool policy"],
+            ),
+            "MISSING AUTHORED DECISION - Provide a `## Scanner Decisions` section that records non-OSS tool policy and any installed, skipped, or replaced scanner choices.",
+        );
+
+        Self {
+            declared_scope,
+            licensing_posture,
+            distribution_model,
+            ecosystems_in_scope,
+            out_of_scope_components,
+            scanner_decisions,
+            source_refs: source_refs.iter().map(ToString::to_string).collect(),
+        }
+    }
+
+    pub(crate) fn summary(&self) -> String {
+        let mut lines = vec![format!(
+            "Declared scope: {}",
+            truncate_context_excerpt(&self.declared_scope, 180)
+        )];
+
+        if !self.source_refs.is_empty() {
+            lines.push(format!("Source inputs: {}", self.source_refs.join(", ")));
+        }
+
+        lines.push(format!(
+            "Ecosystems in scope: {}",
+            count_captured_list_items(&self.ecosystems_in_scope)
+        ));
+
+        lines.join("\n")
+    }
+}
+
+// ── RequirementsBrief ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+pub(crate) struct RequirementsBrief {
+    pub(crate) problem: String,
+    pub(crate) outcome: String,
+    pub(crate) constraints: Vec<String>,
+    pub(crate) tradeoffs: Vec<String>,
+    pub(crate) out_of_scope: Vec<String>,
+    pub(crate) open_questions: Vec<String>,
+    pub(crate) source_refs: Vec<String>,
+}
+
+impl RequirementsBrief {
+    pub(crate) fn from_context(context_summary: String, source_refs: &[String]) -> Self {
+        let normalized = context_summary.to_lowercase();
+        let problem =
+            extract_context_marker(&context_summary, &normalized, &["problem", "intent", "goal"])
+                .or_else(|| extract_context_marker(&context_summary, &normalized, &["abstract"]))
+                .or_else(|| extract_context_marker(&context_summary, &normalized, &["subject"]))
+                .map(|value| condense_context_block(&value, 420))
+                .unwrap_or_else(|| {
+                    "NOT CAPTURED - Provide a `## Problem` section in the requirements input."
+                        .to_string()
+                });
+        let outcome = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["outcome", "desired outcome", "success signal", "objective"],
+        )
+        .map(|value| condense_context_block(&value, 320))
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Outcome` section in the requirements input.".to_string()
+        });
+
+        let constraints = extract_context_list(
+            &context_summary,
+            &normalized,
+            &["constraints", "constraint", "non-negotiables"],
+        );
+        let tradeoffs =
+            extract_context_list(&context_summary, &normalized, &["tradeoffs", "tradeoff"]);
+        let out_of_scope = extract_context_list(
+            &context_summary,
+            &normalized,
+            &["out of scope", "out-of-scope", "scope cuts", "excluded"],
+        );
+        let open_questions = extract_context_list(
+            &context_summary,
+            &normalized,
+            &["open questions", "questions", "unknowns", "risks"],
+        );
+
+        let mut brief = Self {
+            problem,
+            outcome,
+            constraints: default_list(
+                constraints,
+                "NOT CAPTURED - Provide a `## Constraints` section in the requirements input.",
+            ),
+            tradeoffs: default_list(
+                tradeoffs,
+                "NOT CAPTURED - Provide a `## Tradeoffs` section in the requirements input.",
+            ),
+            out_of_scope: default_list(
+                out_of_scope,
+                "NOT CAPTURED - Provide a `## Out of Scope` or `## Scope Cuts` section in the requirements input.",
+            ),
+            open_questions,
+            source_refs: source_refs.iter().map(ToString::to_string).collect(),
+        };
+
+        if brief.open_questions.is_empty() {
+            brief.open_questions.extend(
+                prioritized_requirements_clarification_questions(&brief, &context_summary)
+                    .into_iter()
+                    .take(4)
+                    .map(|question| question.prompt),
+            );
+        }
+
+        if brief.open_questions.is_empty() {
+            brief
+                .open_questions
+                .push("Which downstream mode should consume this packet first?".to_string());
+        }
+
+        brief
+    }
+
+    pub(crate) fn summary(&self) -> String {
+        let mut lines = vec![
+            format!("Problem framing: {}", truncate_context_excerpt(&self.problem, 180)),
+            format!("Desired outcome: {}", truncate_context_excerpt(&self.outcome, 180)),
+        ];
+
+        if !self.source_refs.is_empty() {
+            lines.push(format!("Source inputs: {}", self.source_refs.join(", ")));
+        }
+
+        lines.join("\n")
+    }
+}
+
+// ── DiscoveryBrief ────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+pub(crate) struct DiscoveryBrief {
+    pub(crate) context_summary: String,
+    pub(crate) problem: String,
+    pub(crate) constraints: String,
+    pub(crate) repo_focus: String,
+    pub(crate) unknowns: String,
+    pub(crate) next_phase: String,
+}
+
+impl DiscoveryBrief {
+    pub(crate) fn from_context(context_summary: String, repo_surfaces: &[String]) -> Self {
+        let normalized = context_summary.to_lowercase();
+        let problem =
+            extract_context_marker(&context_summary, &normalized, &["problem", "problem domain"])
+                .unwrap_or_else(|| {
+                    let line = first_meaningful_line(&context_summary);
+                    if line.contains("Bound the problem to") {
+                        "NOT CAPTURED - Provide a `## Problem` section in the discovery brief."
+                            .to_string()
+                    } else {
+                        line
+                    }
+                });
+        let constraints = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["constraints", "constraint", "boundary"],
+        )
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide a `## Constraints` section in the discovery brief.".to_string()
+        });
+        let repo_focus = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["repo focus", "repository focus", "current state", "system slice"],
+        )
+        .unwrap_or_else(|| {
+            if repo_surfaces.is_empty() {
+                "NOT CAPTURED - Provide a `## Repo Focus` section in the discovery brief."
+                    .to_string()
+            } else {
+                format!(
+                    "Ground discovery in these repository surfaces: {}",
+                    repo_surfaces.join(", ")
+                )
+            }
+        });
+        let unknowns = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["unknowns", "open questions", "risks"],
+        )
+        .unwrap_or_else(|| {
+            "NOT CAPTURED - Provide an `## Unknowns` section in the discovery brief.".to_string()
+        });
+        let next_phase = extract_context_marker(
+            &context_summary,
+            &normalized,
+            &["next phase", "handoff", "translation trigger"],
+        )
+        .unwrap_or_else(|| {
+            let inferred = infer_discovery_next_phase(&context_summary);
+            if inferred.contains("Translate this packet") {
+                "NOT CAPTURED - Provide a `## Next Phase` section in the discovery brief."
+                    .to_string()
+            } else {
+                inferred
+            }
+        });
+
+        Self { context_summary, problem, constraints, repo_focus, unknowns, next_phase }
+    }
+
+    pub(crate) fn generation_prompt(&self, repo_surfaces: &[String]) -> String {
+        format!(
+            "# Discovery Brief\n\n## Problem\n{}\n\n## Constraints\n{}\n\n## Repo Focus\n{}\n\n## Repo Surface\n{}\n\n## Unknowns\n{}\n\n## Next Phase\n{}",
+            self.problem,
+            self.constraints,
+            self.repo_focus,
+            render_repo_surface_block(repo_surfaces),
+            self.unknowns,
+            self.next_phase,
+        )
+    }
+
+    pub(crate) fn critique_prompt(
+        &self,
+        generation_summary: &str,
+        repo_surfaces: &[String],
+    ) -> String {
+        format!(
+            "# Discovery Critique Target\n\n## Context Summary\n{}\n\n## Repo Surface\n{}\n\n## Generated Framing\n{}\n\n## Challenge\nCheck whether the generated framing stays anchored to the repository surfaces, preserves the stated constraints, and points to a concrete next governed mode.",
+            self.context_summary,
+            render_repo_surface_block(repo_surfaces),
+            generation_summary,
+        )
+    }
+}
+
+// ── Requirements clarity ──────────────────────────────────────────────────────
+
+pub(crate) fn requirements_missing_context(brief: &RequirementsBrief) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if brief.problem.contains("NOT CAPTURED") {
+        missing.push(
+            "Problem framing is missing explicit authored intent or operator goal.".to_string(),
+        );
+    }
+    if brief.outcome.contains("NOT CAPTURED") {
+        missing.push(
+            "Outcome framing is missing an explicit success signal or bounded result.".to_string(),
+        );
+    }
+    if list_contains_missing_markers(&brief.constraints) {
+        missing.push(
+            "Constraints are incomplete; downstream shaping would lack explicit non-negotiables."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_markers(&brief.tradeoffs) {
+        missing.push(
+            "Tradeoffs are incomplete; option evaluation would drift toward generic guidance."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_markers(&brief.out_of_scope) {
+        missing.push(
+            "Scope cuts are incomplete; the packet does not yet name explicit exclusions."
+                .to_string(),
+        );
+    }
+
+    missing
+}
+
+pub(crate) fn prioritized_requirements_clarification_questions(
+    brief: &RequirementsBrief,
+    context_summary: &str,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+    let first_line = first_meaningful_line(context_summary);
+
+    if brief.problem.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-problem",
+            "What bounded operator or engineering problem should this requirements packet frame?",
+            "Without an explicit problem statement, later modes will optimize for the wrong boundary.",
+            &format!("Current intake starts with: {first_line}"),
+        );
+    }
+    if brief.outcome.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-outcome",
+            "What explicit outcome or success signal should this packet preserve?",
+            "A requirements packet needs a bounded success condition before tradeoffs or exclusions make sense.",
+            "No authored `## Outcome` or equivalent success section was detected in the supplied inputs.",
+        );
+    }
+    if list_contains_missing_markers(&brief.constraints) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-constraints",
+            "Which constraints are non-negotiable for this work?",
+            "Constraints determine whether downstream shaping stays repo-specific instead of becoming generic planning advice.",
+            "No authored `## Constraints`, `## Constraint`, or `## Non-Negotiables` section was detected in the supplied inputs.",
+        );
+    }
+    if list_contains_missing_markers(&brief.tradeoffs) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-tradeoffs",
+            "Which tradeoffs are acceptable, and which ones are explicitly rejected?",
+            "Tradeoffs anchor option evaluation and keep the packet honest about what the team is willing to sacrifice.",
+            "No authored `## Tradeoffs` section was detected in the supplied inputs.",
+        );
+    }
+    if list_contains_missing_markers(&brief.out_of_scope) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-scope-cuts",
+            "What is explicitly out of scope or deferred for this packet?",
+            "Scope cuts keep the packet bounded and prevent later modes from inventing extra work.",
+            "No authored `## Out of Scope`, `## Scope Cuts`, or equivalent exclusions section was detected in the supplied inputs.",
+        );
+    }
+
+    for (index, question) in brief.open_questions.iter().enumerate() {
+        if question.contains("NOT CAPTURED") || is_default_requirements_open_question(question) {
+            continue;
+        }
+
+        let prompt = question_prompt(question);
+        push_clarification_question(
+            &mut questions,
+            &format!("authored-open-question-{}", index + 1),
+            &prompt,
+            "This question is already explicit in the supplied brief and should be resolved before the packet is treated as stable downstream input.",
+            "Captured from the authored open-questions or unknowns section.",
+        );
+    }
+
+    questions.truncate(5);
+    questions
+}
+
+pub(crate) fn requirements_reasoning_signals(
+    source_inputs: &[String],
+    brief: &RequirementsBrief,
+) -> Vec<String> {
+    vec![
+        format!(
+            "Detected {} authored input surface(s): {}.",
+            source_inputs.len(),
+            if source_inputs.is_empty() {
+                "no-authored-source-inputs-recorded".to_string()
+            } else {
+                source_inputs.join(", ")
+            }
+        ),
+        format!(
+            "Captured {} constraint point(s), {} tradeoff point(s), {} scope cut(s), and {} open question(s).",
+            count_captured_list_items(&brief.constraints),
+            count_captured_list_items(&brief.tradeoffs),
+            count_captured_list_items(&brief.out_of_scope),
+            count_captured_list_items(&brief.open_questions)
+        ),
+        if brief.problem.contains("NOT CAPTURED") || brief.outcome.contains("NOT CAPTURED") {
+            "The problem/outcome pair is still incomplete, so downstream design would rely on interpretation instead of authored intent.".to_string()
+        } else {
+            "The problem/outcome pair is explicit enough to bound a requirements packet before downstream mode selection.".to_string()
+        },
+    ]
+}
+
+// ── Discovery clarity ─────────────────────────────────────────────────────────
+
+pub(crate) fn discovery_summary(brief: &DiscoveryBrief) -> String {
+    format!(
+        "Problem framing: {}\nConstraints: {}\nRepo focus: {}\nNext phase: {}",
+        truncate_context_excerpt(&brief.problem, 180),
+        truncate_context_excerpt(&brief.constraints, 180),
+        truncate_context_excerpt(&brief.repo_focus, 180),
+        truncate_context_excerpt(&brief.next_phase, 180),
+    )
+}
+
+pub(crate) fn discovery_missing_context(brief: &DiscoveryBrief) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if brief.problem.contains("NOT CAPTURED") {
+        missing.push(
+            "Problem framing is missing; discovery still needs an explicit problem domain."
+                .to_string(),
+        );
+    }
+    if brief.constraints.contains("NOT CAPTURED") {
+        missing.push(
+            "Constraints are missing; discovery does not yet name the boundary it must preserve."
+                .to_string(),
+        );
+    }
+    if brief.repo_focus.contains("NOT CAPTURED") {
+        missing.push(
+            "Repository focus is missing; discovery is not yet anchored to concrete repo surfaces."
+                .to_string(),
+        );
+    }
+    if brief.unknowns.contains("NOT CAPTURED") {
+        missing.push(
+            "Unknowns are missing; discovery does not yet name the unresolved decision pressure points."
+                .to_string(),
+        );
+    }
+    if brief.next_phase.contains("NOT CAPTURED") {
+        missing.push(
+            "Next-phase handoff is missing; discovery does not yet say which downstream mode should consume the packet."
+                .to_string(),
+        );
+    }
+
+    missing
+}
+
+pub(crate) fn prioritized_discovery_clarification_questions(
+    brief: &DiscoveryBrief,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+
+    if brief.problem.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-problem",
+            "What exact problem domain should discovery bound before handoff?",
+            "Discovery needs a named problem domain so later packets do not drift across unrelated repository surfaces.",
+            "No authored `## Problem` or `## Problem Domain` section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.constraints.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-constraints",
+            "Which explicit constraints or boundary rules must discovery preserve?",
+            "Constraints keep the discovery packet honest about what later modes are allowed to change or assume.",
+            "No authored `## Constraints` or equivalent boundary section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.repo_focus.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-repo-focus",
+            "Which repository surfaces, modules, or files should discovery stay anchored to?",
+            "Repo focus determines whether discovery remains grounded in the actual workspace instead of generic planning language.",
+            "No authored `## Repo Focus`, `## Repository Focus`, or `## System Slice` section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.unknowns.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-unknowns",
+            "Which unknowns or decision risks should discovery make explicit before handoff?",
+            "Discovery becomes weaker when it names a boundary but not the unresolved questions that still matter.",
+            "No authored `## Unknowns` or `## Open Questions` section was detected in the supplied discovery brief.",
+        );
+    }
+    if brief.next_phase.contains("NOT CAPTURED") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-discovery-next-phase",
+            "Which downstream governed mode should consume this packet next, and under what trigger?",
+            "A discovery packet needs a concrete translation path so the result remains actionable.",
+            "No authored `## Next Phase`, `## Handoff`, or `## Translation Trigger` section was detected in the supplied discovery brief.",
+        );
+    }
+
+    if !brief.unknowns.contains("NOT CAPTURED") {
+        for (index, question) in split_context_items(&brief.unknowns).into_iter().enumerate() {
+            if question.contains("NOT CAPTURED") {
+                continue;
+            }
+
+            let prompt = question_prompt(&question);
+            push_clarification_question(
+                &mut questions,
+                &format!("authored-discovery-question-{}", index + 1),
+                &prompt,
+                "This unknown is already explicit in the discovery brief and should stay visible before downstream translation.",
+                "Captured from the authored unknowns or open-questions section.",
+            );
+        }
+    }
+
+    questions.truncate(5);
+    questions
+}
+
+// ── Supply-chain clarity ────────────────────────────────────────────────────
+
+pub(crate) fn supply_chain_analysis_missing_context(
+    brief: &SupplyChainAnalysisBrief,
+) -> Vec<String> {
+    let mut missing = Vec::new();
+
+    if brief.declared_scope.contains("NOT CAPTURED") {
+        missing.push(
+            "Declared scope is missing; the packet is not yet bounded to a specific manifest or repository surface."
+                .to_string(),
+        );
+    }
+    if brief.licensing_posture.contains("MISSING AUTHORED DECISION") {
+        missing.push(
+            "Licensing posture is unresolved; Canon must not guess whether the project is commercial, permissive OSS, copyleft OSS, or mixed."
+                .to_string(),
+        );
+    }
+    if brief.distribution_model.contains("MISSING AUTHORED DECISION") {
+        missing.push(
+            "Distribution model is unresolved; Canon must not guess whether the analyzed dependencies ship externally or remain internal-only."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.ecosystems_in_scope) {
+        missing.push(
+            "Ecosystem scope is unresolved; the packet needs an explicit keep-or-remove decision for the detected ecosystems."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.out_of_scope_components) {
+        missing.push(
+            "Out-of-scope components are unresolved; vendored, generated, or third-party exclusions still need explicit confirmation."
+                .to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.scanner_decisions) {
+        missing.push(
+            "Scanner policy is unresolved; the packet still needs non-OSS tool-policy guidance and any install, skip, or replacement decisions."
+                .to_string(),
+        );
+    }
+
+    missing
+}
+
+pub(crate) fn prioritized_supply_chain_analysis_clarification_questions(
+    brief: &SupplyChainAnalysisBrief,
+) -> Vec<ClarificationQuestionSummary> {
+    let mut questions = Vec::new();
+
+    if brief.licensing_posture.contains("MISSING AUTHORED DECISION") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-licensing-posture",
+            "What licensing posture governs this repository surface: commercial, oss-permissive, oss-copyleft, or mixed?",
+            "License compatibility and obligations cannot be analyzed credibly until the governing posture is explicit.",
+            "`## Licensing Posture` is missing from the authored supply-chain brief.",
+        );
+    }
+    if brief.distribution_model.contains("MISSING AUTHORED DECISION") {
+        push_clarification_question(
+            &mut questions,
+            "clarify-distribution-model",
+            "Is the analyzed dependency surface distributed externally or used only internally?",
+            "Distribution model changes which obligations and release-facing risks matter.",
+            "`## Distribution Model` is missing from the authored supply-chain brief.",
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.ecosystems_in_scope) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-ecosystem-scope",
+            "Which detected ecosystems remain in scope for this packet, and which should be removed from scope?",
+            "Scanner selection and coverage-gap reporting depend on an explicit ecosystem boundary.",
+            "`## Ecosystems In Scope` is missing from the authored supply-chain brief.",
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.out_of_scope_components) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-exclusions",
+            "Which vendored, generated, or third-party components are explicitly out of scope for this packet?",
+            "Without explicit exclusions, the packet may overstate or understate the bounded review surface.",
+            "`## Out Of Scope Components` is missing from the authored supply-chain brief.",
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.scanner_decisions) {
+        push_clarification_question(
+            &mut questions,
+            "clarify-tool-policy",
+            "Are non-OSS scanner proposals allowed if OSS tooling cannot cover a required capability?",
+            "Canon must keep missing-scanner guidance inside the user's stated tool-policy boundary.",
+            "`## Scanner Decisions` is missing from the authored supply-chain brief.",
+        );
+    }
+
+    questions
+}
+
+pub(crate) fn supply_chain_analysis_reasoning_signals(
+    source_inputs: &[String],
+    brief: &SupplyChainAnalysisBrief,
+) -> Vec<String> {
+    let mut signals = Vec::new();
+
+    signals.push(format!("Source inputs inspected: {}", source_inputs.join(", ")));
+    signals.push(format!(
+        "Captured ecosystems in scope: {}",
+        count_captured_list_items(&brief.ecosystems_in_scope)
+    ));
+
+    if brief.licensing_posture.contains("MISSING AUTHORED DECISION") {
+        signals
+            .push("Licensing posture still requires explicit maintainer confirmation.".to_string());
+    }
+    if brief.distribution_model.contains("MISSING AUTHORED DECISION") {
+        signals.push(
+            "Distribution model still requires explicit maintainer confirmation.".to_string(),
+        );
+    }
+    if list_contains_missing_decision_markers(&brief.scanner_decisions) {
+        signals.push("Scanner policy remains incomplete; missing-scanner guidance would otherwise drift outside the stated tool policy.".to_string());
+    }
+
+    signals
+}
+
+pub(crate) fn discovery_reasoning_signals(
+    source_inputs: &[String],
+    repo_surfaces: &[String],
+    brief: &DiscoveryBrief,
+) -> Vec<String> {
+    vec![
+        format!(
+            "Detected {} authored input surface(s): {}.",
+            source_inputs.len(),
+            if source_inputs.is_empty() {
+                "no-authored-source-inputs-recorded".to_string()
+            } else {
+                source_inputs.join(", ")
+            }
+        ),
+        format!(
+            "Mapped {} repository surface hint(s) for discovery anchoring.",
+            repo_surfaces.len()
+        ),
+        format!(
+            "Captured {} unknown or open-question item(s) and inferred next phase `{}`.",
+            if brief.unknowns.contains("NOT CAPTURED") {
+                0
+            } else {
+                count_markdown_entries(&brief.unknowns)
+            },
+            truncate_context_excerpt(&brief.next_phase, 96)
+        ),
+    ]
+}
