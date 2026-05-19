@@ -189,6 +189,10 @@ repository, use [DEVELOPER.md](DEVELOPER.md) for local install paths and
 [CONTRIBUTING.md](CONTRIBUTING.md) for repository workflow, validation, and
 pull-request expectations.
 
+For LCOV inspection and patch-coverage triage helpers, use
+`scripts/common/coverage/` and
+[docs/guides/patch-coverage.md](docs/guides/patch-coverage.md).
+
 ## Use Canon
 
 The short version is:

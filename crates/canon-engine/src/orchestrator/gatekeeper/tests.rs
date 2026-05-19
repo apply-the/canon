@@ -1,12 +1,15 @@
 use time::OffsetDateTime;
 
 use super::{
-    BacklogGateContext, ChangeGateContext, ImplementationGateContext, IncidentGateContext,
-    MigrationGateContext, PrReviewGateContext, RefactorGateContext, ReviewGateContext,
-    VerificationGateContext, evaluate_backlog_gates, evaluate_change_gates,
-    evaluate_implementation_gates, evaluate_incident_gates, evaluate_migration_gates,
-    evaluate_pr_review_gates, evaluate_refactor_gates, evaluate_requirements_gates,
-    evaluate_review_gates, evaluate_verification_gates, rules,
+    BacklogGateContext, ChangeGateContext, DiscoveryGateContext, DomainLanguageGateContext,
+    DomainModelGateContext, ImplementationGateContext, IncidentGateContext, MigrationGateContext,
+    PrReviewGateContext, RefactorGateContext, ReviewGateContext, SecurityAssessmentGateContext,
+    SystemAssessmentGateContext, VerificationGateContext, evaluate_backlog_gates,
+    evaluate_change_gates, evaluate_discovery_gates, evaluate_domain_language_gates,
+    evaluate_domain_model_gates, evaluate_implementation_gates, evaluate_incident_gates,
+    evaluate_migration_gates, evaluate_pr_review_gates, evaluate_refactor_gates,
+    evaluate_requirements_gates, evaluate_review_gates, evaluate_security_assessment_gates,
+    evaluate_system_assessment_gates, evaluate_verification_gates, rules,
 };
 use crate::artifacts::contract::contract_for_mode;
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
@@ -435,6 +438,100 @@ fn migration_gates_require_migration_safety_packet_and_pass_when_present() {
     assert_eq!(gate(&evaluations, GateKind::MigrationSafety).status, GateStatus::Passed);
     assert_eq!(gate(&evaluations, GateKind::Risk).status, GateStatus::Passed);
     assert_eq!(gate(&evaluations, GateKind::ReleaseReadiness).status, GateStatus::Passed);
+}
+
+fn assert_analysis_mode_gates(evaluations: &[GateEvaluation], review_gate: GateKind) {
+    assert_eq!(gate(evaluations, review_gate).status, GateStatus::Passed);
+    assert_eq!(gate(evaluations, GateKind::Risk).status, GateStatus::Passed);
+    assert_eq!(gate(evaluations, GateKind::ReleaseReadiness).status, GateStatus::Passed);
+}
+
+#[test]
+fn discovery_gates_pass_when_analysis_context_is_complete() {
+    let contract = contract_for_mode(Mode::Discovery);
+    let artifacts = valid_artifacts(&contract);
+
+    let evaluations = evaluate_discovery_gates(
+        &contract,
+        &artifacts,
+        DiscoveryGateContext {
+            owner: "Owner",
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            approvals: &[],
+            validation_independence_satisfied: true,
+            evidence_complete: true,
+        },
+    );
+
+    assert_analysis_mode_gates(&evaluations, GateKind::Exploration);
+}
+
+#[test]
+fn analysis_mode_gate_sets_pass_for_security_system_and_domain_profiles() {
+    let security_contract = contract_for_mode(Mode::SecurityAssessment);
+    let security_artifacts = valid_artifacts(&security_contract);
+    let security = evaluate_security_assessment_gates(
+        &security_contract,
+        &security_artifacts,
+        SecurityAssessmentGateContext {
+            owner: "Owner",
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            approvals: &[],
+            validation_independence_satisfied: true,
+            evidence_complete: true,
+        },
+    );
+    assert_analysis_mode_gates(&security, GateKind::Architecture);
+
+    let system_contract = contract_for_mode(Mode::SystemAssessment);
+    let system_artifacts = valid_artifacts(&system_contract);
+    let system = evaluate_system_assessment_gates(
+        &system_contract,
+        &system_artifacts,
+        SystemAssessmentGateContext {
+            owner: "Owner",
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            approvals: &[],
+            validation_independence_satisfied: true,
+            evidence_complete: true,
+        },
+    );
+    assert_analysis_mode_gates(&system, GateKind::Architecture);
+
+    let language_contract = contract_for_mode(Mode::DomainLanguage);
+    let language_artifacts = valid_artifacts(&language_contract);
+    let language = evaluate_domain_language_gates(
+        &language_contract,
+        &language_artifacts,
+        DomainLanguageGateContext {
+            owner: "Owner",
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            approvals: &[],
+            validation_independence_satisfied: true,
+            evidence_complete: true,
+        },
+    );
+    assert_analysis_mode_gates(&language, GateKind::Architecture);
+
+    let model_contract = contract_for_mode(Mode::DomainModel);
+    let model_artifacts = valid_artifacts(&model_contract);
+    let model = evaluate_domain_model_gates(
+        &model_contract,
+        &model_artifacts,
+        DomainModelGateContext {
+            owner: "Owner",
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            approvals: &[],
+            validation_independence_satisfied: true,
+            evidence_complete: true,
+        },
+    );
+    assert_analysis_mode_gates(&model, GateKind::Architecture);
 }
 
 #[test]

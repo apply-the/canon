@@ -414,3 +414,81 @@ fn authored_mode_recommended_focus_handles_materially_closed_and_question_only_p
         )
     );
 }
+
+#[test]
+fn authored_clarity_family_maps_modes_and_labels_across_profiles() {
+    assert_eq!(AuthoredClarityFamily::Planning.label(), "planning");
+    assert_eq!(AuthoredClarityFamily::Execution.label(), "execution");
+    assert_eq!(AuthoredClarityFamily::Assessment.label(), "assessment");
+
+    assert_eq!(authored_clarity_family(Mode::Requirements), AuthoredClarityFamily::Planning);
+    assert_eq!(authored_clarity_family(Mode::Implementation), AuthoredClarityFamily::Execution);
+    assert_eq!(authored_clarity_family(Mode::Migration), AuthoredClarityFamily::Execution);
+    assert_eq!(authored_clarity_family(Mode::Verification), AuthoredClarityFamily::Assessment);
+    assert_eq!(
+        authored_clarity_family(Mode::SecurityAssessment),
+        AuthoredClarityFamily::Assessment
+    );
+    assert_eq!(authored_clarity_family(Mode::SystemAssessment), AuthoredClarityFamily::Assessment);
+    assert_eq!(authored_clarity_family(Mode::DomainLanguage), AuthoredClarityFamily::Assessment);
+    assert_eq!(authored_clarity_family(Mode::DomainModel), AuthoredClarityFamily::Assessment);
+}
+
+#[test]
+fn authored_family_profiles_expose_execution_and_assessment_tables() {
+    let execution = AuthoredClarityFamily::Execution;
+    assert!(authored_primary_markers(execution).contains(&"task mapping"));
+    assert!(authored_boundary_markers(execution).contains(&"mutation bounds"));
+    assert!(authored_support_markers(execution).contains(&"verification checks"));
+    assert!(authored_decision_markers(execution).contains(&"migration decisions"));
+    assert!(authored_tradeoff_markers(execution).contains(&"temporary incompatibilities"));
+    assert!(authored_option_markers(execution).contains(&"options matrix"));
+    assert!(authored_gap_markers(execution).contains(&"feature audit"));
+    assert!(authored_primary_fallback(execution).contains("Task Mapping"));
+    assert!(authored_boundary_fallback(execution).contains("Mutation Bounds"));
+    assert!(authored_support_fallback(execution).contains("Verification Checks"));
+    assert!(authored_decision_fallback(execution).contains("Migration Decisions"));
+    assert!(
+        authored_missing_primary_subject_message(execution).contains("Execution target is missing")
+    );
+    assert!(authored_missing_boundary_message(execution).contains("Mutation boundary is missing"));
+    assert!(authored_missing_support_message(execution).contains("Execution evidence is missing"));
+    assert!(
+        authored_target_prompt(execution)
+            .contains("implementation, refactor, or migration surface")
+    );
+    assert!(
+        authored_boundary_prompt(execution)
+            .contains("paths, mutation bounds, or transition boundaries")
+    );
+    assert!(
+        authored_support_prompt(execution).contains("safety-net, validation, or rollback evidence")
+    );
+
+    let assessment = AuthoredClarityFamily::Assessment;
+    assert!(authored_primary_markers(assessment).contains(&"review target"));
+    assert!(authored_boundary_markers(assessment).contains(&"assessment scope"));
+    assert!(authored_support_markers(assessment).contains(&"evidence basis"));
+    assert!(authored_decision_markers(assessment).contains(&"final disposition"));
+    assert!(authored_tradeoff_markers(assessment).contains(&"accepted risks"));
+    assert!(authored_option_markers(assessment).is_empty());
+    assert!(authored_gap_markers(assessment).contains(&"evidence gaps"));
+    assert!(authored_primary_fallback(assessment).contains("Review Target"));
+    assert!(authored_boundary_fallback(assessment).contains("Assessment Scope"));
+    assert!(authored_support_fallback(assessment).contains("Evidence Basis"));
+    assert!(authored_decision_fallback(assessment).contains("Disposition"));
+    assert!(
+        authored_missing_primary_subject_message(assessment)
+            .contains("Assessment target is missing")
+    );
+    assert!(
+        authored_missing_boundary_message(assessment).contains("Assessment boundary is missing")
+    );
+    assert!(authored_missing_support_message(assessment).contains("Evidence basis is missing"));
+    assert!(
+        authored_target_prompt(assessment)
+            .contains("review, verification, incident, or assessment target")
+    );
+    assert!(authored_boundary_prompt(assessment).contains("evidence surfaces are in scope"));
+    assert!(authored_support_prompt(assessment).contains("evidence basis supports this packet"));
+}
