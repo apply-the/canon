@@ -1,22 +1,5 @@
 # Next Features
 
-The most recent delivered roadmap entry is
-`059-reasoning-profile-closure-alignment`.
-
-Current end-to-end depth exists for `requirements`, `discovery`,
-`system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
-`refactor`, `review`, `verification`, `pr-review`, `incident`,
-`security-assessment`, `system-assessment`, `migration`,
-`supply-chain-analysis`, `domain-language`, and `domain-model`.
-
-Delivered history through `049` is already tracked in `CHANGELOG.md` and the
-feature directories under `specs/`. That delivered baseline now includes the
-current governed mode catalog, publishable packet families, operator run and
-status control, authored-input readiness guidance, architecture visual packets,
-ADR publishing, project-memory promotion, the ordered packet contract, the
-stable S7 delight-provider contract, and the stable governed reasoning posture
-contract aligned for the paired Boundline `0.62.0` consumer.
-
 ## Open Ideas
 
 A future `pr-review` enhancement could make Conventional Comments carry an
@@ -39,23 +22,6 @@ guide that setup while preserving the existing non-interactive CLI and
 governance adapter contracts for automation. Any such onboarding should keep
 secrets out of versioned repository state and prefer environment or
 host-managed credential references over raw token persistence.
-
-A tech-debt refactor should split the remaining large source files to match
-the named-file-plus-sibling-directory decomposition already used across the
-orchestrator and markdown surfaces. Current production files above 1000 lines,
-in descending order:
-
-| File | Lines |
-|---|---|
-| `domain/publish_profile.rs` | 1576 |
-| `orchestrator/service.rs` | 1062 |
-| `artifacts/markdown/delivery.rs` | 1048 |
-| `copilot_cli.rs` | 1004 |
-
-Each split should follow the same Rust 2024 named-file-plus-sibling-directory
-pattern used in the completed passes: no `mod.rs`, child modules use
-`use super::*`, visibility promoted only where cross-sibling calls require it.
-No behavior or API surface changes are in scope.
 
 This roadmap remains intentionally sparse: a macrofeature only moves forward
 once its bounds, artifact contract, and validation story are explicit.
