@@ -1,7 +1,7 @@
 # Next Features
 
 The most recent delivered roadmap entry is
-`057-s7-delight-provider`.
+`059-reasoning-profile-closure-alignment`.
 
 Current end-to-end depth exists for `requirements`, `discovery`,
 `system-shaping`, `architecture`, `backlog`, `change`, `implementation`,
@@ -13,9 +13,9 @@ Delivered history through `049` is already tracked in `CHANGELOG.md` and the
 feature directories under `specs/`. That delivered baseline now includes the
 current governed mode catalog, publishable packet families, operator run and
 status control, authored-input readiness guidance, architecture visual packets,
-ADR publishing, project-memory promotion, the ordered packet contract, and the
-stable S7 delight-provider contract that bounds Canon-owned downstream delight
-inputs for the paired Boundline `0.61.0` consumer.
+ADR publishing, project-memory promotion, the ordered packet contract, the
+stable S7 delight-provider contract, and the stable governed reasoning posture
+contract aligned for the paired Boundline `0.62.0` consumer.
 
 ## Open Ideas
 
