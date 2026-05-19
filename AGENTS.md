@@ -124,6 +124,7 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `cargo test`
 - `cargo nextest run`
 - `cargo deny check licenses advisories bans sources`
+- Patch-coverage helpers live under `scripts/common/coverage/`; prefer `intersect_patch_coverage.py` when the question is about uncovered diff lines rather than full-file coverage.
 
 ## Verification Expectations
 

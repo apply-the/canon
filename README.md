@@ -14,8 +14,8 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.57.0`. This is
-the documented governed companion line for Boundline `0.61.0`.
+The current delivery line in this repository targets Canon `0.58.0`. This is
+the documented governed companion line for Boundline `0.62.x`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
 local control surface. When an external orchestrator needs machine-stable JSON
@@ -188,6 +188,10 @@ If you want to build or install Canon from source while developing this
 repository, use [DEVELOPER.md](DEVELOPER.md) for local install paths and
 [CONTRIBUTING.md](CONTRIBUTING.md) for repository workflow, validation, and
 pull-request expectations.
+
+For LCOV inspection and patch-coverage triage helpers, use
+`scripts/common/coverage/` and
+[docs/guides/patch-coverage.md](docs/guides/patch-coverage.md).
 
 ## Use Canon
 

@@ -15,6 +15,27 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.58.0] - 2026-05-18
+
+Delivered specs:
+
+- `specs/059-reasoning-profile-closure-alignment/`
+
+Highlights:
+
+- Updated the stable `docs/integration/governed-reasoning-posture-contract.md`
+  publication to keep Canon as the owner of `governed_reasoning_posture_v1`
+  while advertising the supported Boundline `0.62.x` / Canon `0.58.x`
+  compatibility window.
+- Kept the provider contract line and required posture vocabulary unchanged;
+  this release is publication-only alignment for the paired Boundline 062
+  reasoning-profile closure.
+- Refreshed the Canon-side contract tests, feature-local contract brief, and
+  release-facing assistant metadata so the published consumer pairing stays
+  internally consistent.
+- Bumped workspace version to `0.58.0` across the Canon crates and active
+  assistant package manifests.
+
 ## [0.57.0] - 2026-05-17
 
 Delivered specs:
