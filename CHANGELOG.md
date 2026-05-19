@@ -15,6 +15,21 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.59.0] - 2026-05-19
+
+Delivered specs:
+
+- `specs/059-reasoning-profile-closure-alignment/`
+
+Highlights:
+
+- Bumped the Canon workspace and published assistant package manifests to
+  `0.59.0`.
+- Advanced the governed reasoning posture compatibility window to Canon
+  `0.59.x` while keeping the Boundline companion line at `0.62.x`.
+- Kept the embedded and repo-local skill runtime compatibility metadata aligned
+  so installed skills validate against the current workspace release.
+
 ## [0.58.0] - 2026-05-18
 
 Delivered specs:

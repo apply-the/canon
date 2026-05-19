@@ -11,9 +11,9 @@ const FEATURE_LOCAL_CONTRACT_PATH: &str = concat!(
 const SUPPORTED_BOUNDLINE_VERSION: &str = "0.62.0";
 const SUPPORTED_BOUNDLINE_WINDOW: &str = "0.62.x";
 const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.63.0";
-const SUPPORTED_CANON_VERSION: &str = "0.58.0";
-const SUPPORTED_CANON_WINDOW: &str = "0.58.x";
-const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.59.0";
+const SUPPORTED_CANON_VERSION: &str = "0.59.0";
+const SUPPORTED_CANON_WINDOW: &str = "0.59.x";
+const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.60.0";
 const SUPPORTED_CONTRACT_LINE: &str = "governed_reasoning_posture_v1";
 const SUPPORTED_REQUIRED_PROFILE_FAMILIES: [&str; 5] =
     ["self_consistency", "blind_review", "heterogeneous_review", "reflexion", "debate_enabled"];
