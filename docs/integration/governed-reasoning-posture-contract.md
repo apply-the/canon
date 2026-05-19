@@ -7,7 +7,7 @@
 - `schema_version`: `v1`
 - `stable_doc`: `docs/integration/governed-reasoning-posture-contract.md`
 - `primary_consumer`: `boundline`
-- `supported_boundline_window`: `0.62.x`
+- `supported_boundline_window`: `0.63.x`
 - `supported_canon_window`: `0.59.x`
 
 ## Purpose
@@ -33,8 +33,8 @@ Boundline runtime orchestration.
 
 ```toml
 contract_line = "governed_reasoning_posture_v1"
-boundline_min = "0.62.0"
-boundline_max_exclusive = "0.63.0"
+boundline_min = "0.63.0"
+boundline_max_exclusive = "0.64.0"
 canon_min = "0.59.0"
 canon_max_exclusive = "0.60.0"
 required_profile_family = "blind_review"
@@ -102,7 +102,7 @@ Supported `admission_priority` values:
 - Canon MUST fail closed on unsupported or incomplete producer data before the
   posture is published to consumers.
 - Additive optional fields MAY be introduced without a new contract line only
-  when they preserve backward compatibility for Boundline `0.62.x`.
+  when they preserve backward compatibility for Boundline `0.63.x`.
 - Any breaking change to required fields, compatibility semantics, or the
   supported vocabulary requires a new contract line.
 
