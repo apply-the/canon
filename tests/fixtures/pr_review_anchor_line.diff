@@ -1,0 +1,7 @@
+diff --git a/tests/reviewer.md b/tests/reviewer.md
+index 1111111..2222222 100644
+--- a/tests/reviewer.md
++++ b/tests/reviewer.md
+@@ -3 +3 @@
+-Existing tests cover the formatting helper.
++Existing tests cover the trimmed formatting helper.

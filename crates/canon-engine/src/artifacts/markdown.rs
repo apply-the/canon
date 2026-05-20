@@ -68,7 +68,8 @@ mod tests {
     };
     use crate::domain::run::{BacklogGranularity, BacklogPlanningContext, ClosureAssessment};
     use crate::review::findings::{
-        ConventionalCommentScope, FindingCategory, FindingSeverity, ReviewFinding, ReviewPacket,
+        ConventionalCommentScope, FindingCategory, FindingSeverity, ReviewAnchor, ReviewFinding,
+        ReviewPacket,
     };
     use crate::review::summary::{ReviewDisposition, ReviewSummary};
 
@@ -226,6 +227,7 @@ mod tests {
                     title: "Contract-facing files changed".to_string(),
                     details: "Compatibility drift needs explicit reviewer acceptance.".to_string(),
                     scope: ConventionalCommentScope::Surface,
+                    anchor: None,
                     changed_surfaces: vec!["contracts/public-api.json".to_string()],
                 },
                 ReviewFinding {
@@ -234,6 +236,7 @@ mod tests {
                     title: "Decision note".to_string(),
                     details: "A broader acceptance note should be recorded.".to_string(),
                     scope: ConventionalCommentScope::Surface,
+                    anchor: None,
                     changed_surfaces: vec!["contracts/public-api.json".to_string()],
                 },
             ],
@@ -295,6 +298,7 @@ mod tests {
                 title: "PR-level note".to_string(),
                 details: "No surfaces, applies at PR level.".to_string(),
                 scope: ConventionalCommentScope::Pr,
+                anchor: None,
                 changed_surfaces: vec![],
             }],
         };
@@ -323,6 +327,7 @@ mod tests {
                 title: "Contract drift".to_string(),
                 details: "API surface drifted.".to_string(),
                 scope: ConventionalCommentScope::Surface,
+                anchor: None,
                 changed_surfaces: vec!["contracts/api.json".to_string()],
             }],
         };
@@ -332,6 +337,37 @@ mod tests {
         assert!(
             output.contains("Scope surfaces: contracts/api.json"),
             "expected Scope surfaces in output:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_conventional_comments_includes_host_agnostic_anchor_text() {
+        let packet = ReviewPacket {
+            base_ref: "main".to_string(),
+            head_ref: "HEAD".to_string(),
+            changed_surfaces: vec!["contracts/api.json".to_string()],
+            inferred_intent: "Contract change.".to_string(),
+            surprising_surface_area: vec![],
+            findings: vec![ReviewFinding {
+                category: FindingCategory::ContractDrift,
+                severity: FindingSeverity::MustFix,
+                title: "Contract drift".to_string(),
+                details: "API surface drifted.".to_string(),
+                scope: ConventionalCommentScope::Surface,
+                anchor: Some(ReviewAnchor {
+                    surface: "contracts/api.json".to_string(),
+                    line_start: 9,
+                    line_end: Some(12),
+                }),
+                changed_surfaces: vec!["contracts/api.json".to_string()],
+            }],
+        };
+        let summary = crate::review::summary::ReviewSummary::from_packet(&packet, false);
+        let output = render_pr_review_artifact("conventional-comments.md", &packet, &summary);
+        assert!(output.contains("scope:surface"), "expected scope in output:\n{output}");
+        assert!(
+            output.contains("Anchor: contracts/api.json:9-12"),
+            "expected host-agnostic anchor text in output:\n{output}"
         );
     }
 
@@ -347,8 +383,8 @@ mod tests {
         let output = render_pr_review_artifact("conventional-comments.md", &packet, &summary);
         assert!(output.contains("scope"), "evidence posture should mention scope:\n{output}");
         assert!(
-            !output.contains("Entries remain surface-scoped"),
-            "old posture text should be updated:\n{output}"
+            output.contains("Inline anchors appear only when persisted diff evidence resolves"),
+            "updated posture text should explain anchor evidence bounds:\n{output}"
         );
     }
 

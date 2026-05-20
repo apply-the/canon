@@ -1,0 +1,14 @@
+diff --git a/src/reviewer.rs b/src/reviewer.rs
+index 1111111..2222222 100644
+--- a/src/reviewer.rs
++++ b/src/reviewer.rs
+@@ -2 +2 @@
+-    format!("review:{label}")
++    format!("review:{}", label.trim())
+diff --git a/tests/reviewer.md b/tests/reviewer.md
+index 1111111..2222222 100644
+--- a/tests/reviewer.md
++++ b/tests/reviewer.md
+@@ -3 +3 @@
+-Existing tests cover the formatting helper.
++- formatting trims trailing whitespace before labeling

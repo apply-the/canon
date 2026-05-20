@@ -1,5 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Canon icon">
-  <rect width="64" height="64" rx="12" fill="#1f2937"/>
-  <path d="M18 18h28v6H24v16h22v6H18z" fill="#f9fafb"/>
-  <path d="M30 28h18v6H30z" fill="#38bdf8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="100%" height="100%">
+  <defs>
+    <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b666ff"/>
+      <stop offset="50%" stop-color="#7e22ce"/>
+      <stop offset="100%" stop-color="#4c1d95"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(70, 70)">
+    
+    <path d="M 0 -68 
+             L 58.9 -34 
+             L 58.9 34 
+             L 0 68 
+             L -58.9 34 
+             L -58.9 -34 
+             Z 
+             M 0 -46 
+             L -39.8 -23 
+             L -39.8 23 
+             L 0 46 
+             L 39.8 23 
+             L 39.8 -23 
+             Z" 
+          fill="url(#purpleGradient)" fill-rule="evenodd" />
+
+    <path d="M 20 -18.5 
+             L 0 -30 
+             L -26 -15 
+             L -26 15 
+             L 0 30 
+             L 20 18.5 
+             L 11 13 
+             L 0 19 
+             L -15 10 
+             L -15 -10 
+             L 0 -19 
+             L 11 -13 
+             Z" 
+          fill="url(#purpleGradient)" fill-rule="evenodd" />
+  </g>
 </svg>

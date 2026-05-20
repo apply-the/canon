@@ -87,7 +87,9 @@ grounded, reviewable artifact set.
   - `scope:pr` — no specific surfaces; the comment applies at the whole-PR level.
   - `scope:surface` — all changed surfaces for this finding belong to the same functional group (test files, source files, contract files, or boundary files).
   - `scope:file` — surfaces span two or more functional groups.
-  - Scope is always derived; do not fabricate or override it. Line-level anchors are not emitted in the current slice.
+  - Scope is always derived; do not fabricate or override it.
+  - When persisted diff evidence resolves to one changed surface and one contiguous interval, emit one host-agnostic anchor using `surface:start` or `surface:start-end`.
+  - When evidence is cross-surface, ambiguous, stale, or absent, omit the anchor and keep scope-only output.
 - Treat the source files in the diff and the working tree as read-only during the review. Do not modify, refactor, format, or rewrite any source file as part of producing the review.
 - Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/pr-review/`.
 - Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.

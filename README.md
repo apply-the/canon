@@ -14,7 +14,7 @@
 
 **Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
 
-The current delivery line in this repository targets Canon `0.59.0`. This is
+The current delivery line in this repository targets Canon `0.60.0`. This is
 the documented governed companion line for Boundline `0.62.x`.
 
 When a human is driving the repository directly, the shipped `canon` CLI is the
@@ -24,6 +24,12 @@ control flow, use the governance adapter documented in `docs/integration/governa
 For file-backed modes, the shared authored lifecycle is explicit: author the
 packet, run `inspect clarity`, start the governed run, critique the emitted
 packet, and publish only when the packet is truly ready.
+
+For `pr-review`, Canon now keeps Conventional Comments explicit about both reach
+and precision: every entry still carries derived `scope`, and evidence-backed
+single-surface findings may also carry a host-agnostic anchor such as
+`surface:start` or `surface:start-end`. When that precision is not durable,
+Canon degrades honestly to scope-only output.
 
 
 ## What Canon Does

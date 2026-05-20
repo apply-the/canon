@@ -1,16 +1,14 @@
 # Next Features
 
-## Open Ideas
+## Recently Landed
 
-A future `pr-review` enhancement could make Conventional Comments carry an
-explicit review scope instead of relying only on implied changed-surface
-traceability. The first step should introduce a durable scope model that can
-differentiate PR-level comments from file or surface-scoped comments while
-remaining host-agnostic and preserving the current governed packet contract.
-A later slice could add optional line or span anchors when Canon has durable,
-persisted diff-coordinate evidence, but the system should continue to degrade
-honestly to general or surface-scoped comments when inline positions are not
-available.
+Canon 0.60.0 shipped optional inline anchors for `pr-review` Conventional
+Comments when persisted diff evidence resolves to one changed surface and one
+contiguous changed interval. The rendered comment still keeps explicit derived
+scope in every case and degrades cleanly to scope-only output when anchor
+precision would be cross-surface, stale, ambiguous, or otherwise unsupported.
+
+## Open Ideas
 
 A future nice-to-have could add an optional interactive `canon init`
 onboarding flow when Canon needs to configure explicit external integration
