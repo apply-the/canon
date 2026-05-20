@@ -1,0 +1,8 @@
+diff --git a/tests/reviewer.md b/tests/reviewer.md
+index 1111111..2222222 100644
+--- a/tests/reviewer.md
++++ b/tests/reviewer.md
+@@ -3 +3,2 @@
+-Existing tests cover the formatting helper.
++- reviewer text stays readable
++- reviewer notes stay portable

@@ -1,7 +1,7 @@
 use crate::domain::artifact::artifact_slug;
 use crate::orchestrator::service::context_parse::truncate_context_excerpt;
 use crate::review::findings::{
-    ConventionalCommentScope, FindingCategory, ReviewFinding, ReviewPacket,
+    ConventionalCommentScope, FindingCategory, ReviewAnchor, ReviewFinding, ReviewPacket,
 };
 use crate::review::summary::{ReviewSummary, summary_severity_label};
 
@@ -10,6 +10,10 @@ use super::shared::{
 };
 use super::{AuthoredSectionSpec, render_markdown};
 
+/// Renders a review-mode authored artifact from the file-backed review context.
+///
+/// Known review artifact slugs preserve their expected authored headings and
+/// fall back to generic markdown rendering when the slug is not specialized.
 pub fn render_review_artifact(
     file_name: &str,
     context_summary: &str,
@@ -101,6 +105,9 @@ pub fn render_review_artifact(
 }
 
 /// Renders a verification mode artifact for the given filename slug.
+///
+/// Known verification artifact slugs keep the authored packet structure intact,
+/// while unknown slugs are rendered as generic markdown.
 pub fn render_verification_artifact(
     file_name: &str,
     context_summary: &str,
@@ -204,6 +211,12 @@ pub fn render_verification_artifact(
     }
 }
 
+/// Renders a `pr-review` artifact from the persisted review packet.
+///
+/// For `conventional-comments.md`, each rendered entry keeps its explicit
+/// derived scope and includes a host-agnostic inline anchor only when the
+/// packet already contains a durable [`ReviewAnchor`]. Readiness and final
+/// disposition remain anchored by `review-summary.md`.
 pub fn render_pr_review_artifact(
     file_name: &str,
     packet: &ReviewPacket,
@@ -247,7 +260,7 @@ pub fn render_pr_review_artifact(
             },
         ),
         "conventional-comments.md" => format!(
-            "# Conventional Comments\n\n## Summary\n\nReviewer-facing conventional comments derived from {} persisted finding(s) for `{}` against `{}`.\n\n## Evidence Posture\n\n- Comment kinds are deterministically mapped from persisted review findings.\n- Each entry carries an explicit scope: `pr` (whole-PR), `file` (multi-type surfaces), or `surface` (single-type surface group).\n- Scope is derived deterministically from the finding's changed surfaces and does not fabricate line-level anchors.\n- Approval posture remains anchored by `review-summary.md`.\n\n## Conventional Comments\n\n{}\n\n## Traceability\n\n- Review summary status: `{}`\n- Changed surfaces: {}\n- Source packet: `review-summary.md` and `pr-analysis.md`\n",
+            "# Conventional Comments\n\n## Summary\n\nReviewer-facing conventional comments derived from {} persisted finding(s) for `{}` against `{}`.\n\n## Evidence Posture\n\n- Comment kinds are deterministically mapped from persisted review findings.\n- Each entry carries an explicit scope: `pr` (whole-PR), `file` (multi-type surfaces), or `surface` (single-type surface group).\n- Scope remains derived from the finding's changed surfaces even when inline anchors are present.\n- Inline anchors appear only when persisted diff evidence resolves to one concrete changed surface and one contiguous changed interval.\n- Approval posture remains anchored by `review-summary.md`.\n\n## Conventional Comments\n\n{}\n\n## Traceability\n\n- Review summary status: `{}`\n- Changed surfaces: {}\n- Source packet: `review-summary.md` and `pr-analysis.md`\n",
             packet.findings.len(),
             packet.head_ref,
             packet.base_ref,
@@ -382,6 +395,10 @@ fn render_conventional_comment_entry(finding: &ReviewFinding) -> String {
     } else {
         finding.changed_surfaces.join(", ")
     };
+    let anchor_detail = finding
+        .anchor
+        .as_ref()
+        .map_or_else(String::new, |anchor| format!("\n  - Anchor: {}", render_anchor(anchor)));
     let scope_detail = match finding.scope {
         ConventionalCommentScope::Pr => String::new(),
         ConventionalCommentScope::File | ConventionalCommentScope::Surface => {
@@ -389,14 +406,22 @@ fn render_conventional_comment_entry(finding: &ReviewFinding) -> String {
         }
     };
     format!(
-        "- {}(scope:{}): {}\n  - Why: {}\n  - Surfaces: {}{}",
+        "- {}(scope:{}): {}\n  - Why: {}\n  - Surfaces: {}{}{}",
         finding.conventional_comment_kind(),
         scope,
         finding.title,
         finding.details,
         surfaces,
+        anchor_detail,
         scope_detail,
     )
+}
+
+fn render_anchor(anchor: &ReviewAnchor) -> String {
+    match anchor.line_end {
+        Some(line_end) => format!("{}:{}-{}", anchor.surface, anchor.line_start, line_end),
+        None => format!("{}:{}", anchor.surface, anchor.line_start),
+    }
 }
 
 fn ownership_breaks(packet: &ReviewPacket) -> String {

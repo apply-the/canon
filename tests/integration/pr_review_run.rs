@@ -74,6 +74,57 @@ fn add_completed_review_diff(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "trim review labels"]);
 }
 
+fn add_single_line_test_only_diff(workspace: &TempDir) {
+    fs::write(
+        workspace.path().join("tests/reviewer.md"),
+        "# Review Checks\n\nExisting tests cover the trimmed formatting helper.\n",
+    )
+    .expect("updated tests");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "tighten review note wording"]);
+}
+
+fn add_span_test_only_diff(workspace: &TempDir) {
+    fs::write(
+        workspace.path().join("tests/reviewer.md"),
+        "# Review Checks\n\n- reviewer text stays readable\n- reviewer notes stay portable\n",
+    )
+    .expect("updated tests");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "expand review note guidance"]);
+}
+
+fn run_pr_review_json(workspace: &TempDir, head_ref: &str) -> serde_json::Value {
+    let output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "pr-review",
+            "--risk",
+            "bounded-impact",
+            "--zone",
+            "yellow",
+            "--owner",
+            "reviewer",
+            "--input",
+            "refs/heads/main",
+            "--input",
+            head_ref,
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    serde_json::from_slice(&output).expect("json output")
+}
+
 #[test]
 fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     let workspace = TempDir::new().expect("temp dir");
@@ -172,6 +223,10 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
         conventional_comments.contains("src/reviewer.rs"),
         "conventional-comments should retain changed surface traceability"
     );
+    assert!(
+        !conventional_comments.contains("Anchor:"),
+        "cross-surface review notes should degrade to scope-only output"
+    );
 
     let status_output = cli_command()
         .current_dir(workspace.path())
@@ -253,5 +308,53 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
     assert!(
         pr_analysis.contains("WORKTREE"),
         "pr-analysis should reference WORKTREE as the head ref"
+    );
+}
+
+#[test]
+fn run_pr_review_renders_line_anchor_for_single_surface_note() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_review_repo(&workspace);
+    add_single_line_test_only_diff(&workspace);
+
+    let json = run_pr_review_json(&workspace, "HEAD");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let artifact_root =
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
+
+    let conventional_comments =
+        fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
+            .expect("conventional comments artifact");
+    assert!(
+        conventional_comments.contains("praise(scope:surface):"),
+        "single-surface note packets should stay surface-scoped"
+    );
+    assert!(
+        conventional_comments.contains("Anchor: tests/reviewer.md:3"),
+        "single-line fixture should render a line anchor"
+    );
+}
+
+#[test]
+fn run_pr_review_renders_span_anchor_for_single_surface_note() {
+    let workspace = TempDir::new().expect("temp dir");
+    init_review_repo(&workspace);
+    add_span_test_only_diff(&workspace);
+
+    let json = run_pr_review_json(&workspace, "HEAD");
+    let run_id = json["run_id"].as_str().expect("run id");
+    let artifact_root =
+        workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
+
+    let conventional_comments =
+        fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
+            .expect("conventional comments artifact");
+    assert!(
+        conventional_comments.contains("praise(scope:surface):"),
+        "single-surface note packets should stay surface-scoped"
+    );
+    assert!(
+        conventional_comments.contains("Anchor: tests/reviewer.md:3-4"),
+        "contiguous multi-line fixture should render a span anchor"
     );
 }

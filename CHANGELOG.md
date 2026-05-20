@@ -15,6 +15,26 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.60.0] - 2026-05-19
+
+Delivered specs:
+
+- `specs/060-pr-review-anchors/`
+
+Highlights:
+
+- Added typed optional `ReviewAnchor` coordinates to `pr-review` findings when
+  persisted diff evidence resolves to one changed surface and one contiguous
+  changed interval.
+- Updated `conventional-comments.md` to keep explicit scope mandatory while
+  rendering host-agnostic `surface:start` and `surface:start-end` anchor text
+  whenever durable precision exists.
+- Added focused unit, contract, and integration coverage plus aligned
+  reviewer guidance and wiki/docs examples for anchored versus scope-only
+  review output.
+- Bumped the Canon workspace, assistant package manifests, and shared runtime
+  compatibility metadata to `0.60.0`.
+
 ## [0.59.0] - 2026-05-19
 
 Delivered specs:

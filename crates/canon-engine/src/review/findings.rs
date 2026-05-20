@@ -78,6 +78,29 @@ impl ConventionalCommentScope {
     }
 }
 
+/// Optional inline anchor for a [`ReviewFinding`].
+///
+/// Anchors are emitted only when the persisted diff evidence resolves to one
+/// changed surface and one contiguous added-line interval.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewAnchor {
+    /// Repo-relative changed surface that owns the anchor.
+    pub surface: String,
+    /// Inclusive 1-based starting line in the target surface.
+    pub line_start: usize,
+    /// Inclusive 1-based ending line when the anchor spans multiple lines.
+    pub line_end: Option<usize>,
+}
+
+impl ReviewAnchor {
+    fn from_interval(surface: String, interval: PatchInterval) -> Self {
+        let line_end =
+            if interval.line_start == interval.line_end { None } else { Some(interval.line_end) };
+
+        Self { surface, line_start: interval.line_start, line_end }
+    }
+}
+
 /// A single bounded finding produced during diff inspection.
 ///
 /// Findings are collected into a [`ReviewPacket`] and rendered into the
@@ -95,6 +118,8 @@ pub struct ReviewFinding {
     pub details: String,
     /// Scope of this finding, derived deterministically from `changed_surfaces`.
     pub scope: ConventionalCommentScope,
+    /// Optional inline anchor when the diff evidence supports one precise interval.
+    pub anchor: Option<ReviewAnchor>,
     /// The diff surfaces this finding is anchored to.
     pub changed_surfaces: Vec<String>,
 }
@@ -177,12 +202,14 @@ impl ReviewPacket {
                 .cloned()
                 .collect();
             let scope = derive_scope(&boundary_surfaces);
+            let anchor = derive_anchor(&boundary_surfaces, patch);
             findings.push(ReviewFinding {
                 category: FindingCategory::BoundaryCheck,
                 severity: FindingSeverity::MustFix,
                 title: "Boundary-marked surfaces changed".to_string(),
                 details: "Public or boundary-marked files changed and require explicit reviewer disposition.".to_string(),
                 scope,
+                anchor,
                 changed_surfaces: boundary_surfaces,
             });
         }
@@ -194,12 +221,14 @@ impl ReviewPacket {
                 .cloned()
                 .collect();
             let scope = derive_scope(&contract_surfaces);
+            let anchor = derive_anchor(&contract_surfaces, patch);
             findings.push(ReviewFinding {
                 category: FindingCategory::ContractDrift,
                 severity: FindingSeverity::MustFix,
                 title: "Contract-facing files changed".to_string(),
                 details: "Contract or API surfaces drifted and need explicit acceptance before readiness can pass.".to_string(),
                 scope,
+                anchor,
                 changed_surfaces: contract_surfaces,
             });
         }
@@ -211,30 +240,35 @@ impl ReviewPacket {
                 .cloned()
                 .collect();
             let scope = derive_scope(&source_surfaces);
+            let anchor = derive_anchor(&source_surfaces, patch);
             findings.push(ReviewFinding {
                 category: FindingCategory::MissingTests,
                 severity: FindingSeverity::MustFix,
                 title: "Source changes lack companion verification updates".to_string(),
                 details: "Changed source files do not have adjacent test-surface updates in the reviewed diff.".to_string(),
                 scope,
+                anchor,
                 changed_surfaces: source_surfaces,
             });
         }
 
         if !surprising_surface_area.is_empty() {
             let scope = derive_scope(&surprising_surface_area);
+            let anchor = derive_anchor(&surprising_surface_area, patch);
             findings.push(ReviewFinding {
                 category: FindingCategory::DecisionImpact,
                 severity: FindingSeverity::MustFix,
                 title: "High-impact surfaces imply hidden decisions".to_string(),
                 details: "Boundary or contract changes imply architectural consequences that need an explicit reviewer disposition.".to_string(),
                 scope,
+                anchor,
                 changed_surfaces: surprising_surface_area.clone(),
             });
         }
 
         if findings.is_empty() {
             let scope = derive_scope(&changed_surfaces);
+            let anchor = derive_anchor(&changed_surfaces, patch);
             findings.push(ReviewFinding {
                 category: FindingCategory::DuplicationCheck,
                 severity: FindingSeverity::Note,
@@ -243,6 +277,7 @@ impl ReviewPacket {
                     "The diff remains bounded and changed tests moved with the source surface."
                         .to_string(),
                 scope,
+                anchor,
                 changed_surfaces: changed_surfaces.clone(),
             });
         }
@@ -349,9 +384,99 @@ fn derive_scope(changed_surfaces: &[String]) -> ConventionalCommentScope {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PatchInterval {
+    line_start: usize,
+    line_end: usize,
+}
+
+const PATCH_TARGET_PREFIX: &str = "+++ b/";
+const PATCH_NULL_TARGET: &str = "/dev/null";
+const PATCH_HUNK_PREFIX: &str = "@@";
+
+fn derive_anchor(changed_surfaces: &[String], patch: &str) -> Option<ReviewAnchor> {
+    let surface = single_anchor_surface(changed_surfaces)?;
+    let intervals = patch_intervals_for_surface(patch, surface);
+    let [interval] = intervals.as_slice() else {
+        return None;
+    };
+
+    Some(ReviewAnchor::from_interval(surface.to_string(), *interval))
+}
+
+fn single_anchor_surface(changed_surfaces: &[String]) -> Option<&str> {
+    let [surface] = changed_surfaces else {
+        return None;
+    };
+    let surface = surface.trim();
+    if surface.is_empty() { None } else { Some(surface) }
+}
+
+fn patch_intervals_for_surface(patch: &str, target_surface: &str) -> Vec<PatchInterval> {
+    let mut current_surface: Option<&str> = None;
+    let mut intervals = Vec::new();
+
+    for line in patch.lines() {
+        if let Some(surface) = line.strip_prefix(PATCH_TARGET_PREFIX) {
+            current_surface = if surface == PATCH_NULL_TARGET { None } else { Some(surface) };
+            continue;
+        }
+
+        if line.starts_with(PATCH_HUNK_PREFIX)
+            && current_surface.is_some_and(|surface| surface == target_surface)
+            && let Some(interval) = parse_patch_interval(line)
+        {
+            push_patch_interval(&mut intervals, interval);
+        }
+    }
+
+    intervals
+}
+
+fn parse_patch_interval(hunk_header: &str) -> Option<PatchInterval> {
+    let added_range = hunk_header.split_whitespace().find(|part| part.starts_with('+'))?;
+    let added_range = added_range.strip_prefix('+')?;
+    let (line_start, line_count) = parse_patch_range(added_range)?;
+    if line_count == 0 {
+        return None;
+    }
+    let line_end = line_start.checked_add(line_count.checked_sub(1)?)?;
+    Some(PatchInterval { line_start, line_end })
+}
+
+fn parse_patch_range(range: &str) -> Option<(usize, usize)> {
+    let (line_start, line_count) = match range.split_once(',') {
+        Some((line_start, line_count)) => (line_start, line_count),
+        None => (range, "1"),
+    };
+
+    let line_start = line_start.parse::<usize>().ok()?;
+    let line_count = line_count.parse::<usize>().ok()?;
+    Some((line_start, line_count))
+}
+
+fn push_patch_interval(intervals: &mut Vec<PatchInterval>, next: PatchInterval) {
+    if let Some(last) = intervals.last_mut() {
+        let extends_last =
+            last.line_end.checked_add(1).is_some_and(|adjacent| next.line_start <= adjacent)
+                || next.line_start <= last.line_end;
+        if extends_last {
+            if next.line_end > last.line_end {
+                last.line_end = next.line_end;
+            }
+            return;
+        }
+    }
+
+    intervals.push(next);
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{FindingCategory, FindingSeverity, ReviewPacket};
+    use super::{
+        ConventionalCommentScope, FindingCategory, FindingSeverity, ReviewAnchor, ReviewFinding,
+        ReviewPacket, derive_anchor,
+    };
 
     #[test]
     fn from_diff_emits_expected_must_fix_findings_for_boundary_and_contract_changes() {
@@ -528,7 +653,6 @@ mod tests {
 
     #[test]
     fn from_diff_boundary_finding_has_surface_scope() {
-        use super::ConventionalCommentScope;
         let packet = ReviewPacket::from_diff(
             "main",
             "HEAD",
@@ -545,7 +669,6 @@ mod tests {
 
     #[test]
     fn from_diff_note_finding_scope_derived_from_surfaces() {
-        use super::ConventionalCommentScope;
         let packet = ReviewPacket::from_diff(
             "main",
             "HEAD",
@@ -582,15 +705,120 @@ mod tests {
 
     #[test]
     fn conventional_comment_kind_must_fix_duplication_check_falls_through_to_issue() {
-        use super::{ConventionalCommentScope, ReviewFinding};
         let finding = ReviewFinding {
             category: FindingCategory::DuplicationCheck,
             severity: FindingSeverity::MustFix,
             title: "dup".to_string(),
             details: "overlapping logic".to_string(),
             scope: ConventionalCommentScope::Pr,
+            anchor: None,
             changed_surfaces: vec![],
         };
         assert_eq!(finding.conventional_comment_kind(), "issue");
+    }
+
+    #[test]
+    fn review_anchor_serde_round_trip() {
+        let anchor =
+            ReviewAnchor { surface: "src/lib.rs".to_string(), line_start: 12, line_end: Some(14) };
+
+        let serialized = serde_json::to_string(&anchor).expect("serialized anchor");
+        let deserialized: ReviewAnchor =
+            serde_json::from_str(&serialized).expect("deserialized anchor");
+        assert_eq!(deserialized, anchor);
+    }
+
+    #[test]
+    fn derive_anchor_returns_line_anchor_for_single_surface_single_interval() {
+        let anchor = derive_anchor(
+            &["src/reviewer.rs".to_string()],
+            "diff --git a/src/reviewer.rs b/src/reviewer.rs\n--- a/src/reviewer.rs\n+++ b/src/reviewer.rs\n@@ -1 +1 @@\n-old\n+new\n",
+        )
+        .expect("line anchor");
+
+        assert_eq!(
+            anchor,
+            ReviewAnchor { surface: "src/reviewer.rs".to_string(), line_start: 1, line_end: None }
+        );
+    }
+
+    #[test]
+    fn derive_anchor_returns_span_anchor_for_single_surface_multi_line_interval() {
+        let anchor = derive_anchor(
+            &["src/reviewer.rs".to_string()],
+            "diff --git a/src/reviewer.rs b/src/reviewer.rs\n--- a/src/reviewer.rs\n+++ b/src/reviewer.rs\n@@ -2,0 +2,3 @@\n+one\n+two\n+three\n",
+        )
+        .expect("span anchor");
+
+        assert_eq!(
+            anchor,
+            ReviewAnchor {
+                surface: "src/reviewer.rs".to_string(),
+                line_start: 2,
+                line_end: Some(4),
+            }
+        );
+    }
+
+    #[test]
+    fn derive_anchor_returns_none_for_multiple_surfaces() {
+        assert!(derive_anchor(
+            &["src/reviewer.rs".to_string(), "tests/reviewer.md".to_string()],
+            "diff --git a/src/reviewer.rs b/src/reviewer.rs\n--- a/src/reviewer.rs\n+++ b/src/reviewer.rs\n@@ -1 +1 @@\n-old\n+new\n"
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn derive_anchor_returns_none_for_disjoint_intervals() {
+        assert!(derive_anchor(
+            &["src/reviewer.rs".to_string()],
+            "diff --git a/src/reviewer.rs b/src/reviewer.rs\n--- a/src/reviewer.rs\n+++ b/src/reviewer.rs\n@@ -1 +1 @@\n-old\n+new\n@@ -8 +8 @@\n-older\n+newer\n"
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn derive_anchor_returns_none_when_patch_lacks_durable_interval() {
+        assert!(derive_anchor(&["src/reviewer.rs".to_string()], "").is_none());
+        assert!(derive_anchor(
+            &["src/reviewer.rs".to_string()],
+            "diff --git a/src/reviewer.rs b/src/reviewer.rs\n--- a/src/reviewer.rs\n+++ b/src/reviewer.rs\n@@ -4,1 +4,0 @@\n-old\n"
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn from_diff_populates_anchor_for_single_surface_note_finding() {
+        let packet = ReviewPacket::from_diff(
+            "main",
+            "HEAD",
+            vec!["tests/reviewer.md".to_string()],
+            "diff --git a/tests/reviewer.md b/tests/reviewer.md\n--- a/tests/reviewer.md\n+++ b/tests/reviewer.md\n@@ -2,0 +2,2 @@\n+one\n+two\n",
+        );
+
+        let note = packet.note_findings().pop().expect("note finding");
+        assert_eq!(note.scope, ConventionalCommentScope::Surface);
+        assert_eq!(
+            note.anchor,
+            Some(ReviewAnchor {
+                surface: "tests/reviewer.md".to_string(),
+                line_start: 2,
+                line_end: Some(3),
+            })
+        );
+    }
+
+    #[test]
+    fn from_diff_leaves_anchor_empty_for_cross_surface_findings() {
+        let packet = ReviewPacket::from_diff(
+            "main",
+            "HEAD",
+            vec!["src/reviewer.rs".to_string(), "tests/reviewer.md".to_string()],
+            "diff --git a/src/reviewer.rs b/src/reviewer.rs\n--- a/src/reviewer.rs\n+++ b/src/reviewer.rs\n@@ -1 +1 @@\n-old\n+new\n\ndiff --git a/tests/reviewer.md b/tests/reviewer.md\n--- a/tests/reviewer.md\n+++ b/tests/reviewer.md\n@@ -1 +1 @@\n-old\n+new\n",
+        );
+
+        let note = packet.note_findings().pop().expect("note finding");
+        assert_eq!(note.anchor, None);
     }
 }

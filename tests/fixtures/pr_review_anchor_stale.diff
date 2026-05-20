@@ -1,0 +1,7 @@
+diff --git a/tests/other.md b/tests/other.md
+index 1111111..2222222 100644
+--- a/tests/other.md
++++ b/tests/other.md
+@@ -3 +3 @@
+-old
++new

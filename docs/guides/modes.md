@@ -1657,6 +1657,7 @@ PR-Review produces a governed review packet with these artifacts:
 
 - `pr-analysis.md`
 - `boundary-check.md`
+- `conventional-comments.md`
 - `duplication-check.md`
 - `contract-drift.md`
 - `missing-tests.md`
@@ -1671,6 +1672,12 @@ Run and status summaries also surface the review disposition directly, using
 `review-summary.md` as the primary artifact, so the happy path does not require
 a separate inspect step just to learn whether the diff is ready, awaiting
 disposition, or accepted with approval.
+
+`conventional-comments.md` always retains explicit derived scope. When persisted
+diff evidence resolves to one changed surface and one contiguous interval, the
+artifact also renders host-agnostic anchor text in `surface:start` or
+`surface:start-end` form. When that precision is ambiguous, stale, or
+cross-surface, the packet omits the anchor and stays scope-only.
 
 ### Input Pattern
 
