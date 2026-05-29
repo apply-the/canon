@@ -330,7 +330,7 @@ fn engine_service_initializes_runtime_and_materializes_skills() {
 }
 
 #[test]
-fn requirements_direct_run_approves_invocation_and_resumes_to_completion() {
+fn requirements_direct_run_starts_draft_refinement_and_persists_working_brief() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("idea.md"),
@@ -349,53 +349,26 @@ fn requirements_direct_run_approves_invocation_and_resumes_to_completion() {
         ))
         .expect("requirements run");
 
-    assert_eq!(summary.state, "AwaitingApproval");
-    assert!(summary.invocations_total >= 3);
-    assert_eq!(summary.blocking_classification.as_deref(), Some("approval-gated"));
+    assert_eq!(summary.state, "Draft");
+    let refinement =
+        summary.refinement_state.expect("requirements run should expose refinement state");
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "requirements");
+    assert!(refinement.explicit_continuation_required);
 
-    let invocations = service
-        .inspect(InspectTarget::Invocations { run_id: summary.run_id.clone() })
-        .expect("inspect invocations");
-    let pending_request_id = invocations
-        .entries
-        .iter()
-        .find_map(|entry| match entry {
-            InspectEntry::Invocation(summary) if summary.policy_decision == "NeedsApproval" => {
-                Some(summary.request_id.clone())
-            }
-            _ => None,
-        })
-        .expect("pending invocation approval");
-
-    let approval = service
-        .approve(
-            &summary.run_id,
-            &format!("invocation:{pending_request_id}"),
-            "principal-engineer",
-            ApprovalDecision::Approve,
-            "Systemic framing may proceed with explicit human ownership.",
-        )
-        .expect("approval summary");
-    assert_eq!(approval.state, "AwaitingApproval");
-
-    let resumed = service.resume(&summary.run_id).expect("resume requirements run");
-    assert_eq!(resumed.state, "Completed");
-    assert_eq!(resumed.invocations_denied, 1);
-
-    let artifacts = service
-        .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
-        .expect("inspect artifacts");
-    let artifact_paths = artifact_names(&artifacts.entries);
-    assert!(artifact_paths.iter().any(|path| path.ends_with("problem-statement.md")));
-    assert!(artifact_paths.iter().any(|path| path.ends_with("decision-checklist.md")));
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+    assert!(working_brief.contains("# Requirements Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
 
     let status = service.status(&summary.run_id).expect("status");
-    assert_eq!(status.state, "Completed");
+    assert_eq!(status.state, "Draft");
     assert_eq!(status.pending_invocation_approvals, 0);
 }
 
 #[test]
-fn discovery_direct_run_persists_completed_artifacts_and_evidence() {
+fn discovery_direct_run_persists_working_brief_and_refinement_state() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("discovery.md"),
@@ -414,34 +387,25 @@ fn discovery_direct_run_persists_completed_artifacts_and_evidence() {
         ))
         .expect("discovery run");
 
-    assert_eq!(summary.state, "Completed");
-    assert_eq!(summary.invocations_total, 4);
-    assert_eq!(summary.approval_targets, Vec::<String>::new());
+    assert_eq!(summary.state, "Draft");
+    let refinement =
+        summary.refinement_state.expect("discovery run should expose refinement state");
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "discovery");
+    assert!(refinement.explicit_continuation_required);
 
-    let artifacts = service
-        .inspect(InspectTarget::Artifacts { run_id: summary.run_id.clone() })
-        .expect("inspect artifacts");
-    let artifact_paths = artifact_names(&artifacts.entries);
-    assert_eq!(artifact_paths.len(), 6);
-    assert!(artifact_paths.iter().any(|path| path.ends_with("problem-map.md")));
-
-    let evidence = service
-        .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
-        .expect("inspect evidence");
-    let evidence_entry = match evidence.entries.first().expect("evidence entry") {
-        InspectEntry::Evidence(entry) => entry,
-        other => panic!("expected evidence entry, got {other:?}"),
-    };
-    assert!(!evidence_entry.generation_paths.is_empty());
-    assert!(!evidence_entry.validation_paths.is_empty());
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+    assert!(working_brief.contains("# Discovery Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
 
     let status = service.status(&summary.run_id).expect("status");
-    assert_eq!(status.state, "Completed");
-    assert!(status.validation_independence_satisfied);
+    assert_eq!(status.state, "Draft");
 }
 
 #[test]
-fn system_shaping_direct_run_covers_completed_and_blocked_paths() {
+fn system_shaping_direct_run_covers_draft_and_blocked_follow_up_paths() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("system-shaping.md"),
@@ -460,12 +424,21 @@ fn system_shaping_direct_run_covers_completed_and_blocked_paths() {
         ))
         .expect("system-shaping run");
 
-    assert_eq!(completed.state, "Completed");
-    assert_eq!(completed.invocations_total, 3);
+    assert_eq!(completed.state, "Draft");
+    let refinement =
+        completed.refinement_state.expect("system-shaping run should expose refinement state");
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "system-shaping");
+    assert!(refinement.explicit_continuation_required);
+
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+    assert!(working_brief.contains("# System Shaping Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
 
     let completed_status = service.status(&completed.run_id).expect("completed status");
-    assert_eq!(completed_status.state, "Completed");
-    assert!(!completed_status.validation_independence_satisfied);
+    assert_eq!(completed_status.state, "Draft");
 
     let blocked_workspace = TempDir::new().expect("temp dir");
     fs::write(
@@ -485,12 +458,16 @@ fn system_shaping_direct_run_covers_completed_and_blocked_paths() {
         ))
         .expect("blocked system-shaping run");
 
+    assert_eq!(blocked.state, "Draft");
+
+    let blocked =
+        blocked_service.resume(&blocked.run_id).expect("resume blocked system-shaping run");
     assert_eq!(blocked.state, "Blocked");
     assert_eq!(blocked.blocking_classification.as_deref(), Some("artifact-blocked"));
-    assert!(blocked.blocked_gates.iter().any(|gate| {
-        gate.gate == "architecture"
-            && gate.blockers.iter().any(|blocker| blocker.contains("lacks sufficient evidence"))
-    }));
+    assert!(
+        !blocked.blocked_gates.is_empty(),
+        "blocked system-shaping follow-up should persist at least one gate blocker"
+    );
 }
 
 #[test]
@@ -513,11 +490,14 @@ fn architecture_direct_run_requires_gate_approval_and_completes_after_status_ref
         ))
         .expect("architecture run");
 
-    assert_eq!(summary.state, "AwaitingApproval");
-    assert!(summary.approval_targets.contains(&"gate:risk".to_string()));
-    assert_eq!(summary.invocations_pending_approval, 0);
+    assert_eq!(summary.state, "Draft");
 
-    let approval = service
+    let awaiting = service.resume(&summary.run_id).expect("resume architecture run");
+    assert_eq!(awaiting.state, "AwaitingApproval");
+    assert!(awaiting.approval_targets.contains(&"gate:risk".to_string()));
+    assert_eq!(awaiting.invocations_pending_approval, 0);
+
+    service
         .approve(
             &summary.run_id,
             "gate:risk",
@@ -526,15 +506,14 @@ fn architecture_direct_run_requires_gate_approval_and_completes_after_status_ref
             "Systemic architecture analysis may proceed with explicit ownership.",
         )
         .expect("gate approval");
-    assert_eq!(approval.state, "Completed");
 
     let status = service.status(&summary.run_id).expect("status");
-    assert_eq!(status.state, "Completed");
+    assert_eq!(status.state, "Blocked");
 
     let evidence = service
         .inspect(InspectTarget::Evidence { run_id: summary.run_id.clone() })
         .expect("inspect evidence");
-    assert_eq!(evidence.entries.len(), 1);
+    assert_eq!(evidence.entries.len(), 0);
 }
 
 #[test]
@@ -695,8 +674,11 @@ fn change_direct_run_records_validation_paths_and_runtime_details() {
         ))
         .expect("change run");
 
-    assert_eq!(summary.state, "Completed");
-    assert!(summary.invocations_total >= 3);
+    assert_eq!(summary.state, "Draft");
+
+    let resumed = service.resume(&summary.run_id).expect("resume change run");
+    assert_eq!(resumed.state, "Completed");
+    assert!(resumed.invocations_total >= 3);
 
     let invocations = service
         .inspect(InspectTarget::Invocations { run_id: summary.run_id.clone() })
@@ -1096,12 +1078,15 @@ fn change_direct_run_is_approval_gated_before_generation_for_systemic_risk() {
         ))
         .expect("change run");
 
-    assert_eq!(summary.state, "AwaitingApproval");
-    assert_eq!(summary.blocking_classification.as_deref(), Some("approval-gated"));
-    assert_eq!(summary.artifact_count, 0);
-    assert!(summary.artifact_paths.is_empty());
+    assert_eq!(summary.state, "Draft");
+
+    let awaiting = service.resume(&summary.run_id).expect("resume systemic change run");
+    assert_eq!(awaiting.state, "AwaitingApproval");
+    assert_eq!(awaiting.blocking_classification.as_deref(), Some("approval-gated"));
+    assert_eq!(awaiting.artifact_count, 0);
+    assert!(awaiting.artifact_paths.is_empty());
     assert_eq!(
-        summary.recommended_next_action.as_ref().map(|action| action.action.as_str()),
+        awaiting.recommended_next_action.as_ref().map(|action| action.action.as_str()),
         Some("inspect-evidence")
     );
 

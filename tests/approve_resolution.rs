@@ -134,12 +134,22 @@ fn start_gated_change_run(workspace: &TempDir, global_config: &Path) -> (String,
             "json",
         ])
         .assert()
-        .code(3)
+        .success()
         .get_output()
         .stdout
         .clone();
 
     let run_id = parse_run_id(&output);
+    let run_json: serde_json::Value = serde_json::from_slice(&output).expect("run json");
+    assert_eq!(run_json["state"], "Draft");
+
+    let mut resume = cli_command();
+    resume.current_dir(workspace.path());
+    for (key, value) in git_env(global_config) {
+        resume.env(key, value);
+    }
+    resume.args(["resume", "--run", &run_id]).assert().code(3);
+
     let request_id = pending_request_id(workspace, global_config, &run_id);
     (run_id, request_id)
 }

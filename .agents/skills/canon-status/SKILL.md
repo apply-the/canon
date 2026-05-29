@@ -41,6 +41,13 @@ Show the current Canon-backed state of an existing run.
 - Canon command: `canon status --run <RUN_ID>`
 - Return Canon-backed state only.
 
+## Continuation Semantics
+
+- When status surfaces `suggested_continuation`, treat it as advisory only.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- `refinement_state` may appear for any run with persisted continuity data. Targeted planning modes can include a working-brief path, while non-targeted modes may surface continuity without a targeted working brief.
+- Recommend `$canon-resume` only when the user explicitly wants to continue the same run or Canon reports the run still needs continuation.
+
 ## Expected Output Shape
 
 - concise run summary

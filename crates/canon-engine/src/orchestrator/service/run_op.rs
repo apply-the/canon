@@ -43,6 +43,10 @@ impl EngineService {
         );
         self.validate_authored_inputs(request.mode, &request.inputs, &request.inline_inputs)?;
 
+        if Self::is_targeted_refinement_mode(request.mode) {
+            return self.start_refinement_draft(&store, request, &policy_set);
+        }
+
         match request.mode {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
@@ -141,12 +145,16 @@ impl EngineService {
         let canonical = self.resolve_run(run_id)?;
         let run_id = canonical.as_str();
         let manifest = store.load_run_manifest(run_id)?;
-        let context = store.load_run_context(run_id)?;
+        let mut context = store.load_run_context(run_id)?;
 
         if !resume::input_fingerprints_match(&self.repo_root, &context.input_fingerprints)? {
             return Err(EngineError::Validation(format!(
                 "stale run `{run_id}`: input context changed; fork or rerun instead"
             )));
+        }
+
+        if Self::capture_explicit_continuation(&mut context) {
+            store.persist_run_context(run_id, &context)?;
         }
 
         let contract = store.load_artifact_contract(run_id)?;
@@ -596,6 +604,19 @@ impl EngineService {
         }
     }
 
+    fn capture_explicit_continuation(context: &mut RunContext) -> bool {
+        let Some(refinement) = context.clarification_refinement.as_mut() else {
+            return false;
+        };
+
+        let had_pending_explicit_gate = refinement.explicit_continuation_required;
+        let had_suggested_candidate = refinement.suggested_candidate.is_some();
+        refinement.explicit_continuation_required = false;
+        refinement.suggested_candidate = None;
+
+        had_pending_explicit_gate || had_suggested_candidate
+    }
+
     /// Returns a full status summary for the named run, including gates, approvals, and actions.
     pub fn status(&self, run: &str) -> Result<StatusSummary, EngineError> {
         let _ = all_mode_profiles();
@@ -623,6 +644,7 @@ impl EngineService {
             closure_findings: details.closure_findings,
             closure_notes: details.closure_notes,
             possible_actions: details.possible_actions,
+            refinement_state: details.refinement_state,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })
@@ -653,5 +675,200 @@ impl EngineService {
             profile,
             to.as_deref(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::domain::approval::ApprovalDecision;
+    use crate::domain::execution::{ExecutionPosture, MutationBounds, MutationExpansionPolicy};
+    use crate::domain::run::{
+        ClarificationRefinementContext, ClarificationRefinementStatus,
+        ContinuationCandidateSummary, InputFingerprint, InputSourceKind, RefinementWorkflowFamily,
+        RunIdentity,
+    };
+
+    fn requirements_file_request(input: &str, owner: &str) -> RunRequest {
+        RunRequest {
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            classification: ClassificationProvenance::explicit(),
+            owner: owner.to_string(),
+            inputs: vec![input.to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        }
+    }
+
+    fn implementation_context() -> RunContext {
+        RunContext {
+            repo_root: "/tmp/repo".to_string(),
+            owner: Some("Owner <owner@example.com>".to_string()),
+            inputs: vec!["brief.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: vec![InputFingerprint {
+                path: "brief.md".to_string(),
+                source_kind: InputSourceKind::Path,
+                size_bytes: 10,
+                modified_unix_seconds: 1_700_000_000,
+                content_digest_sha256: Some("abc".to_string()),
+                snapshot_ref: None,
+            }],
+            system_context: None,
+            upstream_context: None,
+            implementation_execution: Some(ImplementationExecutionContext {
+                plan_sources: vec!["canon-input/implementation.md".to_string()],
+                mutation_bounds: MutationBounds {
+                    declared_paths: Vec::new(),
+                    owners: Vec::new(),
+                    source_refs: Vec::new(),
+                    expansion_policy: MutationExpansionPolicy::DenyWithoutApproval,
+                },
+                task_targets: Vec::new(),
+                safety_net: Vec::new(),
+                execution_posture: ExecutionPosture::RecommendationOnly,
+                rollback_expectations: Vec::new(),
+                post_approval_execution_consumed: false,
+            }),
+            refactor_execution: None,
+            backlog_planning: None,
+            clarification_refinement: None,
+            inline_inputs: Vec::new(),
+            captured_at: OffsetDateTime::now_utc(),
+        }
+    }
+
+    #[test]
+    fn run_dispatches_targeted_refinement_modes_to_draft_refinement() {
+        let workspace = tempdir().expect("tempdir");
+        std::fs::write(
+            workspace.path().join("brief.md"),
+            "# Requirements Brief\n\n## Problem\nBound it.\n\n## Outcome\nShip it.\n",
+        )
+        .expect("write brief");
+        let service = EngineService::new(workspace.path());
+
+        let summary = service
+            .run(requirements_file_request("brief.md", "Owner <owner@example.com>"))
+            .expect("requirements run");
+        assert_eq!(summary.state, "Draft");
+        assert_eq!(
+            summary.refinement_state.expect("refinement state").current_mode,
+            "requirements"
+        );
+    }
+
+    #[test]
+    fn approve_rejects_unsupported_targets() {
+        let workspace = tempdir().expect("tempdir");
+        std::fs::write(
+            workspace.path().join("brief.md"),
+            "# Requirements Brief\n\n## Problem\nBound it.\n\n## Outcome\nShip it.\n",
+        )
+        .expect("write brief");
+        let service = EngineService::new(workspace.path());
+        let summary = service
+            .run(requirements_file_request("brief.md", "Owner <owner@example.com>"))
+            .expect("requirements run");
+
+        let unsupported = service
+            .approve(
+                &summary.run_id,
+                "other:thing",
+                "Reviewer <reviewer@example.com>",
+                ApprovalDecision::Approve,
+                "ok",
+            )
+            .expect_err("unsupported target should fail");
+        assert!(unsupported.to_string().contains("unsupported approval target `other:thing`"));
+    }
+
+    #[test]
+    fn resume_rejects_stale_input_fingerprints_after_source_changes() {
+        let workspace = tempdir().expect("tempdir");
+        let brief = workspace.path().join("brief.md");
+        std::fs::write(
+            &brief,
+            "# Requirements Brief\n\n## Problem\nBound it.\n\n## Outcome\nShip it.\n",
+        )
+        .expect("write brief");
+        let service = EngineService::new(workspace.path());
+        let summary = service
+            .run(requirements_file_request("brief.md", "Owner <owner@example.com>"))
+            .expect("requirements run");
+
+        std::fs::write(
+            &brief,
+            "# Requirements Brief\n\n## Problem\nChanged input.\n\n## Outcome\nShip it.\n",
+        )
+        .expect("rewrite brief");
+
+        let error = service.resume(&summary.run_id).expect_err("stale inputs should fail");
+        assert!(error.to_string().contains("stale run"));
+        assert!(error.to_string().contains("fork or rerun instead"));
+    }
+
+    #[test]
+    fn should_resume_change_execution_only_for_change_family_conditions() {
+        let context = implementation_context();
+        let approvals = vec![ApprovalRecord::for_gate(
+            GateKind::Execution,
+            "Reviewer <reviewer@example.com>".to_string(),
+            ApprovalDecision::Approve,
+            "ok".to_string(),
+            OffsetDateTime::now_utc(),
+        )];
+
+        assert!(EngineService::should_resume_change_execution(Mode::Change, true, &context, &[],));
+        assert!(EngineService::should_resume_change_execution(
+            Mode::Implementation,
+            false,
+            &context,
+            &approvals,
+        ));
+        assert!(!EngineService::should_resume_change_execution(
+            Mode::Review,
+            true,
+            &context,
+            &approvals,
+        ));
+    }
+
+    #[test]
+    fn capture_explicit_continuation_clears_flags_and_candidates() {
+        let mut context = implementation_context();
+        assert!(!EngineService::capture_explicit_continuation(&mut context));
+
+        context.clarification_refinement = Some(ClarificationRefinementContext {
+            workflow_family: RefinementWorkflowFamily::Planning,
+            current_mode: Mode::Requirements,
+            working_brief_path: ".canon/runs/R/artifacts/requirements/working-brief.md".to_string(),
+            template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+            status: ClarificationRefinementStatus::Active,
+            explicit_continuation_required: true,
+            authoritative_input_refs: vec!["brief.md".to_string()],
+            supporting_input_refs: Vec::new(),
+            suggested_candidate: Some(ContinuationCandidateSummary {
+                run_id: RunIdentity::new_now_v7().run_id,
+                mode: Mode::Requirements,
+                state: RunState::Draft,
+                match_reason: "same authoritative input fingerprint".to_string(),
+                advisory: true,
+            }),
+            records: Vec::new(),
+            readiness_delta: Vec::new(),
+        });
+
+        assert!(EngineService::capture_explicit_continuation(&mut context));
+        let refinement = context.clarification_refinement.expect("refinement");
+        assert!(!refinement.explicit_continuation_required);
+        assert!(refinement.suggested_candidate.is_none());
     }
 }

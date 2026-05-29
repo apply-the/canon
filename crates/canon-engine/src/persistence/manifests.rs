@@ -5,7 +5,7 @@ use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::run::RunState;
 use crate::domain::run::{
-    ClassificationProvenance, RunIdentity, SystemContext, short_id_from_uuid,
+    ClassificationProvenance, RunIdentity, RunLineageLink, SystemContext, short_id_from_uuid,
 };
 
 /// A manifest linking a run's artifact, decision, trace, and invocation paths.
@@ -61,6 +61,9 @@ pub struct RunManifest {
     pub classification: ClassificationProvenance,
     /// Named human owner of the run.
     pub owner: String,
+    /// Successor lineage recorded when a started run is redirected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<RunLineageLink>,
     /// When the run was created.
     pub created_at: OffsetDateTime,
 }
@@ -90,6 +93,7 @@ impl RunManifest {
             system_context,
             classification,
             owner,
+            lineage: None,
             created_at: identity.created_at,
         }
     }
@@ -160,7 +164,7 @@ mod tests {
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
     use crate::domain::run::{
-        ClassificationProvenance, RunIdentity, SystemContext, short_id_from_uuid,
+        ClassificationProvenance, RunIdentity, RunLineageLink, SystemContext, short_id_from_uuid,
     };
 
     fn sample_manifest(run_id: String) -> RunManifest {
@@ -176,6 +180,7 @@ mod tests {
             system_context: Some(SystemContext::Existing),
             classification: ClassificationProvenance::explicit(),
             owner: "Owner <owner@example.com>".to_string(),
+            lineage: None,
             created_at: OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("timestamp"),
         }
     }
@@ -258,6 +263,33 @@ mod tests {
         assert_eq!(canonical.uuid.as_deref(), Some(uuid_string.as_str()));
         assert_eq!(canonical.short_id.as_deref(), Some(expected_short_id.as_str()));
         assert!(!canonical.is_legacy_layout());
+    }
+
+    #[test]
+    fn manifest_serializes_lineage_only_when_present() {
+        let without_lineage = sample_manifest("R-20260529-ab12cd34".to_string());
+        let without_lineage_toml =
+            toml::to_string_pretty(&without_lineage).expect("serialize manifest without lineage");
+        assert!(!without_lineage_toml.contains("[lineage]"));
+
+        let mut with_lineage = without_lineage;
+        with_lineage.lineage = Some(RunLineageLink {
+            carried_from: "R-20260529-ab12cd34".to_string(),
+            supersedes: "R-20260529-ab12cd34".to_string(),
+            mode_change_reason: "Clarification redirected the work from architecture to change."
+                .to_string(),
+        });
+
+        let serialized =
+            toml::to_string_pretty(&with_lineage).expect("serialize manifest with lineage");
+        assert!(serialized.contains("[lineage]"));
+        assert!(serialized.contains("carried_from = \"R-20260529-ab12cd34\""));
+        assert!(serialized.contains("supersedes = \"R-20260529-ab12cd34\""));
+
+        let round_tripped: RunManifest = toml::from_str(&serialized).expect("deserialize manifest");
+        let lineage = round_tripped.lineage.expect("lineage should deserialize");
+        assert_eq!(lineage.carried_from, "R-20260529-ab12cd34");
+        assert_eq!(lineage.supersedes, "R-20260529-ab12cd34");
     }
 
     #[test]

@@ -5,6 +5,9 @@
 > implementers.
 > Boundary: persona guidance shapes framing only; keep `Intent:`,
 > `Constraint:`, and any missing sections explicit.
+> Refinement lifecycle: draft clarification can stay on the same run id until
+> execution starts; candidate detection is advisory and continuation still
+> requires explicit intent.
 
 Intent: Build a bounded capability for ...
 Constraint: Keep the first release limited to ...

@@ -1,5 +1,21 @@
 use super::EngineService;
 use super::*;
+use crate::domain::run::{
+    ClarificationAnswerKind, ClarificationRecord, ClarificationResolutionState,
+    ReadinessDeltaSourceKind,
+};
+
+const AUTHORITY_GAP_READINESS_ID: &str = "rd-authority-gap";
+const AUTHORITY_GAP_READINESS_SECTION: &str = "Authority";
+const AUTHORITY_GAP_READINESS_SUMMARY: &str = "Canon could not identify one authoritative current-mode brief from the supplied inputs; add `brief.md` or reduce the packet to one clear readiness brief.";
+const CLARIFICATION_GAP_READINESS_ID: &str = "rd-clarification-gap";
+const CLARIFICATION_GAP_READINESS_SECTION: &str = "Clarification";
+const DEFERRED_CLARIFICATION_ANSWER: &str = "deferred";
+const MISSING_CONTEXT_READINESS_ID_PREFIX: &str = "rd-missing-context";
+const MISSING_CONTEXT_READINESS_SECTION: &str = "Missing Context";
+const SUPPORTING_INPUT_WARNING_READINESS_ID: &str = "rd-supporting-input-warning";
+const SUPPORTING_INPUT_WARNING_READINESS_SECTION: &str = "Supporting Inputs";
+const SUPPORTING_INPUT_WARNING_READINESS_SUMMARY: &str = "Supporting inputs are present, but they do not replace the current-mode brief Canon uses for readiness.";
 
 impl EngineService {
     pub(super) fn collect_input_files(&self, input: &str) -> Result<Vec<PathBuf>, EngineError> {
@@ -152,6 +168,107 @@ impl EngineService {
             readiness_delta,
             next_authoring_step,
         }
+    }
+
+    pub(super) fn refinement_source_inputs(
+        &self,
+        inputs: &[String],
+        inline_inputs: &[String],
+    ) -> Result<Vec<String>, EngineError> {
+        let mut source_inputs = self.clarity_source_inputs(inputs)?;
+        source_inputs
+            .extend(inline_inputs.iter().enumerate().map(|(index, _)| inline_input_label(index)));
+
+        Ok(Self::normalize_source_inputs(&source_inputs))
+    }
+
+    pub(super) fn build_refinement_clarification_records(
+        clarification_questions: &[ClarificationQuestionSummary],
+        recorded_at: OffsetDateTime,
+    ) -> Vec<ClarificationRecord> {
+        clarification_questions
+            .iter()
+            .map(|question| ClarificationRecord {
+                id: question.id.clone(),
+                prompt: question.prompt.clone(),
+                answer: DEFERRED_CLARIFICATION_ANSWER.to_string(),
+                answer_kind: ClarificationAnswerKind::Deferred,
+                affected_sections: if question.affects.trim().is_empty() {
+                    Vec::new()
+                } else {
+                    vec![question.affects.clone()]
+                },
+                resolution_state: ClarificationResolutionState::Deferred,
+                recorded_at,
+            })
+            .collect()
+    }
+
+    pub(super) fn build_structured_refinement_readiness_items(
+        authoring_lifecycle: &AuthoringLifecycleSummary,
+        missing_context: &[String],
+        clarification_questions: &[ClarificationQuestionSummary],
+    ) -> Vec<ReadinessDeltaItem> {
+        let mut readiness_items = Vec::new();
+        let authority_gap =
+            authoring_lifecycle.authority_status == AuthorityStatus::AmbiguousCurrentBrief.as_str();
+
+        if authority_gap {
+            readiness_items.push(ReadinessDeltaItem {
+                id: AUTHORITY_GAP_READINESS_ID.to_string(),
+                section: AUTHORITY_GAP_READINESS_SECTION.to_string(),
+                summary: AUTHORITY_GAP_READINESS_SUMMARY.to_string(),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::AuthorityGap,
+                default_available: false,
+                resolved: false,
+            });
+        }
+
+        readiness_items.extend(missing_context.iter().enumerate().map(|(index, summary)| {
+            ReadinessDeltaItem {
+                id: format!("{MISSING_CONTEXT_READINESS_ID_PREFIX}-{index:02}"),
+                section: MISSING_CONTEXT_READINESS_SECTION.to_string(),
+                summary: summary.clone(),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::MissingContext,
+                default_available: false,
+                resolved: false,
+            }
+        }));
+
+        if !clarification_questions.is_empty() {
+            readiness_items.push(ReadinessDeltaItem {
+                id: CLARIFICATION_GAP_READINESS_ID.to_string(),
+                section: CLARIFICATION_GAP_READINESS_SECTION.to_string(),
+                summary: format!(
+                    "{} clarification question(s) still remain before this packet is unambiguously ready.",
+                    clarification_questions.len()
+                ),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::ClarificationGap,
+                default_available: clarification_questions
+                    .iter()
+                    .any(|question| !question.default_if_skipped.trim().is_empty()),
+                resolved: false,
+            });
+        }
+
+        if !authoring_lifecycle.supporting_inputs.is_empty()
+            && (authority_gap || !missing_context.is_empty())
+        {
+            readiness_items.push(ReadinessDeltaItem {
+                id: SUPPORTING_INPUT_WARNING_READINESS_ID.to_string(),
+                section: SUPPORTING_INPUT_WARNING_READINESS_SECTION.to_string(),
+                summary: SUPPORTING_INPUT_WARNING_READINESS_SUMMARY.to_string(),
+                blocking: false,
+                source_kind: ReadinessDeltaSourceKind::SupportingInputWarning,
+                default_available: false,
+                resolved: false,
+            });
+        }
+
+        readiness_items
     }
 
     fn canonical_canon_root(&self) -> Result<Option<PathBuf>, EngineError> {
@@ -380,6 +497,16 @@ impl EngineService {
         readiness_delta
     }
 
+    pub(super) fn build_refinement_readiness_delta(
+        readiness_items: &[ReadinessDeltaItem],
+    ) -> Vec<String> {
+        readiness_items
+            .iter()
+            .filter(|item| !item.resolved)
+            .map(|item| item.summary.clone())
+            .collect()
+    }
+
     fn build_next_authoring_step(
         authority_status: AuthorityStatus,
         missing_context: &[String],
@@ -447,5 +574,229 @@ impl EngineService {
         }
 
         Ok((inputs[0].clone(), inputs[1].clone()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+    use time::OffsetDateTime;
+
+    #[test]
+    fn structured_refinement_readiness_items_include_authority_gap_and_supporting_warning() {
+        let authoring_lifecycle = AuthoringLifecycleSummary {
+            packet_shape: "multi-input".to_string(),
+            authority_status: AuthorityStatus::AmbiguousCurrentBrief.as_str().to_string(),
+            authoritative_inputs: vec![],
+            supporting_inputs: vec!["context-links.md".to_string()],
+            readiness_delta: vec![],
+            next_authoring_step: "Add brief.md".to_string(),
+        };
+        let questions = vec![ClarificationQuestionSummary {
+            id: "clarify-problem".to_string(),
+            prompt: "What is the bounded problem?".to_string(),
+            rationale: "Need a stable problem statement.".to_string(),
+            evidence: "No problem heading found.".to_string(),
+            affects: "problem statement".to_string(),
+            default_if_skipped: "Carry forward unresolved.".to_string(),
+            status: "required".to_string(),
+        }];
+
+        let items = EngineService::build_structured_refinement_readiness_items(
+            &authoring_lifecycle,
+            &["Outcome is missing.".to_string()],
+            &questions,
+        );
+
+        assert_eq!(items[0].id, "rd-authority-gap");
+        assert_eq!(items[0].source_kind, ReadinessDeltaSourceKind::AuthorityGap);
+        assert_eq!(items[1].id, "rd-missing-context-00");
+        assert_eq!(items[1].source_kind, ReadinessDeltaSourceKind::MissingContext);
+        assert_eq!(items[2].id, "rd-clarification-gap");
+        assert!(items[2].default_available);
+        assert_eq!(items[3].id, "rd-supporting-input-warning");
+        assert_eq!(items[3].source_kind, ReadinessDeltaSourceKind::SupportingInputWarning);
+        assert!(!items[3].blocking);
+    }
+
+    #[test]
+    fn structured_refinement_readiness_items_skip_supporting_warning_without_gap() {
+        let authoring_lifecycle = AuthoringLifecycleSummary {
+            packet_shape: "single-file".to_string(),
+            authority_status: AuthorityStatus::SingleInputAuthoritativeBrief.as_str().to_string(),
+            authoritative_inputs: vec!["brief.md".to_string()],
+            supporting_inputs: vec!["context-links.md".to_string()],
+            readiness_delta: vec![],
+            next_authoring_step: "Proceed".to_string(),
+        };
+
+        let items = EngineService::build_structured_refinement_readiness_items(
+            &authoring_lifecycle,
+            &[],
+            &[],
+        );
+
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn build_refinement_clarification_records_tracks_affected_sections() {
+        let recorded_at = OffsetDateTime::now_utc();
+        let questions = vec![
+            ClarificationQuestionSummary {
+                id: "q-1".to_string(),
+                prompt: "Clarify the problem".to_string(),
+                rationale: "Need the bounded problem".to_string(),
+                evidence: "No explicit problem heading".to_string(),
+                affects: "Problem".to_string(),
+                default_if_skipped: "Carry unresolved".to_string(),
+                status: "required".to_string(),
+            },
+            ClarificationQuestionSummary {
+                id: "q-2".to_string(),
+                prompt: "Clarify the scope".to_string(),
+                rationale: "Need scope boundaries".to_string(),
+                evidence: "Scope is implicit".to_string(),
+                affects: "   ".to_string(),
+                default_if_skipped: "Carry unresolved".to_string(),
+                status: "required".to_string(),
+            },
+        ];
+
+        let records =
+            EngineService::build_refinement_clarification_records(&questions, recorded_at);
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].answer, "deferred");
+        assert_eq!(records[0].answer_kind, ClarificationAnswerKind::Deferred);
+        assert_eq!(records[0].affected_sections, vec!["Problem".to_string()]);
+        assert_eq!(records[0].resolution_state, ClarificationResolutionState::Deferred);
+        assert!(records[1].affected_sections.is_empty());
+    }
+
+    #[test]
+    fn validate_review_authored_input_path_accepts_only_canonical_review_locations() {
+        let workspace = tempdir().expect("tempdir");
+        let canon_input = workspace.path().join("canon-input");
+        std::fs::create_dir_all(&canon_input).expect("create canon-input");
+        std::fs::write(canon_input.join("review.md"), "# Review\n").expect("write review.md");
+        std::fs::write(canon_input.join("notes.md"), "# Notes\n").expect("write notes.md");
+
+        let service = EngineService::new(workspace.path());
+
+        service
+            .validate_review_authored_input_path(&["canon-input/review.md".to_string()])
+            .expect("canonical review input should validate");
+
+        let invalid = service
+            .validate_review_authored_input_path(&["canon-input/notes.md".to_string()])
+            .expect_err("non-canonical review path should be rejected");
+        assert!(
+            invalid
+                .to_string()
+                .contains("review accepts only canon-input/review.md or canon-input/review/")
+        );
+
+        let missing = service
+            .validate_review_authored_input_path(&["canon-input/missing.md".to_string()])
+            .expect_err("missing review path should be rejected");
+        assert!(missing.to_string().contains("was not found"));
+    }
+
+    #[test]
+    fn authored_input_validation_covers_source_count_inline_and_empty_directory_cases() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+
+        let missing_source = EngineService::validate_authored_source_count(Mode::Requirements, 0)
+            .expect_err("requirements without sources should fail");
+        assert!(missing_source.to_string().contains("requires at least one authored input"));
+
+        let review_count = EngineService::validate_authored_source_count(Mode::Review, 2)
+            .expect_err("review should require exactly one source");
+        assert!(review_count.to_string().contains("review requires exactly one authored input"));
+
+        let inline_mode = EngineService::validate_inline_input_mode_constraints(
+            Mode::PrReview,
+            &["inline review".to_string()],
+        )
+        .expect_err("pr-review inline input should fail");
+        assert!(inline_mode.to_string().contains("does not support --input-text"));
+
+        let inline_contents =
+            EngineService::validate_inline_input_contents(Mode::Requirements, &["   ".to_string()])
+                .expect_err("whitespace-only inline input should fail");
+        assert!(inline_contents.to_string().contains("empty or whitespace-only"));
+
+        let empty_dir = workspace.path().join("canon-input").join("requirements");
+        std::fs::create_dir_all(&empty_dir).expect("create empty dir");
+        let empty_dir_error = service
+            .validate_authored_input_paths(
+                Mode::Requirements,
+                &["canon-input/requirements".to_string()],
+            )
+            .expect_err("empty authored directory should fail");
+        assert!(
+            empty_dir_error
+                .to_string()
+                .contains("is an empty directory and does not contain authored content")
+        );
+    }
+
+    #[test]
+    fn auto_bind_canonical_mode_inputs_prefers_directory_file_and_explicit_inputs() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let canon_input = workspace.path().join("canon-input");
+        std::fs::create_dir_all(canon_input.join("backlog")).expect("create backlog dir");
+        std::fs::write(canon_input.join("backlog").join("brief.md"), "# Backlog\n")
+            .expect("write backlog brief");
+
+        assert_eq!(
+            service.auto_bind_canonical_mode_inputs(Mode::Backlog, &[], &[]),
+            vec!["canon-input/backlog".to_string()]
+        );
+
+        let explicit =
+            service.auto_bind_canonical_mode_inputs(Mode::Backlog, &["custom.md".to_string()], &[]);
+        assert_eq!(explicit, vec!["custom.md".to_string()]);
+
+        std::fs::remove_dir_all(canon_input.join("backlog")).expect("remove backlog dir");
+        std::fs::write(canon_input.join("backlog.md"), "# Backlog\n").expect("write backlog file");
+        assert_eq!(
+            service.auto_bind_canonical_mode_inputs(Mode::Backlog, &[], &[]),
+            vec!["canon-input/backlog.md".to_string()]
+        );
+
+        assert!(service.auto_bind_canonical_mode_inputs(Mode::Requirements, &[], &[]).is_empty());
+    }
+
+    #[test]
+    fn persisted_input_paths_and_pr_review_refs_cover_remaining_helpers() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let inside = workspace.path().join("canon-input").join("requirements.md");
+        std::fs::create_dir_all(inside.parent().expect("parent")).expect("create parent dir");
+        std::fs::write(&inside, "# Requirements\n").expect("write inside file");
+
+        assert_eq!(
+            service.persisted_input_path(&inside),
+            "canon-input/requirements.md".to_string()
+        );
+
+        let outside = tempdir().expect("outside tempdir");
+        let outside_file = outside.path().join("external.md");
+        std::fs::write(&outside_file, "# External\n").expect("write outside file");
+        assert_eq!(service.persisted_input_path(&outside_file), outside_file.display().to_string());
+
+        let refs = service
+            .load_pr_review_refs(&["main".to_string(), "feature".to_string()])
+            .expect("two refs should validate");
+        assert_eq!(refs, ("main".to_string(), "feature".to_string()));
+
+        let missing =
+            service.load_pr_review_refs(&["main".to_string()]).expect_err("single ref should fail");
+        assert!(missing.to_string().contains("pr-review requires two inputs"));
     }
 }

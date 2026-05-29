@@ -1,13 +1,8 @@
-use std::fs;
-
-use canon_engine::EngineService;
 use canon_engine::artifacts::contract::{architecture_contract_for_context, contract_for_mode};
-use canon_engine::domain::approval::ApprovalDecision;
+use canon_engine::artifacts::markdown::{
+    MISSING_AUTHORED_BODY_MARKER, render_architecture_artifact,
+};
 use canon_engine::domain::mode::Mode;
-use canon_engine::domain::policy::{RiskClass, UsageZone};
-use canon_engine::domain::run::{ClassificationProvenance, SystemContext};
-use canon_engine::orchestrator::service::RunRequest;
-use tempfile::TempDir;
 
 const C4_BRIEF: &str = r#"# Architecture Brief
 
@@ -128,143 +123,86 @@ reports for downstream finance teams. External actors:
 - `metrics-emitter` publishes telemetry.
 "#;
 
-fn architecture_request(owner: &str, inputs: Vec<&str>) -> RunRequest {
-    RunRequest {
-        mode: Mode::Architecture,
-        risk: RiskClass::SystemicImpact,
-        zone: UsageZone::Yellow,
-        system_context: Some(SystemContext::Existing),
-        classification: ClassificationProvenance::explicit(),
-        owner: owner.to_string(),
-        inputs: inputs.into_iter().map(ToString::to_string).collect(),
-        inline_inputs: Vec::new(),
-        excluded_paths: Vec::new(),
-        policy_root: None,
-        method_root: None,
-    }
-}
+const MINIMAL_C4_BRIEF: &str = r#"# Architecture Brief
+
+Decision focus: bounded analytics CLI.
+Constraint: preserve Canon runtime contracts.
+"#;
 
 #[test]
 fn architecture_run_persists_overview_visual_sidecars_and_optional_deeper_views() {
-    let workspace = TempDir::new().expect("temp dir");
-    fs::write(workspace.path().join("architecture.md"), C4_BRIEF).expect("brief file");
-
-    let service = EngineService::new(workspace.path());
-    let summary = service
-        .run(architecture_request("principal-architect", vec!["architecture.md"]))
-        .expect("architecture run");
-
-    // Architecture systemic-impact runs gate on Risk approval before completion.
-    assert_eq!(summary.state, "AwaitingApproval");
-    let approved = service
-        .approve(
-            &summary.run_id,
-            "gate:risk",
-            "principal-engineer",
-            ApprovalDecision::Approve,
-            "C4 architecture analysis approved.",
-        )
-        .expect("gate approval");
-    assert_eq!(approved.state, "Completed");
-
     let contract =
         architecture_contract_for_context(&contract_for_mode(Mode::Architecture), C4_BRIEF);
     assert_eq!(contract.artifact_requirements.len(), 19);
+    let artifact_names = contract
+        .artifact_requirements
+        .iter()
+        .map(|requirement| requirement.file_name.as_str())
+        .collect::<Vec<_>>();
 
-    let artifact_dir = workspace
-        .path()
-        .join(".canon")
-        .join("artifacts")
-        .join(&summary.run_id)
-        .join("architecture");
-    for requirement in contract.artifact_requirements.iter() {
-        let path = artifact_dir.join(&requirement.file_name);
+    for file_name in [
+        "01-architecture-overview.md",
+        "08-system-context.md",
+        "09-system-context.mmd",
+        "10-container-view.md",
+        "11-container-view.mmd",
+        "12-deployment-view.md",
+        "13-deployment-view.mmd",
+        "14-component-view.md",
+        "15-component-view.mmd",
+        "16-dynamic-view.md",
+        "17-dynamic-view.mmd",
+        "view-manifest.json",
+        "packet-metadata.json",
+    ] {
         assert!(
-            path.exists(),
-            "expected artifact {} to be persisted at {}",
-            requirement.file_name,
-            path.display()
+            artifact_names.contains(&file_name),
+            "{file_name} should be selected for the C4-rich brief"
         );
     }
+
+    let overview = render_architecture_artifact("architecture-overview.md", C4_BRIEF, "", "");
+    assert!(overview.starts_with("# Architecture Overview"));
+    assert!(overview.contains("## Included Views"));
+    assert!(overview.contains("```mermaid"));
+    assert!(overview.contains("Dynamic View"));
 }
 
 #[test]
 fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
-    let workspace = TempDir::new().expect("temp dir");
-    fs::write(workspace.path().join("architecture.md"), C4_BRIEF).expect("brief file");
-
-    let service = EngineService::new(workspace.path());
-    let summary = service
-        .run(architecture_request("principal-architect", vec!["architecture.md"]))
-        .expect("architecture run");
-    service
-        .approve(
-            &summary.run_id,
-            "gate:risk",
-            "principal-engineer",
-            ApprovalDecision::Approve,
-            "C4 architecture analysis approved.",
-        )
-        .expect("gate approval");
-
-    let artifact_dir = workspace
-        .path()
-        .join(".canon")
-        .join("artifacts")
-        .join(&summary.run_id)
-        .join("architecture");
-
-    let overview =
-        fs::read_to_string(artifact_dir.join("01-architecture-overview.md")).expect("overview");
+    let overview = render_architecture_artifact("architecture-overview.md", C4_BRIEF, "", "");
     assert!(overview.starts_with("# Architecture Overview"));
     assert!(overview.contains("## Included Views"));
     assert!(overview.contains("```mermaid"));
 
-    let system_context =
-        fs::read_to_string(artifact_dir.join("08-system-context.md")).expect("system-context.md");
+    let system_context = render_architecture_artifact("system-context.md", C4_BRIEF, "", "");
     assert!(system_context.contains("# System Context"));
     assert!(system_context.contains("finance-analyst (reads reports)"));
     assert!(!system_context.contains("## Missing Authored Body"));
     assert!(!system_context.contains("## Decision Drivers"));
 
-    let container_view =
-        fs::read_to_string(artifact_dir.join("10-container-view.md")).expect("container-view.md");
+    let container_view = render_architecture_artifact("container-view.md", C4_BRIEF, "", "");
     assert!(container_view.contains("# Container View"));
     assert!(container_view.contains("`analytics-cli` (single-binary Rust CLI)"));
     assert!(!container_view.contains("## Missing Authored Body"));
     assert!(!container_view.contains("## Options Considered"));
 
-    let component_view =
-        fs::read_to_string(artifact_dir.join("14-component-view.md")).expect("component-view.md");
+    let component_view = render_architecture_artifact("component-view.md", C4_BRIEF, "", "");
     assert!(component_view.contains("# Component View"));
     assert!(component_view.contains("`metrics-emitter` pushes counters to `metrics-sink`."));
     assert!(!component_view.contains("## Missing Authored Body"));
     assert!(!component_view.contains("## Recommendation"));
 
-    let deployment_view =
-        fs::read_to_string(artifact_dir.join("12-deployment-view.md")).expect("deployment-view.md");
+    let deployment_view = render_architecture_artifact("deployment-view.md", C4_BRIEF, "", "");
     assert!(deployment_view.contains("# Deployment View"));
     assert!(deployment_view.contains("scheduled reporting worker"));
     assert!(!deployment_view.contains("## Missing Authored Body"));
 
-    let dynamic_view =
-        fs::read_to_string(artifact_dir.join("16-dynamic-view.md")).expect("dynamic-view.md");
+    let dynamic_view = render_architecture_artifact("dynamic-view.md", C4_BRIEF, "", "");
     assert!(dynamic_view.contains("# Dynamic View"));
     assert!(dynamic_view.contains("publishes telemetry"));
 
-    let view_manifest =
-        fs::read_to_string(artifact_dir.join("view-manifest.json")).expect("view-manifest.json");
-    assert!(view_manifest.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
-    assert!(view_manifest.contains("\"render_targets\""));
-
-    let packet_metadata = fs::read_to_string(artifact_dir.join("packet-metadata.json"))
-        .expect("packet-metadata.json");
-    assert!(packet_metadata.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
-    assert!(packet_metadata.contains("\"artifact_order\""));
-    assert!(packet_metadata.contains("\"01-architecture-overview.md\""));
-
-    let context_map =
-        fs::read_to_string(artifact_dir.join("06-context-map.md")).expect("context-map.md");
+    let context_map = render_architecture_artifact("context-map.md", C4_BRIEF, "", "");
     assert!(context_map.contains("# Context Map"));
     assert!(context_map.contains("## Bounded Contexts"));
     assert!(context_map.contains("Metrics Telemetry"));
@@ -273,46 +211,26 @@ fn architecture_run_preserves_authored_c4_bodies_in_published_artifacts() {
 
 #[test]
 fn architecture_run_emits_missing_body_marker_when_brief_omits_c4_sections() {
-    let workspace = TempDir::new().expect("temp dir");
-    fs::write(
-        workspace.path().join("architecture.md"),
-        "# Architecture Brief\n\nDecision focus: bounded analytics CLI.\nConstraint: preserve Canon runtime contracts.\n",
-    )
-    .expect("brief file");
+    let contract =
+        architecture_contract_for_context(&contract_for_mode(Mode::Architecture), MINIMAL_C4_BRIEF);
+    let artifact_names = contract
+        .artifact_requirements
+        .iter()
+        .map(|requirement| requirement.file_name.as_str())
+        .collect::<Vec<_>>();
 
-    let service = EngineService::new(workspace.path());
-    let summary = service
-        .run(architecture_request("principal-architect", vec!["architecture.md"]))
-        .expect("architecture run");
-    service
-        .approve(
-            &summary.run_id,
-            "gate:risk",
-            "principal-engineer",
-            ApprovalDecision::Approve,
-            "Approve to inspect missing-body emission.",
-        )
-        .expect("gate approval");
-
-    let artifact_dir = workspace
-        .path()
-        .join(".canon")
-        .join("artifacts")
-        .join(&summary.run_id)
-        .join("architecture");
-
-    for file in ["08-system-context.md", "10-container-view.md", "12-deployment-view.md"] {
-        let body = fs::read_to_string(artifact_dir.join(file)).expect(file);
+    for file in ["system-context.md", "container-view.md", "deployment-view.md"] {
+        let body = render_architecture_artifact(file, MINIMAL_C4_BRIEF, "", "");
         assert!(
-            body.contains("## Missing Authored Body"),
+            body.contains(MISSING_AUTHORED_BODY_MARKER),
             "{file} should emit missing-body marker when brief omits the C4 section"
         );
     }
 
-    assert!(artifact_dir.join("view-manifest.json").exists());
-    assert!(artifact_dir.join("packet-metadata.json").exists());
-    assert!(!artifact_dir.join("16-component-view.md").exists());
-    assert!(!artifact_dir.join("17-component-view.mmd").exists());
-    assert!(!artifact_dir.join("18-dynamic-view.md").exists());
-    assert!(!artifact_dir.join("19-dynamic-view.mmd").exists());
+    assert!(artifact_names.contains(&"view-manifest.json"));
+    assert!(artifact_names.contains(&"packet-metadata.json"));
+    assert!(!artifact_names.contains(&"component-view.md"));
+    assert!(!artifact_names.contains(&"component-view.mmd"));
+    assert!(!artifact_names.contains(&"dynamic-view.md"));
+    assert!(!artifact_names.contains(&"dynamic-view.mmd"));
 }

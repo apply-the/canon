@@ -1,11 +1,16 @@
 use std::fs;
 
 use canon_engine::EngineService;
+use canon_engine::domain::approval::ApprovalDecision;
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
 use canon_engine::domain::run::{ClassificationProvenance, SystemContext};
 use canon_engine::orchestrator::service::RunRequest;
 use tempfile::TempDir;
+
+fn requirements_generation_approval_target(run_id: &str) -> String {
+    format!("invocation:{run_id}-generate")
+}
 
 fn requirements_request(input: &str) -> RunRequest {
     RunRequest {
@@ -81,7 +86,7 @@ Deliver the bounded CLI slice first.
 }
 
 #[test]
-fn requirements_run_completes_with_authored_sections_and_no_missing_marker() {
+fn requirements_run_starts_draft_and_completes_after_resume_with_authored_sections() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("requirements.md"), complete_requirements_brief())
         .expect("requirements brief");
@@ -89,14 +94,43 @@ fn requirements_run_completes_with_authored_sections_and_no_missing_marker() {
     let service = EngineService::new(workspace.path());
     let summary = service.run(requirements_request("requirements.md")).expect("requirements run");
 
-    assert_eq!(summary.state, "Completed");
+    assert_eq!(summary.state, "Draft");
+
+    let refinement =
+        summary.refinement_state.expect("requirements run should expose refinement state");
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "requirements");
+    assert!(refinement.explicit_continuation_required);
+    assert!(working_brief.contains("# Requirements Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
+
+    let awaiting = service.resume(&summary.run_id).expect("resume requirements run");
+    assert_eq!(awaiting.state, "AwaitingApproval");
+    assert!(awaiting.approval_targets.is_empty());
+
+    let approved = service
+        .approve(
+            &summary.run_id,
+            &requirements_generation_approval_target(&summary.run_id),
+            "principal-engineer",
+            ApprovalDecision::Approve,
+            "Requirements generation may proceed after review.",
+        )
+        .expect("approve requirements generation");
+    assert_eq!(approved.run_id, summary.run_id);
+
+    let resumed = service.resume(&summary.run_id).expect("resume awaiting requirements run");
+    assert_eq!(resumed.state, "Completed");
 
     let problem_statement = fs::read_to_string(
         workspace
             .path()
             .join(".canon")
             .join("artifacts")
-            .join(&summary.run_id)
+            .join(&resumed.run_id)
             .join("requirements")
             .join("01-problem-statement.md"),
     )
@@ -111,7 +145,7 @@ fn requirements_run_completes_with_authored_sections_and_no_missing_marker() {
 }
 
 #[test]
-fn requirements_run_blocks_with_missing_body_marker_when_required_heading_is_absent() {
+fn requirements_run_blocks_after_resume_when_required_heading_is_absent() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("requirements.md"),
@@ -122,15 +156,43 @@ fn requirements_run_blocks_with_missing_body_marker_when_required_heading_is_abs
     let service = EngineService::new(workspace.path());
     let summary = service.run(requirements_request("requirements.md")).expect("requirements run");
 
-    assert_eq!(summary.state, "Blocked");
-    assert_eq!(summary.blocking_classification.as_deref(), Some("artifact-blocked"));
+    assert_eq!(summary.state, "Draft");
+
+    let refinement =
+        summary.refinement_state.expect("requirements run should expose refinement state");
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "requirements");
+    assert!(refinement.explicit_continuation_required);
+    assert!(working_brief.contains("# Requirements Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+
+    let awaiting = service.resume(&summary.run_id).expect("resume requirements run");
+    assert_eq!(awaiting.state, "AwaitingApproval");
+    assert!(awaiting.approval_targets.is_empty());
+
+    let approved = service
+        .approve(
+            &summary.run_id,
+            &requirements_generation_approval_target(&summary.run_id),
+            "principal-engineer",
+            ApprovalDecision::Approve,
+            "Requirements generation may proceed after review.",
+        )
+        .expect("approve requirements generation");
+    assert_eq!(approved.run_id, summary.run_id);
+
+    let resumed = service.resume(&summary.run_id).expect("resume awaiting requirements run");
+    assert_eq!(resumed.state, "Blocked");
+    assert_eq!(resumed.blocking_classification.as_deref(), Some("artifact-blocked"));
 
     let problem_statement = fs::read_to_string(
         workspace
             .path()
             .join(".canon")
             .join("artifacts")
-            .join(&summary.run_id)
+            .join(&resumed.run_id)
             .join("requirements")
             .join("01-problem-statement.md"),
     )

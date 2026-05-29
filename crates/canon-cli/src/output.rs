@@ -16,8 +16,10 @@ mod primitives;
 mod run;
 
 use dispatch::render_markdown_from_json;
-use inspect::render_risk_zone_text;
-use run::{render_run_summary_markdown, render_status_summary_markdown};
+use inspect::{render_refinement_text, render_risk_zone_text};
+use run::{
+    render_run_summary_markdown, render_status_summary_markdown, render_status_summary_text,
+};
 
 /// Serialises `value` to the requested output format and prints it to stdout.
 pub fn print_value<T: Serialize>(value: &T, format: OutputFormat) -> CliResult<()> {
@@ -53,6 +55,10 @@ pub fn print_run_summary(summary: &RunSummary, format: OutputFormat) -> CliResul
 /// Prints a [`StatusSummary`], rendering Markdown when that format is requested.
 pub fn print_status_summary(summary: &StatusSummary, format: OutputFormat) -> CliResult<()> {
     match format {
+        OutputFormat::Text => {
+            println!("{}", render_status_summary_text(summary));
+            Ok(())
+        }
         OutputFormat::Markdown => {
             println!("{}", render_status_summary_markdown(summary));
             Ok(())
@@ -80,6 +86,11 @@ pub fn print_inspect<T: Serialize>(
             println!("{}", render_risk_zone_text(&json));
             Ok(())
         }
+        OutputFormat::Text if target_name == "refinement" => {
+            let json = serde_json::to_value(value)?;
+            println!("{}", render_refinement_text(&json, run_id));
+            Ok(())
+        }
         OutputFormat::Markdown => {
             let json = serde_json::to_value(value)?;
             println!("{}", render_markdown_from_json(&json, target_name, run_id));
@@ -91,6 +102,9 @@ pub fn print_inspect<T: Serialize>(
 
 #[cfg(test)]
 mod tests {
+    use canon_engine::orchestrator::service::{
+        InspectResponse, RefinementCandidateSummary, RefinementStateSummary,
+    };
     use canon_engine::{
         GateInspectSummary, ModeResultSummary, RecommendedActionSummary, ResultActionSummary,
         RunSummary, StatusSummary,
@@ -98,9 +112,13 @@ mod tests {
     use serde_json::{Value, json};
 
     use super::dispatch::render_markdown_from_json;
-    use super::inspect::render_risk_zone_text;
+    use super::inspect::{render_refinement_text, render_risk_zone_text};
     use super::primitives::{render_kv_field, render_scalar_field, scalar_value};
-    use super::run::{render_run_summary_markdown, render_status_summary_markdown};
+    use super::run::{
+        render_run_summary_markdown, render_status_summary_markdown, render_status_summary_text,
+    };
+    use super::{print_inspect, print_status_summary};
+    use crate::app::OutputFormat;
 
     #[test]
     fn clarity_markdown_surfaces_questions_and_signals() {
@@ -256,6 +274,121 @@ mod tests {
     }
 
     #[test]
+    fn refinement_markdown_renders_refinement_state_working_brief_and_guidance() {
+        let value = json!({
+            "system_context": "existing",
+            "entries": [{
+                "run_id": "run-123",
+                "mode": "requirements",
+                "state": "Draft",
+                "working_brief_path": ".canon/runs/run-123/artifacts/requirements/working-brief.md",
+                "authoritative_inputs": ["canon-input/requirements/brief.md"],
+                "supporting_inputs": ["canon-input/requirements/context-links.md"],
+                "clarification_records": [{
+                    "id": "cq-001",
+                    "prompt": "Which actor owns the problem?",
+                    "answer": "platform operators",
+                    "answer_kind": "explicit",
+                    "affected_sections": ["Actors", "Problem Statement"],
+                    "resolution_state": "resolved",
+                    "recorded_at": "2026-05-29T12:10:00Z"
+                }],
+                "readiness_delta": [{
+                    "id": "rd-001",
+                    "section": "Validation Strategy",
+                    "summary": "Independent validation owner is not yet named.",
+                    "blocking": true,
+                    "source_kind": "missing-context",
+                    "default_available": false,
+                    "resolved": false
+                }],
+                "suggested_continuation": {
+                    "run_id": "run-prev-1",
+                    "mode": "requirements",
+                    "state": "Draft",
+                    "match_reason": "same authoritative input fingerprint",
+                    "advisory": true,
+                    "mutation_allowed": false
+                },
+                "lineage": null
+            }]
+        });
+
+        let markdown = render_markdown_from_json(&value, "refinement", Some("run-123"));
+
+        assert!(markdown.contains("# refinement"));
+        assert!(markdown.contains("Run ID: run-123"));
+        assert!(markdown.contains("State: Draft"));
+        assert!(markdown.contains("## Refinement State"));
+        assert!(markdown.contains("## Working Brief"));
+        assert!(markdown.contains("## Clarification Records"));
+        assert!(markdown.contains("## Readiness Delta"));
+        assert!(markdown.contains("## Continuation Guidance"));
+        assert!(
+            markdown.contains(
+                "Candidate detection is advisory; continuation requires explicit intent."
+            )
+        );
+    }
+
+    #[test]
+    fn refinement_text_renders_records_readiness_and_guidance() {
+        let value = json!({
+            "system_context": "existing",
+            "entries": [{
+                "run_id": "run-123",
+                "mode": "requirements",
+                "state": "Draft",
+                "working_brief_path": ".canon/runs/run-123/artifacts/requirements/working-brief.md",
+                "authoritative_inputs": ["canon-input/requirements/brief.md"],
+                "supporting_inputs": ["canon-input/requirements/context-links.md"],
+                "clarification_records": [{
+                    "id": "cq-001",
+                    "prompt": "Which actor owns the problem?",
+                    "answer": "platform operators",
+                    "answer_kind": "explicit",
+                    "affected_sections": ["Actors", "Problem Statement"],
+                    "resolution_state": "resolved",
+                    "recorded_at": "2026-05-29T12:10:00Z"
+                }],
+                "readiness_delta": [{
+                    "id": "rd-001",
+                    "section": "Validation Strategy",
+                    "summary": "Independent validation owner is not yet named.",
+                    "blocking": true,
+                    "source_kind": "missing-context",
+                    "default_available": false,
+                    "resolved": false
+                }],
+                "suggested_continuation": {
+                    "run_id": "run-prev-1",
+                    "mode": "requirements",
+                    "state": "Draft",
+                    "match_reason": "same authoritative input fingerprint",
+                    "advisory": true,
+                    "mutation_allowed": false
+                },
+                "lineage": null
+            }]
+        });
+
+        let text = render_refinement_text(&value, Some("run-123"));
+
+        assert!(text.contains("target: refinement"));
+        assert!(text.contains("run id: run-123"));
+        assert!(text.contains("clarification records:"));
+        assert!(text.contains("Which actor owns the problem?"));
+        assert!(text.contains("answer kind: explicit"));
+        assert!(text.contains("readiness delta:"));
+        assert!(text.contains("Independent validation owner is not yet named."));
+        assert!(
+            text.contains(
+                "candidate detection is advisory; continuation requires explicit intent."
+            )
+        );
+    }
+
+    #[test]
     fn list_markdown_falls_back_for_unknown_targets() {
         let value = json!({
             "entries": ["one", {"two": 2}]
@@ -361,6 +494,7 @@ mod tests {
                     .to_string(),
                 target: None,
             }],
+            refinement_state: None,
             mode_result: Some(ModeResultSummary {
                 headline: "Requirements packet ready for downstream review.".to_string(),
                 artifact_packet_summary: "Primary artifact is ready.".to_string(),
@@ -426,6 +560,7 @@ mod tests {
             closure_findings: Vec::new(),
             closure_notes: None,
             possible_actions: Vec::new(),
+            refinement_state: None,
             mode_result: Some(ModeResultSummary {
                 headline: "Incident packet ready for governed containment review.".to_string(),
                 artifact_packet_summary:
@@ -502,6 +637,7 @@ mod tests {
             closure_findings: Vec::new(),
             closure_notes: None,
             possible_actions: Vec::new(),
+            refinement_state: None,
             mode_result: Some(ModeResultSummary {
                 headline: "System assessment packet ready for governed architecture review."
                     .to_string(),
@@ -574,6 +710,7 @@ mod tests {
                     .to_string(),
                 target: Some("invocation:req-1".to_string()),
             }],
+            refinement_state: None,
             mode_result: None,
             recommended_next_action: Some(RecommendedActionSummary {
                 action: "inspect-evidence".to_string(),
@@ -721,6 +858,7 @@ mod tests {
             closure_findings: Vec::new(),
             closure_notes: None,
             possible_actions: Vec::new(),
+            refinement_state: None,
             mode_result: None,
             recommended_next_action: None,
         };
@@ -729,6 +867,172 @@ mod tests {
         assert!(markdown.contains("Run ID: run-status-1"));
         assert!(markdown.contains("State: Completed"));
         assert!(markdown.contains("System Context: existing"));
+    }
+
+    #[test]
+    fn status_summary_markdown_renders_refinement_state_and_continuation_guidance() {
+        let summary = StatusSummary {
+            run: "run-status-2".to_string(),
+            owner: "owner".to_string(),
+            state: "Draft".to_string(),
+            system_context: Some("existing".to_string()),
+            invocations_total: 0,
+            pending_invocation_approvals: 0,
+            validation_independence_satisfied: true,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: Vec::new(),
+            artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            possible_actions: Vec::new(),
+            refinement_state: Some(RefinementStateSummary {
+                workflow_family: "planning".to_string(),
+                current_mode: "requirements".to_string(),
+                working_brief_path:
+                    ".canon/runs/run-status-2/artifacts/requirements/working-brief.md".to_string(),
+                template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+                status: "active".to_string(),
+                explicit_continuation_required: true,
+                authoritative_input_refs: vec!["idea.md".to_string()],
+                supporting_input_refs: Vec::new(),
+                records_total: 2,
+                unresolved_records: 1,
+                readiness_delta: vec![
+                    "Explicit continuation is still required before governed execution."
+                        .to_string(),
+                ],
+                readiness_items: Vec::new(),
+                suggested_candidate: Some(RefinementCandidateSummary {
+                    run_id: "run-prev-1".to_string(),
+                    mode: "requirements".to_string(),
+                    state: "Draft".to_string(),
+                    match_reason: "same authoritative input fingerprint".to_string(),
+                    advisory: true,
+                }),
+            }),
+            mode_result: None,
+            recommended_next_action: None,
+        };
+
+        let markdown = render_status_summary_markdown(&summary);
+
+        assert!(markdown.contains("## Refinement State"));
+        assert!(markdown.contains("Current Mode: requirements"));
+        assert!(markdown.contains("Unresolved Clarification Records: 1"));
+        assert!(markdown.contains("## Continuation Guidance"));
+        assert!(markdown.contains("Suggested Continuation: run-prev-1 (requirements, Draft)"));
+        assert!(
+            markdown.contains(
+                "Candidate detection is advisory; continuation requires explicit intent."
+            )
+        );
+    }
+
+    #[test]
+    fn status_summary_text_renders_refinement_counts_and_guidance() {
+        let summary = StatusSummary {
+            run: "run-status-2".to_string(),
+            owner: "owner".to_string(),
+            state: "Draft".to_string(),
+            system_context: Some("existing".to_string()),
+            invocations_total: 0,
+            pending_invocation_approvals: 0,
+            validation_independence_satisfied: true,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: Vec::new(),
+            artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            possible_actions: Vec::new(),
+            refinement_state: Some(RefinementStateSummary {
+                workflow_family: "planning".to_string(),
+                current_mode: "requirements".to_string(),
+                working_brief_path:
+                    ".canon/runs/run-status-2/artifacts/requirements/working-brief.md".to_string(),
+                template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+                status: "active".to_string(),
+                explicit_continuation_required: true,
+                authoritative_input_refs: vec!["idea.md".to_string()],
+                supporting_input_refs: vec!["context.md".to_string()],
+                records_total: 2,
+                unresolved_records: 1,
+                readiness_delta: vec!["Independent validation owner is not yet named.".to_string()],
+                readiness_items: Vec::new(),
+                suggested_candidate: Some(RefinementCandidateSummary {
+                    run_id: "run-prev-1".to_string(),
+                    mode: "requirements".to_string(),
+                    state: "Draft".to_string(),
+                    match_reason: "same authoritative input fingerprint".to_string(),
+                    advisory: true,
+                }),
+            }),
+            mode_result: None,
+            recommended_next_action: None,
+        };
+
+        let text = render_status_summary_text(&summary);
+
+        assert!(text.contains("run id: run-status-2"));
+        assert!(text.contains("refinement state:"));
+        assert!(text.contains("clarification records: 2 total, 1 unresolved"));
+        assert!(text.contains("supporting inputs:"));
+        assert!(
+            text.contains(
+                "candidate detection is advisory; continuation requires explicit intent."
+            )
+        );
+    }
+
+    #[test]
+    fn print_status_summary_supports_text_format() {
+        let summary = StatusSummary {
+            run: "run-status-print".to_string(),
+            owner: "owner".to_string(),
+            state: "Draft".to_string(),
+            system_context: Some("existing".to_string()),
+            invocations_total: 0,
+            pending_invocation_approvals: 0,
+            validation_independence_satisfied: true,
+            blocking_classification: None,
+            blocked_gates: Vec::new(),
+            approval_targets: Vec::new(),
+            artifact_paths: Vec::new(),
+            closure_status: None,
+            decomposition_scope: None,
+            closure_findings: Vec::new(),
+            closure_notes: None,
+            possible_actions: Vec::new(),
+            refinement_state: None,
+            mode_result: None,
+            recommended_next_action: None,
+        };
+
+        assert!(print_status_summary(&summary, OutputFormat::Text).is_ok());
+    }
+
+    #[test]
+    fn print_inspect_supports_refinement_text_format() {
+        let response = InspectResponse {
+            target: "refinement".to_string(),
+            system_context: Some("existing".to_string()),
+            entries: Vec::new(),
+        };
+
+        assert!(
+            print_inspect(
+                &response,
+                "refinement",
+                Some("run-print-refinement"),
+                OutputFormat::Text
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -755,6 +1059,7 @@ mod tests {
             closure_findings: Vec::new(),
             closure_notes: None,
             possible_actions: Vec::new(),
+            refinement_state: None,
             mode_result: None,
             recommended_next_action: None,
         };
@@ -786,6 +1091,7 @@ mod tests {
             closure_findings: Vec::new(),
             closure_notes: None,
             possible_actions: Vec::new(),
+            refinement_state: None,
             mode_result: None,
             recommended_next_action: Some(RecommendedActionSummary {
                 action: "approve".to_string(),

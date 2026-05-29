@@ -136,6 +136,15 @@ for maintainers and reviewers of the live system.
 - `--to` changes the packet destination only; `--adr` never relocates the ADR registry.
 - If the emitted packet preserves `## Missing Authored Body` or other honesty markers, keep those signals explicit when describing or reviewing the resulting ADR.
 
+## Refinement Lifecycle
+
+- Change is one of Canon's five targeted planning modes with first-class same-run refinement.
+- During draft clarification, Canon may materialize `.canon/runs/<RUN_ID>/artifacts/change/working-brief.md` while keeping `canon-input/` read-only.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `refine`, or `same run`, supplies a `RUN_ID`, or chooses Canon's explicit continuation path.
+- Pre-start corrections across the targeted planning modes stay on the same run id. After a run has started, mode redirection creates a successor run with carried-forward lineage instead of mutating the original run in place.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the working-brief path, clarification records, readiness delta, or lineage.
+
 ## AI Companion Operating Model
 
 After preflight succeeds and the real Canon run exists, the assistant is

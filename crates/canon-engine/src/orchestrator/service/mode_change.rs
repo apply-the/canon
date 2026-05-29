@@ -122,7 +122,7 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let identity = RunIdentity::new_now_v7();
+        let identity = self.next_unique_run_identity(store)?;
         self.execute_change(store, request, policy_set, identity, Vec::new())
     }
 
@@ -132,7 +132,7 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let identity = RunIdentity::new_now_v7();
+        let identity = self.next_unique_run_identity(store)?;
         self.execute_change(store, request, policy_set, identity, Vec::new())
     }
 
@@ -142,7 +142,7 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let identity = RunIdentity::new_now_v7();
+        let identity = self.next_unique_run_identity(store)?;
         self.execute_change(store, request, policy_set, identity, Vec::new())
     }
 
@@ -303,9 +303,16 @@ impl EngineService {
                     system_context: request.system_context,
                     classification: request.classification.clone(),
                     owner: request.owner.clone(),
+                    lineage: None,
                     created_at: now,
                 },
-                context: self.build_run_context(&request, input_fingerprints, now),
+                context: self.build_run_context_with_refinement(
+                    store,
+                    &run_id,
+                    &request,
+                    input_fingerprints,
+                    now,
+                )?,
                 state: RunStateManifest { state: RunState::AwaitingApproval, updated_at: now },
                 artifact_contract,
                 links: LinkManifest {
@@ -542,13 +549,15 @@ impl EngineService {
                 vec![generation_attempt]
             };
 
-        let run_context = self.change_run_context(
-            &request,
+        let run_context = self.change_run_context(ChangeRunContextArgs {
+            store,
+            run_id: &run_id,
+            request: &request,
             input_fingerprints,
             now,
-            &mutation_attempt,
+            mutation_attempt: &mutation_attempt,
             execution_gate_approved,
-        );
+        })?;
 
         let bundle = PersistedRunBundle {
             run: RunManifest {
@@ -563,6 +572,7 @@ impl EngineService {
                 system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
+                lineage: None,
                 created_at: now,
             },
             context: run_context,
@@ -725,21 +735,33 @@ impl EngineService {
 
     fn change_run_context(
         &self,
-        request: &RunRequest,
-        input_fingerprints: Vec<InputFingerprint>,
-        now: OffsetDateTime,
-        mutation_attempt: &InvocationAttempt,
-        execution_gate_approved: bool,
-    ) -> RunContext {
-        let mut run_context = self.build_run_context(request, input_fingerprints, now);
-        if matches!(mutation_attempt.outcome.kind, ToolOutcomeKind::Succeeded) {
+        args: ChangeRunContextArgs<'_>,
+    ) -> Result<RunContext, EngineError> {
+        let mut run_context = self.build_run_context_with_refinement(
+            args.store,
+            args.run_id,
+            args.request,
+            args.input_fingerprints,
+            args.now,
+        )?;
+        if matches!(args.mutation_attempt.outcome.kind, ToolOutcomeKind::Succeeded) {
             set_execution_posture(&mut run_context, ExecutionPosture::Mutating);
         }
-        if execution_gate_approved {
+        if args.execution_gate_approved {
             set_post_approval_execution_consumed(&mut run_context, true);
         }
-        run_context
+        Ok(run_context)
     }
+}
+
+struct ChangeRunContextArgs<'a> {
+    store: &'a WorkspaceStore,
+    run_id: &'a str,
+    request: &'a RunRequest,
+    input_fingerprints: Vec<InputFingerprint>,
+    now: OffsetDateTime,
+    mutation_attempt: &'a InvocationAttempt,
+    execution_gate_approved: bool,
 }
 
 fn merge_generation_context(brief_summary: &str, context_summary: &str) -> String {
@@ -752,9 +774,67 @@ fn merge_generation_context(brief_summary: &str, context_summary: &str) -> Strin
 
 #[cfg(test)]
 mod tests {
-    use super::{change_mode_request_summaries, render_change_like_artifact};
+    use super::{
+        ChangeRunContextArgs, change_mode_request_summaries, merge_generation_context,
+        render_change_like_artifact,
+    };
     use crate::EngineError;
+    use crate::domain::execution::{
+        ExecutionPosture, InvocationConstraintSet, InvocationPolicyDecision, PolicyDecisionKind,
+        ToolOutcome, ToolOutcomeKind,
+    };
     use crate::domain::mode::Mode;
+    use crate::domain::run::{InputFingerprint, InputSourceKind, RunIdentity};
+    use crate::persistence::store::WorkspaceStore;
+    use tempfile::tempdir;
+    use time::OffsetDateTime;
+
+    use super::*;
+
+    fn sample_run_request(mode: Mode) -> RunRequest {
+        RunRequest {
+            mode,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            classification: ClassificationProvenance::explicit(),
+            owner: "Owner <owner@example.com>".to_string(),
+            inputs: Vec::new(),
+            inline_inputs: vec![
+                "# Brief\n\n## Problem\nBound the change.\n\n## Outcome\nKeep scope small.\n"
+                    .to_string(),
+            ],
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        }
+    }
+
+    fn sample_input_fingerprint() -> InputFingerprint {
+        InputFingerprint {
+            path: "inline-input-01.md".to_string(),
+            source_kind: InputSourceKind::Inline,
+            size_bytes: 64,
+            modified_unix_seconds: 1_700_000_000,
+            content_digest_sha256: Some("abc123".to_string()),
+            snapshot_ref: None,
+        }
+    }
+
+    fn sample_mutation_request(service: &EngineService) -> InvocationRequest {
+        service.governed_request(GovernedRequestSpec {
+            run_id: "R-20260529-change",
+            mode: Mode::Implementation,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            owner: "Owner <owner@example.com>",
+            adapter: canon_adapters::AdapterKind::Shell,
+            capability: CapabilityKind::ExecuteBoundedTransformation,
+            summary: "apply bounded patch",
+            scope: vec!["src/lib.rs".to_string()],
+        })
+    }
 
     #[test]
     fn change_mode_request_summaries_cover_empty_implementation_and_refactor_scope() {
@@ -860,5 +940,150 @@ mod tests {
         .expect_err("unsupported modes should be rejected");
 
         assert!(matches!(error, EngineError::UnsupportedMode(mode) if mode == "review"));
+    }
+
+    #[test]
+    fn merge_generation_context_deduplicates_equal_inputs_and_concatenates_distinct_inputs() {
+        assert_eq!(merge_generation_context("same", "same"), "same");
+        assert_eq!(merge_generation_context("brief", "context"), "brief\n\ncontext");
+    }
+
+    #[test]
+    fn approved_execution_updates_mutation_decision_only_when_all_guards_pass() {
+        let patch = AuthoredMutationPatch {
+            absolute_path: std::path::PathBuf::from("/tmp/patch.diff"),
+            relative_path: "packet/bounded.diff".to_string(),
+            changed_paths: vec!["src/lib.rs".to_string()],
+        };
+        let mut blocked = InvocationPolicyDecision {
+            kind: PolicyDecisionKind::AllowConstrained,
+            constraints: InvocationConstraintSet {
+                recommendation_only: true,
+                patch_disabled: true,
+                ..InvocationConstraintSet::default()
+            },
+            requires_approval: true,
+            rationale: "initial rationale".to_string(),
+            policy_refs: Vec::new(),
+            decided_at: OffsetDateTime::now_utc(),
+        };
+
+        EngineService::update_mutation_decision_for_approved_execution(
+            Mode::Implementation,
+            &["src/lib.rs".to_string()],
+            true,
+            Some(&patch),
+            &mut blocked,
+        );
+        assert!(blocked.constraints.recommendation_only);
+        assert!(blocked.requires_approval);
+        assert_eq!(blocked.rationale, "initial rationale");
+
+        blocked.constraints.patch_disabled = false;
+        EngineService::update_mutation_decision_for_approved_execution(
+            Mode::Implementation,
+            &["src/lib.rs".to_string()],
+            true,
+            Some(&patch),
+            &mut blocked,
+        );
+        assert!(!blocked.constraints.recommendation_only);
+        assert!(!blocked.requires_approval);
+        assert!(blocked.rationale.contains("packet/bounded.diff"));
+    }
+
+    #[test]
+    fn change_mutation_attempt_falls_back_to_policy_attempt_for_recommendation_and_missing_patch() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let request = sample_mutation_request(&service);
+
+        let recommendation = InvocationPolicyDecision {
+            kind: PolicyDecisionKind::AllowConstrained,
+            constraints: InvocationConstraintSet {
+                recommendation_only: true,
+                ..InvocationConstraintSet::default()
+            },
+            requires_approval: true,
+            rationale: "needs human review".to_string(),
+            policy_refs: Vec::new(),
+            decided_at: OffsetDateTime::now_utc(),
+        };
+        let recommendation_attempt = service
+            .change_mutation_attempt(&request, &recommendation, None)
+            .expect("recommendation fallback");
+        assert_eq!(recommendation_attempt.outcome.kind, ToolOutcomeKind::RecommendationOnly);
+
+        let allowed = InvocationPolicyDecision {
+            kind: PolicyDecisionKind::Allow,
+            constraints: InvocationConstraintSet::default(),
+            requires_approval: false,
+            rationale: "allowed".to_string(),
+            policy_refs: Vec::new(),
+            decided_at: OffsetDateTime::now_utc(),
+        };
+        let no_patch_attempt = service
+            .change_mutation_attempt(&request, &allowed, None)
+            .expect("missing patch fallback");
+        assert_eq!(no_patch_attempt.outcome.kind, ToolOutcomeKind::PartiallySucceeded);
+    }
+
+    #[test]
+    fn evaluate_change_like_gates_rejects_unsupported_modes() {
+        let request = sample_run_request(Mode::Requirements);
+        let error = EngineService::evaluate_change_like_gates(
+            &request,
+            &contract_for_mode(Mode::Change),
+            &[],
+            &[],
+            true,
+        )
+        .expect_err("requirements should be unsupported");
+        assert!(matches!(error, EngineError::UnsupportedMode(mode) if mode == "requirements"));
+    }
+
+    #[test]
+    fn change_run_context_sets_mutating_posture_and_consumes_execution_gate() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let store = WorkspaceStore::new(workspace.path());
+        let request = sample_run_request(Mode::Implementation);
+        let identity = RunIdentity::new_now_v7();
+        let mutation_request = sample_mutation_request(&service);
+        let mutation_attempt = service.completed_attempt(
+            &mutation_request,
+            1,
+            "shell:git-apply",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: "applied patch".to_string(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: identity.created_at,
+            },
+        );
+
+        let context = service
+            .change_run_context(ChangeRunContextArgs {
+                store: &store,
+                run_id: &identity.run_id,
+                request: &request,
+                input_fingerprints: vec![sample_input_fingerprint()],
+                now: identity.created_at,
+                mutation_attempt: &mutation_attempt,
+                execution_gate_approved: true,
+            })
+            .expect("change run context");
+
+        assert_eq!(execution_posture_label(&context), Some("mutating"));
+        assert!(post_approval_execution_consumed(&context));
+        assert_eq!(
+            context
+                .implementation_execution
+                .expect("implementation execution context")
+                .execution_posture,
+            ExecutionPosture::Mutating
+        );
     }
 }

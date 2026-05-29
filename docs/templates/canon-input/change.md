@@ -4,6 +4,9 @@
 > for maintainers and reviewers.
 > Boundary: persona guidance shapes tone only; keep the declared slice and any
 > missing sections explicit.
+> Refinement lifecycle: draft clarification can stay on the same run id until
+> execution starts; candidate detection is advisory and continuation still
+> requires explicit intent.
 
 ## System Slice
 Describe the bounded subsystem or module to change.

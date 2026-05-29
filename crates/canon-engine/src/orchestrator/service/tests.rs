@@ -24,9 +24,11 @@ use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::publish_profile::AuthorityApprovalState;
 use crate::domain::run::{
-    BacklogGranularity, BacklogPlanningContext, ClassificationProvenance, ClosureAssessment,
-    ClosureDecompositionScope, ClosureFinding, ClosureFindingSeverity, ClosureStatus, RunContext,
-    RunState, SystemContext, UpstreamContext,
+    BacklogGranularity, BacklogPlanningContext, ClarificationAnswerKind,
+    ClarificationRefinementContext, ClarificationRefinementStatus, ClarificationResolutionState,
+    ClassificationProvenance, ClosureAssessment, ClosureDecompositionScope, ClosureFinding,
+    ClosureFindingSeverity, ClosureStatus, ReadinessDeltaItem, ReadinessDeltaSourceKind,
+    RefinementWorkflowFamily, RunContext, RunIdentity, RunState, SystemContext, UpstreamContext,
 };
 use crate::orchestrator::evidence::{attach_paths, default_independence, empty_evidence_bundle};
 use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
@@ -151,6 +153,75 @@ Status: no-open-findings
 "#
 }
 
+fn targeted_refinement_brief(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Requirements => {
+            "# Requirements Brief\n\n## Problem\nClarify how Canon should refine an existing governed work item.\n\n## Desired Outcome\n- preserve run identity\n- keep source inputs immutable\n"
+        }
+        Mode::Discovery => {
+            "# Discovery Brief\n\n## Problem\nDetermine whether follow-up context belongs to fresh work or continuation.\n\n## Unknowns\n- continuation intent\n- ambiguity handling\n"
+        }
+        Mode::SystemShaping => {
+            "# System Shaping Brief\n\n## Opportunity\nModel refinement as one durable draft identity.\n\n## Constraints\n- no new persistence family\n"
+        }
+        Mode::Architecture => {
+            "# Architecture Brief\n\n## Decision\nPersist refinement state on the existing run context.\n\n## Constraints\n- keep inspect clarity separate\n"
+        }
+        Mode::Change => {
+            "# Change Brief\n\n## System Slice\nRun identity and refinement state.\n\n## Intended Change\nAdd explicit continuation gating.\n"
+        }
+        other => panic!("unsupported targeted refinement mode: {other:?}"),
+    }
+}
+
+fn representative_non_targeted_refinement_brief(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Review => {
+            "# Review Brief\n\n## Review Scope\nReview same-work refinement semantics.\n"
+        }
+        Mode::Verification => {
+            "# Verification Brief\n\n## Claims Under Test\n- continuation remains explicit\n"
+        }
+        Mode::Implementation => supported_implementation_brief(),
+        Mode::Refactor => {
+            "# Refactor Brief\n\n## Preserved Behavior\n- existing runs remain inspectable\n"
+        }
+        Mode::Incident => {
+            "# Incident Brief\n\n## Incident Summary\nFresh work attached to the wrong governed run.\n"
+        }
+        Mode::Migration => {
+            "# Migration Brief\n\n## Migration Goal\nCarry refinement context through successor lineage.\n"
+        }
+        other => panic!("unsupported representative non-targeted mode: {other:?}"),
+    }
+}
+
+fn refinement_request(mode: Mode, owner: &str) -> RunRequest {
+    let brief = match mode {
+        Mode::Requirements
+        | Mode::Discovery
+        | Mode::SystemShaping
+        | Mode::Architecture
+        | Mode::Change => targeted_refinement_brief(mode),
+        Mode::Review
+        | Mode::Verification
+        | Mode::Implementation
+        | Mode::Refactor
+        | Mode::Incident
+        | Mode::Migration => representative_non_targeted_refinement_brief(mode),
+        other => panic!("unsupported refinement fixture mode: {other:?}"),
+    };
+
+    inline_request(
+        mode,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        Some(SystemContext::Existing),
+        owner,
+        brief,
+    )
+}
+
 fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
     let store = WorkspaceStore::new(workspace.path());
     let run_id = "R-20260528-ABCDEF12".to_string();
@@ -194,6 +265,7 @@ fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
             system_context: Some(SystemContext::Existing),
             classification: ClassificationProvenance::explicit(),
             owner: "planner".to_string(),
+            lineage: None,
             created_at: OffsetDateTime::UNIX_EPOCH,
         },
         context: RunContext {
@@ -235,6 +307,7 @@ fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
                     notes: Some("One more independent rollback check remains.".to_string()),
                 },
             }),
+            clarification_refinement: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         },
@@ -285,6 +358,7 @@ fn persist_inspect_invocation_bundle(workspace: &TempDir) -> String {
             system_context: Some(SystemContext::Existing),
             classification: ClassificationProvenance::explicit(),
             owner: "staff-engineer".to_string(),
+            lineage: None,
             created_at: OffsetDateTime::UNIX_EPOCH,
         },
         context: RunContext {
@@ -298,6 +372,7 @@ fn persist_inspect_invocation_bundle(workspace: &TempDir) -> String {
             implementation_execution: None,
             refactor_execution: None,
             backlog_planning: None,
+            clarification_refinement: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         },
@@ -416,6 +491,19 @@ fn change_surface_entries_fall_back_to_inline_marker_and_dedupe_segments() {
             "token cleanup job".to_string()
         ]
     );
+}
+
+#[test]
+fn refinement_request_builder_supports_targeted_and_non_targeted_modes() {
+    let targeted = refinement_request(Mode::Requirements, "owner@example.com");
+    let non_targeted = refinement_request(Mode::Review, "owner@example.com");
+
+    assert_eq!(targeted.mode, Mode::Requirements);
+    assert_eq!(non_targeted.mode, Mode::Review);
+    assert!(targeted.inputs.is_empty());
+    assert!(non_targeted.inputs.is_empty());
+    assert_eq!(targeted.inline_inputs.len(), 1);
+    assert_eq!(non_targeted.inline_inputs.len(), 1);
 }
 
 #[test]
@@ -2235,6 +2323,36 @@ fn inspect_clarity_discovery_covers_open_question_recommendation() {
 }
 
 #[test]
+fn inspect_clarity_targeted_modes_bound_questions_to_specific_decision_surfaces() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("requirements-minimal.md"),
+        "# Requirements Brief\n\n## Problem\nClarify same-work continuation.\n",
+    )
+    .expect("requirements minimal brief");
+    let service = EngineService::new(workspace.path());
+
+    let response = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::Requirements,
+            inputs: vec!["requirements-minimal.md".to_string()],
+        })
+        .expect("inspect minimal requirements clarity");
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+
+    assert!(!summary.clarification_questions.is_empty());
+    assert!(
+        summary
+            .clarification_questions
+            .iter()
+            .all(|question| question.affects != "packet readiness")
+    );
+}
+
+#[test]
 fn inspect_clarity_supply_chain_covers_publishable_recommendation() {
     let workspace = TempDir::new().expect("temp dir");
     std::fs::write(
@@ -2503,8 +2621,352 @@ fn run_manifest_for_refresh(mode: Mode, index: usize) -> RunManifest {
         system_context: Some(SystemContext::Existing),
         classification: ClassificationProvenance::explicit(),
         owner: format!("owner-{}", mode.as_str()),
+        lineage: None,
         created_at: OffsetDateTime::UNIX_EPOCH,
     }
+}
+
+fn sample_refinement_context(run_id: &str, mode: Mode) -> ClarificationRefinementContext {
+    ClarificationRefinementContext {
+        workflow_family: RefinementWorkflowFamily::Planning,
+        current_mode: mode,
+        working_brief_path: format!(
+            ".canon/runs/{run_id}/artifacts/{}/working-brief.md",
+            mode.as_str()
+        ),
+        template_ref: format!("docs/templates/canon-input/{}.md", mode.as_str()),
+        status: ClarificationRefinementStatus::Active,
+        explicit_continuation_required: true,
+        authoritative_input_refs: vec![format!("canon-input/{}/brief.md", mode.as_str())],
+        supporting_input_refs: vec![format!("canon-input/{}/context-links.md", mode.as_str())],
+        suggested_candidate: None,
+        records: Vec::new(),
+        readiness_delta: vec![ReadinessDeltaItem {
+            id: format!("rd-{}", mode.as_str()),
+            section: "Readiness".to_string(),
+            summary: "Named owner is still required before governed continuation.".to_string(),
+            blocking: true,
+            source_kind: ReadinessDeltaSourceKind::MissingContext,
+            default_available: false,
+            resolved: false,
+        }],
+    }
+}
+
+fn seed_refinement_bundle(workspace: &TempDir, mode: Mode, state: RunState, owner: &str) -> String {
+    let store = WorkspaceStore::new(workspace.path());
+    let service = EngineService::new(workspace.path());
+    let request = refinement_request(mode, owner);
+    let identity = RunIdentity::new_now_v7();
+    let mut context = service.build_run_context(&request, Vec::new(), identity.created_at);
+    context.clarification_refinement = Some(sample_refinement_context(&identity.run_id, mode));
+
+    store
+        .persist_run_bundle(&PersistedRunBundle {
+            run: RunManifest::from_identity(
+                &identity,
+                mode,
+                request.risk,
+                request.zone,
+                request.system_context,
+                request.classification,
+                request.owner,
+            ),
+            context,
+            state: RunStateManifest { state, updated_at: identity.created_at },
+            artifact_contract: ArtifactContract {
+                version: 1,
+                artifact_requirements: Vec::new(),
+                required_verification_layers: Vec::new(),
+            },
+            artifacts: Vec::new(),
+            links: LinkManifest {
+                artifacts: Vec::new(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: None,
+            },
+            gates: Vec::new(),
+            approvals: Vec::new(),
+            verification_records: Vec::new(),
+            evidence: None,
+            invocations: Vec::new(),
+        })
+        .expect("seed refinement bundle");
+
+    identity.run_id
+}
+
+#[test]
+fn refinement_lifecycle_targeted_run_starts_draft_with_refinement_state() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    let summary = service
+        .run(refinement_request(Mode::Requirements, "planner"))
+        .expect("requirements refinement run");
+
+    assert_eq!(summary.mode, "requirements");
+    assert_eq!(summary.state, "Draft");
+
+    let refinement =
+        summary.refinement_state.expect("targeted refinement run should seed refinement state");
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "requirements");
+    assert_eq!(refinement.status, "active");
+    assert!(refinement.explicit_continuation_required);
+    assert!(refinement.working_brief_path.ends_with("/artifacts/requirements/working-brief.md"));
+
+    let status = service.status(&summary.run_id).expect("status after draft creation");
+    assert_eq!(status.run, summary.run_id);
+    assert_eq!(status.state, "Draft");
+    assert_eq!(
+        status.refinement_state.expect("status should surface refinement state").current_mode,
+        "requirements"
+    );
+}
+
+#[test]
+fn refinement_lifecycle_targeted_run_materializes_working_brief_artifact() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("idea.md"),
+        "# Requirements Brief\n\n## Problem\nMaterialize the run-local working brief.\n",
+    )
+    .expect("write idea file");
+    let service = EngineService::new(workspace.path());
+
+    let summary = service
+        .run(RunRequest {
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            classification: ClassificationProvenance::explicit(),
+            owner: "planner".to_string(),
+            inputs: vec!["idea.md".to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        })
+        .expect("requirements refinement run");
+
+    let refinement = summary.refinement_state.expect("refinement state on draft run");
+    let working_brief = workspace.path().join(&refinement.working_brief_path);
+    let contents = std::fs::read_to_string(&working_brief).expect("read working brief artifact");
+
+    assert!(working_brief.exists());
+    assert!(contents.contains("# Requirements Brief"));
+    assert!(contents.contains("## Clarification Provenance"));
+    assert!(contents.contains("## Continuation State"));
+}
+
+#[test]
+fn refinement_lifecycle_targeted_run_persists_structured_clarification_state() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("requirements");
+    std::fs::create_dir_all(&packet_root).expect("requirements packet root");
+    std::fs::write(
+        packet_root.join("brief.md"),
+        "# Requirements Brief\n\n## Problem\nClarify same-work continuation.\n",
+    )
+    .expect("requirements brief");
+    std::fs::write(
+        packet_root.join("context-links.md"),
+        "# Context Links\n\n- docs/decisions/run-refinement.md\n",
+    )
+    .expect("context links");
+
+    let service = EngineService::new(workspace.path());
+    let clarity = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::Requirements,
+            inputs: vec!["canon-input/requirements".to_string()],
+        })
+        .expect("inspect clarity for refinement seed");
+    let clarity_summary = match clarity.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+
+    let run = service
+        .run(RunRequest {
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            classification: ClassificationProvenance::explicit(),
+            owner: "planner".to_string(),
+            inputs: vec!["canon-input/requirements".to_string()],
+            inline_inputs: Vec::new(),
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        })
+        .expect("requirements refinement run");
+
+    let store = WorkspaceStore::new(workspace.path());
+    let context = store.load_run_context(&run.run_id).expect("persisted run context");
+    let refinement =
+        context.clarification_refinement.expect("targeted refinement context should persist");
+
+    assert_eq!(
+        refinement.authoritative_input_refs,
+        clarity_summary.authoring_lifecycle.authoritative_inputs
+    );
+    assert_eq!(
+        refinement.supporting_input_refs,
+        clarity_summary.authoring_lifecycle.supporting_inputs
+    );
+    assert_eq!(refinement.records.len(), clarity_summary.clarification_questions.len());
+    assert!(refinement.records.iter().all(|record| {
+        record.answer == "deferred"
+            && record.answer_kind == ClarificationAnswerKind::Deferred
+            && record.resolution_state == ClarificationResolutionState::Deferred
+    }));
+    assert_eq!(
+        EngineService::build_refinement_readiness_delta(&refinement.readiness_delta),
+        clarity_summary.authoring_lifecycle.readiness_delta
+    );
+    assert!(
+        refinement
+            .readiness_delta
+            .iter()
+            .any(|item| item.source_kind == ReadinessDeltaSourceKind::ClarificationGap)
+    );
+}
+
+#[test]
+fn refinement_lifecycle_fresh_request_keeps_existing_candidate_advisory_only() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    let first = service
+        .run(refinement_request(Mode::Requirements, "planner"))
+        .expect("first requirements refinement run");
+    let second = service
+        .run(refinement_request(Mode::Requirements, "planner"))
+        .expect("second requirements refinement run");
+
+    assert_ne!(
+        first.run_id, second.run_id,
+        "fresh work without explicit continuation should not reuse the prior run identity"
+    );
+
+    let suggested_candidate = second
+        .refinement_state
+        .expect("fresh refinement run should still surface refinement state")
+        .suggested_candidate
+        .expect("single likely prior run should be surfaced as an advisory candidate");
+    assert_eq!(suggested_candidate.run_id, first.run_id);
+    assert_eq!(suggested_candidate.mode, "requirements");
+    assert_eq!(suggested_candidate.state, "Draft");
+    assert!(suggested_candidate.advisory);
+
+    let first_status = service.status(&first.run_id).expect("status for original run");
+    assert_eq!(
+        first_status.refinement_state.expect("original run should remain inspectable").current_mode,
+        "requirements"
+    );
+}
+
+#[test]
+fn refinement_lifecycle_mode_correction_updates_draft_in_place() {
+    let workspace = TempDir::new().expect("temp dir");
+    let store = WorkspaceStore::new(workspace.path());
+    let service = EngineService::new(workspace.path());
+    let run_id = seed_refinement_bundle(&workspace, Mode::Requirements, RunState::Draft, "planner");
+    let reason = "Clarification redirected the work from requirements to architecture.";
+
+    let corrected_run_id = service
+        .apply_refinement_mode_correction(&store, &run_id, Mode::Architecture, reason)
+        .expect("pre-start mode correction");
+
+    assert_eq!(corrected_run_id, run_id);
+
+    let manifest = store.load_run_manifest(&run_id).expect("load corrected manifest");
+    let context = store.load_run_context(&run_id).expect("load corrected context");
+
+    assert_eq!(manifest.mode, Mode::Architecture);
+    assert!(manifest.lineage.is_none());
+    assert_eq!(
+        context
+            .clarification_refinement
+            .expect("refinement context after pre-start correction")
+            .current_mode,
+        Mode::Architecture
+    );
+}
+
+#[test]
+fn refinement_lifecycle_mode_correction_creates_successor_after_run_start() {
+    let workspace = TempDir::new().expect("temp dir");
+    let store = WorkspaceStore::new(workspace.path());
+    let service = EngineService::new(workspace.path());
+    let original_run_id =
+        seed_refinement_bundle(&workspace, Mode::Requirements, RunState::Completed, "planner");
+    let reason = "Clarification redirected the work from requirements to architecture.";
+
+    let successor_run_id = service
+        .apply_refinement_mode_correction(&store, &original_run_id, Mode::Architecture, reason)
+        .expect("post-start mode correction");
+
+    assert_ne!(successor_run_id, original_run_id);
+
+    let original_manifest =
+        store.load_run_manifest(&original_run_id).expect("load original manifest");
+    let successor_manifest =
+        store.load_run_manifest(&successor_run_id).expect("load successor manifest");
+    let successor_context =
+        store.load_run_context(&successor_run_id).expect("load successor context");
+
+    assert_eq!(original_manifest.mode, Mode::Requirements);
+    assert!(original_manifest.lineage.is_none());
+    assert_eq!(successor_manifest.mode, Mode::Architecture);
+
+    let lineage = successor_manifest.lineage.expect("successor lineage");
+    assert_eq!(lineage.carried_from, original_run_id);
+    assert_eq!(lineage.supersedes, original_run_id);
+    assert_eq!(lineage.mode_change_reason, reason);
+    assert_eq!(
+        successor_context
+            .clarification_refinement
+            .expect("successor refinement context")
+            .current_mode,
+        Mode::Architecture
+    );
+}
+
+#[test]
+fn inspect_refinement_surfaces_successor_lineage_after_post_start_mode_change() {
+    let workspace = TempDir::new().expect("temp dir");
+    let store = WorkspaceStore::new(workspace.path());
+    let service = EngineService::new(workspace.path());
+    let original_run_id =
+        seed_refinement_bundle(&workspace, Mode::Requirements, RunState::Completed, "planner");
+    let reason = "Clarification redirected the work from requirements to architecture.";
+
+    let successor_run_id = service
+        .apply_refinement_mode_correction(&store, &original_run_id, Mode::Architecture, reason)
+        .expect("post-start mode correction");
+
+    let inspect = service
+        .inspect(InspectTarget::Refinement { run_id: successor_run_id.clone() })
+        .expect("inspect refinement for successor run");
+    let summary = match inspect.entries.as_slice() {
+        [InspectEntry::Refinement(summary)] => summary,
+        other => panic!("expected one refinement entry, got {other:?}"),
+    };
+
+    assert_eq!(summary.run_id, successor_run_id);
+    assert_eq!(summary.mode, "architecture");
+
+    let lineage = summary.lineage.as_ref().expect("successor lineage in inspect summary");
+    assert_eq!(lineage.carried_from, original_run_id);
+    assert_eq!(lineage.supersedes, original_run_id);
+    assert_eq!(lineage.mode_change_reason, reason);
 }
 
 #[test]

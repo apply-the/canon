@@ -1,3 +1,8 @@
+use crate::domain::run::{
+    ClarificationAnswerKind, ClarificationRefinementContext, ClarificationRefinementStatus,
+    ClarificationResolutionState,
+};
+
 struct AuthoredSectionSpec<'a> {
     canonical_heading: &'a str,
     aliases: &'a [&'a str],
@@ -11,6 +16,172 @@ pub const MISSING_AUTHORED_DECISION_MARKER: &str = "## Missing Authored Decision
 /// Renders a generic titled Markdown document with a summary section.
 pub fn render_markdown(title: &str, summary: &str) -> String {
     format!("# {title}\n\n## Summary\n\n{summary}\n")
+}
+
+/// Renders a run-local working brief by preserving the authored body and
+/// appending the standard refinement appendix for targeted modes.
+pub fn render_refinement_working_brief(
+    authoritative_body: &str,
+    refinement: &ClarificationRefinementContext,
+) -> String {
+    let mut lines = Vec::new();
+    let trimmed_body = authoritative_body.trim_end();
+    if !trimmed_body.is_empty() {
+        lines.push(trimmed_body.to_string());
+    }
+
+    lines.push(String::new());
+    lines.push("## Clarification Provenance".to_string());
+    lines.push(String::new());
+    lines.push("### Applied Answers".to_string());
+    lines.push(String::new());
+    append_record_lines(
+        &mut lines,
+        refinement,
+        ClarificationAnswerKind::Explicit,
+        "No applied answers recorded.",
+    );
+
+    lines.push(String::new());
+    lines.push("### Applied Defaults".to_string());
+    lines.push(String::new());
+    append_record_lines(
+        &mut lines,
+        refinement,
+        ClarificationAnswerKind::Defaulted,
+        "No applied defaults recorded.",
+    );
+
+    lines.push(String::new());
+    lines.push("## Source Snapshots".to_string());
+    lines.push(String::new());
+    append_source_snapshot_lines(&mut lines, refinement);
+
+    lines.push(String::new());
+    lines.push("## Unresolved Questions".to_string());
+    lines.push(String::new());
+    append_unresolved_question_lines(&mut lines, refinement);
+
+    lines.push(String::new());
+    lines.push("## Readiness Delta".to_string());
+    lines.push(String::new());
+    append_readiness_delta_lines(&mut lines, refinement);
+
+    lines.push(String::new());
+    lines.push("## Continuation State".to_string());
+    lines.push(String::new());
+    append_continuation_state_lines(&mut lines, refinement);
+
+    format!("{}\n", lines.join("\n"))
+}
+
+fn append_record_lines(
+    lines: &mut Vec<String>,
+    refinement: &ClarificationRefinementContext,
+    answer_kind: ClarificationAnswerKind,
+    empty_message: &str,
+) {
+    let mut found = false;
+    for record in &refinement.records {
+        if record.answer_kind != answer_kind {
+            continue;
+        }
+        found = true;
+        lines.push(format!("- {}: {} -> {}", record.id, record.prompt, record.answer));
+    }
+
+    if !found {
+        lines.push(format!("- {empty_message}"));
+    }
+}
+
+fn append_source_snapshot_lines(
+    lines: &mut Vec<String>,
+    refinement: &ClarificationRefinementContext,
+) {
+    let mut snapshots = Vec::new();
+    for snapshot in
+        refinement.authoritative_input_refs.iter().chain(refinement.supporting_input_refs.iter())
+    {
+        if !snapshots.contains(snapshot) {
+            snapshots.push(snapshot.clone());
+        }
+    }
+
+    if snapshots.is_empty() {
+        lines.push("- No source snapshots recorded.".to_string());
+        return;
+    }
+
+    for snapshot in snapshots {
+        lines.push(format!("- {snapshot}"));
+    }
+}
+
+fn append_unresolved_question_lines(
+    lines: &mut Vec<String>,
+    refinement: &ClarificationRefinementContext,
+) {
+    let mut found = false;
+    for record in &refinement.records {
+        if !matches!(record.resolution_state, ClarificationResolutionState::Deferred) {
+            continue;
+        }
+        found = true;
+        lines.push(format!("- {}", record.prompt));
+    }
+
+    if !found {
+        lines.push("- No unresolved questions remain.".to_string());
+    }
+}
+
+fn append_readiness_delta_lines(
+    lines: &mut Vec<String>,
+    refinement: &ClarificationRefinementContext,
+) {
+    let unresolved =
+        refinement.readiness_delta.iter().filter(|item| !item.resolved).collect::<Vec<_>>();
+
+    if unresolved.is_empty() {
+        lines.push("- No readiness delta remains.".to_string());
+        return;
+    }
+
+    for item in unresolved {
+        lines.push(format!("- {}", item.summary));
+    }
+}
+
+fn append_continuation_state_lines(
+    lines: &mut Vec<String>,
+    refinement: &ClarificationRefinementContext,
+) {
+    let lifecycle_line = match refinement.status {
+        ClarificationRefinementStatus::Active => {
+            "- Same run identity retained during draft refinement."
+        }
+        ClarificationRefinementStatus::Ready => {
+            "- The run remains the same work item and is ready for explicit continuation into governed execution."
+        }
+        ClarificationRefinementStatus::Superseded => {
+            "- This refinement record has been superseded by a successor run."
+        }
+    };
+    lines.push(lifecycle_line.to_string());
+
+    if refinement.explicit_continuation_required {
+        lines.push(
+            "- Explicit continuation is still required before Canon mutates an existing run."
+                .to_string(),
+        );
+    }
+
+    if refinement.suggested_candidate.is_some() {
+        lines.push(
+            "- Candidate detection is advisory; continuation requires explicit intent.".to_string(),
+        );
+    }
 }
 
 // ── Submodules ────────────────────────────────────────────────────────────────
@@ -63,18 +234,129 @@ mod tests {
         render_architecture_artifact, render_backlog_artifact, render_change_artifact,
         render_discovery_artifact, render_incident_artifact, render_linear_mermaid,
         render_migration_artifact, render_missing_authored_body_block, render_pr_review_artifact,
-        render_requirements_artifact, render_requirements_artifact_from_evidence,
-        render_review_artifact, render_system_shaping_artifact, render_verification_artifact,
+        render_refinement_working_brief, render_requirements_artifact,
+        render_requirements_artifact_from_evidence, render_review_artifact,
+        render_system_shaping_artifact, render_verification_artifact,
     };
     use crate::domain::run::{
-        BacklogGranularity, BacklogPlanningContext, ClosureAssessment, ClosureFinding,
-        ClosureFindingSeverity,
+        BacklogGranularity, BacklogPlanningContext, ClarificationAnswerKind, ClarificationRecord,
+        ClarificationRefinementContext, ClarificationRefinementStatus,
+        ClarificationResolutionState, ClosureAssessment, ClosureFinding, ClosureFindingSeverity,
+        ContinuationCandidateSummary, ReadinessDeltaItem, ReadinessDeltaSourceKind,
+        RefinementWorkflowFamily, RunState,
     };
     use crate::review::findings::{
         ConventionalCommentScope, FindingCategory, FindingSeverity, ReviewAnchor, ReviewFinding,
         ReviewPacket,
     };
     use crate::review::summary::{ReviewDisposition, ReviewSummary};
+    use time::OffsetDateTime;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct SampleRefinementAppendix {
+        mode_slug: &'static str,
+        authoritative_inputs: Vec<String>,
+        supporting_inputs: Vec<String>,
+        applied_answers: Vec<(String, String)>,
+        applied_defaults: Vec<(String, String)>,
+        unresolved_questions: Vec<String>,
+        readiness_delta: Vec<String>,
+    }
+
+    fn sample_refinement_appendix(mode_slug: &'static str) -> SampleRefinementAppendix {
+        SampleRefinementAppendix {
+            mode_slug,
+            authoritative_inputs: vec![format!("canon-input/{mode_slug}/brief.md")],
+            supporting_inputs: vec![format!("canon-input/{mode_slug}/context-links.md")],
+            applied_answers: vec![(
+                "cq-001".to_string(),
+                "Which actor owns the problem? -> platform operators".to_string(),
+            )],
+            applied_defaults: vec![(
+                "cq-002".to_string(),
+                "Validation owner defaulted to repository maintainer review".to_string(),
+            )],
+            unresolved_questions: vec![
+                "Which downstream team owns the rollout sign-off?".to_string(),
+            ],
+            readiness_delta: vec!["Independent validation owner is not yet named.".to_string()],
+        }
+    }
+
+    fn sample_refinement_context(mode_slug: &'static str) -> ClarificationRefinementContext {
+        ClarificationRefinementContext {
+            workflow_family: RefinementWorkflowFamily::Planning,
+            current_mode: match mode_slug {
+                "requirements" => crate::domain::mode::Mode::Requirements,
+                "discovery" => crate::domain::mode::Mode::Discovery,
+                "system-shaping" => crate::domain::mode::Mode::SystemShaping,
+                "architecture" => crate::domain::mode::Mode::Architecture,
+                "change" => crate::domain::mode::Mode::Change,
+                other => panic!("unsupported refinement mode slug: {other}"),
+            },
+            working_brief_path: format!(
+                ".canon/runs/R-20260529-ab12cd34/artifacts/{mode_slug}/working-brief.md"
+            ),
+            template_ref: format!("docs/templates/canon-input/{mode_slug}.md"),
+            status: ClarificationRefinementStatus::Active,
+            explicit_continuation_required: true,
+            authoritative_input_refs: vec![format!("canon-input/{mode_slug}/brief.md")],
+            supporting_input_refs: vec![format!("canon-input/{mode_slug}/context-links.md")],
+            suggested_candidate: Some(ContinuationCandidateSummary {
+                run_id: "R-20260529-prev0001".to_string(),
+                mode: match mode_slug {
+                    "requirements" => crate::domain::mode::Mode::Requirements,
+                    "discovery" => crate::domain::mode::Mode::Discovery,
+                    "system-shaping" => crate::domain::mode::Mode::SystemShaping,
+                    "architecture" => crate::domain::mode::Mode::Architecture,
+                    "change" => crate::domain::mode::Mode::Change,
+                    other => panic!("unsupported refinement mode slug: {other}"),
+                },
+                state: RunState::Draft,
+                match_reason: "same authoritative input fingerprint".to_string(),
+                advisory: true,
+            }),
+            records: vec![
+                ClarificationRecord {
+                    id: "cq-001".to_string(),
+                    prompt: "Which actor owns the problem?".to_string(),
+                    answer: "platform operators".to_string(),
+                    answer_kind: ClarificationAnswerKind::Explicit,
+                    affected_sections: vec!["Actors".to_string(), "Problem Statement".to_string()],
+                    resolution_state: ClarificationResolutionState::Resolved,
+                    recorded_at: OffsetDateTime::UNIX_EPOCH,
+                },
+                ClarificationRecord {
+                    id: "cq-004".to_string(),
+                    prompt: "Who validates the release walkthrough?".to_string(),
+                    answer: "Validation owner defaulted to repository maintainer review"
+                        .to_string(),
+                    answer_kind: ClarificationAnswerKind::Defaulted,
+                    affected_sections: vec!["Validation Strategy".to_string()],
+                    resolution_state: ClarificationResolutionState::Resolved,
+                    recorded_at: OffsetDateTime::UNIX_EPOCH,
+                },
+                ClarificationRecord {
+                    id: "cq-005".to_string(),
+                    prompt: "Which downstream team owns rollout sign-off?".to_string(),
+                    answer: "Still awaiting owner confirmation".to_string(),
+                    answer_kind: ClarificationAnswerKind::Deferred,
+                    affected_sections: vec!["Rollout Plan".to_string()],
+                    resolution_state: ClarificationResolutionState::Deferred,
+                    recorded_at: OffsetDateTime::UNIX_EPOCH,
+                },
+            ],
+            readiness_delta: vec![ReadinessDeltaItem {
+                id: "rd-001".to_string(),
+                section: "Validation Strategy".to_string(),
+                summary: "Independent validation owner is not yet named.".to_string(),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::MissingContext,
+                default_available: false,
+                resolved: false,
+            }],
+        }
+    }
 
     fn sample_backlog_planning_context() -> BacklogPlanningContext {
         BacklogPlanningContext {
@@ -122,6 +404,53 @@ mod tests {
 
         assert!(
             rendered.contains("## Validation Strategy\n\n- Unit tests\n- Log assertion checks")
+        );
+    }
+
+    #[test]
+    fn sample_refinement_appendix_builder_returns_mode_scoped_paths() {
+        let appendix = sample_refinement_appendix("requirements");
+
+        assert_eq!(appendix.mode_slug, "requirements");
+        assert_eq!(
+            appendix.authoritative_inputs,
+            vec!["canon-input/requirements/brief.md".to_string()]
+        );
+        assert_eq!(
+            appendix.supporting_inputs,
+            vec!["canon-input/requirements/context-links.md".to_string()]
+        );
+        assert_eq!(appendix.applied_answers.len(), 1);
+        assert_eq!(appendix.applied_defaults.len(), 1);
+        assert_eq!(appendix.unresolved_questions.len(), 1);
+        assert_eq!(appendix.readiness_delta.len(), 1);
+    }
+
+    #[test]
+    fn render_refinement_working_brief_appends_required_refinement_sections() {
+        let refinement = sample_refinement_context("requirements");
+        let rendered = render_refinement_working_brief(
+            "# Requirements Brief\n\n## Problem\nClarify same-work continuation.\n",
+            &refinement,
+        );
+
+        assert!(rendered.contains("## Clarification Provenance"));
+        assert!(rendered.contains("### Applied Answers"));
+        assert!(rendered.contains("- cq-001: Which actor owns the problem? -> platform operators"));
+        assert!(rendered.contains("### Applied Defaults"));
+        assert!(rendered.contains("Validation owner defaulted to repository maintainer review"));
+        assert!(rendered.contains("## Source Snapshots"));
+        assert!(rendered.contains("canon-input/requirements/brief.md"));
+        assert!(rendered.contains("canon-input/requirements/context-links.md"));
+        assert!(rendered.contains("## Unresolved Questions"));
+        assert!(rendered.contains("Which downstream team owns rollout sign-off?"));
+        assert!(rendered.contains("## Readiness Delta"));
+        assert!(rendered.contains("Independent validation owner is not yet named."));
+        assert!(rendered.contains("## Continuation State"));
+        assert!(
+            rendered.contains(
+                "Candidate detection is advisory; continuation requires explicit intent."
+            )
         );
     }
 

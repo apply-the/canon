@@ -8,7 +8,7 @@
 - `stable_doc`: `docs/integration/governed-reasoning-posture-contract.md`
 - `primary_consumer`: `boundline`
 - `supported_boundline_window`: `0.62.x`
-- `supported_canon_window`: `0.61.x`
+- `supported_canon_window`: `0.62.x`
 
 ## Purpose
 
@@ -35,8 +35,8 @@ Boundline runtime orchestration.
 contract_line = "governed_reasoning_posture_v1"
 boundline_min = "0.62.0"
 boundline_max_exclusive = "0.63.0"
-canon_min = "0.61.0"
-canon_max_exclusive = "0.62.0"
+canon_min = "0.62.0"
+canon_max_exclusive = "0.63.0"
 required_profile_family = "blind_review"
 admission_priority = "required_before_acceptance"
 confidence_handoff_required = true

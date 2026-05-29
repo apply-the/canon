@@ -40,6 +40,13 @@ Continue an existing Canon run after approval or after the blocked condition was
 - Canon command: `canon resume --run <RUN_ID>`
 - Return the resumed Canon-backed state only.
 
+## Continuation Semantics
+
+- `canon resume --run <RUN_ID>` is Canon's explicit continuation path for an existing run.
+- Resume records continuation intent for the same run id; it must not be used to infer a candidate implicitly.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Targeted planning modes may carry a run-local working brief through continuation. Non-targeted modes preserve same-work identity without claiming the targeted working-brief lifecycle.
+
 ## Expected Output Shape
 
 - concise resume summary

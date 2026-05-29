@@ -118,6 +118,33 @@ impl WorkspaceStore {
         read_toml_file(self.layout.run_dir(run_id).join("context.toml"))
     }
 
+    /// Persists the runtime context for a run.
+    pub fn persist_run_context(&self, run_id: &str, context: &RunContext) -> Result<(), Error> {
+        let path = self.layout.run_dir(run_id).join("context.toml");
+        write_toml_file(path.clone(), context)?;
+        self.append_trace_stream(
+            run_id,
+            &[self.filesystem.trace_write(&path, "persist run context")],
+        )
+    }
+
+    /// Persists the run-local refinement working brief under the run directory.
+    pub fn persist_refinement_working_brief(
+        &self,
+        run_id: &str,
+        mode: Mode,
+        contents: &str,
+    ) -> Result<(), Error> {
+        let artifact_dir = self.layout.run_dir(run_id).join("artifacts").join(mode.as_str());
+        self.filesystem.create_dir_all(&artifact_dir).map_err(adapter_error_to_io)?;
+        let path = artifact_dir.join("working-brief.md");
+        write_text_file(&path, contents)?;
+        self.append_trace_stream(
+            run_id,
+            &[self.filesystem.trace_write(&path, "persist refinement working brief")],
+        )
+    }
+
     /// Loads the artifact contract (required output file specifications) for a run.
     pub fn load_artifact_contract(&self, run_id: &str) -> Result<ArtifactContract, Error> {
         read_toml_file(self.layout.run_dir(run_id).join("artifact-contract.toml"))

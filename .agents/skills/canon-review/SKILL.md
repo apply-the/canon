@@ -62,6 +62,14 @@ Optional:
 - Canon command: `canon run --mode review --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any `gate:review-disposition` target Canon emits.
 
+## Same-Work Continuity
+
+- Review preserves explicit continuation identity continuity, but it does not provide the targeted working-brief lifecycle.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `resume`, or `same run`, or supplies a `RUN_ID`.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the advisory continuation state Canon persisted for the run.
+- Do not claim that `.canon/runs/<RUN_ID>/artifacts/review/working-brief.md` exists for this mode unless Canon emits that surface in a future slice.
+
 ## Author Review Body Before Invoking Canon
 
 Canon does not invent the review body for you. Canon governs, validates, and

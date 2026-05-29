@@ -51,6 +51,9 @@ pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i3
         InspectCommand::Evidence { run, output } => {
             (InspectTarget::Evidence { run_id: run.clone() }, "evidence", Some(run), output)
         }
+        InspectCommand::Refinement { run, output } => {
+            (InspectTarget::Refinement { run_id: run.clone() }, "refinement", Some(run), output)
+        }
     };
 
     let response = service.inspect(target)?;
@@ -64,11 +67,12 @@ mod tests {
 
     use canon_engine::EngineService;
     use canon_engine::{
-        RunRequest,
+        InspectTarget, RunRequest,
         domain::mode::Mode,
         domain::policy::{RiskClass, UsageZone},
         domain::run::ClassificationProvenance,
     };
+    use serde_json::json;
     use tempfile::tempdir;
 
     use super::execute;
@@ -147,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn execute_supports_run_scoped_artifacts_invocations_and_evidence_inspection() {
+    fn execute_supports_run_scoped_artifacts_invocations_evidence_and_refinement_inspection() {
         let workspace = tempdir().expect("create temp workspace");
         fs::write(workspace.path().join("idea.md"), "# Idea\n\nInspect wrapper coverage.\n")
             .expect("write idea file");
@@ -183,9 +187,59 @@ mod tests {
             InspectCommand::Evidence { run: run.run_id.clone(), output: OutputFormat::Json },
         )
         .expect("inspect evidence should succeed");
+        let refinement = execute(
+            &service,
+            InspectCommand::Refinement { run: run.run_id.clone(), output: OutputFormat::Json },
+        )
+        .expect("inspect refinement should succeed");
 
         assert_eq!(artifacts, 0);
         assert_eq!(invocations, 0);
         assert_eq!(evidence, 0);
+        assert_eq!(refinement, 0);
+    }
+
+    #[test]
+    fn execute_refinement_exposes_run_scoped_refinement_contract_fields() {
+        let workspace = tempdir().expect("create temp workspace");
+        fs::write(
+            workspace.path().join("idea.md"),
+            "# Requirements Brief\n\n## Problem\nInspect refinement output contract.\n",
+        )
+        .expect("write idea file");
+        let service = EngineService::new(workspace.path());
+        let run = service
+            .run(RunRequest {
+                mode: Mode::Requirements,
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                system_context: None,
+                classification: ClassificationProvenance::explicit(),
+                owner: "Owner <owner@example.com>".to_string(),
+                inputs: vec!["idea.md".to_string()],
+                inline_inputs: Vec::new(),
+                excluded_paths: Vec::new(),
+                policy_root: None,
+                method_root: None,
+            })
+            .expect("requirements draft run should succeed");
+
+        let code = execute(
+            &service,
+            InspectCommand::Refinement { run: run.run_id.clone(), output: OutputFormat::Markdown },
+        )
+        .expect("inspect refinement markdown should succeed");
+        assert_eq!(code, 0);
+
+        let response = service
+            .inspect(InspectTarget::Refinement { run_id: run.run_id.clone() })
+            .expect("inspect refinement response");
+        let payload = serde_json::to_value(response).expect("inspect refinement json");
+
+        assert_eq!(payload["entries"][0]["run_id"], json!(run.run_id));
+        assert_eq!(payload["entries"][0]["state"], json!("Draft"));
+        assert!(payload["entries"][0]["clarification_records"].is_array());
+        assert!(payload["entries"][0]["readiness_delta"][0].is_object());
+        assert!(payload["entries"][0]["lineage"].is_null());
     }
 }

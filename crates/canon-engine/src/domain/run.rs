@@ -163,6 +163,9 @@ pub struct RunContext {
     /// Backlog planning parameters, if this is a `Backlog` run.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub backlog_planning: Option<BacklogPlanningContext>,
+    /// Clarification refinement state, if this run is being refined in place.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clarification_refinement: Option<ClarificationRefinementContext>,
     /// In-memory inline input payloads; not persisted to TOML.
     #[serde(default, skip)]
     pub inline_inputs: Vec<InlineInput>,
@@ -188,6 +191,164 @@ pub struct UpstreamContext {
     /// Scope from the upstream run that this run explicitly excludes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub excluded_upstream_scope: Option<String>,
+}
+
+/// The workflow family that a refinement session belongs to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RefinementWorkflowFamily {
+    /// Refinement for planning-oriented modes.
+    Planning,
+    /// Refinement for execution-oriented modes.
+    Execution,
+    /// Refinement for assessment or review-oriented modes.
+    Assessment,
+}
+
+/// The lifecycle state of run-scoped clarification refinement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClarificationRefinementStatus {
+    /// Refinement is active and still gathering operator input.
+    Active,
+    /// Refinement is ready for explicit continuation into governed work.
+    Ready,
+    /// Refinement has been replaced by a successor or newer record.
+    Superseded,
+}
+
+/// The kind of answer recorded for a clarification question.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClarificationAnswerKind {
+    /// The operator supplied a direct answer.
+    Explicit,
+    /// A documented default was applied.
+    Defaulted,
+    /// The question remains deferred.
+    Deferred,
+}
+
+/// The current resolution state for a clarification record.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ClarificationResolutionState {
+    /// The question is resolved for the current working brief.
+    Resolved,
+    /// The question remains deferred.
+    Deferred,
+    /// The record has been superseded by a later answer.
+    Superseded,
+}
+
+/// The source category for a readiness delta item.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReadinessDeltaSourceKind {
+    /// Readiness is blocked by missing ownership or authority.
+    AuthorityGap,
+    /// Readiness is blocked by missing context.
+    MissingContext,
+    /// Readiness is blocked by unanswered clarification.
+    ClarificationGap,
+    /// Readiness has a warning sourced from non-authoritative supporting input.
+    SupportingInputWarning,
+}
+
+/// Advisory summary of an existing run that may be the continuation target.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContinuationCandidateSummary {
+    /// Candidate run identifier.
+    pub run_id: String,
+    /// Candidate mode.
+    pub mode: Mode,
+    /// Candidate lifecycle state.
+    pub state: RunState,
+    /// Human-readable explanation for the advisory match.
+    pub match_reason: String,
+    /// Whether the candidate remains advisory only.
+    pub advisory: bool,
+}
+
+/// Durable record of a single clarification question and answer.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClarificationRecord {
+    /// Stable clarification record identifier.
+    pub id: String,
+    /// Prompt shown to the operator.
+    pub prompt: String,
+    /// Answer text or applied default text.
+    pub answer: String,
+    /// Whether the answer was explicit, defaulted, or deferred.
+    pub answer_kind: ClarificationAnswerKind,
+    /// Working-brief sections or readiness surfaces affected by the answer.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub affected_sections: Vec<String>,
+    /// Current resolution state for the record.
+    pub resolution_state: ClarificationResolutionState,
+    /// When the answer or default was recorded.
+    pub recorded_at: OffsetDateTime,
+}
+
+/// Structured readiness blocker or warning carried during refinement.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReadinessDeltaItem {
+    /// Stable readiness item identifier.
+    pub id: String,
+    /// Section or lifecycle area affected.
+    pub section: String,
+    /// Human-readable readiness summary.
+    pub summary: String,
+    /// Whether the item currently blocks readiness.
+    pub blocking: bool,
+    /// The source category for the readiness delta.
+    pub source_kind: ReadinessDeltaSourceKind,
+    /// Whether a safe default exists for this gap.
+    pub default_available: bool,
+    /// Whether the item has been resolved.
+    pub resolved: bool,
+}
+
+/// Run-scoped refinement state captured during clarification.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClarificationRefinementContext {
+    /// The workflow family for this refinement session.
+    pub workflow_family: RefinementWorkflowFamily,
+    /// The current mode being refined.
+    pub current_mode: Mode,
+    /// Run-local working brief artifact path.
+    pub working_brief_path: String,
+    /// Template or method source used to seed the working brief.
+    pub template_ref: String,
+    /// Current refinement lifecycle status.
+    pub status: ClarificationRefinementStatus,
+    /// Whether explicit continuation is still required.
+    pub explicit_continuation_required: bool,
+    /// Authoritative input references that seeded the working brief.
+    pub authoritative_input_refs: Vec<String>,
+    /// Supporting but non-authoritative input references.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub supporting_input_refs: Vec<String>,
+    /// Advisory candidate summary, if Canon found one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suggested_candidate: Option<ContinuationCandidateSummary>,
+    /// Clarification answers captured so far.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub records: Vec<ClarificationRecord>,
+    /// Structured readiness blockers and warnings.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub readiness_delta: Vec<ReadinessDeltaItem>,
+}
+
+/// Successor linkage recorded when refinement redirects started work.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RunLineageLink {
+    /// Prior run whose context is being carried forward.
+    pub carried_from: String,
+    /// Prior run replaced for forward work.
+    pub supersedes: String,
+    /// Explanation for the mode redirection.
+    pub mode_change_reason: String,
 }
 
 /// Execution parameters for a bounded `Implementation` run.
@@ -581,15 +742,59 @@ mod tests {
     use time::OffsetDateTime;
 
     use super::{
-        BacklogGranularity, BacklogPlanningContext, ClosureAssessment, ClosureDecompositionScope,
-        ClosureFinding, ClosureFindingSeverity, ClosureStatus, ImplementationExecutionContext,
-        RefactorExecutionContext, RunContext, UpstreamContext,
+        BacklogGranularity, BacklogPlanningContext, ClarificationAnswerKind, ClarificationRecord,
+        ClarificationRefinementContext, ClarificationRefinementStatus,
+        ClarificationResolutionState, ClosureAssessment, ClosureDecompositionScope, ClosureFinding,
+        ClosureFindingSeverity, ClosureStatus, ContinuationCandidateSummary,
+        ImplementationExecutionContext, ReadinessDeltaItem, ReadinessDeltaSourceKind,
+        RefactorExecutionContext, RefinementWorkflowFamily, RunContext, RunState, UpstreamContext,
     };
     use crate::domain::execution::{
         ExecutionPosture, MutationBounds, MutationExpansionPolicy, SafetyNetEvidence,
         SafetyNetEvidenceProvenance, SafetyNetEvidenceStatus,
     };
+    use crate::domain::mode::Mode;
     use crate::domain::run::{InputFingerprint, InputSourceKind, SystemContext};
+
+    fn sample_clarification_refinement_context() -> ClarificationRefinementContext {
+        ClarificationRefinementContext {
+            workflow_family: RefinementWorkflowFamily::Planning,
+            current_mode: Mode::Requirements,
+            working_brief_path:
+                ".canon/runs/R-20260529-ab12cd34/artifacts/requirements/working-brief.md"
+                    .to_string(),
+            template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+            status: ClarificationRefinementStatus::Active,
+            explicit_continuation_required: true,
+            authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],
+            supporting_input_refs: vec!["canon-input/requirements/context-links.md".to_string()],
+            suggested_candidate: Some(ContinuationCandidateSummary {
+                run_id: "R-20260529-ab12cd34".to_string(),
+                mode: Mode::Requirements,
+                state: RunState::Draft,
+                match_reason: "same authoritative input fingerprint".to_string(),
+                advisory: true,
+            }),
+            records: vec![ClarificationRecord {
+                id: "cq-001".to_string(),
+                prompt: "Which actor owns the problem?".to_string(),
+                answer: "platform operators".to_string(),
+                answer_kind: ClarificationAnswerKind::Explicit,
+                affected_sections: vec!["Actors".to_string(), "Problem Statement".to_string()],
+                resolution_state: ClarificationResolutionState::Resolved,
+                recorded_at: OffsetDateTime::UNIX_EPOCH,
+            }],
+            readiness_delta: vec![ReadinessDeltaItem {
+                id: "rd-001".to_string(),
+                section: "Validation Strategy".to_string(),
+                summary: "Independent validation owner is not yet named.".to_string(),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::MissingContext,
+                default_available: false,
+                resolved: false,
+            }],
+        }
+    }
 
     #[test]
     fn run_context_deserializes_without_mode_specific_execution_blocks() {
@@ -611,6 +816,7 @@ mod tests {
             implementation_execution: None,
             refactor_execution: None,
             backlog_planning: None,
+            clarification_refinement: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         })
@@ -619,6 +825,7 @@ mod tests {
         assert!(!context_toml.contains("implementation_execution"));
         assert!(!context_toml.contains("refactor_execution"));
         assert!(!context_toml.contains("backlog_planning"));
+        assert!(!context_toml.contains("clarification_refinement"));
 
         let context: RunContext = toml::from_str(&context_toml).expect("context toml");
 
@@ -627,6 +834,7 @@ mod tests {
         assert!(context.implementation_execution.is_none());
         assert!(context.refactor_execution.is_none());
         assert!(context.backlog_planning.is_none());
+        assert!(context.clarification_refinement.is_none());
     }
 
     #[test]
@@ -712,6 +920,7 @@ mod tests {
                     notes: Some("The backlog packet stayed closure-limited in this sample.".to_string()),
                 },
             }),
+            clarification_refinement: Some(sample_clarification_refinement_context()),
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         };
@@ -727,6 +936,22 @@ mod tests {
         assert!(serialized.contains("[refactor_execution.refactor_scope]"));
         assert!(serialized.contains("[backlog_planning]"));
         assert!(serialized.contains("desired_granularity = \"epic-plus-slice\""));
+        assert!(serialized.contains("[clarification_refinement]"));
+        assert!(serialized.contains("workflow_family = \"planning\""));
+        assert!(serialized.contains("status = \"active\""));
+        assert!(serialized.contains("[clarification_refinement.suggested_candidate]"));
+        assert!(serialized.contains("[[clarification_refinement.records]]"));
+        assert!(serialized.contains("[[clarification_refinement.readiness_delta]]"));
+
+        let round_tripped: RunContext =
+            toml::from_str(&serialized).expect("deserialize run context");
+        let refinement = round_tripped
+            .clarification_refinement
+            .expect("clarification refinement should deserialize");
+        assert_eq!(refinement.current_mode, Mode::Requirements);
+        assert_eq!(refinement.status, ClarificationRefinementStatus::Active);
+        assert_eq!(refinement.records.len(), 1);
+        assert_eq!(refinement.readiness_delta.len(), 1);
     }
 
     #[test]

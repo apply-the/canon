@@ -1,12 +1,16 @@
 use std::fs;
 use std::path::Path;
 
+use canon_engine::domain::artifact::{
+    ArtifactContract, ArtifactFormat, ArtifactRecord, ArtifactRequirement,
+};
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
 use canon_engine::domain::publish_profile::PublishProfile;
-use canon_engine::domain::run::{ClassificationProvenance, RunState, SystemContext};
+use canon_engine::domain::run::{ClassificationProvenance, RunContext, RunState, SystemContext};
 use canon_engine::orchestrator::publish::{publish_run, publish_run_with_profile};
-use canon_engine::persistence::manifests::{RunManifest, RunStateManifest};
+use canon_engine::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
+use canon_engine::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 use canon_engine::{EngineService, RunRequest};
 use tempfile::tempdir;
 use time::OffsetDateTime;
@@ -16,6 +20,7 @@ fn complete_requirements_brief() -> &'static str {
     "# Requirements Brief\n\n## Problem\n\nPublish engine unit test coverage.\n\n## Outcome\n\nPublish functions are exercised under full artifact contracts.\n\n## Constraints\n\n- Keep output local-first.\n\n## Non-Negotiables\n\n- Artifacts must persist under .canon/.\n\n## Options\n\n1. Publish to default path.\n\n## Recommended Path\n\nPublish to the default mode directory.\n\n## Tradeoffs\n\n- Simpler path at cost of flexibility.\n\n## Consequences\n\n- Reviewers can inspect the packet.\n\n## Out of Scope\n\n- No hosted publishing.\n\n## Deferred Work\n\n- Remote destinations deferred.\n\n## Decision Checklist\n\n- [x] Scope is explicit.\n\n## Open Questions\n\n- None at this time.\n"
 }
 
+#[allow(dead_code)]
 fn requirements_request() -> RunRequest {
     RunRequest {
         mode: Mode::Requirements,
@@ -32,6 +37,7 @@ fn requirements_request() -> RunRequest {
     }
 }
 
+#[allow(dead_code)]
 fn architecture_request() -> RunRequest {
     RunRequest {
         mode: Mode::Architecture,
@@ -48,6 +54,7 @@ fn architecture_request() -> RunRequest {
     }
 }
 
+#[allow(dead_code)]
 fn architecture_brief() -> &'static str {
     "# Architecture Brief\n\nDecision focus: map boundaries and tradeoffs for governed analysis-mode expansion.\nConstraint: preserve Canon persistence, evidence, and approval behavior.\n\n## Decision\nUse a dedicated context map to make architecture boundaries reviewable.\n\n## Options\n- Keep domain boundaries implicit in existing prose.\n- Add a dedicated `context-map.md` artifact.\n\n## Constraints\n- Preserve run identity and approval behavior.\n- Keep non-target modes unchanged.\n\n## Candidate Boundaries\n- Runtime Governance\n- Artifact Authoring\n\n## Invariants\n- Evidence remains linked to the run.\n- Risk review stays explicit.\n\n## Evaluation Criteria\n- Ownership clarity\n- Seam visibility.\n\n## Decision Drivers\n- Reviewers need the chosen direction and rationale without consulting chat history.\n- The packet must remain critique-first when authored context is weak.\n\n## Options Considered\n- Keep the current generic decision summary.\n- Preserve authored decision and option-analysis sections directly in the existing artifacts.\n\n## Pros\n- The emitted packet records the chosen option and rejected alternatives explicitly.\n- Reviewers can reuse the packet outside the originating conversation.\n\n## Cons\n- The authored brief must carry more explicit decision content.\n\n## Recommendation\nPreserve authored decision and option-analysis sections directly in the existing architecture decision artifacts.\n\n## Why Not The Others\n- The generic summary shape hides rejected alternatives.\n- A new artifact family would widen scope beyond this slice.\n\n## Consequences\n- Architecture reviewers can inspect a durable ADR without reopening the run history.\n\n## Bounded Contexts\n- Runtime Governance: owns approvals, run state, and evidence linkage.\n- Artifact Authoring: owns packet structure and authored-body fidelity.\n\n## Context Relationships\n- Artifact Authoring consumes gate and lineage outcomes from Runtime Governance.\n\n## Integration Seams\n- `mode_shaping` hands rendered artifacts to gate evaluation and summarization.\n\n## Anti-Corruption Candidates\n- Renderer helpers should remain isolated from governance-specific state semantics.\n\n## Ownership Boundaries\n- Governance code owns gate evaluation.\n- Rendering code owns authored markdown fidelity.\n\n## Shared Invariants\n- Every artifact remains bound to one run id.\n- Approval-gated architecture runs cannot skip risk review.\n\n## System Context\n- System: `canon-engine` governs analysis packets and durable evidence.\n- External actors:\n  - architect-reviewer: reads architecture packets.\n  - copilot-cli-adapter: generates and critiques packet content.\n\n## Containers\n- `canon-cli` (Rust CLI): entrypoint for run and inspect commands.\n- `canon-engine` (Rust library): orchestrates generation, critique, gates, and rendering.\n- `.canon/` (filesystem): persists run manifests, artifacts, and evidence.\n\n## Deployment\n- `canon-cli` runs on developer laptops and CI runners.\n- `canon-engine` shares the same Rust process boundary as the CLI.\n- `.canon/` remains the local runtime store on the active workspace filesystem.\n\n## Components\n- `mode_shaping`: runs architecture orchestration.\n- `gatekeeper`: validates contract and policy gates.\n- `markdown renderer`: emits reviewable architecture artifacts.\n"
 }
@@ -105,6 +112,7 @@ fn sample_manifest(run_id: &str) -> RunManifest {
         system_context: None,
         classification: ClassificationProvenance::explicit(),
         owner: "Owner <owner@example.com>".to_string(),
+        lineage: None,
         created_at: OffsetDateTime::parse("2026-04-22T08:00:00Z", &Rfc3339)
             .expect("parse timestamp"),
     }
@@ -121,18 +129,213 @@ fn persist_run_manifest_and_state(repo_root: &Path, manifest: &RunManifest, stat
         .expect("write state");
 }
 
+fn persist_completed_requirements_run(workspace_root: &Path) -> String {
+    let run_id = "R-20260529-publishrequirements01".to_string();
+    let created_at =
+        OffsetDateTime::parse("2026-05-29T00:00:00Z", &Rfc3339).expect("parse fixture timestamp");
+    let manifest = RunManifest {
+        run_id: run_id.clone(),
+        uuid: Some("12345678123456781234567812345678".to_string()),
+        short_id: Some("abcd1234".to_string()),
+        slug: Some("publish-scope".to_string()),
+        title: Some("Publish Scope".to_string()),
+        mode: Mode::Requirements,
+        risk: RiskClass::LowImpact,
+        zone: UsageZone::Green,
+        system_context: None,
+        classification: ClassificationProvenance::explicit(),
+        owner: "Owner <owner@example.com>".to_string(),
+        lineage: None,
+        created_at,
+    };
+    let artifact_contract = ArtifactContract {
+        version: 1,
+        artifact_requirements: vec![ArtifactRequirement {
+            file_name: "01-problem-statement.md".to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: vec!["Problem".to_string(), "Outcome".to_string()],
+            gates: Vec::new(),
+            required: true,
+        }],
+        required_verification_layers: Vec::new(),
+    };
+    let artifacts = vec![PersistedArtifact {
+        record: ArtifactRecord {
+            file_name: "01-problem-statement.md".to_string(),
+            relative_path: format!("artifacts/{run_id}/requirements/01-problem-statement.md"),
+            format: ArtifactFormat::Markdown,
+            provenance: None,
+        },
+        contents: "# Problem Statement\n\n## Problem\n\nPublish engine unit test coverage.\n\n## Outcome\n\nPublish functions are exercised under full artifact contracts.\n".to_string(),
+    }];
+    let bundle = PersistedRunBundle {
+        run: manifest.clone(),
+        context: RunContext {
+            repo_root: workspace_root.display().to_string(),
+            owner: Some(manifest.owner.clone()),
+            inputs: vec!["idea.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: manifest.system_context,
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            clarification_refinement: None,
+            inline_inputs: Vec::new(),
+            captured_at: created_at,
+        },
+        state: RunStateManifest { state: RunState::Completed, updated_at: created_at },
+        artifact_contract,
+        artifacts,
+        links: LinkManifest {
+            artifacts: Vec::new(),
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: Vec::new(),
+        verification_records: Vec::new(),
+        evidence: None,
+        invocations: Vec::new(),
+    };
+
+    WorkspaceStore::new(workspace_root)
+        .persist_run_bundle(&bundle)
+        .expect("persist completed requirements run");
+
+    run_id
+}
+
+fn persist_completed_architecture_run(workspace_root: &Path) -> String {
+    let run_id = "R-20260529-publisharchitecture01".to_string();
+    let created_at =
+        OffsetDateTime::parse("2026-05-29T00:00:00Z", &Rfc3339).expect("parse fixture timestamp");
+    let manifest = RunManifest {
+        run_id: run_id.clone(),
+        uuid: None,
+        short_id: None,
+        slug: None,
+        title: None,
+        mode: Mode::Architecture,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        classification: ClassificationProvenance::explicit(),
+        owner: "staff-architect".to_string(),
+        lineage: None,
+        created_at,
+    };
+    let artifact_contract = ArtifactContract {
+        version: 1,
+        artifact_requirements: vec![
+            ArtifactRequirement {
+                file_name: "architecture-overview.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                required_sections: vec!["Summary".to_string()],
+                gates: Vec::new(),
+                required: true,
+            },
+            ArtifactRequirement {
+                file_name: "architecture-decisions.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                required_sections: vec!["Decision".to_string()],
+                gates: Vec::new(),
+                required: true,
+            },
+            ArtifactRequirement {
+                file_name: "tradeoff-matrix.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                required_sections: vec!["Options Considered".to_string()],
+                gates: Vec::new(),
+                required: true,
+            },
+        ],
+        required_verification_layers: Vec::new(),
+    };
+    let artifacts = vec![
+        PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "architecture-overview.md".to_string(),
+                relative_path: format!("artifacts/{run_id}/architecture/architecture-overview.md"),
+                format: ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Architecture Overview\n\n## Summary\n\nDecision focus: map boundaries and tradeoffs for governed analysis-mode expansion.\n".to_string(),
+        },
+        PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "architecture-decisions.md".to_string(),
+                relative_path: format!("artifacts/{run_id}/architecture/architecture-decisions.md"),
+                format: ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Architecture Decisions\n\n## Decision\n\nUse a dedicated context map to make architecture boundaries reviewable.\n\n## Recommendation\n\nPreserve authored decision and option-analysis sections directly in the existing architecture decision artifacts.\n\n## Consequences\n\n- The emitted packet records the chosen option and rejected alternatives explicitly.\n".to_string(),
+        },
+        PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "tradeoff-matrix.md".to_string(),
+                relative_path: format!("artifacts/{run_id}/architecture/tradeoff-matrix.md"),
+                format: ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Tradeoff Matrix\n\n## Options Considered\n\n- Keep the current generic decision summary.\n\n## Why Not The Others\n\n- A new artifact family would widen scope beyond this slice.\n".to_string(),
+        },
+    ];
+    let bundle = PersistedRunBundle {
+        run: manifest.clone(),
+        context: RunContext {
+            repo_root: workspace_root.display().to_string(),
+            owner: Some(manifest.owner.clone()),
+            inputs: vec!["architecture.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: manifest.system_context,
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            clarification_refinement: None,
+            inline_inputs: Vec::new(),
+            captured_at: created_at,
+        },
+        state: RunStateManifest { state: RunState::Completed, updated_at: created_at },
+        artifact_contract,
+        artifacts,
+        links: LinkManifest {
+            artifacts: Vec::new(),
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: Vec::new(),
+        verification_records: Vec::new(),
+        evidence: None,
+        invocations: Vec::new(),
+    };
+
+    WorkspaceStore::new(workspace_root)
+        .persist_run_bundle(&bundle)
+        .expect("persist completed architecture run");
+
+    run_id
+}
+
 #[test]
 fn publish_run_rejects_destination_that_is_an_existing_file() {
     let workspace = tempdir().expect("temp workspace");
     fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
         .expect("write input");
 
-    let service = EngineService::new(workspace.path());
-    let run = service.run(requirements_request()).expect("completed run");
+    let run_id = persist_completed_requirements_run(workspace.path());
     let destination_file = workspace.path().join("published.txt");
     fs::write(&destination_file, "not a directory").expect("write file destination");
 
-    let error = publish_run(workspace.path(), &run.run_id, Some(&destination_file), false)
+    let error = publish_run(workspace.path(), &run_id, Some(&destination_file), false)
         .expect_err("publish should reject file destination");
 
     assert!(error.to_string().contains("must be a directory"));
@@ -147,10 +350,9 @@ fn publish_run_supports_absolute_override_outside_repo_root() {
     let external = tempdir().expect("external destination");
     let absolute_destination = external.path().join("published-packet");
 
-    let service = EngineService::new(workspace.path());
-    let run = service.run(requirements_request()).expect("completed run");
+    let run_id = persist_completed_requirements_run(workspace.path());
 
-    let summary = publish_run(workspace.path(), &run.run_id, Some(&absolute_destination), false)
+    let summary = publish_run(workspace.path(), &run_id, Some(&absolute_destination), false)
         .expect("publish should support absolute override");
 
     assert_eq!(summary.published_to, absolute_destination.display().to_string());
@@ -167,17 +369,16 @@ fn publish_run_writes_metadata_sidecar_for_default_destinations() {
     fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
         .expect("write input");
 
-    let service = EngineService::new(workspace.path());
-    let run = service.run(requirements_request()).expect("completed run");
+    let run_id = persist_completed_requirements_run(workspace.path());
 
     let summary =
-        publish_run(workspace.path(), &run.run_id, None, false).expect("publish should succeed");
+        publish_run(workspace.path(), &run_id, None, false).expect("publish should succeed");
     let metadata_path = workspace.path().join(&summary.published_to).join("packet-metadata.json");
     let metadata: serde_json::Value =
         serde_json::from_slice(&fs::read(&metadata_path).expect("read metadata sidecar"))
             .expect("metadata json");
 
-    assert_eq!(metadata["run_id"], run.run_id);
+    assert_eq!(metadata["run_id"], run_id);
     assert_eq!(metadata["mode"], "requirements");
     assert_eq!(metadata["risk"], "low-impact");
     assert_eq!(metadata["zone"], "green");
@@ -195,14 +396,10 @@ fn publish_run_writes_metadata_sidecar_for_default_destinations() {
 #[test]
 fn publish_run_generates_and_reports_architecture_adr_in_process() {
     let workspace = tempdir().expect("temp workspace");
-    fs::write(workspace.path().join("architecture.md"), architecture_brief())
-        .expect("write architecture brief");
-
-    let service = EngineService::new(workspace.path());
-    let run = service.run(architecture_request()).expect("completed architecture run");
+    let run_id = persist_completed_architecture_run(workspace.path());
 
     let summary =
-        publish_run(workspace.path(), &run.run_id, None, false).expect("publish should succeed");
+        publish_run(workspace.path(), &run_id, None, false).expect("publish should succeed");
 
     assert!(summary.published_files.iter().any(|path| path.starts_with("docs/adr/ADR-0001-")));
     assert!(workspace.path().join("docs").join("adr").exists());
@@ -238,16 +435,11 @@ fn publish_run_with_profile_promotes_completed_requirements() {
     fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
         .expect("write input");
 
-    let service = EngineService::new(workspace.path());
-    let run = service.run(requirements_request()).expect("completed run");
+    let run_id = persist_completed_requirements_run(workspace.path());
 
-    let summary = publish_run_with_profile(
-        workspace.path(),
-        &run.run_id,
-        PublishProfile::ProjectMemory,
-        None,
-    )
-    .expect("profile publish should succeed");
+    let summary =
+        publish_run_with_profile(workspace.path(), &run_id, PublishProfile::ProjectMemory, None)
+            .expect("profile publish should succeed");
 
     assert_eq!(summary.published_to, "docs/project/product-context.md");
     assert!(summary.published_files.iter().any(|p| p == "docs/project/product-context.md"));
@@ -396,14 +588,13 @@ fn publish_run_with_profile_rejects_override_file_destination() {
     fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
         .expect("write input");
 
-    let service = EngineService::new(workspace.path());
-    let run = service.run(requirements_request()).expect("completed run");
+    let run_id = persist_completed_requirements_run(workspace.path());
     let override_file = workspace.path().join("custom-file.txt");
     fs::write(&override_file, "not a directory").expect("write override file");
 
     let error = publish_run_with_profile(
         workspace.path(),
-        &run.run_id,
+        &run_id,
         PublishProfile::ProjectMemory,
         Some(Path::new("custom-file.txt")),
     )
@@ -418,12 +609,11 @@ fn publish_run_with_profile_respects_destination_override() {
     fs::write(workspace.path().join("idea.md"), complete_requirements_brief())
         .expect("write input");
 
-    let service = EngineService::new(workspace.path());
-    let run = service.run(requirements_request()).expect("completed run");
+    let run_id = persist_completed_requirements_run(workspace.path());
 
     let summary = publish_run_with_profile(
         workspace.path(),
-        &run.run_id,
+        &run_id,
         PublishProfile::ProjectMemory,
         Some(Path::new("custom/dest")),
     )

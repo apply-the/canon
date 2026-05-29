@@ -94,14 +94,27 @@ fn change_governed_run_persists_evidence_and_independent_validation_paths() {
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
 
-    assert!(
-        json["invocations_total"].as_u64().is_some_and(|count| count >= 3),
-        "change run should record governed repository, generation, and validation requests"
-    );
+    assert_eq!(json["state"], "Draft");
+    assert_eq!(json["invocations_total"], 0);
     assert_eq!(json["invocations_pending_approval"], 0);
     assert!(
         json.get("evidence_bundle").is_none(),
         "run JSON should not expose internal evidence bundle paths"
+    );
+
+    let resumed = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let resumed_json: serde_json::Value = serde_json::from_slice(&resumed).expect("resume json");
+    assert_eq!(resumed_json["state"], "Completed");
+    assert!(
+        resumed_json["invocations_total"].as_u64().is_some_and(|count| count >= 3),
+        "change resume should record governed repository, generation, and validation requests"
     );
 
     let invocations = cli_command()

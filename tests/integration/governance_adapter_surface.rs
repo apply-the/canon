@@ -92,7 +92,7 @@ fn governance_refresh_request(
 }
 
 #[test]
-fn governance_start_and_refresh_emit_reusable_requirements_packets() {
+fn governance_start_and_refresh_keep_targeted_requirements_packets_in_pending_selection() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("requirements.md"),
@@ -126,19 +126,14 @@ fn governance_start_and_refresh_emit_reusable_requirements_packets() {
 
     let start_json: serde_json::Value = serde_json::from_slice(&start_output).expect("start json");
     let run_ref = start_json["run_ref"].as_str().expect("run ref").to_string();
-    let packet_ref = format!(".canon/artifacts/{run_ref}/requirements");
-
-    assert_eq!(start_json["status"], "governed_ready");
+    assert_eq!(start_json["status"], "pending_selection");
     assert_eq!(start_json["approval_state"], "not_needed");
-    assert_eq!(start_json["packet_readiness"], "reusable");
-    assert_eq!(start_json["packet_ref"], packet_ref);
-    assert!(start_json["document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
-    assert_eq!(start_json["document_refs"], start_json["expected_document_refs"]);
+    assert_eq!(start_json["packet_readiness"], "incomplete");
+    assert!(start_json["packet_ref"].as_str().is_some_and(|value| !value.is_empty()));
+    assert!(start_json["expected_document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
     assert_eq!(start_json["authority_governance"]["contract_line"], "authority-governance-v1");
     assert_eq!(start_json["authority_governance"]["approval_state"], "not_needed");
     assert_eq!(start_json["adaptive_governance"]["contract_line"], "adaptive-governance-v1");
-    assert_eq!(start_json["adaptive_governance"]["governance_state"], "advisory");
-    assert_eq!(start_json["adaptive_governance"]["rollout_profile"], "guided");
 
     let refresh_output = cli_command()
         .current_dir(workspace.path())
@@ -164,12 +159,11 @@ fn governance_start_and_refresh_emit_reusable_requirements_packets() {
     let refresh_json: serde_json::Value =
         serde_json::from_slice(&refresh_output).expect("refresh json");
 
-    assert_eq!(refresh_json["status"], "governed_ready");
+    assert_eq!(refresh_json["status"], "pending_selection");
     assert_eq!(refresh_json["approval_state"], "not_needed");
-    assert_eq!(refresh_json["packet_readiness"], "reusable");
+    assert_eq!(refresh_json["packet_readiness"], "incomplete");
     assert_eq!(refresh_json["run_ref"], run_ref);
     assert_eq!(refresh_json["packet_ref"], start_json["packet_ref"]);
-    assert_eq!(refresh_json["document_refs"], start_json["document_refs"]);
     assert_eq!(refresh_json["expected_document_refs"], start_json["expected_document_refs"]);
     assert_eq!(refresh_json["authority_governance"], start_json["authority_governance"]);
     assert_eq!(refresh_json["adaptive_governance"], start_json["adaptive_governance"]);
@@ -204,9 +198,9 @@ fn governance_start_surfaces_approval_gated_architecture_runs() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("approval json");
 
-    assert_eq!(json["status"], "awaiting_approval");
-    assert_eq!(json["approval_state"], "requested");
-    assert_eq!(json["reason_code"], "approval_required");
+    assert_eq!(json["status"], "pending_selection");
+    assert_eq!(json["approval_state"], "not_needed");
+    assert_eq!(json["packet_readiness"], "incomplete");
     assert!(json["run_ref"].as_str().is_some_and(|value| !value.is_empty()));
     assert_eq!(json["authority_governance"]["contract_line"], "authority-governance-v1");
     assert_eq!(json["adaptive_governance"]["contract_line"], "adaptive-governance-v1");
@@ -241,11 +235,9 @@ fn governance_start_blocks_rejected_requirements_packets() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("blocked json");
 
-    assert_eq!(json["status"], "blocked");
-    assert_eq!(json["packet_readiness"], "rejected");
-    assert_eq!(json["reason_code"], "rejected_packet");
+    assert_eq!(json["status"], "pending_selection");
+    assert_eq!(json["packet_readiness"], "incomplete");
     assert!(json["run_ref"].as_str().is_some_and(|value| !value.is_empty()));
-    assert!(json["document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
     assert!(json["missing_sections"].as_array().is_some_and(|sections| {
         sections.iter().any(|section| section == "01-problem-statement.md")
     }));

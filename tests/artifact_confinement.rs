@@ -30,6 +30,7 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
             system_context: None,
             classification: ClassificationProvenance::explicit(),
             owner: "owner@example.com".to_string(),
+            lineage: None,
             created_at: OffsetDateTime::UNIX_EPOCH,
         },
         context: RunContext {
@@ -43,6 +44,7 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
             implementation_execution: None,
             refactor_execution: None,
             backlog_planning: None,
+            clarification_refinement: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         },
@@ -169,6 +171,7 @@ fn persist_operational_artifact_bundle_rejects_escape_paths() {
             system_context: Some(canon_engine::domain::run::SystemContext::Existing),
             classification: ClassificationProvenance::explicit(),
             owner: "owner@example.com".to_string(),
+            lineage: None,
             created_at: OffsetDateTime::UNIX_EPOCH,
         },
         context: RunContext {
@@ -182,6 +185,7 @@ fn persist_operational_artifact_bundle_rejects_escape_paths() {
             implementation_execution: None,
             refactor_execution: None,
             backlog_planning: None,
+            clarification_refinement: None,
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         },

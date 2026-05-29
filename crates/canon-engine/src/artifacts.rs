@@ -8,3 +8,5 @@ pub mod manifest;
 pub mod markdown;
 /// YAML artifact serialization helpers.
 pub mod yaml;
+
+pub use markdown::render_refinement_working_brief;

@@ -125,6 +125,14 @@ options for maintainers and approvers inside a task-mapped delivery packet.
 - After `$canon-approve` records the `gate:execution` approval, Canon still remains `AwaitingApproval` until `$canon-resume` runs the post-approval continuation.
 - After `$canon-resume`, surface `approved-recommendation` only when the packet has no executable local patch payload; real workspace mutation currently requires a bounded local payload such as `patch.diff` inside `canon-input/implementation/`.
 
+## Same-Work Continuity
+
+- Implementation preserves explicit continuation identity continuity, but it does not provide the targeted working-brief lifecycle.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `resume`, or `same run`, or supplies a `RUN_ID`.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the advisory continuation state Canon persisted for the run.
+- Do not claim that `.canon/runs/<RUN_ID>/artifacts/implementation/working-brief.md` exists for this mode unless Canon emits that surface in a future slice.
+
 ## Expected Output Shape
 
 - concise run-start or gated summary

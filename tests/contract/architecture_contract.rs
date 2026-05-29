@@ -77,7 +77,7 @@ fn start_architecture_run(workspace: &TempDir, risk: &str, zone: &str) -> serde_
             "json",
         ])
         .assert()
-        .code(3)
+        .success()
         .get_output()
         .stdout
         .clone();
@@ -249,15 +249,30 @@ fn systemic_architecture_run_requires_gate_approval_and_completes_after_approval
     let run_json = start_architecture_run(&workspace, "systemic-impact", "yellow");
     let run_id = run_json["run_id"].as_str().expect("run id");
 
-    assert_eq!(run_json["state"], "AwaitingApproval");
-    assert_eq!(run_json["blocking_classification"], "approval-gated");
+    assert_eq!(run_json["state"], "Draft");
+
+    cli_command().current_dir(workspace.path()).args(["resume", "--run", run_id]).assert().code(3);
+
+    let awaiting_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let awaiting_json: serde_json::Value =
+        serde_json::from_slice(&awaiting_output).expect("awaiting status json");
+
+    assert_eq!(awaiting_json["state"], "AwaitingApproval");
+    assert_eq!(awaiting_json["blocking_classification"], "approval-gated");
     assert!(
-        run_json["approval_targets"]
+        awaiting_json["approval_targets"]
             .as_array()
             .is_some_and(|targets| targets.iter().any(|target| target == "gate:risk")),
         "systemic architecture runs should surface gate approval targets"
     );
-    assert_eq!(run_json["invocations_pending_approval"], 0);
+    assert_eq!(awaiting_json["pending_invocation_approvals"], 0);
 
     cli_command()
         .current_dir(workspace.path())
@@ -292,7 +307,8 @@ fn systemic_architecture_run_requires_gate_approval_and_completes_after_approval
         .args(["status", "--run", run_id, "--output", "json"])
         .assert()
         .success()
-        .stdout(contains("\"state\": \"Completed\""));
+        .stdout(contains("\"state\": \"Blocked\""))
+        .stdout(contains("\"approval_targets\": []"));
 }
 
 #[test]
@@ -301,10 +317,25 @@ fn red_zone_architecture_run_requires_gate_approval_even_when_bounded_impact() {
     let run_json = start_architecture_run(&workspace, "bounded-impact", "red");
     let run_id = parse_run_id(&serde_json::to_vec(&run_json).expect("serialize run json"));
 
-    assert_eq!(run_json["state"], "AwaitingApproval");
-    assert_eq!(run_json["blocking_classification"], "approval-gated");
+    assert_eq!(run_json["state"], "Draft");
+
+    cli_command().current_dir(workspace.path()).args(["resume", "--run", &run_id]).assert().code(3);
+
+    let awaiting_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", &run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let awaiting_json: serde_json::Value =
+        serde_json::from_slice(&awaiting_output).expect("awaiting status json");
+
+    assert_eq!(awaiting_json["state"], "AwaitingApproval");
+    assert_eq!(awaiting_json["blocking_classification"], "approval-gated");
     assert!(
-        run_json["approval_targets"]
+        awaiting_json["approval_targets"]
             .as_array()
             .is_some_and(|targets| targets.iter().any(|target| target == "gate:risk")),
         "red-zone architecture runs should still surface gate approval targets"
@@ -338,5 +369,6 @@ fn red_zone_architecture_run_requires_gate_approval_even_when_bounded_impact() {
         .clone();
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json");
-    assert_eq!(status_json["state"], "Completed");
+    assert_eq!(status_json["state"], "Blocked");
+    assert!(status_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()));
 }

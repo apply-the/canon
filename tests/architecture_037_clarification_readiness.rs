@@ -317,22 +317,15 @@ fn architecture_run_materializes_readiness_assumptions_and_questions() {
     let service = EngineService::new(workspace.path());
     let summary =
         service.run(architecture_request(vec!["architecture.md"])).expect("architecture run");
+    assert_eq!(summary.state, "Draft");
 
-    let readiness = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("artifacts")
-            .join(&summary.run_id)
-            .join("architecture")
-            .join("07-readiness-assessment.md"),
-    )
-    .expect("readiness assessment");
+    let working_brief_path =
+        summary.refinement_state.as_ref().expect("refinement state").working_brief_path.clone();
+    let readiness =
+        fs::read_to_string(workspace.path().join(working_brief_path)).expect("working brief");
 
     assert!(readiness.contains("## Working Assumptions"));
     assert!(readiness.contains("Initial traffic is low to moderate."));
     assert!(readiness.contains("## Unresolved Questions"));
     assert!(readiness.contains("Does the reporting surface need 24x7 availability?"));
-    assert!(readiness.contains("## Recommended Next Mode"));
-    assert!(readiness.contains("change"));
 }

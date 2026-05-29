@@ -54,9 +54,31 @@ impl EngineService {
             implementation_execution,
             refactor_execution,
             backlog_planning: None,
+            clarification_refinement: None,
             inline_inputs: request.transient_inline_inputs(),
             captured_at,
         }
+    }
+
+    pub(super) fn build_run_context_with_refinement(
+        &self,
+        store: &WorkspaceStore,
+        run_id: &str,
+        request: &RunRequest,
+        input_fingerprints: Vec<InputFingerprint>,
+        captured_at: OffsetDateTime,
+    ) -> Result<RunContext, EngineError> {
+        let suggested_candidate =
+            self.find_refinement_candidate(store, request.mode, &input_fingerprints)?;
+        let mut context = self.build_run_context(request, input_fingerprints, captured_at);
+        context.clarification_refinement = Some(self.build_refinement_context(
+            run_id,
+            request.mode,
+            request,
+            suggested_candidate,
+            captured_at,
+        )?);
+        Ok(context)
     }
 
     pub(super) fn scaffold_upstream_context(

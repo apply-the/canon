@@ -25,6 +25,10 @@ fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
     )
 }
 
+fn requirements_generation_approval_target(run_id: &str) -> String {
+    format!("invocation:{run_id}-generate")
+}
+
 #[test]
 fn requirements_artifacts_record_provenance_and_link_to_evidence() {
     let workspace = TempDir::new().expect("temp dir");
@@ -61,6 +65,32 @@ fn requirements_artifacts_record_provenance_and_link_to_evidence() {
         .clone();
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
+
+    cli_command().current_dir(workspace.path()).args(["resume", "--run", run_id]).assert().code(3);
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "approve",
+            "--run",
+            run_id,
+            "--target",
+            &requirements_generation_approval_target(run_id),
+            "--by",
+            "principal-engineer",
+            "--decision",
+            "approve",
+            "--rationale",
+            "Requirements generation may proceed after review.",
+        ])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
 
     let manifest = fs::read_to_string(
         workspace

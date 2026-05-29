@@ -1,6 +1,7 @@
 use assert_cmd::Command;
 use predicates::str::contains;
 use std::fs;
+use std::path::Path;
 use tempfile::TempDir;
 
 fn cli_command() -> Command {
@@ -219,8 +220,16 @@ fn representative_mode_input(mode: &str) -> &'static str {
     }
 }
 
-fn representative_mode_workspace(_mode: &str) -> &'static str {
-    env!("CARGO_MANIFEST_DIR")
+fn stage_representative_mode_input(workspace: &TempDir, mode: &str) -> String {
+    let relative_input = Path::new(representative_mode_input(mode));
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative_input);
+    let destination = workspace.path().join(relative_input);
+    if let Some(parent) = destination.parent() {
+        fs::create_dir_all(parent).expect("representative mode parent");
+    }
+    fs::copy(&source, &destination).expect("copy representative mode input");
+
+    relative_input.to_string_lossy().into_owned()
 }
 
 #[test]
@@ -241,11 +250,21 @@ fn inspect_clarity_supports_all_file_backed_governed_modes_with_reasoning_signal
     ];
 
     for mode in modes {
-        let input_path = representative_mode_input(mode);
+        let workspace = TempDir::new().expect("temp dir");
+        let input_path = stage_representative_mode_input(&workspace, mode);
 
         let output = cli_command()
-            .current_dir(representative_mode_workspace(mode))
-            .args(["inspect", "clarity", "--mode", mode, "--input", input_path, "--output", "json"])
+            .current_dir(workspace.path())
+            .args([
+                "inspect",
+                "clarity",
+                "--mode",
+                mode,
+                "--input",
+                &input_path,
+                "--output",
+                "json",
+            ])
             .assert()
             .success()
             .get_output()

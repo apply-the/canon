@@ -48,6 +48,7 @@ mod tests {
             system_context: Some(SystemContext::Existing),
             classification: ClassificationProvenance::explicit(),
             owner: "Owner <owner@example.com>".to_string(),
+            lineage: None,
             created_at,
         }
     }

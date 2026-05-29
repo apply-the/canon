@@ -7,7 +7,8 @@ use serde_json::Value;
 
 use super::inspect::{
     render_artifacts_markdown, render_clarity_markdown, render_evidence_markdown,
-    render_invocations_markdown, render_list_markdown, render_risk_zone_markdown,
+    render_invocations_markdown, render_list_markdown, render_refinement_markdown,
+    render_risk_zone_markdown,
 };
 
 /// Routes a JSON inspect payload to the appropriate Markdown renderer.
@@ -28,6 +29,7 @@ pub(super) fn render_markdown_from_json(
         "clarity" => render_clarity_markdown(&entries),
         "evidence" => render_evidence_markdown(&entries, run_id, system_context),
         "invocations" => render_invocations_markdown(&entries, run_id, system_context),
+        "refinement" => render_refinement_markdown(&entries, run_id, system_context),
         "risk-zone" => render_risk_zone_markdown(&entries),
         _ => render_list_markdown(target_name, &entries),
     }

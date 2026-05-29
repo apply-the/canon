@@ -185,6 +185,7 @@ mod tests {
             }),
             refactor_execution: None,
             backlog_planning: None,
+            clarification_refinement: None,
         }
     }
 

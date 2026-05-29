@@ -132,6 +132,57 @@ fn run_rejects_missing_authored_input_for_requirements() {
 }
 
 #[test]
+fn status_text_uses_the_refinement_renderer_for_targeted_drafts() {
+    let workspace = tempfile::TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("idea.md"),
+        "# Requirements Brief\n\n## Problem\nClarify same-work continuation.\n",
+    )
+    .expect("idea file");
+
+    let run_output = cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "run",
+            "--mode",
+            "requirements",
+            "--risk",
+            "low-impact",
+            "--zone",
+            "green",
+            "--owner",
+            "Reviewer <reviewer@example.com>",
+            "--input",
+            "idea.md",
+            "--output",
+            "json",
+        ])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+
+    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    let run_id = run_json["run_id"].as_str().expect("run_id");
+
+    let status_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "text"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_text = String::from_utf8(status_output).expect("status text");
+
+    assert!(status_text.contains("refinement state:"));
+    assert!(status_text.contains("clarification records:"));
+    assert!(status_text.contains("continuation guidance:"));
+    assert!(!status_text.contains("\"refinement_state\""));
+}
+
+#[test]
 fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() {
     let workspace = tempfile::TempDir::new().expect("temp dir");
     init_existing_repo(&workspace);

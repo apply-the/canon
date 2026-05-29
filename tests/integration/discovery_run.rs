@@ -26,7 +26,7 @@ fn complete_discovery_brief(problem_domain: &str, downstream_handoff: &str) -> S
 }
 
 #[test]
-fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
+fn run_discovery_starts_draft_refinement_and_persists_working_brief() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("discovery.md");
     fs::write(
@@ -66,19 +66,16 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
 
     let run_root =
         canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
-    let artifact_root =
-        workspace.path().join(".canon").join("artifacts").join(run_id).join("discovery");
     let input_snapshot = run_root.join("inputs").join("input-00-discovery.md");
+    let working_brief_path =
+        json["refinement_state"]["working_brief_path"].as_str().expect("working brief path");
+    let working_brief =
+        fs::read_to_string(workspace.path().join(working_brief_path)).expect("working brief");
 
-    assert_eq!(json["state"], "Completed");
-    assert_eq!(json["invocations_total"], 4);
+    assert_eq!(json["state"], "Draft");
+    assert_eq!(json["invocations_total"], 0);
     assert_eq!(json["invocations_pending_approval"], 0);
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Problem Map"));
-    assert!(
-        json["mode_result"]["primary_artifact_path"]
-            .as_str()
-            .is_some_and(|value| value.ends_with("/discovery/01-problem-map.md"))
-    );
+    assert_eq!(json["refinement_state"]["current_mode"], "discovery");
 
     assert!(run_root.join("run.toml").exists(), "run manifest should exist");
     assert!(run_root.join("context.toml").exists(), "context file should exist");
@@ -86,39 +83,12 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
     assert!(input_snapshot.exists(), "authored input snapshot should exist");
     assert!(run_root.join("artifact-contract.toml").exists(), "artifact contract should exist");
     assert!(run_root.join("state.toml").exists(), "state file should exist");
-    assert!(
-        run_root.join("gates").join("exploration.toml").exists(),
-        "exploration gate should exist"
-    );
-    assert!(run_root.join("gates").join("risk.toml").exists(), "risk gate should exist");
-    assert!(
-        run_root.join("gates").join("release-readiness.toml").exists(),
-        "release readiness gate should exist"
-    );
-    assert!(run_root.join("evidence.toml").exists(), "evidence bundle should exist");
-
-    for artifact in [
-        "01-problem-map.md",
-        "02-unknowns-and-assumptions.md",
-        "03-context-boundary.md",
-        "04-exploration-options.md",
-        "05-decision-pressure-points.md",
-    ] {
-        assert!(
-            artifact_root.join(artifact).exists(),
-            "{artifact} should exist in the discovery bundle"
-        );
-    }
-
-    let problem_map =
-        fs::read_to_string(artifact_root.join("01-problem-map.md")).expect("problem map contents");
-    let boundary = fs::read_to_string(artifact_root.join("03-context-boundary.md"))
-        .expect("context boundary contents");
-    assert!(problem_map.contains("## Repo Surface"));
-    assert!(problem_map.contains("tests/integration/discovery_run.rs"));
-    assert!(problem_map.contains("## Downstream Handoff"));
-    assert!(boundary.contains("## Repo Surface"));
-    assert!(boundary.contains("## Translation Trigger"));
+    assert!(working_brief.contains("# Discovery Brief"));
+    assert!(working_brief.contains("## Repo Surface"));
+    assert!(working_brief.contains("tests/integration/discovery_run.rs"));
+    assert!(working_brief.contains("## Downstream Handoff"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
 
     let context_toml = fs::read_to_string(run_root.join("context.toml")).expect("context file");
     let context: toml::Value = toml::from_str(&context_toml).expect("context toml");
@@ -137,29 +107,6 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
         "input fingerprint should reference the persisted snapshot"
     );
 
-    let evidence_output = cli_command()
-        .current_dir(workspace.path())
-        .args(["inspect", "evidence", "--run", run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let evidence_json: serde_json::Value =
-        serde_json::from_slice(&evidence_output).expect("evidence json");
-    let entry = evidence_json["entries"]
-        .as_array()
-        .and_then(|entries| entries.first())
-        .expect("evidence entry");
-    assert!(
-        entry["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "discovery should persist generation evidence"
-    );
-    assert!(
-        entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "discovery should persist repository validation paths"
-    );
-
     let status_output = cli_command()
         .current_dir(workspace.path())
         .args(["status", "--run", run_id, "--output", "json"])
@@ -170,8 +117,8 @@ fn run_discovery_persists_a_completed_run_and_artifact_bundle() {
         .clone();
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json");
-    assert_eq!(status_json["state"], "Completed");
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("Problem Map"));
+    assert_eq!(status_json["state"], "Draft");
+    assert_eq!(status_json["refinement_state"]["current_mode"], "discovery");
 }
 
 #[test]
@@ -257,19 +204,13 @@ fn run_discovery_reads_directory_backed_inputs_from_canon_input() {
         .clone();
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-    let run_id = json["run_id"].as_str().expect("run id");
-    let problem_map = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("artifacts")
-            .join(run_id)
-            .join("discovery")
-            .join("01-problem-map.md"),
-    )
-    .expect("problem map");
+    assert_eq!(json["state"], "Draft");
+    let working_brief_path =
+        json["refinement_state"]["working_brief_path"].as_str().expect("working brief path");
+    let working_brief =
+        fs::read_to_string(workspace.path().join(working_brief_path)).expect("working brief");
 
-    assert!(problem_map.contains("## Downstream Handoff"));
-    assert!(problem_map.contains("requirements mode"));
-    assert!(problem_map.contains("tests/integration/discovery_run.rs"));
+    assert!(working_brief.contains("## Downstream Handoff"));
+    assert!(working_brief.contains("requirements mode"));
+    assert!(working_brief.contains("tests/integration/discovery_run.rs"));
 }

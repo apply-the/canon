@@ -1,4 +1,5 @@
 use std::fs;
+use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
 use tempfile::TempDir;
@@ -19,6 +20,43 @@ fn cli_command() -> Command {
     command
 }
 
+fn git(workspace: &TempDir, args: &[&str]) {
+    let output = ProcessCommand::new("git")
+        .args(args)
+        .current_dir(workspace.path())
+        .output()
+        .expect("git command");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: stdout=`{}` stderr=`{}`",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_change_repo(workspace: &TempDir) {
+    git(workspace, &["init", "-b", "main"]);
+    git(workspace, &["config", "user.name", "Canon Test"]);
+    git(workspace, &["config", "user.email", "canon@example.com"]);
+
+    fs::create_dir_all(workspace.path().join("src/auth")).expect("src dir");
+    fs::create_dir_all(workspace.path().join("tests")).expect("tests dir");
+    fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String {\n    format!(\"revoked:{id}\")\n}\n",
+    )
+    .expect("source file");
+    fs::write(
+        workspace.path().join("tests/session.md"),
+        "# Session Checks\n\n- revocation formatting remains stable\n",
+    )
+    .expect("test file");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "seed change repo"]);
+}
+
 fn blocked_brief() -> &'static str {
     "# Change Brief\n\n## System Slice\n\nauth session boundary and persistence layer.\n\n## Excluded Areas\n\n- payment settlement\n- billing reports\n\n## Implementation Plan\n\nKeep the external auth API stable while tightening the persistence boundary.\n\n## Sequencing\n\n1. Add repository methods behind the existing contract.\n2. Shift callers after invariants stay visible.\n\n## Validation Strategy\n\n- contract tests\n- invariant checks\n\n## Independent Checks\n\n- rollback rehearsal by a separate operator\n\n## Decision Record\n\nPrefer additive change over normalization to preserve operator expectations.\n\n## Consequences\n\n- preserved surface remains explicit and reviewable\n\n## Unresolved Questions\n\n- should the cleanup job roll out in the same slice?\n\nOwner: maintainer\nRisk Level: bounded-impact\nZone: yellow\n"
 }
@@ -34,6 +72,7 @@ fn markdown_heading_brief() -> &'static str {
 #[test]
 fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
@@ -57,7 +96,7 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
             "json",
         ])
         .assert()
-        .code(2)
+        .success()
         .get_output()
         .stdout
         .clone();
@@ -65,21 +104,36 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
+    assert_eq!(json["state"], "Draft");
+
+    let resumed_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .code(2)
+        .get_output()
+        .stdout
+        .clone();
+    let resumed_json: serde_json::Value =
+        serde_json::from_slice(&resumed_output).expect("resume json output");
 
     let run_root =
         canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
-    assert_eq!(json["state"], "Blocked");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("System Slice"));
+    assert_eq!(resumed_json["state"], "Blocked");
+    assert_eq!(
+        resumed_json["mode_result"]["primary_artifact_title"].as_str(),
+        Some("System Slice")
+    );
     assert!(
-        json["mode_result"]["primary_artifact_path"]
+        resumed_json["mode_result"]["primary_artifact_path"]
             .as_str()
             .is_some_and(|value| value.ends_with("/change/01-system-slice.md"))
     );
     assert!(
-        json["mode_result"]["headline"]
+        resumed_json["mode_result"]["headline"]
             .as_str()
             .is_some_and(|value| value.contains("missing-context marker"))
     );
@@ -115,6 +169,7 @@ fn run_change_change_blocks_when_preservation_artifacts_are_incomplete() {
 #[test]
 fn run_change_change_completes_when_context_is_fully_described() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
@@ -146,16 +201,31 @@ fn run_change_change_completes_when_context_is_fully_described() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
+    assert_eq!(json["state"], "Draft");
+
+    let resumed_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let resumed_json: serde_json::Value =
+        serde_json::from_slice(&resumed_output).expect("resume json output");
 
     let run_root =
         canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");
 
-    assert_eq!(json["state"], "Completed");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("System Slice"));
+    assert_eq!(resumed_json["state"], "Completed");
+    assert_eq!(
+        resumed_json["mode_result"]["primary_artifact_title"].as_str(),
+        Some("System Slice")
+    );
     assert!(
-        json["mode_result"]["primary_artifact_path"]
+        resumed_json["mode_result"]["primary_artifact_path"]
             .as_str()
             .is_some_and(|value| value.ends_with("/change/01-system-slice.md"))
     );
@@ -234,6 +304,7 @@ fn run_change_change_completes_when_context_is_fully_described() {
 #[test]
 fn run_change_change_preserves_markdown_brief_structure() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, markdown_heading_brief()).expect("brief file");
 
@@ -265,6 +336,13 @@ fn run_change_change_preserves_markdown_brief_structure() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
+    assert_eq!(json["state"], "Draft");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
 
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("change");

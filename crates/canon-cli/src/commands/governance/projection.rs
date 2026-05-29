@@ -360,6 +360,7 @@ mod tests {
             system_context: None,
             classification: ClassificationProvenance::default(),
             owner: "staff-engineer".to_string(),
+            lineage: None,
             created_at: OffsetDateTime::UNIX_EPOCH,
         }
     }
@@ -454,6 +455,7 @@ mod tests {
                 system_context: None,
                 classification: ClassificationProvenance::default(),
                 owner: "staff-engineer".to_string(),
+                lineage: None,
                 created_at: OffsetDateTime::UNIX_EPOCH,
             })
             .expect("serialize run manifest"),

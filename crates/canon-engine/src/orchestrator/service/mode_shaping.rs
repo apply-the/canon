@@ -9,7 +9,7 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let identity = RunIdentity::new_now_v7();
+        let identity = self.next_unique_run_identity(store)?;
         let now = identity.created_at;
         let run_id = identity.run_id.clone();
         let run_uuid = identity.uuid.as_simple().to_string();
@@ -256,6 +256,7 @@ impl EngineService {
                 system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
+                lineage: None,
                 created_at: now,
             },
             context: self.build_run_context(&request, input_fingerprints, now),
@@ -315,7 +316,7 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let identity = RunIdentity::new_now_v7();
+        let identity = self.next_unique_run_identity(store)?;
         let now = identity.created_at;
         let run_id = identity.run_id.clone();
         let run_uuid = identity.uuid.as_simple().to_string();
@@ -569,6 +570,7 @@ impl EngineService {
                 system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
+                lineage: None,
                 created_at: now,
             },
             context: self.build_run_context(&request, input_fingerprints, now),
