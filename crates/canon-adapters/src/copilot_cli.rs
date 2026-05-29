@@ -450,4 +450,66 @@ mod tests {
         assert!(critique.summary.contains("Status: supported"));
         assert!(!critique.summary.contains("Answer this authored challenge focus"));
     }
+
+    #[test]
+    fn verification_critique_surfaces_mixed_verdict_for_open_focus_without_contradictions() {
+        let adapter = CopilotCliAdapter;
+
+        let output = adapter.critique_verification(
+            "## Claims Under Test\n\n- rollback boundary stays explicit\n\n## Contract Assumptions\n\n## Challenge Focus\n\n- inspect rollback boundary drift\n",
+        );
+
+        assert!(output.summary.contains("Status: mixed"));
+        assert!(output.summary.contains("Status: unresolved-findings-open"));
+        assert!(output.summary.contains(
+            "Only the packet boundaries were captured; the claims themselves remain under challenge."
+        ));
+        assert!(output.summary.contains(
+            "The packet does not yet close this authored challenge focus: inspect rollback boundary drift"
+        ));
+        assert!(output.summary.contains(
+            "Some verification concerns remain open and need follow-up before the packet can be treated as fully trusted."
+        ));
+    }
+
+    #[test]
+    fn verification_critique_handles_numbered_claims_star_focus_and_paragraph_evidence() {
+        let adapter = CopilotCliAdapter;
+
+        let output = adapter.critique_verification(
+            "## Claims Under Test\n\n1. unsupported rollback proof\n\n2. guarantee the recovery path\n\n## Evidence Basis\n\nlacks proof for rollback handoff\n\n## Challenge Focus\n\n* contradiction review\n",
+        );
+
+        assert!(output.summary.contains("Status: unsupported"));
+        assert!(output.summary.contains(
+            "The authored claim already signals a contradiction or missing-evidence path: unsupported rollback proof"
+        ));
+        assert!(output.summary.contains(
+            "The authored claim under test already records a contradiction or unresolved support gap: unsupported rollback proof"
+        ));
+        assert!(
+            output
+                .summary
+                .contains("Still unsupported from the current packet: unsupported rollback proof")
+        );
+        assert!(output.summary.contains(
+            "The evidence basis still names a proof gap or unsupported path: lacks proof for rollback handoff"
+        ));
+    }
+
+    #[test]
+    fn verification_generation_supports_inline_markers_and_contract_fallbacks() {
+        let adapter = CopilotCliAdapter;
+
+        let output = adapter.generate_verification(
+            "Claims Under Test: rollback stays bounded\nEvidence Basis: repository notes\nContract Assumptions:\nOut of Scope: no runtime patching\n",
+        );
+
+        assert!(output.summary.contains("## Claims Under Test\n\n- rollback stays bounded"));
+        assert!(output.summary.contains("## Evidence Basis\n\n- repository notes"));
+        assert!(output.summary.contains(
+            "## Contract Assumptions\n\n- The verification packet relies on the authored claims staying bounded to the named evidence basis."
+        ));
+        assert!(output.summary.contains("## Out of Scope\n\n- no runtime patching"));
+    }
 }

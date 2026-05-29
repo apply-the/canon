@@ -446,6 +446,73 @@ mod tests {
     }
 
     #[test]
+    fn summarize_review_mode_result_requires_explicit_disposition_when_pending() {
+        let artifacts = vec![
+            make_artifact(
+                "review-brief.md",
+                "## Review Target\n\n- bounded package only\n\n## Evidence Basis\n\n- packet is grounded in authored evidence.",
+            ),
+            make_artifact(
+                "review-disposition.md",
+                "## Final Disposition\n\nStatus: awaiting-disposition\n\nRationale: explicit owner sign-off is still pending.\n\n## Accepted Risks\n\n- No accepted risks recorded while disposition is still pending.",
+            ),
+            make_artifact(
+                "boundary-assessment.md",
+                "## Boundary Findings\n\n- shared release gate still needs owner confirmation.",
+            ),
+            make_artifact(
+                "missing-evidence.md",
+                "## Missing Evidence\n\nStatus: evidence-open\n\n- operator acknowledgment is still pending.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::Review, &artifacts).expect("review summary");
+        assert!(summary.headline.contains("requires explicit disposition"));
+        assert!(summary.artifact_packet_summary.contains("boundary finding set(s)"));
+    }
+
+    #[test]
+    fn summarize_review_mode_result_surfaces_explicit_approval_branch() {
+        let artifacts = vec![
+            make_artifact(
+                "review-brief.md",
+                "## Review Target\n\n- bounded package only\n\n## Evidence Basis\n\n- packet is grounded in authored evidence.",
+            ),
+            make_artifact(
+                "review-disposition.md",
+                "## Final Disposition\n\nStatus: accepted-with-approval\n\nRationale: residual concerns were explicitly approved.\n\n## Accepted Risks\n\n- follow-up verification stays attached to this packet.",
+            ),
+            make_artifact(
+                "boundary-assessment.md",
+                "## Boundary Findings\n\n- rollout note remains bounded to the current package.",
+            ),
+            make_artifact(
+                "missing-evidence.md",
+                "## Missing Evidence\n\nStatus: evidence-reviewed\n\n- no additional evidence collection is required before publication.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::Review, &artifacts).expect("review summary");
+        assert!(summary.headline.contains("explicit approval"));
+        assert!(summary.artifact_packet_summary.contains("`accepted-with-approval`"));
+    }
+
+    #[test]
+    fn summarize_review_mode_result_reports_missing_context_markers() {
+        let artifacts = vec![
+            make_artifact(
+                "review-brief.md",
+                "## Review Target\n\n- bounded package only\n\n## Evidence Basis\n\n- packet is grounded in authored evidence.",
+            ),
+            make_artifact("review-disposition.md", "## Notes\n\n- summary still needs structure."),
+        ];
+
+        let summary = summarize_mode_result(Mode::Review, &artifacts).expect("review summary");
+        assert!(summary.headline.contains("missing-context marker"));
+        assert!(summary.artifact_packet_summary.contains("packet is readable"));
+    }
+
+    #[test]
     fn summarize_verification_mode_result_surfaces_no_direct_contradiction_posture() {
         let artifacts = vec![
             make_artifact(
@@ -467,6 +534,176 @@ mod tests {
             summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
         assert!(summary.headline.contains("no direct contradictions"));
         assert!(summary.artifact_packet_summary.contains("no-direct-contradiction"));
+    }
+
+    #[test]
+    fn summarize_verification_mode_result_recognizes_packet_no_contradiction_phrase() {
+        let artifacts = vec![
+            make_artifact(
+                "verification-report.md",
+                "## Verified Claims\n\n- rollback remains bounded\n\n## Rejected Claims\n\n- none recorded\n\n## Overall Verdict\n\nStatus: supported\n\nRationale: current evidence covers the authored claim set.",
+            ),
+            make_artifact(
+                "unresolved-findings.md",
+                "## Open Findings\n\nStatus: no-open-findings\n\n- No unresolved findings remain from the current verification packet.",
+            ),
+            make_artifact(
+                "invariants-checklist.md",
+                "## Claims Under Test\n\n- rollback remains bounded\n- operator evidence stays attached to the packet",
+            ),
+            make_artifact(
+                "adversarial-review.md",
+                "## Contradictions\n\n- No direct contradiction was identified against the current verification packet.",
+            ),
+        ];
+
+        let summary =
+            summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
+        assert!(summary.headline.contains("no direct contradictions"));
+        assert!(summary.artifact_packet_summary.contains("no-direct-contradiction"));
+    }
+
+    #[test]
+    fn summarize_verification_mode_result_blocks_release_when_findings_remain_open() {
+        let artifacts = vec![
+            make_artifact(
+                "verification-report.md",
+                "## Verified Claims\n\n- rollback remains bounded\n\n## Rejected Claims\n\n- none recorded\n\n## Overall Verdict\n\nStatus: supported-with-follow-up\n\nRationale: remaining checks are bounded and explicit.",
+            ),
+            make_artifact(
+                "unresolved-findings.md",
+                "## Open Findings\n\nStatus: unresolved-findings-open\n\n- capture operator rollback evidence\n- attach downstream verification trace",
+            ),
+            make_artifact(
+                "invariants-checklist.md",
+                "## Claims Under Test\n\n- rollback remains bounded\n- operator evidence stays attached to the packet",
+            ),
+            make_artifact("adversarial-review.md", "## Contradictions\n\n- none recorded"),
+        ];
+
+        let summary =
+            summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
+        assert!(summary.headline.contains("blocked release readiness"));
+        assert!(summary.artifact_packet_summary.contains("unresolved finding set(s)"));
+    }
+
+    #[test]
+    fn summarize_verification_mode_result_reports_recorded_contradictions() {
+        let artifacts = vec![
+            make_artifact(
+                "verification-report.md",
+                "## Verified Claims\n\n- rollback remains bounded\n\n## Rejected Claims\n\n- none recorded\n\n## Overall Verdict\n\nStatus: contested\n\nRationale: a contradiction was recorded against the current packet.",
+            ),
+            make_artifact(
+                "unresolved-findings.md",
+                "## Open Findings\n\nStatus: no-open-findings\n\n- No unresolved findings remain from the current verification packet.",
+            ),
+            make_artifact(
+                "invariants-checklist.md",
+                "## Claims Under Test\n\n- rollback remains bounded\n- operator evidence stays attached to the packet",
+            ),
+            make_artifact(
+                "adversarial-review.md",
+                "## Contradictions\n\n- rollback drifted outside the approved boundary.",
+            ),
+        ];
+
+        let summary =
+            summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
+        assert!(summary.headline.contains("contradiction set(s)"));
+        assert!(summary.artifact_packet_summary.contains("contradiction set(s)"));
+    }
+
+    #[test]
+    fn summarize_verification_mode_result_reports_missing_context_markers() {
+        let artifacts = vec![
+            make_artifact(
+                "verification-report.md",
+                "## Verified Claims\n\n- rollback remains bounded",
+            ),
+            make_artifact(
+                "invariants-checklist.md",
+                "## Claims Under Test\n\n- rollback remains bounded",
+            ),
+        ];
+
+        let summary =
+            summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
+        assert!(summary.headline.contains("missing-context marker"));
+        assert!(summary.artifact_packet_summary.contains("packet is readable"));
+    }
+
+    #[test]
+    fn summarize_pr_review_mode_result_derives_review_note_severity_from_placeholders() {
+        let artifacts = vec![
+            make_artifact(
+                "pr-analysis.md",
+                "## Changed Modules\n\n- crates/canon-engine/src/orchestrator/service/summarizers/governance.rs\n\n## Inferred Intent\n\n- preserve governed summary behavior while tightening wording.",
+            ),
+            make_artifact(
+                "review-summary.md",
+                "## Final Disposition\n\nStatus: ready-with-review-notes\n\nRationale: bounded review notes remain.\n\n## Severity\n\n- triaged without escalation.\n\n## Must-Fix Findings\n\n- No must-fix findings remain.\n\n## Accepted Risks\n\n- Follow-up wording can be tightened in docs.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::PrReview, &artifacts).expect("pr review summary");
+        assert!(summary.headline.contains("review note(s) and no unresolved must-fix findings"));
+        assert!(summary.artifact_packet_summary.contains("`review-notes` severity"));
+    }
+
+    #[test]
+    fn summarize_pr_review_mode_result_derives_must_fix_severity_when_disposition_is_pending() {
+        let artifacts = vec![
+            make_artifact(
+                "pr-analysis.md",
+                "## Changed Modules\n\n- crates/canon-engine/src/orchestrator/service/summarizers/governance.rs\n- crates/canon-engine/src/orchestrator/service/summarizers.rs\n\n## Inferred Intent\n\n- keep the review packet bounded to the changed summarizer surface.",
+            ),
+            make_artifact(
+                "review-summary.md",
+                "## Final Disposition\n\nStatus: awaiting-disposition\n\nRationale: release owner sign-off is still pending.\n\n## Severity\n\n- pending final disposition.\n\n## Must-Fix Findings\n\n- release owner sign-off is still pending.\n\n## Accepted Risks\n\n- No accepted risks recorded.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::PrReview, &artifacts).expect("pr review summary");
+        assert!(summary.headline.contains("waiting for explicit disposition"));
+        assert!(summary.artifact_packet_summary.contains("`must-fix` severity"));
+    }
+
+    #[test]
+    fn summarize_pr_review_mode_result_surfaces_explicit_approval_branch() {
+        let artifacts = vec![
+            make_artifact(
+                "pr-analysis.md",
+                "## Changed Modules\n\n- crates/canon-engine/src/orchestrator/service/summarizers/governance.rs\n\n## Inferred Intent\n\n- preserve governed summary behavior while closing the remaining concern.",
+            ),
+            make_artifact(
+                "review-summary.md",
+                "## Final Disposition\n\nStatus: accepted-with-approval\n\nRationale: the remaining concern was explicitly accepted.\n\n## Severity\n\nOverall severity: must-fix\n\nMust-fix findings: 1\n\nReview notes: 0\n\n## Must-Fix Findings\n\n- release owner accepted the single remaining concern.\n\n## Accepted Risks\n\n- No accepted risks recorded.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::PrReview, &artifacts).expect("pr review summary");
+        assert!(summary.headline.contains("explicit approval"));
+        assert!(summary.artifact_packet_summary.contains("`accepted-with-approval`"));
+    }
+
+    #[test]
+    fn summarize_pr_review_mode_result_reports_missing_context_and_uses_inferred_intent_excerpt() {
+        let artifacts = vec![
+            make_artifact(
+                "pr-analysis.md",
+                "## Changed Modules\n\n- crates/canon-engine/src/orchestrator/service/summarizers/governance.rs\n\n## Inferred Intent\n\n- preserve bounded rollout guidance for the governed PR summary.",
+            ),
+            make_artifact(
+                "review-summary.md",
+                "## Notes\n\n- partial export still needs structure.",
+            ),
+        ];
+
+        let summary = summarize_mode_result(Mode::PrReview, &artifacts).expect("pr review summary");
+        assert!(summary.headline.contains("missing-context marker"));
+        assert!(summary.artifact_packet_summary.contains("still carries"));
+        assert!(summary.result_excerpt.contains("preserve bounded rollout guidance"));
     }
 
     #[test]

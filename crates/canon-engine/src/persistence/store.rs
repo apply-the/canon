@@ -571,11 +571,15 @@ mod tests {
     use tempfile::TempDir;
     use time::OffsetDateTime;
 
-    use super::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
+    use super::{
+        PersistedArtifact, PersistedRunBundle, SkillMaterializationTarget, WorkspaceStore,
+    };
     use crate::domain::artifact::{
         ArtifactContract, ArtifactFormat, ArtifactRecord, ArtifactRequirement,
     };
+    use crate::domain::execution::PayloadRetentionLevel;
     use crate::domain::execution::{ExecutionPosture, MutationBounds, MutationExpansionPolicy};
+    use crate::domain::gate::GateKind;
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
     use crate::domain::run::{
@@ -811,5 +815,245 @@ mod tests {
 
         assert_eq!(loaded.len(), 1, "optional missing artifacts should be ignored");
         assert_eq!(loaded[0].record.file_name, "architecture-overview.md");
+    }
+
+    #[test]
+    fn update_skills_for_claude_overwrites_files_without_recreating_claude_md() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        let install =
+            store.install_skills(SkillMaterializationTarget::Claude).expect("install skills");
+        assert!(install.claude_md_created);
+
+        let skill_path =
+            workspace.path().join(".claude").join("skills").join("canon-init").join("SKILL.md");
+        fs::write(&skill_path, "customized\n").expect("overwrite installed skill");
+
+        let update =
+            store.update_skills(SkillMaterializationTarget::Claude).expect("update skills");
+
+        assert!(update.skills_dir.ends_with(".claude/skills"));
+        assert_eq!(update.skills_skipped, 0);
+        assert!(!update.claude_md_created);
+        assert_ne!(fs::read_to_string(&skill_path).expect("read updated skill"), "customized\n");
+    }
+
+    #[test]
+    fn load_policy_set_applies_gate_and_verification_overrides_without_adapter_override() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+        store.init_runtime_state(None).expect("init runtime state");
+
+        let override_root = workspace.path().join("policy-overrides");
+        fs::create_dir_all(&override_root).expect("create override directory");
+        fs::write(
+            override_root.join("gates.toml"),
+            "version = 1\nmandatory_gates = [\"Exploration\"]\n",
+        )
+        .expect("write gate override");
+        fs::write(
+            override_root.join("verification.toml"),
+            concat!(
+                "version = 2\n\n",
+                "[layers]\n",
+                "low = [\"SelfCritique\"]\n",
+                "bounded = [\"SelfCritique\"]\n",
+                "systemic = [\"SelfCritique\"]\n\n",
+                "[independence]\n",
+                "ai_generation_requires_distinct_validation = false\n",
+                "human_review_counts_independent = false\n",
+            ),
+        )
+        .expect("write verification override");
+
+        let policy_set =
+            store.load_policy_set(Some(&override_root)).expect("load policy set with overrides");
+
+        assert_eq!(policy_set.gate_policy.mandatory_gates, vec![GateKind::Exploration]);
+        assert!(!policy_set.validation_independence.ai_generation_requires_distinct_validation);
+        assert!(!policy_set.validation_independence.human_review_counts_independent);
+    }
+
+    #[test]
+    fn load_policy_set_applies_risk_zone_and_adapter_overrides_without_verification_override() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+        store.init_runtime_state(None).expect("init runtime state");
+
+        let override_root = workspace.path().join("adapter-overrides");
+        fs::create_dir_all(&override_root).expect("create override directory");
+        fs::write(
+            override_root.join("risk.toml"),
+            concat!(
+                "version = 1\n\n",
+                "[[class]]\n",
+                "name = \"LowImpact\"\n",
+                "requires_owner = true\n",
+                "mutable_execution = false\n",
+                "verification_layers = [\"SelfCritique\"]\n",
+            ),
+        )
+        .expect("write risk override");
+        fs::write(
+            override_root.join("zones.toml"),
+            concat!(
+                "version = 1\n\n",
+                "[[zone]]\n",
+                "name = \"Yellow\"\n",
+                "mutable_execution = false\n",
+            ),
+        )
+        .expect("write zone override");
+        fs::write(
+            override_root.join("adapters.toml"),
+            concat!(
+                "version = 2\n\n",
+                "[[adapter]]\n",
+                "kind = \"Shell\"\n",
+                "capabilities = [\"RunCommand\"]\n\n",
+                "[[constraint_profile]]\n",
+                "id = \"override-profile\"\n",
+                "payload_retention = \"SummaryOnly\"\n",
+                "max_payload_bytes = 1024\n",
+                "command_profile = \"override-profile\"\n",
+                "recommendation_only = true\n",
+                "patch_disabled = true\n\n",
+                "[rules]\n",
+                "block_mutation_for_red_or_systemic = false\n",
+                "runtime_disabled_adapters = [\"Shell\"]\n",
+            ),
+        )
+        .expect("write adapter override");
+
+        let policy_set = store
+            .load_policy_set(Some(&override_root))
+            .expect("load policy set with adapter overrides");
+
+        let low_impact = policy_set
+            .risk_classes
+            .iter()
+            .find(|class| class.name == RiskClass::LowImpact)
+            .expect("low-impact class override");
+        assert!(low_impact.requires_owner);
+        assert!(!low_impact.mutable_execution);
+
+        let yellow = policy_set
+            .zones
+            .iter()
+            .find(|zone| zone.name == UsageZone::Yellow)
+            .expect("yellow zone override");
+        assert!(!yellow.mutable_execution);
+
+        let shell = policy_set
+            .adapter_matrix
+            .iter()
+            .find(|entry| entry.adapter == canon_adapters::AdapterKind::Shell)
+            .expect("shell adapter override");
+        assert_eq!(shell.capabilities, vec![canon_adapters::CapabilityKind::RunCommand]);
+
+        let constraint_profile =
+            policy_set.constraint_profile("override-profile").expect("constraint profile override");
+        assert_eq!(constraint_profile.payload_retention, Some(PayloadRetentionLevel::SummaryOnly));
+        assert_eq!(policy_set.runtime_disabled_adapters, vec![canon_adapters::AdapterKind::Shell]);
+        assert!(!policy_set.block_mutation_for_red_or_systemic);
+    }
+
+    #[test]
+    fn runtime_listing_helpers_cover_missing_present_and_invalid_artifact_cases() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        assert_eq!(
+            store
+                .list_artifact_files("missing-run")
+                .expect("missing artifacts should return empty"),
+            Vec::<String>::new()
+        );
+
+        let run_artifacts_root = store.layout.artifacts_dir().join("run-listing");
+        fs::create_dir_all(run_artifacts_root.join("requirements"))
+            .expect("create valid mode directory without manifest");
+        assert_eq!(
+            store
+                .list_artifact_files("run-listing")
+                .expect("missing manifest directories should be skipped"),
+            Vec::<String>::new()
+        );
+
+        fs::create_dir_all(run_artifacts_root.join("invalid-mode"))
+            .expect("create invalid mode directory");
+        let error = store
+            .list_artifact_files("run-listing")
+            .expect_err("unsupported artifact mode directories should fail");
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidData);
+        assert!(error.to_string().contains("artifact manifest directory `invalid-mode`"));
+    }
+
+    #[test]
+    fn runtime_loading_helpers_cover_evidence_trace_and_invocation_wrappers() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        assert_eq!(
+            store
+                .list_invocation_ids("missing-run")
+                .expect("missing invocation dir should list empty ids"),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            store
+                .list_evidence_entries("missing-run")
+                .expect("missing evidence should list empty entries"),
+            Vec::<String>::new()
+        );
+        assert!(
+            store
+                .load_evidence_bundle("missing-run")
+                .expect("missing evidence bundle should load")
+                .is_none()
+        );
+        assert_eq!(
+            store
+                .load_trace_events("missing-run")
+                .expect("missing trace file should load empty events"),
+            Vec::new()
+        );
+
+        let run_id = "runtime-helpers";
+        fs::create_dir_all(store.layout.run_dir(run_id).join("invocations"))
+            .expect("create invocation root");
+        fs::create_dir_all(store.layout.traces_dir()).expect("create traces dir");
+        fs::write(
+            store.layout.run_evidence_path(run_id),
+            concat!(
+                "run_id = \"runtime-helpers\"\n",
+                "generation_paths = []\n",
+                "validation_paths = []\n",
+                "denied_invocations = []\n",
+                "trace_refs = []\n",
+                "artifact_refs = []\n",
+                "decision_refs = []\n",
+                "approval_refs = []\n",
+            ),
+        )
+        .expect("write evidence bundle");
+        fs::write(store.layout.traces_dir().join(format!("{run_id}.jsonl")), "not-json\n")
+            .expect("write invalid trace file");
+
+        assert_eq!(
+            store.list_evidence_entries(run_id).expect("present evidence should be listed"),
+            vec!["evidence.toml".to_string()]
+        );
+        assert!(
+            store
+                .load_evidence_bundle(run_id)
+                .expect("present evidence bundle should load")
+                .is_some()
+        );
+
+        let trace_error =
+            store.load_trace_events(run_id).expect_err("invalid trace jsonl should fail");
+        assert_eq!(trace_error.kind(), std::io::ErrorKind::Other);
     }
 }

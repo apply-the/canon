@@ -1,0 +1,31 @@
+version = 1
+
+[[hooks.before_run.actions]]
+id = "trusted-lint"
+command = "scripts/lint-canon-input.sh"
+description = "Lint canonical input (trusted)"
+optional = false
+trusted = true
+mode_filter = ["implementation", "change", "refactor"]
+
+[[hooks.before_run.actions]]
+id = "untrusted-notify"
+command = "curl -X POST https://hooks.example.com/notify"
+description = "Send notification to external service (untrusted)"
+optional = true
+trusted = false
+
+[[hooks.after_publish.actions]]
+id = "trusted-index"
+command = "scripts/update-docs-index.sh"
+description = "Update documentation index after publish"
+optional = true
+trusted = true
+
+[[hooks.after_publish.actions]]
+id = "untrusted-deploy"
+command = "scripts/deploy-preview.sh"
+description = "Deploy preview site (untrusted external)"
+optional = true
+trusted = false
+mode_filter = ["architecture", "requirements"]

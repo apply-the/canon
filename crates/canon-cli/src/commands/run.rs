@@ -92,10 +92,93 @@ fn classification_field(
 
 #[cfg(test)]
 mod tests {
-    use canon_engine::EngineService;
+    use std::fs;
 
-    use super::execute;
+    use canon_engine::EngineService;
+    use canon_engine::domain::run::ClassificationSource;
+    use tempfile::tempdir;
+
+    use super::{classification_field, execute};
     use crate::app::OutputFormat;
+
+    #[test]
+    fn execute_runs_requirements_brief_and_returns_state_exit_code() {
+        let workspace = tempdir().expect("create temp workspace");
+        fs::write(
+            workspace.path().join("idea.md"),
+            "# Requirements Brief\n\n## Problem\n\nLift CLI wrapper coverage.\n",
+        )
+        .expect("write idea file");
+        let service = EngineService::new(workspace.path());
+
+        let code = execute(
+            &service,
+            "requirements".to_string(),
+            None,
+            "low-impact".to_string(),
+            "green".to_string(),
+            None,
+            None,
+            vec!["explicit-risk".to_string()],
+            None,
+            None,
+            vec!["explicit-zone".to_string()],
+            Some("Owner <owner@example.com>".to_string()),
+            vec!["idea.md".to_string()],
+            Vec::new(),
+            Vec::new(),
+            None,
+            None,
+            OutputFormat::Json,
+        )
+        .expect("requirements run should succeed");
+
+        assert_eq!(code, 2);
+    }
+
+    #[test]
+    fn classification_field_uses_source_fallbacks_and_preserves_override_rationale() {
+        let explicit = classification_field(
+            ClassificationSource::Explicit,
+            None,
+            vec!["user-input".to_string()],
+            "Risk class",
+        );
+        assert_eq!(explicit.source, ClassificationSource::Explicit);
+        assert_eq!(explicit.rationale, "Risk class was supplied explicitly at run start.");
+        assert_eq!(explicit.signals, vec!["user-input".to_string()]);
+
+        let inferred_confirmed = classification_field(
+            ClassificationSource::InferredConfirmed,
+            None,
+            vec!["inspect-risk-zone".to_string()],
+            "Usage zone",
+        );
+        assert_eq!(inferred_confirmed.source, ClassificationSource::InferredConfirmed);
+        assert_eq!(
+            inferred_confirmed.rationale,
+            "Usage zone was inferred upstream and confirmed before Canon run start."
+        );
+
+        let inferred_overridden = classification_field(
+            ClassificationSource::InferredOverridden,
+            None,
+            Vec::new(),
+            "Risk class",
+        );
+        assert_eq!(
+            inferred_overridden.rationale,
+            "Risk class was inferred upstream and then overridden before Canon run start."
+        );
+
+        let overridden_rationale = classification_field(
+            ClassificationSource::Explicit,
+            Some("operator override".to_string()),
+            Vec::new(),
+            "Usage zone",
+        );
+        assert_eq!(overridden_rationale.rationale, "operator override");
+    }
 
     #[test]
     fn execute_rejects_unknown_mode_before_service_execution() {

@@ -60,11 +60,18 @@ fn search_upward_all_dirs(start: &Path, target: &str) -> Vec<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
     use std::fs;
+    use std::sync::{Mutex, OnceLock};
 
     use tempfile::tempdir;
 
-    use super::discover_repo_root;
+    use super::{WorkspaceResolutionError, discover_repo_root, resolve_repo_root};
+
+    fn cwd_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     #[test]
     fn discover_repo_root_prefers_canon_root_over_git_root() {
@@ -92,5 +99,54 @@ mod tests {
         let resolved = discover_repo_root(&child).unwrap();
 
         assert_eq!(resolved, git_root.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn discover_repo_root_returns_start_path_when_no_repo_markers_exist() {
+        let temp = tempdir().unwrap();
+        let child = temp.path().join("scratch/nested");
+        fs::create_dir_all(&child).unwrap();
+
+        let resolved = discover_repo_root(&child).unwrap();
+
+        assert_eq!(resolved, child.canonicalize().unwrap());
+    }
+
+    #[test]
+    fn discover_repo_root_rejects_ambiguous_nested_canon_roots() {
+        let temp = tempdir().unwrap();
+        let repo = temp.path().join("repo");
+        let nested = repo.join("nested");
+        let child = nested.join("src");
+        fs::create_dir_all(repo.join(".canon")).unwrap();
+        fs::create_dir_all(nested.join(".canon")).unwrap();
+        fs::create_dir_all(&child).unwrap();
+
+        let error = discover_repo_root(&child).expect_err("multiple .canon roots should fail");
+
+        match error {
+            WorkspaceResolutionError::Ambiguous(path) => {
+                assert_eq!(path, child.canonicalize().unwrap());
+            }
+            other => panic!("expected ambiguous workspace error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resolve_repo_root_uses_current_directory_search() {
+        let _guard = cwd_lock().lock().unwrap();
+        let original = env::current_dir().unwrap();
+
+        let temp = tempdir().unwrap();
+        let repo = temp.path().join("repo");
+        let child = repo.join("src/bin");
+        fs::create_dir_all(&child).unwrap();
+        fs::create_dir_all(repo.join(".git")).unwrap();
+
+        env::set_current_dir(&child).unwrap();
+        let resolved = resolve_repo_root();
+        env::set_current_dir(original).unwrap();
+
+        assert_eq!(resolved.unwrap(), repo.canonicalize().unwrap());
     }
 }

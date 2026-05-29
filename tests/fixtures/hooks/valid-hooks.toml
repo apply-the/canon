@@ -1,0 +1,16 @@
+version = 1
+
+[[hooks.before_run.actions]]
+id = "lint-input"
+command = "scripts/lint-canon-input.sh"
+description = "Lint canonical input before run starts"
+optional = false
+trusted = true
+mode_filter = ["implementation", "change"]
+
+[[hooks.after_publish.actions]]
+id = "stage-docs"
+command = "git add docs/"
+description = "Stage published documentation for commit"
+optional = true
+trusted = false

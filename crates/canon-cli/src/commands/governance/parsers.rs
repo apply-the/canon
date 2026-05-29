@@ -7,6 +7,14 @@
 use super::paths::{canonical_repo_root, non_empty, path_to_slash_string, resolve_request_path};
 use super::*;
 
+fn path_outside_workspace(reference: &str) -> GovernanceFailure {
+    Box::new(GovernanceResponse::blocked(
+        GovernanceReasonCode::PathOutsideWorkspace,
+        format!("document `{reference}` escapes the declared workspace boundary"),
+        vec!["input_documents".to_string()],
+    ))
+}
+
 /// Parses a `mode` string into a [`Mode`].
 ///
 /// Returns a [`GovernanceReasonCode::UnsupportedMode`] blocked response when
@@ -134,20 +142,12 @@ pub(super) fn normalize_workspace_relative_ref(
     })?;
 
     if !canonical_candidate.starts_with(&canonical_repo) {
-        return Err(Box::new(GovernanceResponse::blocked(
-            GovernanceReasonCode::PathOutsideWorkspace,
-            format!("document `{reference}` escapes the declared workspace boundary"),
-            vec!["input_documents".to_string()],
-        )));
+        return Err(path_outside_workspace(reference));
     }
 
-    let relative = canonical_candidate.strip_prefix(&canonical_repo).map_err(|_| {
-        Box::new(GovernanceResponse::blocked(
-            GovernanceReasonCode::PathOutsideWorkspace,
-            format!("document `{reference}` escapes the declared workspace boundary"),
-            vec!["input_documents".to_string()],
-        ))
-    })?;
+    let relative = canonical_candidate
+        .strip_prefix(&canonical_repo)
+        .map_err(|_| path_outside_workspace(reference))?;
 
     Ok(path_to_slash_string(relative))
 }

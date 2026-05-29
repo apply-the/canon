@@ -418,3 +418,72 @@ pub(super) fn authored_boundary_prompt(family: AuthoredClarityFamily) -> &'stati
 pub(super) fn authored_support_prompt(family: AuthoredClarityFamily) -> &'static str {
     authored_profile(family).prompts.support
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn authored_clarity_family_maps_remaining_modes_to_expected_families() {
+        assert_eq!(authored_clarity_family(Mode::Requirements), AuthoredClarityFamily::Planning);
+        assert_eq!(authored_clarity_family(Mode::Discovery), AuthoredClarityFamily::Planning);
+        assert_eq!(authored_clarity_family(Mode::PrReview), AuthoredClarityFamily::Planning);
+        assert_eq!(
+            authored_clarity_family(Mode::SupplyChainAnalysis),
+            AuthoredClarityFamily::Planning
+        );
+
+        assert_eq!(AuthoredClarityFamily::Planning.label(), "planning");
+        assert_eq!(AuthoredClarityFamily::Execution.label(), "execution");
+        assert_eq!(AuthoredClarityFamily::Assessment.label(), "assessment");
+    }
+
+    #[test]
+    fn authored_family_constructors_preserve_supplied_fields() {
+        let markers = AuthoredFamilyMarkers::new(
+            &["primary"],
+            &["boundary"],
+            &["support"],
+            &["decision"],
+            &["tradeoff"],
+            &["option"],
+            &["gap"],
+        );
+        assert_eq!(markers.primary, &["primary"]);
+        assert_eq!(markers.boundary, &["boundary"]);
+        assert_eq!(markers.support, &["support"]);
+        assert_eq!(markers.decision, &["decision"]);
+        assert_eq!(markers.tradeoff, &["tradeoff"]);
+        assert_eq!(markers.option, &["option"]);
+        assert_eq!(markers.gap, &["gap"]);
+
+        let fallbacks = AuthoredFamilyFallbacks::new(
+            "primary fallback",
+            "boundary fallback",
+            "support fallback",
+            "decision fallback",
+        );
+        assert_eq!(fallbacks.primary, "primary fallback");
+        assert_eq!(fallbacks.boundary, "boundary fallback");
+        assert_eq!(fallbacks.support, "support fallback");
+        assert_eq!(fallbacks.decision, "decision fallback");
+
+        let messages =
+            AuthoredFamilyMessages::new("missing primary", "missing boundary", "missing support");
+        assert_eq!(messages.missing_primary_subject, "missing primary");
+        assert_eq!(messages.missing_boundary, "missing boundary");
+        assert_eq!(messages.missing_support, "missing support");
+
+        let prompts =
+            AuthoredFamilyPrompts::new("target prompt", "boundary prompt", "support prompt");
+        assert_eq!(prompts.target, "target prompt");
+        assert_eq!(prompts.boundary, "boundary prompt");
+        assert_eq!(prompts.support, "support prompt");
+
+        let profile = AuthoredFamilyProfile::new(markers, fallbacks, messages, prompts);
+        assert_eq!(profile.markers.primary, &["primary"]);
+        assert_eq!(profile.fallbacks.primary, "primary fallback");
+        assert_eq!(profile.messages.missing_support, "missing support");
+        assert_eq!(profile.prompts.target, "target prompt");
+    }
+}

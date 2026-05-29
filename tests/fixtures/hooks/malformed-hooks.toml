@@ -1,0 +1,7 @@
+# This file intentionally contains invalid TOML syntax for testing
+version = 1
+
+[[hooks.before_run.actions]
+id = "broken-hook"
+command = "echo hello
+description = "Missing closing quotes and bracket"

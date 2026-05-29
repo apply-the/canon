@@ -6,7 +6,9 @@ use serde_json::json;
 use tempfile::TempDir;
 
 use super::error::map_engine_error;
-use super::handlers::missing_domain_fields;
+use super::handlers::{
+    handle_refresh, handle_start, missing_domain_fields, validate_workspace_binding,
+};
 use super::parsers::{collect_input_references, normalize_workspace_relative_ref};
 use super::paths::{artifact_contains_missing_authored_body, path_to_slash_string};
 use super::protocol::{command_response, read_request_from};
@@ -786,6 +788,73 @@ fn command_response_rejects_unsupported_domain_values() {
         assert_eq!(response["status"], json!("blocked"));
         assert_eq!(response["reason_code"], json!(expected_reason));
     }
+}
+
+#[test]
+fn handle_start_maps_engine_validation_failures() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    let response = handle_start(
+        &service,
+        workspace.path(),
+        governance_start_request(
+            &workspace,
+            "requirements",
+            "bounded-impact",
+            "yellow",
+            "owner",
+            None,
+        ),
+    );
+
+    assert_eq!(response.status, GovernanceStatus::Blocked);
+    assert_eq!(response.reason_code, Some(GovernanceReasonCode::DomainValidationFailed));
+}
+
+#[test]
+fn handle_refresh_returns_validation_failures_directly() {
+    let workspace = TempDir::new().expect("temp dir");
+
+    let response = handle_refresh(workspace.path(), GovernanceRequest::default());
+
+    assert_eq!(response.status, GovernanceStatus::Blocked);
+    assert_eq!(response.reason_code, Some(GovernanceReasonCode::MissingRequiredField));
+}
+
+#[test]
+fn validate_workspace_binding_reports_unavailable_repo_root_and_requested_workspace() {
+    let workspace = TempDir::new().expect("temp dir");
+    let missing_root = workspace.path().join("missing-root");
+
+    let missing_repo =
+        validate_workspace_binding(&missing_root, workspace.path().to_string_lossy().as_ref())
+            .expect_err("missing repo root should fail");
+    assert_eq!(missing_repo.reason_code, Some(GovernanceReasonCode::WorkspaceUnavailable));
+    assert!(missing_repo.message.starts_with("workspace is not accessible:"));
+
+    let missing_requested = validate_workspace_binding(workspace.path(), "missing-dir")
+        .expect_err("missing requested workspace should fail");
+    assert_eq!(
+        *missing_requested,
+        GovernanceResponse::failed(
+            GovernanceReasonCode::WorkspaceUnavailable,
+            "workspace `missing-dir` is not accessible",
+            None,
+        )
+    );
+}
+
+#[test]
+fn normalize_workspace_relative_ref_reports_unavailable_workspace_root() {
+    let workspace = TempDir::new().expect("temp dir");
+    let missing_root = workspace.path().join("missing-root");
+
+    let response = normalize_workspace_relative_ref(&missing_root, "brief.md")
+        .expect_err("missing workspace root should fail");
+
+    assert_eq!(response.reason_code, Some(GovernanceReasonCode::WorkspaceUnavailable));
+    assert!(response.message.starts_with("workspace is not accessible:"));
 }
 
 #[test]

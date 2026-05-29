@@ -1,27 +1,43 @@
 use super::{
     AiTool, AuthorityStatus, ClarificationQuestionSummary, EngineService, GateInspectSummary,
-    ModeResultSummary, RecommendedActionSummary, ResultActionSummary, RunRequest,
-    apply_execution_posture_summary, approved_execution_mutation_rationale,
-    authority_approval_state, build_action_chips_for, build_runtime_packet_metadata,
-    canonical_mode_input_binding, capability_tag, collect_files_recursively,
-    execution_continuation_pending, extract_change_surface_entries, packet_body_artifact_order,
-    preserve_multiline_summary, process_failure_excerpt, recommend_next_action,
-    resolved_execution_posture_label, resolved_execution_posture_label_for_mode,
-    run_state_from_gates, set_execution_posture, set_post_approval_execution_consumed,
+    GovernedRequestSpec, InspectEntry, InspectTarget, ModeResultSummary, RecommendedActionSummary,
+    RequirementsRequestSpec, ResultActionSummary, RunRequest, apply_execution_posture_summary,
+    approved_execution_mutation_rationale, authority_approval_state, build_action_chips_for,
+    build_runtime_packet_metadata, canonical_mode_input_binding, capability_tag,
+    collect_files_recursively, execution_continuation_pending, extract_change_surface_entries,
+    packet_body_artifact_order, preserve_multiline_summary, process_failure_excerpt,
+    recommend_next_action, resolved_execution_posture_label,
+    resolved_execution_posture_label_for_mode, run_state_from_gates, set_execution_posture,
+    set_post_approval_execution_consumed,
 };
 use crate::domain::approval::{ApprovalDecision, ApprovalRecord};
-use crate::domain::artifact::{ArtifactFormat, ArtifactRequirement};
-use crate::domain::execution::ExecutionPosture;
+use crate::domain::artifact::{
+    ArtifactContract, ArtifactFormat, ArtifactProvenance, ArtifactRecord, ArtifactRequirement,
+};
+use crate::domain::execution::{
+    DeniedInvocation, EvidenceDisposition, ExecutionPosture, GenerationPath, InvocationAttempt,
+    InvocationConstraintSet, InvocationPolicyDecision, InvocationRequest, PolicyDecisionKind,
+    ToolOutcome, ToolOutcomeKind, ValidationPath,
+};
 use crate::domain::gate::{GateEvaluation, GateKind, GateStatus};
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::publish_profile::AuthorityApprovalState;
-use crate::domain::run::{ClassificationProvenance, RunState};
+use crate::domain::run::{
+    BacklogGranularity, BacklogPlanningContext, ClassificationProvenance, ClosureAssessment,
+    ClosureDecompositionScope, ClosureFinding, ClosureFindingSeverity, ClosureStatus, RunContext,
+    RunState, SystemContext, UpstreamContext,
+};
+use crate::orchestrator::evidence::{attach_paths, default_independence, empty_evidence_bundle};
+use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use crate::persistence::store::{
-    InitSummary as StoreInitSummary, SkillMaterializationTarget,
+    InitSummary as StoreInitSummary, PersistedRunBundle, SkillMaterializationTarget,
     SkillsSummary as StoreSkillsSummary, WorkspaceStore,
 };
-use canon_adapters::CapabilityKind;
+use canon_adapters::{
+    AdapterKind, CapabilityKind, InvocationOrientation, LineageClass, MutabilityClass,
+    TrustBoundaryKind,
+};
 use tempfile::TempDir;
 use time::OffsetDateTime;
 
@@ -133,6 +149,248 @@ Status: no-open-findings
 
 - Keep the verification packet attached to downstream release review.
 "#
+}
+
+fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
+    let store = WorkspaceStore::new(workspace.path());
+    let run_id = "R-20260528-ABCDEF12".to_string();
+    let artifact_ref = format!("artifacts/{run_id}/backlog/01-backlog-overview.md");
+
+    let mut evidence = empty_evidence_bundle(&run_id);
+    attach_paths(
+        &mut evidence,
+        GenerationPath {
+            path_id: "generation:req-1".to_string(),
+            request_ids: vec!["req-1".to_string()],
+            lineage_classes: vec![LineageClass::AiVendorFamily],
+            derived_artifacts: vec![artifact_ref.clone()],
+        },
+        ValidationPath {
+            path_id: "validation:req-2".to_string(),
+            request_ids: vec!["req-2".to_string()],
+            lineage_classes: vec![LineageClass::HumanReview],
+            verification_refs: vec![format!("runs/{run_id}/verification/verification-00.toml")],
+            independence: default_independence("generation:req-1"),
+        },
+        vec![DeniedInvocation {
+            request_id: "req-3".to_string(),
+            rationale: "mutation remained out of policy scope".to_string(),
+            policy_refs: vec!["policy:red-zone".to_string()],
+            recorded_at: OffsetDateTime::UNIX_EPOCH,
+        }],
+    );
+    evidence.artifact_refs.push(artifact_ref);
+
+    let bundle = PersistedRunBundle {
+        run: RunManifest {
+            run_id: run_id.clone(),
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: Some("Inspect backlog evidence".to_string()),
+            mode: Mode::Backlog,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: Some(SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "planner".to_string(),
+            created_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        context: RunContext {
+            repo_root: workspace.path().display().to_string(),
+            owner: Some("planner".to_string()),
+            inputs: vec!["canon-input/backlog.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: Some(SystemContext::Existing),
+            upstream_context: Some(UpstreamContext {
+                feature_slice: Some("runtime honesty contract".to_string()),
+                primary_upstream_mode: Some("architecture".to_string()),
+                source_refs: vec!["specs/061-skill-runtime-contracts/spec.md".to_string()],
+                carried_forward_items: vec!["Keep structured preflight JSON stable.".to_string()],
+                excluded_upstream_scope: Some("assistant packaging changes".to_string()),
+            }),
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: Some(BacklogPlanningContext {
+                mode: "backlog".to_string(),
+                delivery_intent: "Prepare a bounded rollout backlog for runtime contracts."
+                    .to_string(),
+                desired_granularity: BacklogGranularity::EpicPlusSlice,
+                planning_horizon: Some("next sprint".to_string()),
+                source_refs: vec!["specs/061-skill-runtime-contracts/plan.md".to_string()],
+                priority_inputs: vec!["stabilize operator inspect output".to_string()],
+                constraints: vec!["Stay above task level.".to_string()],
+                out_of_scope: vec!["frontend packaging refresh".to_string()],
+                closure_assessment: ClosureAssessment {
+                    status: ClosureStatus::Downgraded,
+                    findings: vec![ClosureFinding {
+                        category: "missing-evidence".to_string(),
+                        severity: ClosureFindingSeverity::Warning,
+                        affected_scope: "rollback validation".to_string(),
+                        recommended_followup: "Add an independent rollback drill before closure."
+                            .to_string(),
+                    }],
+                    decomposition_scope: ClosureDecompositionScope::RiskOnlyPacket,
+                    notes: Some("One more independent rollback check remains.".to_string()),
+                },
+            }),
+            inline_inputs: Vec::new(),
+            captured_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        state: RunStateManifest {
+            state: RunState::Completed,
+            updated_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        artifact_contract: ArtifactContract {
+            version: 1,
+            artifact_requirements: Vec::new(),
+            required_verification_layers: Vec::new(),
+        },
+        artifacts: Vec::new(),
+        links: LinkManifest {
+            artifacts: Vec::new(),
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: Vec::new(),
+        verification_records: Vec::new(),
+        evidence: Some(evidence),
+        invocations: Vec::new(),
+    };
+
+    store.persist_run_bundle(&bundle).expect("persist inspect evidence bundle");
+    run_id
+}
+
+fn persist_inspect_invocation_bundle(workspace: &TempDir) -> String {
+    let store = WorkspaceStore::new(workspace.path());
+    let run_id = "R-20260528-INVOC123".to_string();
+    let request_id = "req-approved".to_string();
+    let artifact_path = format!("artifacts/{run_id}/implementation/01-task-mapping.md");
+
+    let bundle = PersistedRunBundle {
+        run: RunManifest {
+            run_id: run_id.clone(),
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: Some("Inspect invocation runtime".to_string()),
+            mode: Mode::Implementation,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: Some(SystemContext::Existing),
+            classification: ClassificationProvenance::explicit(),
+            owner: "staff-engineer".to_string(),
+            created_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        context: RunContext {
+            repo_root: workspace.path().display().to_string(),
+            owner: Some("staff-engineer".to_string()),
+            inputs: vec!["canon-input/implementation.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: Some(SystemContext::Existing),
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            inline_inputs: Vec::new(),
+            captured_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        state: RunStateManifest {
+            state: RunState::AwaitingApproval,
+            updated_at: OffsetDateTime::UNIX_EPOCH,
+        },
+        artifact_contract: ArtifactContract {
+            version: 1,
+            artifact_requirements: Vec::new(),
+            required_verification_layers: Vec::new(),
+        },
+        artifacts: vec![crate::persistence::store::PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "01-task-mapping.md".to_string(),
+                relative_path: artifact_path.clone(),
+                format: ArtifactFormat::Markdown,
+                provenance: Some(ArtifactProvenance {
+                    request_ids: vec![request_id.clone()],
+                    evidence_bundle: None,
+                    disposition: EvidenceDisposition::Supporting,
+                }),
+            },
+            contents: "# Task Mapping\n\n- apply bounded runtime patch\n".to_string(),
+        }],
+        links: LinkManifest {
+            artifacts: vec![artifact_path],
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: vec![ApprovalRecord::for_invocation(
+            request_id.clone(),
+            "maintainer".to_string(),
+            ApprovalDecision::Approve,
+            "approved bounded execution".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )],
+        verification_records: Vec::new(),
+        evidence: None,
+        invocations: vec![crate::persistence::invocations::PersistedInvocation {
+            request: InvocationRequest {
+                request_id: request_id.clone(),
+                run_id: run_id.clone(),
+                mode: Mode::Implementation.as_str().to_string(),
+                system_context: Some(SystemContext::Existing),
+                risk: RiskClass::BoundedImpact,
+                zone: UsageZone::Yellow,
+                adapter: AdapterKind::CopilotCli,
+                capability: CapabilityKind::GenerateContent,
+                orientation: InvocationOrientation::Generation,
+                mutability: MutabilityClass::ArtifactWrite,
+                trust_boundary: TrustBoundaryKind::AiReasoning,
+                lineage: LineageClass::AiVendorFamily,
+                requested_scope: vec!["canon-input/implementation.md".to_string()],
+                owner: Some("staff-engineer".to_string()),
+                summary: "Generate bounded implementation packet".to_string(),
+                requested_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            decision: InvocationPolicyDecision {
+                kind: PolicyDecisionKind::NeedsApproval,
+                constraints: InvocationConstraintSet {
+                    recommendation_only: true,
+                    ..InvocationConstraintSet::default()
+                },
+                requires_approval: true,
+                rationale: "bounded execution requires human approval".to_string(),
+                policy_refs: vec!["policy:execution".to_string()],
+                decided_at: OffsetDateTime::UNIX_EPOCH,
+            },
+            attempts: vec![InvocationAttempt {
+                request_id,
+                attempt_number: 1,
+                started_at: OffsetDateTime::UNIX_EPOCH,
+                finished_at: OffsetDateTime::UNIX_EPOCH,
+                executor: "copilot-cli".to_string(),
+                outcome: ToolOutcome {
+                    kind: ToolOutcomeKind::Succeeded,
+                    summary: "Generated the bounded implementation packet.".to_string(),
+                    exit_code: Some(0),
+                    payload_refs: Vec::new(),
+                    candidate_artifacts: vec!["01-task-mapping.md".to_string()],
+                    recorded_at: OffsetDateTime::UNIX_EPOCH,
+                },
+            }],
+            approvals: Vec::new(),
+        }],
+    };
+
+    store.persist_run_bundle(&bundle).expect("persist inspect invocation bundle");
+    run_id
 }
 
 #[test]
@@ -1668,4 +1926,783 @@ fn inspect_risk_zone_rejects_pr_review_without_two_refs_directly() {
         .expect_err("pr-review risk-zone should require two refs");
 
     assert!(error.to_string().contains("requires two refs or inputs"));
+}
+
+#[test]
+fn inspect_lists_modes_methods_and_policies_after_init() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+
+    service.init(Some(AiTool::Copilot)).expect("init runtime state");
+
+    let modes = service.inspect(InspectTarget::Modes).expect("inspect modes");
+    assert_eq!(modes.target, "modes");
+    assert!(
+        modes
+            .entries
+            .iter()
+            .any(|entry| matches!(entry, InspectEntry::Name(name) if name == "requirements"))
+    );
+
+    let methods = service.inspect(InspectTarget::Methods).expect("inspect methods");
+    assert_eq!(methods.target, "methods");
+    assert!(!methods.entries.is_empty());
+    assert!(methods.entries.iter().all(|entry| matches!(entry, InspectEntry::Name(_))));
+
+    let policies = service.inspect(InspectTarget::Policies).expect("inspect policies");
+    assert_eq!(policies.target, "policies");
+    assert!(!policies.entries.is_empty());
+    assert!(policies.entries.iter().all(|entry| matches!(entry, InspectEntry::Name(_))));
+}
+
+#[test]
+fn inspect_artifacts_and_invocations_surface_approved_runtime_details() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+    let run_id = persist_inspect_invocation_bundle(&workspace);
+
+    let artifacts = service
+        .inspect(InspectTarget::Artifacts { run_id: run_id.clone() })
+        .expect("inspect artifacts");
+    assert_eq!(artifacts.target, "artifacts");
+    assert_eq!(artifacts.system_context.as_deref(), Some("existing"));
+    assert!(artifacts.entries.iter().any(|entry| {
+        matches!(entry, InspectEntry::Name(name) if name.ends_with("01-task-mapping.md"))
+    }));
+
+    let invocations =
+        service.inspect(InspectTarget::Invocations { run_id }).expect("inspect invocations");
+    assert_eq!(invocations.target, "invocations");
+    assert_eq!(invocations.system_context.as_deref(), Some("existing"));
+    let approved = invocations
+        .entries
+        .iter()
+        .find_map(|entry| match entry {
+            InspectEntry::Invocation(summary)
+                if summary.approval_state == "approved" && summary.latest_outcome.is_some() =>
+            {
+                Some(summary)
+            }
+            _ => None,
+        })
+        .expect("approved invocation summary");
+    assert_eq!(approved.orientation, "Generation");
+}
+
+#[test]
+fn inspect_evidence_reports_upstream_closure_and_lineage_details() {
+    let workspace = TempDir::new().expect("temp dir");
+    let run_id = persist_inspect_evidence_bundle(&workspace);
+    let service = EngineService::new(workspace.path());
+
+    let response = service.inspect(InspectTarget::Evidence { run_id }).expect("inspect evidence");
+
+    assert_eq!(response.target, "evidence");
+    assert_eq!(response.system_context.as_deref(), Some("existing"));
+
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::Evidence(summary)] => summary,
+        other => panic!("expected a single evidence entry, got {other:?}"),
+    };
+
+    assert!(summary.execution_posture.is_none());
+    assert_eq!(summary.upstream_feature_slice.as_deref(), Some("runtime honesty contract"));
+    assert_eq!(summary.primary_upstream_mode.as_deref(), Some("architecture"));
+    assert_eq!(
+        summary.upstream_source_refs,
+        vec!["specs/061-skill-runtime-contracts/spec.md".to_string()]
+    );
+    assert_eq!(
+        summary.carried_forward_items,
+        vec!["Keep structured preflight JSON stable.".to_string()]
+    );
+    assert_eq!(summary.excluded_upstream_scope.as_deref(), Some("assistant packaging changes"));
+    assert_eq!(summary.closure_status.as_deref(), Some("downgraded"));
+    assert_eq!(summary.decomposition_scope.as_deref(), Some("risk-only-packet"));
+    assert_eq!(
+        summary.closure_notes.as_deref(),
+        Some("One more independent rollback check remains.")
+    );
+    assert_eq!(summary.closure_findings.len(), 1);
+    assert_eq!(summary.closure_findings[0].category, "missing-evidence");
+    assert_eq!(summary.closure_findings[0].severity, "warning");
+    assert_eq!(summary.generation_paths, vec!["generation:req-1".to_string()]);
+    assert_eq!(summary.validation_paths, vec!["validation:req-2".to_string()]);
+    assert_eq!(summary.denied_invocations, vec!["req-3".to_string()]);
+    assert_eq!(
+        summary.artifact_provenance_links,
+        vec!["artifacts/R-20260528-ABCDEF12/backlog/01-backlog-overview.md".to_string()]
+    );
+}
+
+#[test]
+fn inspect_risk_zone_accepts_authored_inputs() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("requirements.md"),
+        "# Requirements Brief\n\n## Problem\nStabilize skill runtime contracts.\n",
+    )
+    .expect("requirements input");
+    let service = EngineService::new(workspace.path());
+
+    let response = service
+        .inspect(InspectTarget::RiskZone {
+            mode: Mode::Requirements,
+            risk: Some(RiskClass::LowImpact),
+            zone: Some(UsageZone::Green),
+            inputs: vec!["requirements.md".to_string()],
+            inline_inputs: Vec::new(),
+        })
+        .expect("inspect requirements risk zone");
+
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::RiskZone(summary)] => summary,
+        other => panic!("expected a single risk-zone entry, got {other:?}"),
+    };
+    assert_eq!(response.target, "risk-zone");
+    assert_eq!(summary.mode, "requirements");
+    assert_eq!(summary.risk, "low-impact");
+    assert_eq!(summary.zone, "green");
+    assert!(summary.risk_was_supplied);
+    assert!(summary.zone_was_supplied);
+}
+
+#[test]
+fn inspect_risk_zone_accepts_pr_review_refs_on_repo_history() {
+    let service = EngineService::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+
+    let response = service
+        .inspect(InspectTarget::RiskZone {
+            mode: Mode::PrReview,
+            risk: None,
+            zone: None,
+            inputs: vec!["HEAD~1".to_string(), "HEAD".to_string()],
+            inline_inputs: Vec::new(),
+        })
+        .expect("inspect pr-review risk zone");
+
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::RiskZone(summary)] => summary,
+        other => panic!("expected a single risk-zone entry, got {other:?}"),
+    };
+    assert_eq!(response.target, "risk-zone");
+    assert_eq!(summary.mode, "pr-review");
+}
+
+#[test]
+fn inspect_clarity_dispatches_file_backed_mode_variants() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("requirements.md"),
+        "# Requirements Brief\n\n## Problem\nStabilize skill runtime contracts.\n\n## Constraints\n- Stay within the existing runtime surface.\n\n## Success Signals\n- Operators can inspect structured preflight output.\n",
+    )
+    .expect("requirements brief");
+    std::fs::write(
+        workspace.path().join("discovery.md"),
+        "# Discovery Brief\n\n## Problem\nClarify runtime contract gaps.\n\n## System Shape\nExisting Rust workspace with governed adapters.\n\n## Boundaries\n- Local filesystem only.\n",
+    )
+    .expect("discovery brief");
+    std::fs::write(
+        workspace.path().join("supply-chain-analysis.md"),
+        "# Supply Chain Analysis Brief\n\n## Declared Scope\n- Rust workspace manifests\n\n## Distribution Surface\n- Homebrew\n- Scoop\n\n## Ecosystem Dependencies\n- clap\n- serde\n\n## Tool Policy\n- cargo deny\n",
+    )
+    .expect("supply chain brief");
+    let service = EngineService::new(workspace.path());
+
+    for (mode, input, expected_mode) in [
+        (Mode::Requirements, "requirements.md", "requirements"),
+        (Mode::Discovery, "discovery.md", "discovery"),
+        (Mode::SupplyChainAnalysis, "supply-chain-analysis.md", "supply-chain-analysis"),
+    ] {
+        let response = service
+            .inspect(InspectTarget::Clarity { mode, inputs: vec![input.to_string()] })
+            .expect("inspect clarity");
+
+        let summary = match response.entries.as_slice() {
+            [InspectEntry::Clarity(summary)] => summary,
+            other => panic!("expected a single clarity entry, got {other:?}"),
+        };
+        assert_eq!(response.target, "clarity");
+        assert_eq!(summary.mode, expected_mode);
+        assert_eq!(summary.authoring_lifecycle.packet_shape, "single-file");
+        assert!(!summary.recommended_focus.trim().is_empty());
+    }
+}
+
+#[test]
+fn inspect_clarity_dispatches_directory_backed_authored_mode() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("implementation");
+    std::fs::create_dir_all(&packet_root).expect("implementation packet dir");
+    std::fs::write(packet_root.join("brief.md"), supported_implementation_brief())
+        .expect("implementation brief");
+    std::fs::write(
+        packet_root.join("source-map.md"),
+        "# Source Map\n\n- specs/061-skill-runtime-contracts/plan.md\n",
+    )
+    .expect("implementation source map");
+    let service = EngineService::new(workspace.path());
+
+    let response = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::Implementation,
+            inputs: vec!["canon-input/implementation".to_string()],
+        })
+        .expect("inspect implementation clarity");
+
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+    assert_eq!(response.target, "clarity");
+    assert_eq!(summary.mode, "implementation");
+    assert_eq!(summary.authoring_lifecycle.packet_shape, "directory-backed");
+    assert_eq!(summary.authoring_lifecycle.authority_status, "explicit-authoritative-brief");
+    assert!(
+        summary
+            .source_inputs
+            .iter()
+            .any(|path| path.ends_with("canon-input/implementation/brief.md"))
+    );
+}
+
+#[test]
+fn inspect_clarity_requirements_covers_clarification_and_ready_recommendations() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("requirements-open.md"),
+        "# Requirements Brief\n\n## Problem\nReduce auth latency.\n\n## Outcome\nP99 auth latency under 50 ms.\n\n## Constraints\n- No breaking API changes.\n\n## Tradeoffs\n- Cache consistency vs latency.\n\n## Out of Scope\n- UI changes.\n\n## Open Questions\n- Which cache backend?\n",
+    )
+    .expect("requirements open brief");
+    std::fs::write(
+        workspace.path().join("requirements-ready.md"),
+        "# Requirements Brief\n\n## Problem\nReduce auth latency.\n\n## Outcome\nP99 auth latency under 50 ms.\n\n## Constraints\n- No breaking API changes.\n\n## Tradeoffs\n- Cache consistency vs latency.\n\n## Out of Scope\n- UI changes.\n",
+    )
+    .expect("requirements ready brief");
+    let service = EngineService::new(workspace.path());
+
+    let open_response = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::Requirements,
+            inputs: vec!["requirements-open.md".to_string()],
+        })
+        .expect("inspect open requirements clarity");
+    let open_summary = match open_response.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+    assert!(open_summary.requires_clarification);
+    assert!(open_summary.recommended_focus.contains("named owner"));
+
+    let ready_response = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::Requirements,
+            inputs: vec!["requirements-ready.md".to_string()],
+        })
+        .expect("inspect ready requirements clarity");
+    let ready_summary = match ready_response.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+    assert!(!ready_summary.requires_clarification);
+    assert!(
+        ready_summary.recommended_focus.contains("No critical clarification questions detected")
+    );
+}
+
+#[test]
+fn inspect_clarity_discovery_covers_open_question_recommendation() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("discovery-open.md"),
+        "# Discovery Brief\n\n## Problem\nBound the runtime contract work.\n\n## Constraints\n- Stay inside canon-engine service tests first.\n\n## Repo Focus\n- crates/canon-engine/src/orchestrator/service\n\n## Unknowns\n- Which service slices still need direct coverage?\n\n## Next Phase\n- architecture\n",
+    )
+    .expect("discovery open brief");
+    let service = EngineService::new(workspace.path());
+
+    let response = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::Discovery,
+            inputs: vec!["discovery-open.md".to_string()],
+        })
+        .expect("inspect discovery clarity");
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+    assert!(summary.requires_clarification);
+    assert!(summary.recommended_focus.contains("open discovery questions"));
+}
+
+#[test]
+fn inspect_clarity_supply_chain_covers_publishable_recommendation() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("supply-chain-ready.md"),
+        "# Supply Chain Analysis Brief\n\n## Declared Scope\nCargo manifests under crates/ and GitHub Actions workflows.\n\n## Licensing Posture\noss-permissive\n\n## Distribution Model\nexternal distribution\n\n## Ecosystems In Scope\n- cargo\n- github actions\n\n## Out Of Scope Components\n- vendored ui assets\n\n## Scanner Decisions\n- prefer OSS scanners first\n",
+    )
+    .expect("supply chain ready brief");
+    let service = EngineService::new(workspace.path());
+
+    let response = service
+        .inspect(InspectTarget::Clarity {
+            mode: Mode::SupplyChainAnalysis,
+            inputs: vec!["supply-chain-ready.md".to_string()],
+        })
+        .expect("inspect supply chain clarity");
+    let summary = match response.entries.as_slice() {
+        [InspectEntry::Clarity(summary)] => summary,
+        other => panic!("expected a single clarity entry, got {other:?}"),
+    };
+    assert!(!summary.requires_clarification);
+    assert!(summary.recommended_focus.contains("No critical clarification questions detected"));
+}
+
+#[test]
+fn run_lifecycle_request_helpers_map_capabilities_and_context() {
+    let service = EngineService::new("/tmp/canon-root");
+
+    let requirements_request = service.requirements_request(RequirementsRequestSpec {
+        run_id: "R-REQ-1",
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        owner: "staff-engineer",
+        capability: CapabilityKind::GenerateContent,
+        summary: "Generate the requirements packet",
+        scope: vec!["canon-input/requirements.md".to_string()],
+    });
+    assert_eq!(requirements_request.adapter, AdapterKind::CopilotCli);
+    assert_eq!(requirements_request.mode, "requirements");
+    assert_eq!(requirements_request.orientation, InvocationOrientation::Generation);
+    assert_eq!(requirements_request.owner.as_deref(), Some("staff-engineer"));
+
+    let governed_request = service.governed_request(GovernedRequestSpec {
+        run_id: "R-GOV-1",
+        mode: Mode::Review,
+        risk: RiskClass::LowImpact,
+        zone: UsageZone::Green,
+        system_context: None,
+        owner: "reviewer",
+        adapter: AdapterKind::Filesystem,
+        capability: CapabilityKind::ReadRepository,
+        summary: "Read the review target",
+        scope: vec!["canon-input/review.md".to_string()],
+    });
+    assert_eq!(governed_request.request_id, "R-GOV-1-context");
+    assert_eq!(governed_request.adapter, AdapterKind::Filesystem);
+    assert_eq!(governed_request.orientation, InvocationOrientation::Context);
+    assert_eq!(governed_request.mutability, MutabilityClass::ReadOnly);
+    assert_eq!(governed_request.trust_boundary, TrustBoundaryKind::LocalDeterministic);
+    assert_eq!(governed_request.lineage, LineageClass::NonGenerative);
+}
+
+#[test]
+fn run_lifecycle_read_requirements_context_covers_labels_and_empty_normalization() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(
+        workspace.path().join("brief.md"),
+        "# Requirements Brief\n\n## Problem\nBound the runtime surface.\n",
+    )
+    .expect("brief");
+    let service = EngineService::new(workspace.path());
+
+    let context = service
+        .read_requirements_context(
+            &["brief.md".to_string(), "missing-ref".to_string()],
+            &["inline detail".to_string()],
+        )
+        .expect("read requirements context");
+    assert!(context.contains("## Input: brief.md"));
+    assert!(context.contains("Bound the runtime surface"));
+    assert!(context.contains("missing-ref"));
+    assert!(context.contains("## Input: inline-input-01.md"));
+    assert!(context.contains("inline detail"));
+
+    let error = service
+        .read_requirements_context(&[], &["   ".to_string()])
+        .expect_err("whitespace-only authored input should fail");
+    assert!(error.to_string().contains("no usable content after normalization"));
+}
+
+#[test]
+fn run_lifecycle_change_validation_attempt_covers_success_and_fallback_paths() {
+    let repo_service = EngineService::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../.."));
+    let success_request = repo_service.governed_request(GovernedRequestSpec {
+        run_id: "R-VAL-OK",
+        mode: Mode::Change,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        owner: "maintainer",
+        adapter: AdapterKind::Shell,
+        capability: CapabilityKind::ValidateWithTool,
+        summary: "Validate the bounded change surface",
+        scope: vec!["src".to_string()],
+    });
+    let (success_summary, success_attempt) = repo_service
+        .change_validation_attempt(&success_request)
+        .expect("change validation success path");
+    assert_eq!(success_attempt.outcome.kind, ToolOutcomeKind::Succeeded);
+    assert!(
+        success_summary.contains("Validation tool reviewed tracked repository surfaces")
+            || success_summary.contains("repository is empty but reachable")
+    );
+
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::write(workspace.path().join("README.md"), "fallback\n").expect("readme");
+    let fallback_service = EngineService::new(workspace.path());
+    let fallback_request = fallback_service.governed_request(GovernedRequestSpec {
+        run_id: "R-VAL-FALLBACK",
+        mode: Mode::Change,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        owner: "maintainer",
+        adapter: AdapterKind::Shell,
+        capability: CapabilityKind::ValidateWithTool,
+        summary: "Validate the bounded change surface",
+        scope: vec!["README.md".to_string()],
+    });
+    let (fallback_summary, fallback_attempt) = fallback_service
+        .change_validation_attempt(&fallback_request)
+        .expect("change validation fallback path");
+    assert_eq!(fallback_attempt.outcome.kind, ToolOutcomeKind::PartiallySucceeded);
+    assert!(
+        fallback_summary
+            .contains("Validation fell back to local workspace scan after git returned")
+    );
+    assert!(fallback_summary.contains("README.md"));
+}
+
+#[test]
+fn run_lifecycle_locates_patch_payload_absence_multiple_and_scope_errors() {
+    let workspace = TempDir::new().expect("temp dir");
+    let packet_root = workspace.path().join("canon-input").join("change");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    let service = EngineService::new(workspace.path());
+
+    assert!(
+        service
+            .locate_authored_mutation_patch(
+                &["canon-input/change".to_string()],
+                &["src".to_string()]
+            )
+            .expect("missing patch should be allowed")
+            .is_none()
+    );
+
+    let in_bounds_patch = "diff --git a/src/lib.rs b/src/lib.rs\n--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1 +1 @@\n-old\n+new\n";
+    std::fs::write(packet_root.join("patch.diff"), in_bounds_patch).expect("patch.diff");
+    std::fs::write(packet_root.join("mutation.patch"), in_bounds_patch).expect("mutation.patch");
+    let multiple = service
+        .locate_authored_mutation_patch(&["canon-input/change".to_string()], &["src".to_string()])
+        .expect_err("multiple patch payloads should fail");
+    assert!(multiple.to_string().contains("multiple bounded mutation payloads were found"));
+
+    std::fs::remove_file(packet_root.join("mutation.patch")).expect("remove extra patch");
+    let out_of_bounds_patch = "diff --git a/secret.txt b/secret.txt\n--- a/secret.txt\n+++ b/secret.txt\n@@ -1 +1 @@\n-old\n+new\n";
+    std::fs::write(packet_root.join("patch.diff"), out_of_bounds_patch)
+        .expect("out-of-bounds patch");
+    let out_of_bounds = service
+        .locate_authored_mutation_patch(
+            &["canon-input/change".to_string()],
+            &["src/lib.rs".to_string()],
+        )
+        .expect_err("out-of-bounds patch should fail");
+    assert!(out_of_bounds.to_string().contains("outside Allowed Paths"));
+}
+
+#[test]
+fn run_lifecycle_applies_in_bounds_authored_mutation_patch() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::create_dir_all(workspace.path().join("src")).expect("src dir");
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn version() -> &'static str { \"old\" }\n",
+    )
+    .expect("src/lib.rs");
+    let init = std::process::Command::new("git")
+        .arg("init")
+        .current_dir(workspace.path())
+        .status()
+        .expect("git init status");
+    assert!(init.success());
+
+    let packet_root = workspace.path().join("canon-input").join("change");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    std::fs::write(
+        packet_root.join("patch.diff"),
+        "diff --git a/src/lib.rs b/src/lib.rs\n--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1 +1 @@\n-pub fn version() -> &'static str { \"old\" }\n+pub fn version() -> &'static str { \"new\" }\n",
+    )
+    .expect("patch.diff");
+
+    let service = EngineService::new(workspace.path());
+    let patch = service
+        .locate_authored_mutation_patch(
+            &["canon-input/change".to_string()],
+            &["src/lib.rs".to_string()],
+        )
+        .expect("locate authored patch")
+        .expect("expected authored patch");
+    let request = service.governed_request(GovernedRequestSpec {
+        run_id: "R-APPLY-1",
+        mode: Mode::Change,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        owner: "maintainer",
+        adapter: AdapterKind::Shell,
+        capability: CapabilityKind::ExecuteBoundedTransformation,
+        summary: "Apply the authored bounded patch",
+        scope: vec!["src/lib.rs".to_string()],
+    });
+
+    let attempt =
+        service.apply_authored_mutation_patch(&request, &patch).expect("apply authored patch");
+    assert_eq!(attempt.outcome.kind, ToolOutcomeKind::Succeeded);
+    assert_eq!(attempt.outcome.candidate_artifacts, vec!["src/lib.rs".to_string()]);
+    assert!(
+        std::fs::read_to_string(workspace.path().join("src/lib.rs"))
+            .expect("read updated src/lib.rs")
+            .contains("new")
+    );
+}
+
+fn run_request_for_refresh(mode: Mode) -> RunRequest {
+    let inputs = if matches!(mode, Mode::PrReview) {
+        vec!["origin/main".to_string(), "HEAD".to_string()]
+    } else {
+        vec![format!("canon-input/{}.md", mode.as_str())]
+    };
+    RunRequest {
+        mode,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        classification: ClassificationProvenance::explicit(),
+        owner: format!("owner-{}", mode.as_str()),
+        inputs,
+        inline_inputs: Vec::new(),
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    }
+}
+
+fn run_manifest_for_refresh(mode: Mode, index: usize) -> RunManifest {
+    RunManifest {
+        run_id: format!("R-20260528-{index:08X}"),
+        uuid: None,
+        short_id: None,
+        slug: None,
+        title: Some(format!("refresh {mode}")),
+        mode,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        classification: ClassificationProvenance::explicit(),
+        owner: format!("owner-{}", mode.as_str()),
+        created_at: OffsetDateTime::UNIX_EPOCH,
+    }
+}
+
+#[test]
+fn run_lifecycle_refresh_run_state_covers_supported_dispatch_and_pending_execution() {
+    let workspace = TempDir::new().expect("temp dir");
+    let store = WorkspaceStore::new(workspace.path());
+    let service = EngineService::new(workspace.path());
+    let empty_contract = ArtifactContract {
+        version: 1,
+        artifact_requirements: Vec::new(),
+        required_verification_layers: Vec::new(),
+    };
+    let artifacts: Vec<crate::persistence::store::PersistedArtifact> = Vec::new();
+    let seed_run = |manifest: &RunManifest, context: &RunContext| {
+        store
+            .persist_run_bundle(&PersistedRunBundle {
+                run: manifest.clone(),
+                context: context.clone(),
+                state: RunStateManifest {
+                    state: RunState::Completed,
+                    updated_at: OffsetDateTime::UNIX_EPOCH,
+                },
+                artifact_contract: empty_contract.clone(),
+                artifacts: Vec::new(),
+                links: LinkManifest {
+                    artifacts: Vec::new(),
+                    decisions: Vec::new(),
+                    traces: Vec::new(),
+                    invocations: Vec::new(),
+                    evidence: None,
+                },
+                gates: Vec::new(),
+                approvals: Vec::new(),
+                verification_records: Vec::new(),
+                evidence: None,
+                invocations: Vec::new(),
+            })
+            .expect("seed run bundle");
+    };
+
+    let supported_modes = [
+        Mode::Discovery,
+        Mode::SystemShaping,
+        Mode::Change,
+        Mode::Incident,
+        Mode::SystemAssessment,
+        Mode::SecurityAssessment,
+        Mode::DomainLanguage,
+        Mode::DomainModel,
+        Mode::SupplyChainAnalysis,
+        Mode::Migration,
+        Mode::Review,
+        Mode::Verification,
+        Mode::Architecture,
+        Mode::PrReview,
+    ];
+    for (index, mode) in supported_modes.into_iter().enumerate() {
+        let request = run_request_for_refresh(mode);
+        let context = service.build_run_context(&request, Vec::new(), OffsetDateTime::UNIX_EPOCH);
+        let manifest = run_manifest_for_refresh(mode, index + 1);
+        seed_run(&manifest, &context);
+        let state = service
+            .refresh_run_state(&store, &manifest, &context, &empty_contract, &artifacts, &[])
+            .expect("refresh state for supported mode");
+        assert!(
+            matches!(state, RunState::Completed | RunState::Blocked | RunState::AwaitingApproval),
+            "unexpected state for {mode:?}: {state:?}"
+        );
+    }
+
+    for (index, mode) in [Mode::Implementation, Mode::Refactor].into_iter().enumerate() {
+        let request = run_request_for_refresh(mode);
+        let context = service.build_run_context(&request, Vec::new(), OffsetDateTime::UNIX_EPOCH);
+        let manifest = run_manifest_for_refresh(mode, 100 + index);
+        seed_run(&manifest, &context);
+        let approvals = vec![ApprovalRecord::for_gate(
+            GateKind::Execution,
+            manifest.owner.clone(),
+            ApprovalDecision::Approve,
+            "approved execution".to_string(),
+            OffsetDateTime::UNIX_EPOCH,
+        )];
+        let state = service
+            .refresh_run_state(&store, &manifest, &context, &empty_contract, &artifacts, &approvals)
+            .expect("refresh state for execution mode");
+        assert!(
+            matches!(state, RunState::AwaitingApproval | RunState::Blocked),
+            "unexpected execution state for {mode:?}: {state:?}"
+        );
+    }
+
+    let unsupported_request = run_request_for_refresh(Mode::Requirements);
+    let unsupported_context =
+        service.build_run_context(&unsupported_request, Vec::new(), OffsetDateTime::UNIX_EPOCH);
+    let unsupported_manifest = run_manifest_for_refresh(Mode::Requirements, 999);
+    seed_run(&unsupported_manifest, &unsupported_context);
+    let error = service
+        .refresh_run_state(
+            &store,
+            &unsupported_manifest,
+            &unsupported_context,
+            &empty_contract,
+            &artifacts,
+            &[],
+        )
+        .expect_err("requirements refresh should be unsupported");
+    assert!(matches!(error, super::EngineError::UnsupportedMode(_)));
+}
+
+#[test]
+fn run_lifecycle_change_validation_attempt_reports_empty_workspace_fallback_surface() {
+    let workspace = TempDir::new().expect("temp dir");
+    let service = EngineService::new(workspace.path());
+    let request = service.governed_request(GovernedRequestSpec {
+        run_id: "R-VAL-EMPTY",
+        mode: Mode::Change,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        owner: "maintainer",
+        adapter: AdapterKind::Shell,
+        capability: CapabilityKind::ValidateWithTool,
+        summary: "Validate empty workspace surfaces",
+        scope: vec!["src".to_string()],
+    });
+
+    let (summary, attempt) =
+        service.change_validation_attempt(&request).expect("empty workspace validation fallback");
+    assert_eq!(attempt.outcome.kind, ToolOutcomeKind::PartiallySucceeded);
+    assert!(summary.contains("no-repository-surfaces-detected"));
+}
+
+#[test]
+fn run_lifecycle_apply_authored_mutation_patch_reports_preflight_errors() {
+    let workspace = TempDir::new().expect("temp dir");
+    std::fs::create_dir_all(workspace.path().join("src")).expect("src dir");
+    std::fs::write(
+        workspace.path().join("src/lib.rs"),
+        "pub fn version() -> &'static str { \"old\" }\n",
+    )
+    .expect("src/lib.rs");
+    let init = std::process::Command::new("git")
+        .arg("init")
+        .current_dir(workspace.path())
+        .status()
+        .expect("git init status");
+    assert!(init.success());
+
+    let packet_root = workspace.path().join("canon-input").join("change");
+    std::fs::create_dir_all(&packet_root).expect("packet root");
+    let request = EngineService::new(workspace.path()).governed_request(GovernedRequestSpec {
+        run_id: "R-APPLY-ERR",
+        mode: Mode::Change,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        owner: "maintainer",
+        adapter: AdapterKind::Shell,
+        capability: CapabilityKind::ExecuteBoundedTransformation,
+        summary: "Apply the authored bounded patch",
+        scope: vec!["src/lib.rs".to_string()],
+    });
+
+    std::fs::write(
+        packet_root.join("patch.diff"),
+        "diff --git a/src/lib.rs b/src/lib.rs\n--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1 +1 @@\n-pub fn version() -> &'static str { \"missing\" }\n+pub fn version() -> &'static str { \"new\" }\n",
+    )
+    .expect("invalid patch.diff");
+    let service = EngineService::new(workspace.path());
+    let invalid_patch = service
+        .locate_authored_mutation_patch(
+            &["canon-input/change".to_string()],
+            &["src/lib.rs".to_string()],
+        )
+        .expect("locate invalid patch")
+        .expect("expected invalid patch");
+    let invalid_error = service
+        .apply_authored_mutation_patch(&request, &invalid_patch)
+        .expect_err("invalid patch should fail preflight check");
+    assert!(invalid_error.to_string().contains("failed git apply --check"));
+
+    std::fs::write(
+        packet_root.join("patch.diff"),
+        "diff --git a/src/lib.rs b/src/lib.rs\n--- a/src/lib.rs\n+++ b/src/lib.rs\n@@ -1 +1 @@\n-pub fn version() -> &'static str { \"old\" }\n+pub fn version() -> &'static str { \"new\" }\n",
+    )
+    .expect("valid patch.diff");
+    let valid_patch = service
+        .locate_authored_mutation_patch(
+            &["canon-input/change".to_string()],
+            &["src/lib.rs".to_string()],
+        )
+        .expect("locate valid patch")
+        .expect("expected valid patch");
+    let missing_root_service = EngineService::new(workspace.path().join("missing-root"));
+    let missing_root_error = missing_root_service
+        .apply_authored_mutation_patch(&request, &valid_patch)
+        .expect_err("missing repository root should fail preflight execution");
+    assert!(
+        missing_root_error.to_string().contains("failed to preflight bounded mutation payload")
+    );
 }
