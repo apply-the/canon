@@ -27,7 +27,11 @@ fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
     )
 }
 
-fn run_requirements_flow(workspace: &TempDir) -> String {
+fn requirements_generation_approval_target(run_id: &str) -> String {
+    format!("invocation:{run_id}-generate")
+}
+
+fn complete_requirements_flow(workspace: &TempDir) -> String {
     let idea_path = workspace.path().join("idea.md");
     fs::write(
         &idea_path,
@@ -52,6 +56,8 @@ fn run_requirements_flow(workspace: &TempDir) -> String {
             "product-lead",
             "--input",
             idea_path.file_name().expect("file name").to_str().expect("utf8"),
+            "--output",
+            "json",
         ])
         .assert()
         .success()
@@ -61,13 +67,41 @@ fn run_requirements_flow(workspace: &TempDir) -> String {
 
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
-    json["run_id"].as_str().expect("run id").to_string()
+    let run_id = json["run_id"].as_str().expect("run id").to_string();
+
+    cli_command().current_dir(workspace.path()).args(["resume", "--run", &run_id]).assert().code(3);
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "approve",
+            "--run",
+            &run_id,
+            "--target",
+            &requirements_generation_approval_target(&run_id),
+            "--by",
+            "principal-engineer",
+            "--decision",
+            "approve",
+            "--rationale",
+            "Requirements generation may proceed after review.",
+        ])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", &run_id])
+        .assert()
+        .success();
+
+    run_id
 }
 
 #[test]
 fn inspect_artifacts_lists_the_requirements_bundle() {
     let workspace = TempDir::new().expect("temp dir");
-    let run_id = run_requirements_flow(&workspace);
+    let run_id = complete_requirements_flow(&workspace);
 
     let inspect_output = cli_command()
         .current_dir(workspace.path())
@@ -120,7 +154,7 @@ fn inspect_artifacts_lists_the_requirements_bundle() {
 }
 
 #[test]
-fn run_requirements_markdown_surfaces_primary_result_without_raw_json() {
+fn run_requirements_markdown_surfaces_draft_summary_without_raw_json() {
     let workspace = TempDir::new().expect("temp dir");
     let idea_path = workspace.path().join("idea.md");
     fs::write(
@@ -152,10 +186,10 @@ fn run_requirements_markdown_surfaces_primary_result_without_raw_json() {
         .assert()
         .success()
         .stdout(contains("# run"))
-        .stdout(contains("## Result"))
-        .stdout(contains("Primary Artifact: .canon/artifacts/"))
-        .stdout(contains("Primary Artifact Action: Open primary artifact (.canon/artifacts/"))
-        .stdout(contains("Build a bounded USB flashing CLI"))
+        .stdout(contains("Mode: requirements"))
+        .stdout(contains("State: Draft"))
+        .stdout(predicates::str::contains("## Result").not())
+        .stdout(predicates::str::contains("Primary Artifact:").not())
         .stdout(predicates::str::contains("## Recommended Next Step").not())
         .stdout(predicates::str::is_match("\\\"run_id\\\"").expect("regex").not());
 }

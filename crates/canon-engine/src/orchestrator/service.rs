@@ -39,9 +39,9 @@ use crate::domain::publish_profile::{
     AuthorityGovernanceV1Envelope, AuthorityGovernanceV1RuntimeInputs, AuthorityPacketReadiness,
 };
 use crate::domain::run::{
-    ClassificationProvenance, ImplementationExecutionContext, InlineInput, InputFingerprint,
-    InputSourceKind, RefactorExecutionContext, RunContext, RunIdentity, RunState, SystemContext,
-    UpstreamContext,
+    ClarificationRefinementContext, ClassificationProvenance, ImplementationExecutionContext,
+    InlineInput, InputFingerprint, InputSourceKind, ReadinessDeltaItem, RefactorExecutionContext,
+    RunContext, RunIdentity, RunState, SystemContext, UpstreamContext,
 };
 use crate::orchestrator::publish::{PublishSummary, publish_run};
 use crate::orchestrator::{classifier, gatekeeper, resume, verification_runner};
@@ -151,6 +151,11 @@ pub enum InspectTarget {
     },
     /// List evidence records for the named run.
     Evidence {
+        /// The run ID to inspect.
+        run_id: String,
+    },
+    /// Inspect run-scoped clarification refinement state for the named run.
+    Refinement {
         /// The run ID to inspect.
         run_id: String,
     },
@@ -293,6 +298,8 @@ pub enum InspectEntry {
     Invocation(InvocationInspectSummary),
     /// An evidence inspection summary.
     Evidence(EvidenceInspectSummary),
+    /// A refinement inspection summary.
+    Refinement(RefinementInspectSummary),
 }
 
 /// Inspection summary for a single invocation within a run.
@@ -542,6 +549,146 @@ pub struct ModeResultSummary {
     pub action_chips: Vec<ActionChip>,
 }
 
+/// Advisory continuation candidate surfaced as part of refinement state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefinementCandidateSummary {
+    /// Candidate run identifier.
+    pub run_id: String,
+    /// Candidate mode label.
+    pub mode: String,
+    /// Candidate lifecycle state label.
+    pub state: String,
+    /// Human-readable explanation for the advisory match.
+    pub match_reason: String,
+    /// Candidate detection is always advisory.
+    pub advisory: bool,
+}
+
+/// Advisory continuation candidate surfaced as a top-level inspect payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SuggestedContinuationSummary {
+    /// Candidate run identifier.
+    pub run_id: String,
+    /// Candidate mode label.
+    pub mode: String,
+    /// Candidate lifecycle state label.
+    pub state: String,
+    /// Human-readable explanation for the advisory match.
+    pub match_reason: String,
+    /// Candidate detection is always advisory.
+    pub advisory: bool,
+    /// Mutation remains blocked until explicit continuation intent is captured.
+    pub mutation_allowed: bool,
+}
+
+/// Run-scoped clarification record exposed through `inspect refinement`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefinementClarificationRecordSummary {
+    /// Stable clarification record identifier.
+    pub id: String,
+    /// Prompt shown to the operator.
+    pub prompt: String,
+    /// Answer text or applied default text.
+    pub answer: String,
+    /// Whether the answer was explicit, defaulted, or deferred.
+    pub answer_kind: String,
+    /// Working-brief sections or readiness surfaces affected by the answer.
+    pub affected_sections: Vec<String>,
+    /// Current resolution state for the record.
+    pub resolution_state: String,
+    /// When the answer or default was recorded.
+    pub recorded_at: time::OffsetDateTime,
+}
+
+/// Successor lineage surfaced through `inspect refinement`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefinementLineageSummary {
+    /// Prior run whose context was carried forward.
+    pub carried_from: String,
+    /// Prior run replaced for forward work.
+    pub supersedes: String,
+    /// Explanation for the mode redirection.
+    pub mode_change_reason: String,
+}
+
+/// Structured readiness item included in refinement summaries.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefinementReadinessItemSummary {
+    /// Stable readiness item identifier.
+    pub id: String,
+    /// Section or lifecycle area affected.
+    pub section: String,
+    /// Human-readable readiness summary.
+    pub summary: String,
+    /// Whether the item blocks readiness.
+    pub blocking: bool,
+    /// Source category for the readiness item.
+    pub source_kind: String,
+    /// Whether a safe default is available.
+    pub default_available: bool,
+    /// Whether the item is already resolved.
+    pub resolved: bool,
+}
+
+/// Shared refinement summary surfaced through status and inspect flows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefinementStateSummary {
+    /// Workflow family label for the refinement session.
+    pub workflow_family: String,
+    /// Current target mode label.
+    pub current_mode: String,
+    /// Run-local working brief artifact path.
+    pub working_brief_path: String,
+    /// Template or method source used to seed the working brief.
+    pub template_ref: String,
+    /// Current refinement lifecycle status.
+    pub status: String,
+    /// Whether explicit continuation is still required.
+    pub explicit_continuation_required: bool,
+    /// Authoritative input references that seed the working brief.
+    pub authoritative_input_refs: Vec<String>,
+    /// Supporting input references retained as provenance.
+    pub supporting_input_refs: Vec<String>,
+    /// Total clarification records currently retained.
+    pub records_total: usize,
+    /// Number of clarification records that are not yet resolved.
+    pub unresolved_records: usize,
+    /// Flat readiness-delta strings derived from the structured items.
+    pub readiness_delta: Vec<String>,
+    /// Structured readiness items for detailed inspect flows.
+    pub readiness_items: Vec<RefinementReadinessItemSummary>,
+    /// Advisory continuation candidate, if available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suggested_candidate: Option<RefinementCandidateSummary>,
+}
+
+/// Detailed run-scoped refinement inspect payload.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RefinementInspectSummary {
+    /// Run identifier.
+    pub run_id: String,
+    /// Current governed mode label.
+    pub mode: String,
+    /// Current run lifecycle state label.
+    pub state: String,
+    /// Canonical run-local working brief path.
+    pub working_brief_path: String,
+    /// Immutable authoritative inputs that seed the working brief.
+    pub authoritative_inputs: Vec<String>,
+    /// Supporting inputs retained as provenance.
+    pub supporting_inputs: Vec<String>,
+    /// Clarification records retained for the working brief.
+    pub clarification_records: Vec<RefinementClarificationRecordSummary>,
+    /// Structured readiness items preserved for inspect consumers.
+    pub readiness_delta: Vec<RefinementReadinessItemSummary>,
+    /// Advisory continuation candidate when Canon detects one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suggested_continuation: Option<SuggestedContinuationSummary>,
+    /// Successor lineage for redirected started work.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lineage: Option<RefinementLineageSummary>,
+}
+
 /// A summary of a completed or in-progress run, suitable for display or API consumption.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RunSummary {
@@ -593,6 +740,9 @@ pub struct RunSummary {
     /// List of actions that can be taken next.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub possible_actions: Vec<PossibleActionSummary>,
+    /// Additive refinement state for draft or successor-aware continuation flows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refinement_state: Option<RefinementStateSummary>,
     /// Detailed mode-specific result summary if available.
     pub mode_result: Option<ModeResultSummary>,
     /// The single most important next step for the user.
@@ -639,6 +789,9 @@ pub struct StatusSummary {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     /// All possible next actions for the run.
     pub possible_actions: Vec<PossibleActionSummary>,
+    /// Additive refinement state for same-run clarification workflows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refinement_state: Option<RefinementStateSummary>,
     /// The mode-specific result summary, if the run has completed.
     pub mode_result: Option<ModeResultSummary>,
     /// The recommended next action for the operator.
@@ -748,6 +901,7 @@ pub(super) struct RunRuntimeDetails {
     closure_findings: Vec<ClosureFindingInspectSummary>,
     closure_notes: Option<String>,
     possible_actions: Vec<PossibleActionSummary>,
+    refinement_state: Option<RefinementStateSummary>,
     mode_result: Option<ModeResultSummary>,
     recommended_next_action: Option<RecommendedActionSummary>,
 }

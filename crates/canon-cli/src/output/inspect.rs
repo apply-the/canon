@@ -49,6 +49,49 @@ pub(super) fn render_risk_zone_text(value: &Value) -> String {
     lines.join("\n")
 }
 
+/// Renders the `refinement` inspect payload as human-readable text.
+pub(super) fn render_refinement_text(value: &Value, run_id: Option<&str>) -> String {
+    let entries = value.get("entries").and_then(Value::as_array).cloned().unwrap_or_default();
+    let system_context = value.get("system_context").and_then(Value::as_str);
+
+    let mut lines = vec!["target: refinement".to_string()];
+    if let Some(run_id) = run_id {
+        lines.push(format!("run id: {run_id}"));
+    }
+    if let Some(system_context) = system_context {
+        lines.push(format!("system context: {system_context}"));
+    }
+
+    let Some(entry) = entries.first().and_then(Value::as_object) else {
+        lines.push(String::new());
+        lines.push("no refinement state recorded".to_string());
+        return lines.join("\n");
+    };
+
+    lines.push(String::new());
+    lines.push("refinement state:".to_string());
+    append_text_detail_line(&mut lines, "mode", entry.get("mode"));
+    append_text_detail_line(&mut lines, "state", entry.get("state"));
+    append_text_detail_line(&mut lines, "working brief", entry.get("working_brief_path"));
+    append_text_path_list(
+        &mut lines,
+        "authoritative inputs",
+        &string_list(entry.get("authoritative_inputs")),
+    );
+    append_text_path_list(
+        &mut lines,
+        "supporting inputs",
+        &string_list(entry.get("supporting_inputs")),
+    );
+
+    append_refinement_records_text_section(&mut lines, entry.get("clarification_records"));
+    append_refinement_readiness_text_section(&mut lines, entry.get("readiness_delta"));
+    append_refinement_continuation_text_section(&mut lines, entry.get("suggested_continuation"));
+    append_refinement_lineage_text_section(&mut lines, entry.get("lineage"));
+
+    lines.join("\n")
+}
+
 /// Renders an `entries` list as a generic Markdown bullet list.
 ///
 /// Used as the fallback branch in [`super::dispatch::render_markdown_from_json`]
@@ -292,6 +335,48 @@ pub(super) fn render_clarity_markdown(entries: &[Value]) -> String {
     lines.join("\n")
 }
 
+/// Renders the `refinement` inspect payload as a structured Markdown document.
+pub(super) fn render_refinement_markdown(
+    entries: &[Value],
+    run_id: Option<&str>,
+    system_context: Option<&str>,
+) -> String {
+    let mut lines = vec!["# refinement".to_string()];
+
+    append_inspect_metadata(&mut lines, run_id, system_context);
+
+    let Some(entry) = entries.first().and_then(Value::as_object) else {
+        append_placeholder(&mut lines, "- No refinement state recorded.");
+        return lines.join("\n");
+    };
+
+    push_heading(&mut lines, "## Refinement State");
+    render_scalar_field(&mut lines, "Mode", entry.get("mode"));
+    render_scalar_field(&mut lines, "State", entry.get("state"));
+
+    push_heading(&mut lines, "## Working Brief");
+    if let Some(path) = scalar_value(entry.get("working_brief_path")) {
+        lines.push(format!("Path: {}", humanize_path(&path)));
+    }
+    append_labeled_path_list(
+        &mut lines,
+        "Authoritative Inputs:",
+        &string_list(entry.get("authoritative_inputs")),
+    );
+    append_labeled_path_list(
+        &mut lines,
+        "Supporting Inputs:",
+        &string_list(entry.get("supporting_inputs")),
+    );
+
+    append_refinement_records_section(&mut lines, entry.get("clarification_records"));
+    append_refinement_readiness_section(&mut lines, entry.get("readiness_delta"));
+    append_refinement_continuation_section(&mut lines, entry.get("suggested_continuation"));
+    append_refinement_lineage_section(&mut lines, entry.get("lineage"));
+
+    lines.join("\n")
+}
+
 fn append_inspect_metadata(
     lines: &mut Vec<String>,
     run_id: Option<&str>,
@@ -376,6 +461,23 @@ fn append_optional_text_section(lines: &mut Vec<String>, heading: &str, text: Op
 fn append_optional_detail_line(lines: &mut Vec<String>, label: &str, value: Option<&Value>) {
     if let Some(value) = scalar_value(value) {
         lines.push(format!("{label}: {value}"));
+    }
+}
+
+fn append_text_detail_line(lines: &mut Vec<String>, label: &str, value: Option<&Value>) {
+    if let Some(value) = scalar_value(value) {
+        lines.push(format!("{label}: {value}"));
+    }
+}
+
+fn append_text_path_list(lines: &mut Vec<String>, label: &str, items: &[String]) {
+    if items.is_empty() {
+        return;
+    }
+
+    lines.push(format!("{label}:"));
+    for item in items {
+        lines.push(format!("- {}", humanize_path(item)));
     }
 }
 
@@ -473,5 +575,390 @@ fn append_clarification_question(
 
     if has_following_question {
         lines.push(String::new());
+    }
+}
+
+fn append_refinement_records_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    push_heading(lines, "## Clarification Records");
+    let records = value.and_then(Value::as_array).cloned().unwrap_or_default();
+    if records.is_empty() {
+        lines.push("- No clarification records recorded.".to_string());
+        return;
+    }
+
+    for record in records {
+        let Some(record) = record.as_object() else {
+            continue;
+        };
+        let prompt = scalar_value(record.get("prompt"))
+            .unwrap_or_else(|| "Missing clarification prompt".to_string());
+        lines.push(format!("- {prompt}"));
+        append_optional_detail_line(lines, "Answer", record.get("answer"));
+        append_optional_detail_line(lines, "Answer Kind", record.get("answer_kind"));
+        let affected_sections = string_list(record.get("affected_sections"));
+        if !affected_sections.is_empty() {
+            lines.push(format!("Affected Sections: {}", affected_sections.join(", ")));
+        }
+        append_optional_detail_line(lines, "Resolution State", record.get("resolution_state"));
+        append_optional_detail_line(lines, "Recorded At", record.get("recorded_at"));
+        lines.push(String::new());
+    }
+
+    while lines.last().is_some_and(String::is_empty) {
+        lines.pop();
+    }
+}
+
+fn append_refinement_readiness_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    push_heading(lines, "## Readiness Delta");
+    let items = value.and_then(Value::as_array).cloned().unwrap_or_default();
+    if items.is_empty() {
+        lines.push("- No readiness delta recorded.".to_string());
+        return;
+    }
+
+    for item in items {
+        let Some(item) = item.as_object() else {
+            continue;
+        };
+        let summary = scalar_value(item.get("summary"))
+            .unwrap_or_else(|| "Missing readiness summary".to_string());
+        lines.push(format!("- {summary}"));
+        append_optional_detail_line(lines, "Section", item.get("section"));
+        append_optional_detail_line(lines, "Blocking", item.get("blocking"));
+        append_optional_detail_line(lines, "Source Kind", item.get("source_kind"));
+        append_optional_detail_line(lines, "Default Available", item.get("default_available"));
+        append_optional_detail_line(lines, "Resolved", item.get("resolved"));
+        lines.push(String::new());
+    }
+
+    while lines.last().is_some_and(String::is_empty) {
+        lines.pop();
+    }
+}
+
+fn append_refinement_continuation_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let Some(continuation) = value.and_then(Value::as_object) else {
+        return;
+    };
+
+    push_heading(lines, "## Continuation Guidance");
+    if let Some(run_id) = scalar_value(continuation.get("run_id")) {
+        let mode = scalar_value(continuation.get("mode")).unwrap_or_else(|| "unknown".to_string());
+        let state =
+            scalar_value(continuation.get("state")).unwrap_or_else(|| "unknown".to_string());
+        lines.push(format!("Suggested Continuation: {run_id} ({mode}, {state})"));
+    }
+    append_optional_detail_line(lines, "Match Reason", continuation.get("match_reason"));
+    if continuation.get("advisory").and_then(Value::as_bool).unwrap_or(false) {
+        lines.push(
+            "Candidate detection is advisory; continuation requires explicit intent.".to_string(),
+        );
+    }
+    append_optional_detail_line(lines, "Mutation Allowed", continuation.get("mutation_allowed"));
+}
+
+fn append_refinement_lineage_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let Some(lineage) = value.and_then(Value::as_object) else {
+        return;
+    };
+
+    push_heading(lines, "## Lineage");
+    append_optional_detail_line(lines, "Carried From", lineage.get("carried_from"));
+    append_optional_detail_line(lines, "Supersedes", lineage.get("supersedes"));
+    append_optional_detail_line(lines, "Mode Change Reason", lineage.get("mode_change_reason"));
+}
+
+fn append_refinement_records_text_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    lines.push(String::new());
+    lines.push("clarification records:".to_string());
+
+    let records = value.and_then(Value::as_array).cloned().unwrap_or_default();
+    if records.is_empty() {
+        lines.push("- none recorded".to_string());
+        return;
+    }
+
+    for record in records {
+        let Some(record) = record.as_object() else {
+            continue;
+        };
+        let prompt = scalar_value(record.get("prompt"))
+            .unwrap_or_else(|| "Missing clarification prompt".to_string());
+        lines.push(format!("- {prompt}"));
+        append_text_detail_line(lines, "  answer", record.get("answer"));
+        append_text_detail_line(lines, "  answer kind", record.get("answer_kind"));
+        let affected_sections = string_list(record.get("affected_sections"));
+        if !affected_sections.is_empty() {
+            lines.push(format!("  affected sections: {}", affected_sections.join(", ")));
+        }
+        append_text_detail_line(lines, "  resolution", record.get("resolution_state"));
+        append_text_detail_line(lines, "  recorded at", record.get("recorded_at"));
+    }
+}
+
+fn append_refinement_readiness_text_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    lines.push(String::new());
+    lines.push("readiness delta:".to_string());
+
+    let items = value.and_then(Value::as_array).cloned().unwrap_or_default();
+    if items.is_empty() {
+        lines.push("- none recorded".to_string());
+        return;
+    }
+
+    for item in items {
+        let Some(item) = item.as_object() else {
+            continue;
+        };
+        let summary = scalar_value(item.get("summary"))
+            .unwrap_or_else(|| "Missing readiness summary".to_string());
+        lines.push(format!("- {summary}"));
+        append_text_detail_line(lines, "  section", item.get("section"));
+        append_text_detail_line(lines, "  blocking", item.get("blocking"));
+        append_text_detail_line(lines, "  source kind", item.get("source_kind"));
+        append_text_detail_line(lines, "  default available", item.get("default_available"));
+        append_text_detail_line(lines, "  resolved", item.get("resolved"));
+    }
+}
+
+fn append_refinement_continuation_text_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let Some(continuation) = value.and_then(Value::as_object) else {
+        return;
+    };
+
+    lines.push(String::new());
+    lines.push("continuation guidance:".to_string());
+    if let Some(run_id) = scalar_value(continuation.get("run_id")) {
+        let mode = scalar_value(continuation.get("mode")).unwrap_or_else(|| "unknown".to_string());
+        let state =
+            scalar_value(continuation.get("state")).unwrap_or_else(|| "unknown".to_string());
+        lines.push(format!("suggested continuation: {run_id} ({mode}, {state})"));
+    }
+    append_text_detail_line(lines, "match reason", continuation.get("match_reason"));
+    if continuation.get("advisory").and_then(Value::as_bool).unwrap_or(false) {
+        lines.push(
+            "candidate detection is advisory; continuation requires explicit intent.".to_string(),
+        );
+    }
+    append_text_detail_line(lines, "mutation allowed", continuation.get("mutation_allowed"));
+}
+
+fn append_refinement_lineage_text_section(lines: &mut Vec<String>, value: Option<&Value>) {
+    let Some(lineage) = value.and_then(Value::as_object) else {
+        return;
+    };
+
+    lines.push(String::new());
+    lines.push("lineage:".to_string());
+    append_text_detail_line(lines, "carried from", lineage.get("carried_from"));
+    append_text_detail_line(lines, "supersedes", lineage.get("supersedes"));
+    append_text_detail_line(lines, "mode change reason", lineage.get("mode_change_reason"));
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn render_refinement_text_handles_empty_entries() {
+        let value = json!({
+            "system_context": "existing",
+            "entries": []
+        });
+
+        let rendered = render_refinement_text(&value, Some("R-20260529-empty"));
+
+        assert!(rendered.contains("target: refinement"));
+        assert!(rendered.contains("run id: R-20260529-empty"));
+        assert!(rendered.contains("system context: existing"));
+        assert!(rendered.contains("no refinement state recorded"));
+    }
+
+    #[test]
+    fn render_refinement_markdown_renders_advisory_guidance() {
+        let entries = vec![json!({
+            "mode": "requirements",
+            "state": "Draft",
+            "working_brief_path": "artifacts/R-20260529-test/requirements/working-brief.md",
+            "authoritative_inputs": ["canon-input/requirements/brief.md"],
+            "supporting_inputs": ["canon-input/requirements/context.md"],
+            "clarification_records": [{
+                "prompt": "Who owns this problem?",
+                "answer": "platform",
+                "answer_kind": "explicit",
+                "affected_sections": ["Actors"],
+                "resolution_state": "resolved",
+                "recorded_at": "2026-05-29T12:00:00Z"
+            }],
+            "readiness_delta": [{
+                "summary": "Owner approval is still required.",
+                "section": "Decision checklist",
+                "blocking": true,
+                "source_kind": "clarification-gap",
+                "default_available": false,
+                "resolved": false
+            }],
+            "suggested_continuation": {
+                "run_id": "R-20260529-prev",
+                "mode": "requirements",
+                "state": "Draft",
+                "match_reason": "shared authoritative fingerprints",
+                "advisory": true,
+                "mutation_allowed": false
+            },
+            "lineage": {
+                "carried_from": "R-20260529-old",
+                "supersedes": "R-20260528-prev",
+                "mode_change_reason": "preserve same-run refinement"
+            }
+        })];
+
+        let rendered =
+            render_refinement_markdown(&entries, Some("R-20260529-test"), Some("existing"));
+
+        assert!(rendered.contains("# refinement"));
+        assert!(rendered.contains("Run ID: R-20260529-test"));
+        assert!(rendered.contains("System Context: existing"));
+        assert!(rendered.contains("## Clarification Records"));
+        assert!(rendered.contains("## Readiness Delta"));
+        assert!(rendered.contains("## Continuation Guidance"));
+        assert!(
+            rendered.contains(
+                "Candidate detection is advisory; continuation requires explicit intent."
+            )
+        );
+        assert!(rendered.contains("## Lineage"));
+    }
+
+    #[test]
+    fn render_refinement_markdown_handles_missing_refinement_entry() {
+        let rendered = render_refinement_markdown(&[], Some("R-20260529-empty"), None);
+
+        assert!(rendered.contains("# refinement"));
+        assert!(rendered.contains("- No refinement state recorded."));
+    }
+
+    #[test]
+    fn render_evidence_markdown_handles_non_object_entries() {
+        let entries = vec![json!("unexpected")];
+
+        let rendered = render_evidence_markdown(&entries, Some("R-20260529-evidence"), None);
+
+        assert!(rendered.contains("# evidence"));
+        assert!(rendered.contains("- No evidence recorded."));
+    }
+
+    #[test]
+    fn render_invocations_markdown_skips_non_object_entries() {
+        let entries = vec![json!("unexpected")];
+
+        let rendered = render_invocations_markdown(&entries, Some("R-20260529-invocations"), None);
+
+        assert!(rendered.contains("# invocations"));
+        assert!(!rendered.contains("## unexpected"));
+    }
+
+    #[test]
+    fn render_list_markdown_serializes_non_string_entries() {
+        let entries = vec![json!({"id": "entry-1", "state": "Draft"})];
+
+        let rendered = render_list_markdown("generic", &entries);
+
+        assert!(rendered.contains("# generic"));
+        assert!(rendered.contains("- {\"id\":\"entry-1\",\"state\":\"Draft\"}"));
+    }
+
+    #[test]
+    fn render_clarity_markdown_handles_empty_question_and_delta_collections() {
+        let entries = vec![json!({
+            "mode": "requirements",
+            "requires_clarification": true,
+            "clarification_questions": [],
+            "authoring_lifecycle": {
+                "packet_shape": "single-file",
+                "authority_status": "single-input-authoritative-brief",
+                "authoritative_inputs": ["idea.md"],
+                "supporting_inputs": [],
+                "readiness_delta": [],
+                "next_authoring_step": "Resolve open requirements questions."
+            },
+            "output_quality": {
+                "posture": "structurally-complete",
+                "materially_closed": false,
+                "evidence_signals": [],
+                "downgrade_reasons": []
+            }
+        })];
+
+        let rendered = render_clarity_markdown(&entries);
+
+        assert!(rendered.contains("## Authoring Lifecycle"));
+        assert!(rendered.contains("Packet Shape: single-file"));
+        assert!(!rendered.contains("## Clarification Questions"));
+    }
+
+    #[test]
+    fn refinement_markdown_renders_empty_records_and_readiness_placeholders() {
+        let entries = vec![json!({
+            "mode": "requirements",
+            "state": "Draft",
+            "clarification_records": [],
+            "readiness_delta": [],
+            "suggested_continuation": {
+                "run_id": "R-20260529-prev",
+                "mode": "requirements",
+                "state": "Draft",
+                "match_reason": "shared fingerprints",
+                "advisory": true,
+                "mutation_allowed": false
+            },
+            "lineage": {
+                "carried_from": "R-20260528-old",
+                "supersedes": "R-20260527-prev",
+                "mode_change_reason": "preserve context"
+            }
+        })];
+
+        let rendered = render_refinement_markdown(&entries, Some("R-20260529-test"), None);
+
+        assert!(rendered.contains("- No clarification records recorded."));
+        assert!(rendered.contains("- No readiness delta recorded."));
+        assert!(rendered.contains("Match Reason: shared fingerprints"));
+        assert!(rendered.contains("Carried From: R-20260528-old"));
+    }
+
+    #[test]
+    fn refinement_text_renders_empty_records_and_lineage() {
+        let value = json!({
+            "entries": [{
+                "mode": "requirements",
+                "state": "Draft",
+                "clarification_records": [],
+                "readiness_delta": [],
+                "suggested_continuation": {
+                    "mode": "requirements",
+                    "state": "Draft",
+                    "match_reason": "shared fingerprints",
+                    "advisory": true,
+                    "mutation_allowed": false
+                },
+                "lineage": {
+                    "carried_from": "R-20260528-old",
+                    "supersedes": "R-20260527-prev",
+                    "mode_change_reason": "preserve context"
+                }
+            }]
+        });
+
+        let rendered = render_refinement_text(&value, None);
+
+        assert!(rendered.contains("clarification records:"));
+        assert!(rendered.contains("- none recorded"));
+        assert!(rendered.contains("readiness delta:"));
+        assert!(rendered.contains("lineage:"));
+        assert!(rendered.contains("carried from: R-20260528-old"));
     }
 }

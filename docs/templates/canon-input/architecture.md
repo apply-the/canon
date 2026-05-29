@@ -4,6 +4,9 @@
 > reviewers and downstream implementers.
 > Boundary: persona guidance shapes framing only; do not imply certainty or
 > fill missing sections.
+> Refinement lifecycle: draft clarification can stay on the same run id until
+> execution starts; candidate detection is advisory and continuation still
+> requires explicit intent.
 
 ## Decision
 What structural decision are we making?

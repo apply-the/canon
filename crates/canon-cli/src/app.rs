@@ -72,6 +72,12 @@ pub enum InspectCommand {
         #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
     },
+    Refinement {
+        #[arg(long)]
+        run: String,
+        #[arg(long, default_value_t = OutputFormat::Markdown)]
+        output: OutputFormat,
+    },
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -701,6 +707,13 @@ mod tests {
         assert_command!(
             evidence.command,
             Command::Inspect { command: InspectCommand::Evidence { run, output } }
+                if run == "run-123" && output == OutputFormat::Markdown
+        );
+
+        let refinement = Cli::parse_from(["canon", "inspect", "refinement", "--run", "run-123"]);
+        assert_command!(
+            refinement.command,
+            Command::Inspect { command: InspectCommand::Refinement { run, output } }
                 if run == "run-123" && output == OutputFormat::Markdown
         );
     }

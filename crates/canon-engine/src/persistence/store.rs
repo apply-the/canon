@@ -583,10 +583,53 @@ mod tests {
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
     use crate::domain::run::{
-        ClassificationProvenance, ImplementationExecutionContext, RefactorExecutionContext,
-        RunContext, RunState, UpstreamContext,
+        ClarificationAnswerKind, ClarificationRecord, ClarificationRefinementContext,
+        ClarificationRefinementStatus, ClarificationResolutionState, ClassificationProvenance,
+        ContinuationCandidateSummary, ImplementationExecutionContext, ReadinessDeltaItem,
+        ReadinessDeltaSourceKind, RefactorExecutionContext, RefinementWorkflowFamily, RunContext,
+        RunLineageLink, RunState, UpstreamContext,
     };
     use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
+
+    fn sample_clarification_refinement_context() -> ClarificationRefinementContext {
+        ClarificationRefinementContext {
+            workflow_family: RefinementWorkflowFamily::Planning,
+            current_mode: Mode::Requirements,
+            working_brief_path:
+                ".canon/runs/run-context-roundtrip/artifacts/requirements/working-brief.md"
+                    .to_string(),
+            template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+            status: ClarificationRefinementStatus::Active,
+            explicit_continuation_required: true,
+            authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],
+            supporting_input_refs: vec!["canon-input/requirements/context-links.md".to_string()],
+            suggested_candidate: Some(ContinuationCandidateSummary {
+                run_id: "R-20260529-ab12cd34".to_string(),
+                mode: Mode::Requirements,
+                state: RunState::Draft,
+                match_reason: "same authoritative input fingerprint".to_string(),
+                advisory: true,
+            }),
+            records: vec![ClarificationRecord {
+                id: "cq-001".to_string(),
+                prompt: "Which actor owns the problem?".to_string(),
+                answer: "platform operators".to_string(),
+                answer_kind: ClarificationAnswerKind::Explicit,
+                affected_sections: vec!["Actors".to_string(), "Problem Statement".to_string()],
+                resolution_state: ClarificationResolutionState::Resolved,
+                recorded_at: OffsetDateTime::UNIX_EPOCH,
+            }],
+            readiness_delta: vec![ReadinessDeltaItem {
+                id: "rd-001".to_string(),
+                section: "Validation Strategy".to_string(),
+                summary: "Independent validation owner is not yet named.".to_string(),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::MissingContext,
+                default_available: false,
+                resolved: false,
+            }],
+        }
+    }
 
     #[test]
     fn materialized_methods_keep_promoted_execution_artifact_lists() {
@@ -667,6 +710,7 @@ mod tests {
                 post_approval_execution_consumed: true,
             }),
             backlog_planning: None,
+            clarification_refinement: Some(sample_clarification_refinement_context()),
             inline_inputs: Vec::new(),
             captured_at: OffsetDateTime::UNIX_EPOCH,
         };
@@ -684,6 +728,12 @@ mod tests {
                 system_context: Some(crate::domain::run::SystemContext::Existing),
                 classification: ClassificationProvenance::explicit(),
                 owner: "staff-engineer".to_string(),
+                lineage: Some(RunLineageLink {
+                    carried_from: "R-20260529-ab12cd34".to_string(),
+                    supersedes: "R-20260529-ab12cd34".to_string(),
+                    mode_change_reason:
+                        "Clarification redirected the work from architecture to change.".to_string(),
+                }),
                 created_at: OffsetDateTime::UNIX_EPOCH,
             },
             context: context.clone(),
@@ -713,10 +763,14 @@ mod tests {
 
         store.persist_run_bundle(&bundle).expect("persist run bundle");
         let loaded = store.load_run_context("run-context-roundtrip").expect("load run context");
+        let loaded_manifest =
+            store.load_run_manifest("run-context-roundtrip").expect("load run manifest");
 
         assert_eq!(loaded.implementation_execution, context.implementation_execution);
         assert_eq!(loaded.refactor_execution, context.refactor_execution);
         assert_eq!(loaded.upstream_context, context.upstream_context);
+        assert_eq!(loaded.clarification_refinement, context.clarification_refinement);
+        assert_eq!(loaded_manifest.lineage, bundle.run.lineage);
         assert!(loaded.inline_inputs.is_empty());
     }
 
@@ -738,6 +792,7 @@ mod tests {
                 system_context: Some(crate::domain::run::SystemContext::Existing),
                 classification: ClassificationProvenance::explicit(),
                 owner: "principal-architect".to_string(),
+                lineage: None,
                 created_at: OffsetDateTime::UNIX_EPOCH,
             },
             context: RunContext {
@@ -751,6 +806,7 @@ mod tests {
                 implementation_execution: None,
                 refactor_execution: None,
                 backlog_planning: None,
+                clarification_refinement: None,
                 inline_inputs: Vec::new(),
                 captured_at: OffsetDateTime::UNIX_EPOCH,
             },

@@ -1,9 +1,18 @@
 use std::fs;
 
+use canon_engine::domain::artifact::{
+    ArtifactContract, ArtifactFormat, ArtifactRecord, ArtifactRequirement,
+};
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::{ClassificationProvenance, RunContext};
 use canon_engine::persistence::layout::ProjectLayout;
+use canon_engine::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
+use canon_engine::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 use canon_engine::{EngineError, EngineService};
 use serde_json::json;
 use tempfile::TempDir;
+use time::OffsetDateTime;
 
 use super::error::map_engine_error;
 use super::handlers::{
@@ -21,6 +30,97 @@ use super::{
     GovernanceReasonCode, GovernanceRequest, GovernanceResponse, GovernanceStatus, PacketReadiness,
 };
 use canon_engine::domain::run::RunState;
+
+fn completed_requirements_manifest(run_id: &str) -> RunManifest {
+    RunManifest {
+        run_id: run_id.to_string(),
+        uuid: None,
+        short_id: None,
+        slug: None,
+        title: None,
+        mode: Mode::Requirements,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: None,
+        classification: ClassificationProvenance::explicit(),
+        owner: "product-lead".to_string(),
+        lineage: None,
+        created_at: OffsetDateTime::UNIX_EPOCH,
+    }
+}
+
+fn completed_requirements_context(
+    repo_root: &std::path::Path,
+    manifest: &RunManifest,
+) -> RunContext {
+    RunContext {
+        repo_root: repo_root.display().to_string(),
+        owner: Some(manifest.owner.clone()),
+        inputs: vec!["requirements.md".to_string()],
+        excluded_paths: Vec::new(),
+        input_fingerprints: Vec::new(),
+        system_context: manifest.system_context,
+        upstream_context: None,
+        implementation_execution: None,
+        refactor_execution: None,
+        backlog_planning: None,
+        clarification_refinement: None,
+        inline_inputs: Vec::new(),
+        captured_at: manifest.created_at,
+    }
+}
+
+fn requirements_artifact_contract() -> ArtifactContract {
+    ArtifactContract {
+        version: 1,
+        artifact_requirements: vec![ArtifactRequirement {
+            file_name: "01-problem-statement.md".to_string(),
+            format: ArtifactFormat::Markdown,
+            required_sections: vec!["Summary".to_string()],
+            gates: Vec::new(),
+            required: true,
+        }],
+        required_verification_layers: Vec::new(),
+    }
+}
+
+fn requirements_artifact(run_id: &str) -> PersistedArtifact {
+    PersistedArtifact {
+        record: ArtifactRecord {
+            file_name: "01-problem-statement.md".to_string(),
+            relative_path: format!("artifacts/{run_id}/requirements/01-problem-statement.md"),
+            format: ArtifactFormat::Markdown,
+            provenance: None,
+        },
+        contents: "# Problem Statement\n\n## Summary\n\nReusable governed packet.\n".to_string(),
+    }
+}
+
+fn persist_completed_requirements_packet(workspace: &std::path::Path, run_id: &str) {
+    let manifest = completed_requirements_manifest(run_id);
+    let store = WorkspaceStore::new(workspace);
+    let bundle = PersistedRunBundle {
+        run: manifest.clone(),
+        context: completed_requirements_context(workspace, &manifest),
+        state: RunStateManifest { state: RunState::Completed, updated_at: manifest.created_at },
+        artifact_contract: requirements_artifact_contract(),
+        artifacts: vec![requirements_artifact(run_id)],
+        links: LinkManifest {
+            artifacts: Vec::new(),
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: Vec::new(),
+        verification_records: Vec::new(),
+        evidence: None,
+        invocations: Vec::new(),
+    };
+
+    store.persist_run_bundle(&bundle).expect("persist completed requirements packet");
+}
 
 fn complete_requirements_brief() -> &'static str {
     r#"# Requirements Brief
@@ -298,7 +398,7 @@ fn command_response_rejects_unsupported_schema_versions() {
 }
 
 #[test]
-fn command_response_returns_governed_ready_for_complete_requirements_packets() {
+fn command_response_starts_targeted_requirements_packets_in_pending_selection() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("requirements.md"), complete_requirements_brief())
         .expect("requirements brief");
@@ -319,35 +419,19 @@ fn command_response_returns_governed_ready_for_complete_requirements_packets() {
     )
     .expect("start should succeed");
 
-    assert_eq!(response["status"], json!("governed_ready"));
+    assert_eq!(response["status"], json!("pending_selection"));
     assert_eq!(response["approval_state"], json!("not_needed"));
-    assert_eq!(response["packet_readiness"], json!("reusable"));
+    assert_eq!(response["packet_readiness"], json!("incomplete"));
     assert!(response["packet_ref"].as_str().is_some_and(|value| !value.is_empty()));
-    assert!(response["document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
+    assert!(response["expected_document_refs"].as_array().is_some_and(|refs| !refs.is_empty()));
 }
 
 #[test]
 fn command_response_refreshes_existing_governed_runs() {
     let workspace = TempDir::new().expect("temp dir");
-    fs::write(workspace.path().join("requirements.md"), complete_requirements_brief())
-        .expect("requirements brief");
     let service = EngineService::new(workspace.path());
-
-    let start_response = command_response(
-        &service,
-        workspace.path(),
-        crate::app::GovernanceCommand::Start { json: true },
-        Some(governance_start_request(
-            &workspace,
-            "requirements",
-            "bounded-impact",
-            "yellow",
-            "product-lead",
-            Some("requirements.md"),
-        )),
-    )
-    .expect("start should succeed");
-    let run_ref = start_response["run_ref"].as_str().expect("run ref").to_string();
+    let run_ref = "R-20260529-governed0001";
+    persist_completed_requirements_packet(workspace.path(), run_ref);
 
     let refresh_response = command_response(
         &service,
@@ -355,7 +439,7 @@ fn command_response_refreshes_existing_governed_runs() {
         crate::app::GovernanceCommand::Refresh { json: true },
         Some(governance_refresh_request(
             &workspace,
-            &run_ref,
+            run_ref,
             "requirements",
             "bounded-impact",
             "yellow",
@@ -370,7 +454,7 @@ fn command_response_refreshes_existing_governed_runs() {
 }
 
 #[test]
-fn command_response_surfaces_approval_gated_architecture_runs() {
+fn command_response_starts_targeted_architecture_packets_in_pending_selection() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("architecture.md"), complete_architecture_brief())
         .expect("architecture brief");
@@ -391,13 +475,13 @@ fn command_response_surfaces_approval_gated_architecture_runs() {
     )
     .expect("architecture start should succeed");
 
-    assert_eq!(response["status"], json!("awaiting_approval"));
-    assert_eq!(response["approval_state"], json!("requested"));
-    assert_eq!(response["reason_code"], json!("approval_required"));
+    assert_eq!(response["status"], json!("pending_selection"));
+    assert_eq!(response["approval_state"], json!("not_needed"));
+    assert_eq!(response["packet_readiness"], json!("incomplete"));
 }
 
 #[test]
-fn command_response_blocks_rejected_requirements_packets() {
+fn command_response_starts_incomplete_targeted_requirements_packets_in_pending_selection() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("requirements.md"), incomplete_requirements_brief())
         .expect("requirements brief");
@@ -418,12 +502,9 @@ fn command_response_blocks_rejected_requirements_packets() {
     )
     .expect("blocked start should still return a response");
 
-    assert_eq!(response["status"], json!("blocked"));
-    assert_eq!(response["packet_readiness"], json!("rejected"));
-    assert_eq!(response["reason_code"], json!("rejected_packet"));
-    assert!(response["missing_sections"].as_array().is_some_and(|sections| {
-        sections.iter().any(|section| section == "01-problem-statement.md")
-    }));
+    assert_eq!(response["status"], json!("pending_selection"));
+    assert_eq!(response["packet_readiness"], json!("incomplete"));
+    assert!(response["missing_sections"].as_array().is_some_and(|sections| !sections.is_empty()));
 }
 
 #[test]
@@ -504,28 +585,12 @@ fn command_response_fails_when_artifact_contract_is_unreadable() {
 #[test]
 fn command_response_fails_when_artifact_contract_is_missing_after_artifacts_exist() {
     let workspace = TempDir::new().expect("temp dir");
-    fs::write(workspace.path().join("requirements.md"), complete_requirements_brief())
-        .expect("requirements brief");
     let service = EngineService::new(workspace.path());
-
-    let start_response = command_response(
-        &service,
-        workspace.path(),
-        crate::app::GovernanceCommand::Start { json: true },
-        Some(governance_start_request(
-            &workspace,
-            "requirements",
-            "bounded-impact",
-            "yellow",
-            "product-lead",
-            Some("requirements.md"),
-        )),
-    )
-    .expect("start should succeed");
-    let run_ref = start_response["run_ref"].as_str().expect("run ref").to_string();
+    let run_ref = "R-20260529-missingcontract01";
+    persist_completed_requirements_packet(workspace.path(), run_ref);
 
     let layout = ProjectLayout::new(workspace.path());
-    fs::remove_file(layout.run_dir(&run_ref).join("artifact-contract.toml"))
+    fs::remove_file(layout.run_dir(run_ref).join("artifact-contract.toml"))
         .expect("remove artifact contract");
 
     let refresh_response = command_response(
@@ -534,7 +599,7 @@ fn command_response_fails_when_artifact_contract_is_missing_after_artifacts_exis
         crate::app::GovernanceCommand::Refresh { json: true },
         Some(governance_refresh_request(
             &workspace,
-            &run_ref,
+            run_ref,
             "requirements",
             "bounded-impact",
             "yellow",

@@ -8,7 +8,7 @@ impl EngineService {
         request: RunRequest,
         policy_set: crate::domain::policy::PolicySet,
     ) -> Result<RunSummary, EngineError> {
-        let identity = RunIdentity::new_now_v7();
+        let identity = self.next_unique_run_identity(store)?;
         let now = identity.created_at;
         let run_id = identity.run_id.clone();
         let run_uuid = identity.uuid.as_simple().to_string();
@@ -128,6 +128,7 @@ impl EngineService {
                     system_context: request.system_context,
                     classification: request.classification.clone(),
                     owner: request.owner.clone(),
+                    lineage: None,
                     created_at: now,
                 },
                 context: self.build_run_context(&request, input_fingerprints, now),
@@ -198,6 +199,7 @@ impl EngineService {
                 closure_findings: details.closure_findings,
                 closure_notes: details.closure_notes,
                 possible_actions: details.possible_actions,
+                refinement_state: details.refinement_state,
                 mode_result: details.mode_result,
                 recommended_next_action: details.recommended_next_action,
             });
@@ -415,6 +417,7 @@ impl EngineService {
                 system_context: request.system_context,
                 classification: request.classification.clone(),
                 owner: request.owner.clone(),
+                lineage: None,
                 created_at: now,
             },
             context: self.build_run_context(&request, input_fingerprints, now),
@@ -493,6 +496,7 @@ impl EngineService {
             closure_findings: details.closure_findings,
             closure_notes: details.closure_notes,
             possible_actions: details.possible_actions,
+            refinement_state: details.refinement_state,
             mode_result: details.mode_result,
             recommended_next_action: details.recommended_next_action,
         })

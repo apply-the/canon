@@ -1,5 +1,10 @@
 # Discovery Brief
 
+> Refinement lifecycle: Canon may materialize this authored brief into a
+> run-local working brief for same-run clarification on targeted planning
+> modes. Candidate detection is advisory. Continuation requires explicit
+> intent.
+
 ## Problem Domain
 What user outcome or blocked job are we actually trying to understand?
 

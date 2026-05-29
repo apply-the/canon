@@ -1,5 +1,8 @@
 version = 1
 # Requires explicit `--system-context existing` when starting a run.
+# Targeted planning mode with first-class same-run draft refinement.
+# Candidate detection is advisory; continuation requires explicit intent.
+# Post-start redirection creates successor lineage instead of in-place mutation.
 mode = "change"
 emphasis = "analysis-heavy"
 implementation_depth = "full"

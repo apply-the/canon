@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-28
+Auto-generated from all feature plans. Last updated: 2026-05-29
 
 ## Governing Constitution
 
@@ -83,6 +83,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-28
 - repository planning artifacts under `specs/060-pr-review-anchors/` and existing `.canon/` runtime evidence/artifact files for `pr-review` runs (060-pr-review-anchors)
 - Bash 5.x (macOS/Linux), PowerShell 7.x (cross-platform) + `jq` (JSON validation), `canon` CLI (version (061-skill-runtime-contracts)
 - `.canon/hooks.toml` (TOML), preflight JSON to stdout (ephemeral), (061-skill-runtime-contracts)
+- Rust 1.95.0, Edition 2024; Markdown documentation and templates; existing Spec Kit shell helpers + workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local methods, templates, and skill-source documents (062-clarify-run-refinement)
+- existing `.canon/runs/<RUN_ID>/manifest.toml`, `context.toml`, `artifacts/`, and `inputs/`; published docs and templates under `docs/`, `defaults/`, and `.agents/skills/` (062-clarify-run-refinement)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -142,9 +144,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 062-clarify-run-refinement: Added Rust 1.95.0, Edition 2024; Markdown documentation and templates; existing Spec Kit shell helpers + workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local methods, templates, and skill-source documents
 - 061-skill-runtime-contracts: Added Bash 5.x (macOS/Linux), PowerShell 7.x (cross-platform) + `jq` (JSON validation), `canon` CLI (version
 - 060-pr-review-anchors: Added Rust 1.95.0, Edition 2024, plus Markdown contract and planning artifacts + existing workspace crates `canon-engine`, `canon-cli`, and `canon-adapters`; `serde`, `strum_macros`, `thiserror`, `toml`, `tracing`, `uuid`, and `time` already used by the workspace
-- 057-s7-delight-provider: Added Rust 1.95.0, Edition 2024 (existing types only, no new Rust code); + Existing workspace crates `canon-engine`, `canon-cli`,
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
@@ -183,4 +185,16 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
   `enum` models with `serde` derives instead of ad hoc `serde_json::Map`
   assembly, repeated raw field-name strings, or stable `json!` object
   construction.
+
+## Clean Code & Modularity (Strict Enforcement)
+- **NO GIGANTIC FILES**: Do not dump all logic into a single massive file. If a module grows complex, extract helpers, algorithms, and state transitions into private submodules (`pub(crate)`).
+- **APPLY DESIGN PATTERNS**: Do not use monolithic match statements or procedural god-functions. Extract responsibilities using appropriate design patterns (e.g. Builder, Strategy, Dependency Injection). Keep business logic strictly isolated from I/O and HTTP/CLI transport boundaries.
+- **ZERO MAGIC STRINGS/NUMBERS**: You MUST NOT use magic numbers, timeouts, retry limits, or repeated raw strings inline. Extract them into named `const` items or typed `enum`s.
+- **EXTRACT HELPERS PROACTIVELY**: Aim for <50 lines per function. If you need a comment to explain the middle of a function, extract that block into a well-named helper function.
+- **NO DEAD CODE**: Remove all commented-out code, unused variables, and unreachable branches immediately. `git` remembers.
+- **WHY NOT WHAT**: Documentation and comments must explain the *why*, business constraints, and invariants, not narrate the *what*.
+- **COMPREHENSIVE DOCUMENTATION**: Every folder/module MUST have a module-level doc comment (e.g. `//!` in `mod.rs` or `<module_name>.rs`) explaining its purpose, and these docs must be kept up to date. Furthermore, all structs, public functions, enums, and constants MUST have clear and up-to-date doc comments (`///`).
+- **LOGGING & SECRETS**: Log at major state-transition decision points using structured `tracing` spans/events. Always include reproducible context (IDs) but NEVER log secrets, tokens, or PII.
+- **CONCURRENCY**: Avoid `Arc<Mutex<T>>` lock-contention. Prefer message-passing (channels) or immutable data snapshots to share state across async boundaries.
+
 <!-- MANUAL ADDITIONS END -->

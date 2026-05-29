@@ -61,6 +61,14 @@ Optional:
 - Canon command: `canon run --mode verification --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any blocked readiness finding Canon emits.
 
+## Same-Work Continuity
+
+- Verification preserves explicit continuation identity continuity, but it does not provide the targeted working-brief lifecycle.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `resume`, or `same run`, or supplies a `RUN_ID`.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the advisory continuation state Canon persisted for the run.
+- Do not claim that `.canon/runs/<RUN_ID>/artifacts/verification/working-brief.md` exists for this mode unless Canon emits that surface in a future slice.
+
 ## Author Verification Body Before Invoking Canon
 
 Canon does not invent the verification body for you. Canon governs, validates,

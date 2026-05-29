@@ -91,13 +91,24 @@ fn systemic_change_run_persists_approval_gated_and_recommendation_only_requests(
             "json",
         ])
         .assert()
-        .code(3)
+        .success()
         .get_output()
         .stdout
         .clone();
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
-    assert_eq!(json["state"], "AwaitingApproval");
+    assert_eq!(json["state"], "Draft");
+
+    let resumed = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+    let resumed_json: serde_json::Value = serde_json::from_slice(&resumed).expect("resume json");
+    assert_eq!(resumed_json["state"], "AwaitingApproval");
 
     let invocations = cli_command()
         .current_dir(workspace.path())
@@ -182,18 +193,30 @@ fn broad_change_change_surface_escalates_mutation_before_completion() {
             "json",
         ])
         .assert()
-        .code(3)
+        .success()
         .get_output()
         .stdout
         .clone();
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
 
-    assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["blocking_classification"], "approval-gated");
-    assert_eq!(json["recommended_next_action"]["action"], "inspect-artifacts");
+    assert_eq!(json["state"], "Draft");
+
+    let resumed = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+    let resumed_json: serde_json::Value = serde_json::from_slice(&resumed).expect("resume json");
+
+    assert_eq!(resumed_json["state"], "AwaitingApproval");
+    assert_eq!(resumed_json["blocking_classification"], "approval-gated");
+    assert_eq!(resumed_json["recommended_next_action"]["action"], "inspect-artifacts");
     assert!(
-        json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
+        resumed_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
         "scope-broadening escalation should still expose the bounded artifact packet"
     );
 

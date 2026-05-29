@@ -102,7 +102,7 @@ mod tests {
     use crate::app::OutputFormat;
 
     #[test]
-    fn execute_runs_requirements_brief_and_returns_state_exit_code() {
+    fn execute_starts_requirements_draft_and_returns_success_exit_code() {
         let workspace = tempdir().expect("create temp workspace");
         fs::write(
             workspace.path().join("idea.md"),
@@ -133,7 +133,7 @@ mod tests {
         )
         .expect("requirements run should succeed");
 
-        assert_eq!(code, 2);
+        assert_eq!(code, 0);
     }
 
     #[test]

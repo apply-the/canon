@@ -651,11 +651,7 @@ pub(crate) fn push_clarification_question(
         prompt,
         rationale,
         evidence,
-        ClarificationQuestionMetadata {
-            affects: "packet readiness",
-            default_if_skipped: "Keep the item visible as unresolved authored context before downstream reasoning.",
-            status: "required",
-        },
+        generic_clarification_question_metadata(id),
     );
 }
 
@@ -699,40 +695,96 @@ fn push_clarification_question_with_metadata(
     });
 }
 
+fn cq_meta(
+    affects: &'static str,
+    default_if_skipped: &'static str,
+) -> ClarificationQuestionMetadata<'static> {
+    ClarificationQuestionMetadata { affects, default_if_skipped, status: "required" }
+}
+
 fn architecture_question_metadata(id: &str) -> ClarificationQuestionMetadata<'static> {
     match id {
-        "clarify-authored-target" => ClarificationQuestionMetadata {
-            affects: "recommended next mode",
-            default_if_skipped: "Reroute to discovery until the problem and decision surface are bounded enough for architecture tradeoffs.",
-            status: "required",
-        },
-        "clarify-authored-boundary" => ClarificationQuestionMetadata {
-            affects: "architecture-decisions.md and context-map.md",
-            default_if_skipped: "Reroute to requirements until the architecture boundary and scope limits are explicit.",
-            status: "required",
-        },
-        "clarify-authored-support" => ClarificationQuestionMetadata {
-            affects: "readiness-assessment.md",
-            default_if_skipped: "Keep the packet conditional in readiness-assessment.md instead of treating the decision as fully grounded.",
-            status: "required",
-        },
-        "clarify-authored-decision-posture" | "clarify-authored-tradeoffs" => {
-            ClarificationQuestionMetadata {
-                affects: "tradeoff-matrix.md",
-                default_if_skipped: "Keep the structural options unresolved and record the missing tradeoff as a readiness blocker.",
-                status: "required",
-            }
-        }
-        _ if id.starts_with("authored-gap-question-") => ClarificationQuestionMetadata {
-            affects: "readiness-assessment.md",
-            default_if_skipped: "Carry the unanswered item forward into readiness-assessment.md as an unresolved question.",
-            status: "required",
-        },
-        _ => ClarificationQuestionMetadata {
-            affects: "architecture readiness",
-            default_if_skipped: "Keep the gap visible as unresolved authored context before downstream reasoning.",
-            status: "required",
-        },
+        "clarify-authored-target" => cq_meta(
+            "recommended next mode",
+            "Reroute to discovery until the problem and decision surface are bounded enough for architecture tradeoffs.",
+        ),
+        "clarify-authored-boundary" => cq_meta(
+            "architecture-decisions.md and context-map.md",
+            "Reroute to requirements until the architecture boundary and scope limits are explicit.",
+        ),
+        "clarify-authored-support" => cq_meta(
+            "readiness-assessment.md",
+            "Keep the packet conditional in readiness-assessment.md instead of treating the decision as fully grounded.",
+        ),
+        "clarify-authored-decision-posture" | "clarify-authored-tradeoffs" => cq_meta(
+            "tradeoff-matrix.md",
+            "Keep the structural options unresolved and record the missing tradeoff as a readiness blocker.",
+        ),
+        _ if id.starts_with("authored-gap-question-") => cq_meta(
+            "readiness-assessment.md",
+            "Carry the unanswered item forward into readiness-assessment.md as an unresolved question.",
+        ),
+        _ => cq_meta(
+            "architecture readiness",
+            "Keep the gap visible as unresolved authored context before downstream reasoning.",
+        ),
+    }
+}
+
+fn generic_clarification_question_metadata(id: &str) -> ClarificationQuestionMetadata<'static> {
+    match id {
+        "clarify-problem" => cq_meta(
+            "mode fit and problem statement",
+            "Keep the problem statement unresolved and avoid treating downstream requirements output as mode-stable.",
+        ),
+        "clarify-outcome" => cq_meta(
+            "desired outcome and success criteria",
+            "Carry the missing outcome forward as an unresolved acceptance boundary in the working brief.",
+        ),
+        "clarify-constraints" => cq_meta(
+            "scope boundaries and non-negotiable guardrails",
+            "Keep constraints unresolved so later modes do not overstate what the packet is allowed to change.",
+        ),
+        "clarify-tradeoffs" => cq_meta(
+            "operator tradeoff choices and option evaluation",
+            "Carry the tradeoff gap forward as an unresolved operator choice instead of implying a settled direction.",
+        ),
+        "clarify-scope-cuts" => cq_meta(
+            "scope boundaries and deferred work",
+            "Keep exclusions unresolved so the packet does not silently widen the promised scope.",
+        ),
+        _ if id.starts_with("authored-open-question-") => cq_meta(
+            "unresolved operator choices and downstream packet stability",
+            "Carry the authored open question forward as unresolved instead of collapsing it into assumed certainty.",
+        ),
+        "clarify-discovery-problem" => cq_meta(
+            "mode fit and discovery problem framing",
+            "Keep the problem domain unresolved so discovery does not drift into adjacent work.",
+        ),
+        "clarify-discovery-constraints" => cq_meta(
+            "scope boundaries and discovery guardrails",
+            "Carry the missing discovery constraints forward as unresolved boundary rules.",
+        ),
+        "clarify-discovery-repo-focus" => cq_meta(
+            "repository surface selection and user-visible output scope",
+            "Keep the repository focus unresolved so discovery output does not claim a concrete surface prematurely.",
+        ),
+        "clarify-discovery-unknowns" => cq_meta(
+            "readiness state and unresolved discovery questions",
+            "Carry the missing unknowns forward as explicit readiness blockers.",
+        ),
+        "clarify-discovery-next-phase" => cq_meta(
+            "recommended next mode and handoff trigger",
+            "Keep the handoff unresolved so Canon does not imply the wrong next governed mode.",
+        ),
+        _ if id.starts_with("authored-discovery-question-") => cq_meta(
+            "unresolved discovery choices and handoff readiness",
+            "Carry the authored discovery question forward as unresolved before handoff.",
+        ),
+        _ => cq_meta(
+            "packet readiness",
+            "Keep the item visible as unresolved authored context before downstream reasoning.",
+        ),
     }
 }
 

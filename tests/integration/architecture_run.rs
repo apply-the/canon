@@ -24,7 +24,7 @@ fn architecture_brief() -> &'static str {
 }
 
 #[test]
-fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
+fn run_architecture_starts_draft_refinement_and_materializes_working_brief() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("architecture.md");
     fs::write(&brief_path, architecture_brief()).expect("brief file");
@@ -56,56 +56,22 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
-    let artifact_root =
-        workspace.path().join(".canon").join("artifacts").join(run_id).join("architecture");
+    let refinement = json["refinement_state"].as_object().expect("refinement state");
+    let working_brief_path = refinement["working_brief_path"].as_str().expect("working brief path");
+    let working_brief =
+        fs::read_to_string(workspace.path().join(working_brief_path)).expect("working brief");
 
-    assert_eq!(json["state"], "Completed");
-    assert_eq!(json["invocations_total"], 3);
+    assert_eq!(json["state"], "Draft");
+    assert_eq!(json["artifact_count"], 0);
+    assert_eq!(json["invocations_total"], 0);
     assert_eq!(json["invocations_pending_approval"], 0);
-    assert_eq!(
-        json["mode_result"]["headline"],
-        "Architecture packet is publishable for downstream implementation or review."
-    );
-    assert_eq!(
-        json["mode_result"]["result_excerpt"],
-        "Use a dedicated context map to make architecture boundaries reviewable."
-    );
-    assert_eq!(
-        json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Architecture Overview")
-    );
-    assert!(
-        json["mode_result"]["primary_artifact_path"]
-            .as_str()
-            .is_some_and(|value| value.ends_with("/architecture/01-architecture-overview.md"))
-    );
-
-    for artifact in [
-        "01-architecture-overview.md",
-        "02-architecture-decisions.md",
-        "03-invariants.md",
-        "04-tradeoff-matrix.md",
-        "05-boundary-map.md",
-        "06-context-map.md",
-        "07-readiness-assessment.md",
-        "08-system-context.md",
-        "09-system-context.mmd",
-        "10-container-view.md",
-        "11-container-view.mmd",
-        "12-deployment-view.md",
-        "13-deployment-view.mmd",
-        "14-component-view.md",
-        "15-component-view.mmd",
-        "view-manifest.json",
-        "packet-metadata.json",
-    ] {
-        assert!(
-            artifact_root.join(artifact).exists(),
-            "{artifact} should exist in the architecture bundle"
-        );
-    }
-    assert!(!artifact_root.join("18-dynamic-view.md").exists());
-    assert!(!artifact_root.join("19-dynamic-view.mmd").exists());
+    assert_eq!(refinement["workflow_family"], "planning");
+    assert_eq!(refinement["current_mode"], "architecture");
+    assert_eq!(refinement["status"], "active");
+    assert_eq!(refinement["explicit_continuation_required"], true);
+    assert!(working_brief.contains("# Architecture Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
 
     let status_output = cli_command()
         .current_dir(workspace.path())
@@ -117,94 +83,8 @@ fn run_architecture_persists_a_completed_run_and_artifact_bundle() {
         .clone();
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json");
-    assert_eq!(status_json["state"], "Completed");
-    assert_eq!(
-        status_json["mode_result"]["primary_artifact_title"].as_str(),
-        Some("Architecture Overview")
-    );
-
-    let inspect_output = cli_command()
-        .current_dir(workspace.path())
-        .args(["inspect", "artifacts", "--run", run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let inspect_json: serde_json::Value =
-        serde_json::from_slice(&inspect_output).expect("inspect json");
-    let inspect_entries = inspect_json["entries"].as_array().expect("inspect entries");
-    let inspect_paths = inspect_entries
-        .iter()
-        .map(|entry| entry.as_str().expect("inspect path"))
-        .collect::<Vec<_>>();
-    let expected_inspect_paths = vec![
-        format!(".canon/artifacts/{run_id}/architecture/01-architecture-overview.md"),
-        format!(".canon/artifacts/{run_id}/architecture/02-architecture-decisions.md"),
-        format!(".canon/artifacts/{run_id}/architecture/03-invariants.md"),
-        format!(".canon/artifacts/{run_id}/architecture/04-tradeoff-matrix.md"),
-        format!(".canon/artifacts/{run_id}/architecture/05-boundary-map.md"),
-        format!(".canon/artifacts/{run_id}/architecture/06-context-map.md"),
-        format!(".canon/artifacts/{run_id}/architecture/07-readiness-assessment.md"),
-        format!(".canon/artifacts/{run_id}/architecture/08-system-context.md"),
-        format!(".canon/artifacts/{run_id}/architecture/09-system-context.mmd"),
-        format!(".canon/artifacts/{run_id}/architecture/10-container-view.md"),
-        format!(".canon/artifacts/{run_id}/architecture/11-container-view.mmd"),
-        format!(".canon/artifacts/{run_id}/architecture/12-deployment-view.md"),
-        format!(".canon/artifacts/{run_id}/architecture/13-deployment-view.mmd"),
-        format!(".canon/artifacts/{run_id}/architecture/14-component-view.md"),
-        format!(".canon/artifacts/{run_id}/architecture/15-component-view.mmd"),
-        format!(".canon/artifacts/{run_id}/architecture/view-manifest.json"),
-        format!(".canon/artifacts/{run_id}/architecture/packet-metadata.json"),
-    ];
-    assert_eq!(inspect_paths, expected_inspect_paths);
-
-    let overview =
-        fs::read_to_string(artifact_root.join("01-architecture-overview.md")).expect("overview");
-    assert!(overview.starts_with("# Architecture Overview\n\n## Summary\n\nDecision focus:"));
-    assert!(overview.contains("## Included Views"));
-    assert!(overview.contains("```mermaid"));
-    assert!(overview.contains("## Omitted Views"));
-    assert!(overview.contains("Dynamic View: omitted"));
-
-    let context_map =
-        fs::read_to_string(artifact_root.join("06-context-map.md")).expect("context map");
-    assert!(context_map.starts_with("# Context Map\n\n## Summary\n\nDecision focus:"));
-    assert!(context_map.contains("## Bounded Contexts"));
-    assert!(context_map.contains("## Shared Invariants"));
-    assert!(
-        !context_map.contains("# Architecture Brief"),
-        "context-map.md should render canonical sections instead of dumping the full authored brief"
-    );
-
-    let decisions = fs::read_to_string(artifact_root.join("02-architecture-decisions.md"))
-        .expect("architecture decisions");
-    assert!(decisions.starts_with("# Architecture Decisions\n\n## Summary\n\nDecision focus:"));
-    assert!(decisions.contains("## Decision"));
-    assert!(decisions.contains("## Decision Drivers"));
-    assert!(decisions.contains("## Recommendation"));
-    assert!(decisions.contains("## Consequences"));
-    assert!(!decisions.contains("# Architecture Brief"));
-
-    let tradeoff_matrix =
-        fs::read_to_string(artifact_root.join("04-tradeoff-matrix.md")).expect("tradeoff matrix");
-    assert!(tradeoff_matrix.starts_with("# Tradeoff Matrix\n\n## Summary\n\nDecision focus:"));
-    assert!(tradeoff_matrix.contains("## Options Considered"));
-    assert!(tradeoff_matrix.contains("## Pros"));
-    assert!(tradeoff_matrix.contains("## Cons"));
-    assert!(tradeoff_matrix.contains("## Why Not The Others"));
-    assert!(!tradeoff_matrix.contains("# Architecture Brief"));
-
-    let view_manifest =
-        fs::read_to_string(artifact_root.join("view-manifest.json")).expect("view manifest");
-    assert!(view_manifest.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
-    assert!(view_manifest.contains("\"svg\": \"unsupported\""));
-
-    let packet_metadata =
-        fs::read_to_string(artifact_root.join("packet-metadata.json")).expect("packet metadata");
-    assert!(packet_metadata.contains("\"primary_artifact\": \"01-architecture-overview.md\""));
-    assert!(packet_metadata.contains("\"artifact_order\""));
-    assert!(packet_metadata.contains("\"01-architecture-overview.md\""));
+    assert_eq!(status_json["state"], "Draft");
+    assert_eq!(status_json["refinement_state"]["current_mode"], "architecture");
 }
 
 #[test]
@@ -234,16 +114,36 @@ fn architecture_run_enters_awaiting_approval_for_systemic_and_red_zone_cases() {
                 "json",
             ])
             .assert()
-            .code(3)
+            .success()
             .get_output()
             .stdout
             .clone();
 
         let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-        assert_eq!(json["state"], "AwaitingApproval");
-        assert_eq!(json["blocking_classification"], "approval-gated");
+        let run_id = json["run_id"].as_str().expect("run id");
+        assert_eq!(json["state"], "Draft");
+
+        cli_command()
+            .current_dir(workspace.path())
+            .args(["resume", "--run", run_id])
+            .assert()
+            .code(3);
+
+        let status_output = cli_command()
+            .current_dir(workspace.path())
+            .args(["status", "--run", run_id, "--output", "json"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let status_json: serde_json::Value =
+            serde_json::from_slice(&status_output).expect("status json");
+
+        assert_eq!(status_json["state"], "AwaitingApproval");
+        assert_eq!(status_json["blocking_classification"], "approval-gated");
         assert!(
-            json["approval_targets"]
+            status_json["approval_targets"]
                 .as_array()
                 .is_some_and(|targets| targets.iter().any(|target| target == "gate:risk")),
             "{risk}/{zone} architecture run should surface gate:risk approval"

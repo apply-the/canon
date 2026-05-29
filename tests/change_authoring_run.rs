@@ -1,4 +1,5 @@
 use std::fs;
+use std::process::Command as ProcessCommand;
 
 use canon_engine::EngineService;
 use canon_engine::domain::mode::Mode;
@@ -6,6 +7,43 @@ use canon_engine::domain::policy::{RiskClass, UsageZone};
 use canon_engine::domain::run::{ClassificationProvenance, SystemContext};
 use canon_engine::orchestrator::service::RunRequest;
 use tempfile::TempDir;
+
+fn git(workspace: &TempDir, args: &[&str]) {
+    let output = ProcessCommand::new("git")
+        .args(args)
+        .current_dir(workspace.path())
+        .output()
+        .expect("git command");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: stdout=`{}` stderr=`{}`",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_change_repo(workspace: &TempDir) {
+    git(workspace, &["init", "-b", "main"]);
+    git(workspace, &["config", "user.name", "Canon Test"]);
+    git(workspace, &["config", "user.email", "canon@example.com"]);
+
+    fs::create_dir_all(workspace.path().join("src/auth")).expect("src dir");
+    fs::create_dir_all(workspace.path().join("tests")).expect("tests dir");
+    fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String {\n    format!(\"revoked:{id}\")\n}\n",
+    )
+    .expect("source file");
+    fs::write(
+        workspace.path().join("tests/session.md"),
+        "# Session Checks\n\n- revocation formatting remains stable\n",
+    )
+    .expect("test file");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "seed change repo"]);
+}
 
 fn change_request(input: &str) -> RunRequest {
     RunRequest {
@@ -137,12 +175,17 @@ Zone: yellow
 #[test]
 fn change_run_completes_with_authored_sections_and_no_missing_marker() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     fs::write(workspace.path().join("change.md"), complete_change_brief()).expect("change brief");
 
     let service = EngineService::new(workspace.path());
     let summary = service.run(change_request("change.md")).expect("change run");
 
-    assert_eq!(summary.state, "Completed");
+    assert_eq!(summary.state, "Draft");
+
+    let resumed = service.resume(&summary.run_id).expect("resume change run");
+
+    assert_eq!(resumed.state, "Completed");
 
     let implementation_plan = fs::read_to_string(
         workspace
@@ -176,6 +219,7 @@ fn change_run_completes_with_authored_sections_and_no_missing_marker() {
 #[test]
 fn change_run_blocks_with_missing_body_marker_when_required_heading_is_absent() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     fs::write(
         workspace.path().join("change.md"),
         "# Change Brief\n\n## System Slice\n\nauth session boundary and persistence layer.\n\n## Excluded Areas\n\n- payment settlement\n",
@@ -185,8 +229,12 @@ fn change_run_blocks_with_missing_body_marker_when_required_heading_is_absent() 
     let service = EngineService::new(workspace.path());
     let summary = service.run(change_request("change.md")).expect("change run");
 
-    assert_eq!(summary.state, "Blocked");
-    assert_eq!(summary.blocking_classification.as_deref(), Some("artifact-blocked"));
+    assert_eq!(summary.state, "Draft");
+
+    let resumed = service.resume(&summary.run_id).expect("resume change run");
+
+    assert_eq!(resumed.state, "Blocked");
+    assert_eq!(resumed.blocking_classification.as_deref(), Some("artifact-blocked"));
 
     let change_surface = fs::read_to_string(
         workspace

@@ -1,7 +1,98 @@
 use super::EngineService;
 use super::*;
+use crate::domain::run::RunLineageLink;
 
 impl EngineService {
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(super) fn apply_refinement_mode_correction(
+        &self,
+        store: &WorkspaceStore,
+        run_id: &str,
+        target_mode: Mode,
+        mode_change_reason: &str,
+    ) -> Result<String, EngineError> {
+        store.init_runtime_state(None)?;
+        let manifest = store.load_run_manifest(run_id)?;
+        if manifest.mode == target_mode {
+            return Ok(run_id.to_string());
+        }
+
+        let context = store.load_run_context(run_id)?;
+        let state = store.load_run_state(run_id)?;
+        let policy_set = store.load_policy_set(None)?;
+        let mut artifact_contract = contract_for_mode(target_mode);
+        classifier::apply_verification_layers(&policy_set, manifest.risk, &mut artifact_contract);
+
+        if state.state == RunState::Draft {
+            let updated_context =
+                self.retarget_refinement_context(&context, run_id, target_mode)?;
+            let updated_manifest = RunManifest { mode: target_mode, lineage: None, ..manifest };
+            store.persist_run_bundle(&PersistedRunBundle {
+                run: updated_manifest,
+                context: updated_context,
+                state,
+                artifact_contract,
+                artifacts: Vec::new(),
+                links: LinkManifest {
+                    artifacts: Vec::new(),
+                    decisions: Vec::new(),
+                    traces: Vec::new(),
+                    invocations: Vec::new(),
+                    evidence: None,
+                },
+                gates: Vec::new(),
+                approvals: Vec::new(),
+                verification_records: Vec::new(),
+                evidence: None,
+                invocations: Vec::new(),
+            })?;
+            return Ok(run_id.to_string());
+        }
+
+        let successor_identity = self.next_unique_run_identity(store)?;
+        let successor_context =
+            self.retarget_refinement_context(&context, &successor_identity.run_id, target_mode)?;
+        let mut successor_manifest = RunManifest::from_identity(
+            &successor_identity,
+            target_mode,
+            manifest.risk,
+            manifest.zone,
+            manifest.system_context,
+            manifest.classification.clone(),
+            manifest.owner.clone(),
+        );
+        successor_manifest.lineage = Some(RunLineageLink {
+            carried_from: run_id.to_string(),
+            supersedes: run_id.to_string(),
+            mode_change_reason: mode_change_reason.to_string(),
+        });
+
+        store.persist_run_bundle(&PersistedRunBundle {
+            run: successor_manifest,
+            context: successor_context,
+            state: RunStateManifest {
+                state: RunState::Draft,
+                updated_at: successor_identity.created_at,
+            },
+            artifact_contract,
+            artifacts: Vec::new(),
+            links: LinkManifest {
+                artifacts: Vec::new(),
+                decisions: Vec::new(),
+                traces: Vec::new(),
+                invocations: Vec::new(),
+                evidence: None,
+            },
+            gates: Vec::new(),
+            approvals: Vec::new(),
+            verification_records: Vec::new(),
+            evidence: None,
+            invocations: Vec::new(),
+        })?;
+
+        Ok(successor_identity.run_id)
+    }
+
     pub(super) fn refresh_run_state(
         &self,
         store: &WorkspaceStore,
@@ -667,5 +758,283 @@ impl EngineService {
                 recorded_at: decision.decided_at,
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use canon_adapters::AdapterKind;
+    use std::process::Command;
+    use tempfile::tempdir;
+    use time::OffsetDateTime;
+
+    use super::*;
+    use crate::domain::execution::{
+        InvocationConstraintSet, InvocationPolicyDecision, PolicyDecisionKind, ToolOutcome,
+        ToolOutcomeKind,
+    };
+
+    fn sample_request(service: &EngineService) -> InvocationRequest {
+        service.governed_request(GovernedRequestSpec {
+            run_id: "R-20260529-test",
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            owner: "Owner <owner@example.com>",
+            adapter: AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
+            summary: "Inspect repo",
+            scope: vec!["src".to_string()],
+        })
+    }
+
+    fn sample_patch_body(path: &str) -> String {
+        format!(
+            "diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n@@ -1 +1 @@\n-old\n+new\n"
+        )
+    }
+
+    fn requirements_run_request() -> RunRequest {
+        RunRequest {
+            mode: Mode::Requirements,
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            classification: ClassificationProvenance::explicit(),
+            owner: "Owner <owner@example.com>".to_string(),
+            inputs: Vec::new(),
+            inline_inputs: vec![
+                "# Requirements Brief\n\n## Problem\nBound the problem.\n\n## Outcome\nShip a bounded packet.\n"
+                    .to_string(),
+            ],
+            excluded_paths: Vec::new(),
+            policy_root: None,
+            method_root: None,
+        }
+    }
+
+    #[test]
+    fn requirements_request_maps_generation_to_copilot_and_reads_to_filesystem() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+
+        let generation = service.requirements_request(RequirementsRequestSpec {
+            run_id: "R-20260529-req",
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            owner: "Owner <owner@example.com>",
+            capability: CapabilityKind::GenerateContent,
+            summary: "Generate requirements",
+            scope: vec!["requirements".to_string()],
+        });
+        assert_eq!(generation.adapter, AdapterKind::CopilotCli);
+
+        let context = service.requirements_request(RequirementsRequestSpec {
+            run_id: "R-20260529-req",
+            risk: RiskClass::LowImpact,
+            zone: UsageZone::Green,
+            system_context: None,
+            owner: "Owner <owner@example.com>",
+            capability: CapabilityKind::ReadRepository,
+            summary: "Read requirements context",
+            scope: vec!["canon-input".to_string()],
+        });
+        assert_eq!(context.adapter, AdapterKind::Filesystem);
+        assert_eq!(context.mode, "requirements");
+    }
+
+    #[test]
+    fn apply_refinement_mode_correction_returns_same_run_id_when_mode_is_unchanged() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let store = WorkspaceStore::new(workspace.path());
+        let summary = service.run(requirements_run_request()).expect("requirements run");
+
+        let corrected = service
+            .apply_refinement_mode_correction(
+                &store,
+                &summary.run_id,
+                Mode::Requirements,
+                "mode already aligned",
+            )
+            .expect("same mode correction should succeed");
+
+        assert_eq!(corrected, summary.run_id);
+    }
+
+    #[test]
+    fn read_requirements_context_labels_multiple_sources_and_rejects_empty_content() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let packet_dir = workspace.path().join("canon-input");
+        std::fs::create_dir_all(&packet_dir).expect("create canon-input");
+        std::fs::write(packet_dir.join("brief.md"), "# Brief\nProblem\n").expect("write brief");
+
+        let combined = service
+            .read_requirements_context(
+                &["canon-input/brief.md".to_string()],
+                &["Inline support".to_string()],
+            )
+            .expect("combined context");
+        assert!(combined.contains("## Input: canon-input/brief.md"));
+        assert!(combined.contains("## Input: inline-input-01.md"));
+
+        let empty = service
+            .read_requirements_context(&[], &["   \n\n".to_string()])
+            .expect_err("blank inline content should fail");
+        assert!(
+            empty
+                .to_string()
+                .contains("authored input contained no usable content after normalization")
+        );
+    }
+
+    #[test]
+    fn locate_authored_mutation_patch_handles_none_multiple_out_of_bounds_and_success() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let packet_dir = workspace.path().join("packet");
+        std::fs::create_dir_all(&packet_dir).expect("create packet dir");
+        std::fs::write(packet_dir.join("brief.md"), "# Brief\n").expect("write brief");
+
+        assert!(
+            service
+                .locate_authored_mutation_patch(
+                    &["packet".to_string()],
+                    &["src/lib.rs".to_string()]
+                )
+                .expect("no patch should succeed")
+                .is_none()
+        );
+
+        std::fs::write(packet_dir.join("bounded.diff"), sample_patch_body("src/lib.rs"))
+            .expect("write bounded diff");
+        std::fs::write(packet_dir.join("patch.diff"), sample_patch_body("src/main.rs"))
+            .expect("write second diff");
+        let multiple = service
+            .locate_authored_mutation_patch(&["packet".to_string()], &["src/lib.rs".to_string()])
+            .expect_err("multiple payloads should fail");
+        assert!(multiple.to_string().contains("multiple bounded mutation payloads were found"));
+
+        std::fs::remove_file(packet_dir.join("patch.diff")).expect("remove second diff");
+        let out_of_bounds = service
+            .locate_authored_mutation_patch(
+                &["packet".to_string()],
+                &["src/allowed.rs".to_string()],
+            )
+            .expect_err("out of bounds patch should fail");
+        assert!(out_of_bounds.to_string().contains("touches paths outside Allowed Paths"));
+
+        let patch = service
+            .locate_authored_mutation_patch(&["packet".to_string()], &["src/lib.rs".to_string()])
+            .expect("bounded patch should parse")
+            .expect("expected patch payload");
+        assert!(patch.relative_path.ends_with("packet/bounded.diff"));
+        assert_eq!(patch.changed_paths, vec!["src/lib.rs".to_string()]);
+    }
+
+    #[test]
+    fn scan_workspace_surface_ignores_special_dirs_and_reports_empty_repos() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+
+        assert_eq!(
+            service.scan_workspace_surface().expect("empty surface scan"),
+            vec!["no-repository-surfaces-detected".to_string()]
+        );
+
+        std::fs::create_dir_all(workspace.path().join("src")).expect("create src dir");
+        std::fs::create_dir_all(workspace.path().join(".git")).expect("create git dir");
+        std::fs::write(workspace.path().join("src/lib.rs"), "pub fn x() {}\n")
+            .expect("write lib.rs");
+        std::fs::write(workspace.path().join(".git/HEAD"), "ref: refs/heads/main\n")
+            .expect("write git head");
+
+        let surfaces = service.scan_workspace_surface().expect("surface scan");
+        assert!(surfaces.contains(&"src/lib.rs".to_string()));
+        assert!(!surfaces.iter().any(|path| path.starts_with(".git/")));
+    }
+
+    #[test]
+    fn change_validation_attempt_reports_empty_but_reachable_repository() {
+        let workspace = tempdir().expect("tempdir");
+        let init_status = Command::new("git")
+            .arg("init")
+            .current_dir(workspace.path())
+            .status()
+            .expect("git init status");
+        assert!(init_status.success());
+
+        let service = EngineService::new(workspace.path());
+        let request = sample_request(&service);
+        let (summary, attempt) =
+            service.change_validation_attempt(&request).expect("validation attempt should succeed");
+
+        assert!(summary.contains("repository is empty but reachable"));
+        assert_eq!(attempt.executor, "shell:git-ls-files");
+        assert_eq!(attempt.outcome.kind, ToolOutcomeKind::Succeeded);
+        assert_eq!(attempt.outcome.exit_code, Some(0));
+    }
+
+    #[test]
+    fn completed_and_policy_attempts_preserve_request_identity_and_outcome_kind() {
+        let workspace = tempdir().expect("tempdir");
+        let service = EngineService::new(workspace.path());
+        let request = sample_request(&service);
+
+        let completed = service.completed_attempt(
+            &request,
+            2,
+            "shell:test",
+            ToolOutcome {
+                kind: ToolOutcomeKind::Succeeded,
+                summary: "done".to_string(),
+                exit_code: Some(0),
+                payload_refs: Vec::new(),
+                candidate_artifacts: Vec::new(),
+                recorded_at: OffsetDateTime::now_utc(),
+            },
+        );
+        assert_eq!(completed.request_id, request.request_id);
+        assert_eq!(completed.attempt_number, 2);
+        assert_eq!(completed.executor, "shell:test");
+
+        let recommendation = InvocationPolicyDecision {
+            kind: PolicyDecisionKind::AllowConstrained,
+            constraints: InvocationConstraintSet {
+                recommendation_only: true,
+                ..InvocationConstraintSet::default()
+            },
+            requires_approval: false,
+            rationale: "bounded".to_string(),
+            policy_refs: vec!["policy-1".to_string()],
+            decided_at: OffsetDateTime::now_utc(),
+        };
+        let recommendation_attempt = service.policy_decision_attempt(&request, &recommendation);
+        assert_eq!(recommendation_attempt.outcome.kind, ToolOutcomeKind::RecommendationOnly);
+
+        let denied = InvocationPolicyDecision {
+            kind: PolicyDecisionKind::Deny,
+            constraints: InvocationConstraintSet::default(),
+            requires_approval: false,
+            rationale: "denied".to_string(),
+            policy_refs: vec!["policy-2".to_string()],
+            decided_at: OffsetDateTime::now_utc(),
+        };
+        let denied_attempt = service.policy_decision_attempt(&request, &denied);
+        assert_eq!(denied_attempt.outcome.kind, ToolOutcomeKind::Denied);
+
+        let approval = InvocationPolicyDecision {
+            kind: PolicyDecisionKind::NeedsApproval,
+            constraints: InvocationConstraintSet::default(),
+            requires_approval: true,
+            rationale: "needs approval".to_string(),
+            policy_refs: vec!["policy-3".to_string()],
+            decided_at: OffsetDateTime::now_utc(),
+        };
+        let approval_attempt = service.policy_decision_attempt(&request, &approval);
+        assert_eq!(approval_attempt.outcome.kind, ToolOutcomeKind::AwaitingApproval);
     }
 }

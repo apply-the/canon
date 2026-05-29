@@ -3,6 +3,10 @@
 > Suggested persona: product lead writing a bounded PRD for stakeholders and
 > downstream delivery owners.
 > Boundary: persona guidance shapes voice only; keep missing sections explicit.
+> Refinement lifecycle: Canon may materialize this authored brief into a
+> run-local working brief for same-run clarification on targeted planning
+> modes. Candidate detection is advisory. Continuation requires explicit
+> intent.
 
 ## Problem
 Describe the user-visible or operator-visible problem and why it matters now.

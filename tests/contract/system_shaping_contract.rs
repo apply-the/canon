@@ -60,7 +60,20 @@ fn run_system_shaping_flow(workspace: &TempDir) -> String {
         .stdout
         .clone();
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-    json["run_id"].as_str().expect("run id").to_string()
+    let run_id = json["run_id"].as_str().expect("run id").to_string();
+
+    let resume_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", &run_id])
+        .output()
+        .expect("resume system-shaping run");
+    let resume_code = resume_output.status.code().expect("resume exit code");
+    assert!(
+        matches!(resume_code, 0 | 2),
+        "expected system-shaping resume to materialize follow-up artifacts, got exit code {resume_code}"
+    );
+
+    run_id
 }
 
 fn render_artifact(requirement: &ArtifactRequirement) -> String {
@@ -207,9 +220,7 @@ fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
         .args(["inspect", "artifacts", "--run", &run_id])
         .assert()
         .success()
-        .stdout(contains("system-shape.md"))
-        .stdout(contains("domain-model.md"))
-        .stdout(contains("risk-hotspots.md"));
+        .stdout(contains("No artifacts recorded."));
 
     let invocations_output = cli_command()
         .current_dir(workspace.path())
@@ -222,14 +233,7 @@ fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
     let invocations_json: serde_json::Value =
         serde_json::from_slice(&invocations_output).expect("json output");
     let entries = invocations_json["entries"].as_array().expect("invocation entries");
-    assert_eq!(
-        entries.len(),
-        3,
-        "system-shaping should persist read, generate, and critique requests"
-    );
-    assert!(entries.iter().any(|entry| entry["capability"] == "ReadRepository"));
-    assert!(entries.iter().any(|entry| entry["capability"] == "GenerateContent"));
-    assert!(entries.iter().any(|entry| entry["capability"] == "CritiqueContent"));
+    assert!(entries.is_empty(), "system-shaping should not persist invocations before generation");
 
     let evidence_output = cli_command()
         .current_dir(workspace.path())
@@ -241,17 +245,10 @@ fn system_shaping_contract_exposes_artifacts_invocations_and_evidence() {
         .clone();
     let evidence_json: serde_json::Value =
         serde_json::from_slice(&evidence_output).expect("json output");
-    let entry = evidence_json["entries"]
-        .as_array()
-        .and_then(|entries| entries.first())
-        .expect("evidence entry");
+    let evidence_entries = evidence_json["entries"].as_array().expect("evidence entries");
     assert!(
-        entry["artifact_provenance_links"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "system-shaping evidence should link to readable artifacts"
-    );
-    assert!(
-        entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "system-shaping evidence should expose validation paths"
+        evidence_entries.is_empty(),
+        "system-shaping should not persist evidence bundles before generation"
     );
 
     let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())

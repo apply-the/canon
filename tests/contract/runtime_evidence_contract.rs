@@ -61,6 +61,10 @@ fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
     )
 }
 
+fn requirements_generation_approval_target(run_id: &str) -> String {
+    format!("invocation:{run_id}-generate")
+}
+
 #[test]
 fn requirements_run_persists_invocation_manifests_and_run_evidence_bundle() {
     let workspace = TempDir::new().expect("temp dir");
@@ -99,6 +103,33 @@ fn requirements_run_persists_invocation_manifests_and_run_evidence_bundle() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
+
+    cli_command().current_dir(workspace.path()).args(["resume", "--run", run_id]).assert().code(3);
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "approve",
+            "--run",
+            run_id,
+            "--target",
+            &requirements_generation_approval_target(run_id),
+            "--by",
+            "principal-engineer",
+            "--decision",
+            "approve",
+            "--rationale",
+            "Requirements generation may proceed after review.",
+        ])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
+
     let run_root =
         canon_engine::persistence::layout::ProjectLayout::new(workspace.path()).run_dir(run_id);
 
@@ -107,16 +138,24 @@ fn requirements_run_persists_invocation_manifests_and_run_evidence_bundle() {
     let invocations_dir = run_root.join("invocations");
     assert!(invocations_dir.is_dir(), "invocations directory should exist");
 
-    let first_request = fs::read_dir(&invocations_dir)
+    let invocation_dirs = fs::read_dir(&invocations_dir)
         .expect("invocation dir")
-        .next()
-        .expect("at least one invocation")
-        .expect("dir entry")
-        .path();
+        .map(|entry| entry.expect("dir entry").path())
+        .collect::<Vec<_>>();
 
-    assert!(first_request.join("request.toml").exists(), "request manifest should exist");
-    assert!(first_request.join("decision.toml").exists(), "decision manifest should exist");
-    assert!(first_request.join("attempt-01.toml").exists(), "attempt manifest should exist");
+    assert!(!invocation_dirs.is_empty(), "at least one invocation should exist");
+    assert!(
+        invocation_dirs.iter().all(|path| path.join("request.toml").exists()),
+        "every invocation should persist a request manifest"
+    );
+    assert!(
+        invocation_dirs.iter().all(|path| path.join("decision.toml").exists()),
+        "every invocation should persist a decision manifest"
+    );
+    assert!(
+        invocation_dirs.iter().any(|path| path.join("attempt-01.toml").exists()),
+        "at least one invocation should persist an attempt manifest"
+    );
 }
 
 #[test]

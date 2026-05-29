@@ -7,7 +7,6 @@ use canon_engine::domain::gate::{GateKind, GateStatus};
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
 use canon_engine::orchestrator::gatekeeper::{DiscoveryGateContext, evaluate_discovery_gates};
-use predicates::str::contains;
 use tempfile::TempDir;
 use time::OffsetDateTime;
 
@@ -235,7 +234,7 @@ fn discovery_release_readiness_requires_independent_validation() {
 }
 
 #[test]
-fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
+fn inspect_artifacts_remains_empty_for_discovery_draft_and_contract_persists() {
     let workspace = TempDir::new().expect("temp dir");
     let run_id = run_discovery_flow(&workspace);
 
@@ -244,8 +243,6 @@ fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
         .args(["inspect", "artifacts", "--run", &run_id, "--output", "json"])
         .assert()
         .success()
-        .stdout(contains("problem-map.md"))
-        .stdout(contains("decision-pressure-points.md"))
         .get_output()
         .stdout
         .clone();
@@ -253,17 +250,26 @@ fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
     let inspect_json: serde_json::Value =
         serde_json::from_slice(&inspect_output).expect("json output");
     let entries = inspect_json["entries"].as_array().expect("artifact entries");
-    let actual_paths =
-        entries.iter().map(|entry| entry.as_str().expect("artifact path")).collect::<Vec<_>>();
-    let expected_paths = vec![
-        format!(".canon/artifacts/{run_id}/discovery/01-problem-map.md"),
-        format!(".canon/artifacts/{run_id}/discovery/02-unknowns-and-assumptions.md"),
-        format!(".canon/artifacts/{run_id}/discovery/03-context-boundary.md"),
-        format!(".canon/artifacts/{run_id}/discovery/04-exploration-options.md"),
-        format!(".canon/artifacts/{run_id}/discovery/05-decision-pressure-points.md"),
-        format!(".canon/artifacts/{run_id}/discovery/packet-metadata.json"),
-    ];
-    assert_eq!(actual_paths, expected_paths);
+    assert!(entries.is_empty(), "discovery draft runs should not expose final artifact paths");
+
+    let status_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", &run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_json: serde_json::Value =
+        serde_json::from_slice(&status_output).expect("status json");
+    assert_eq!(status_json["state"], "Draft");
+    assert_eq!(status_json["refinement_state"]["current_mode"], "discovery");
+    let working_brief_path =
+        status_json["refinement_state"]["working_brief_path"].as_str().expect("working brief path");
+    assert!(working_brief_path.ends_with("/artifacts/discovery/working-brief.md"));
+    let working_brief =
+        fs::read_to_string(workspace.path().join(working_brief_path)).expect("working brief");
+    assert!(working_brief.contains("# Discovery Brief"));
 
     let invocations_output = cli_command()
         .current_dir(workspace.path())
@@ -276,15 +282,7 @@ fn inspect_artifacts_lists_the_discovery_bundle_and_contract() {
     let invocations_json: serde_json::Value =
         serde_json::from_slice(&invocations_output).expect("json output");
     let entries = invocations_json["entries"].as_array().expect("invocation entries");
-    assert_eq!(
-        entries.len(),
-        4,
-        "discovery should persist read, generate, critique, and validation requests"
-    );
-    assert!(entries.iter().any(|entry| entry["capability"] == "ReadRepository"));
-    assert!(entries.iter().any(|entry| entry["capability"] == "GenerateContent"));
-    assert!(entries.iter().any(|entry| entry["capability"] == "CritiqueContent"));
-    assert!(entries.iter().any(|entry| entry["capability"] == "ValidateWithTool"));
+    assert!(entries.is_empty(), "discovery draft runs should not persist final invocation records");
 
     let contract_path = canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
         .run_dir(&run_id)

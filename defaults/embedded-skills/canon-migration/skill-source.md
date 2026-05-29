@@ -125,6 +125,14 @@ reviewers, and approvers.
 - `--to` changes the packet destination only; the ADR registry remains fixed under `docs/adr/`.
 - If the emitted migration packet contains `## Missing Authored Body`, missing-context markers, or downgrade language, preserve those honesty signals when describing the ADR output.
 
+## Same-Work Continuity
+
+- Migration preserves explicit continuation identity continuity, but it does not provide the targeted working-brief lifecycle.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `resume`, or `same run`, or supplies a `RUN_ID`.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the advisory continuation state Canon persisted for the run.
+- Do not claim that `.canon/runs/<RUN_ID>/artifacts/migration/working-brief.md` exists for this mode unless Canon emits that surface in a future slice.
+
 ## Expected Output Shape
 
 - concise run-start or gated summary

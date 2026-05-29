@@ -74,6 +74,7 @@ fn read_single_adr(workspace: &TempDir) -> (String, String) {
 #[test]
 fn change_publish_only_emits_adr_when_opted_in() {
     let workspace = TempDir::new().expect("temp dir");
+    init_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, change_brief()).expect("brief file");
 
@@ -104,6 +105,13 @@ fn change_publish_only_emits_adr_when_opted_in() {
 
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
+    assert_eq!(json["state"], "Draft");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
 
     cli_command().current_dir(workspace.path()).args(["publish", run_id]).assert().success();
     assert!(

@@ -25,8 +25,12 @@ fn complete_requirements_brief(problem: &str, outcome: &str) -> String {
     )
 }
 
+fn requirements_generation_approval_target(run_id: &str) -> String {
+    format!("invocation:{run_id}-generate")
+}
+
 #[test]
-fn bounded_requirements_run_reports_governed_invocation_counts_and_evidence() {
+fn bounded_requirements_run_reports_governed_invocation_counts_and_evidence_after_completion() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("idea.md"),
@@ -62,13 +66,51 @@ fn bounded_requirements_run_reports_governed_invocation_counts_and_evidence() {
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
 
-    assert_eq!(json["invocations_total"], 4);
-    assert_eq!(json["invocations_denied"], 1);
-    assert_eq!(json["invocations_pending_approval"], 0);
+    assert_eq!(json["state"], "Draft");
     assert!(
         json.get("evidence_bundle").is_none(),
         "run JSON should not expose internal evidence bundle paths"
     );
+
+    cli_command().current_dir(workspace.path()).args(["resume", "--run", run_id]).assert().code(3);
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args([
+            "approve",
+            "--run",
+            run_id,
+            "--target",
+            &requirements_generation_approval_target(run_id),
+            "--by",
+            "principal-engineer",
+            "--decision",
+            "approve",
+            "--rationale",
+            "Bounded requirements generation may proceed.",
+        ])
+        .assert()
+        .success();
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .success();
+
+    let status = cli_command()
+        .current_dir(workspace.path())
+        .args(["status", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let status_json: serde_json::Value = serde_json::from_slice(&status).expect("json");
+    assert_eq!(status_json["state"], "Completed");
+    assert_eq!(status_json["invocations_total"], 4);
+    assert_eq!(status_json["pending_invocation_approvals"], 0);
+    assert!(status_json.get("evidence_bundle").is_none());
 
     let invocations = cli_command()
         .current_dir(workspace.path())
@@ -89,7 +131,7 @@ fn bounded_requirements_run_reports_governed_invocation_counts_and_evidence() {
 }
 
 #[test]
-fn systemic_requirements_run_requires_invocation_approval_and_completes_on_resume() {
+fn systemic_requirements_run_starts_draft_then_requires_invocation_approval_on_resume() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("idea.md"),
@@ -118,35 +160,25 @@ fn systemic_requirements_run_requires_invocation_approval_and_completes_on_resum
             "json",
         ])
         .assert()
-        .code(3)
+        .success()
         .get_output()
         .stdout
         .clone();
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
-    assert_eq!(json["state"], "AwaitingApproval");
+    assert_eq!(json["state"], "Draft");
+    assert_eq!(json["invocations_total"], 0);
 
-    let invocations = cli_command()
+    let awaiting = cli_command()
         .current_dir(workspace.path())
-        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
+        .args(["resume", "--run", run_id])
         .assert()
-        .success()
+        .code(3)
         .get_output()
         .stdout
         .clone();
-    let invocation_json: serde_json::Value = serde_json::from_slice(&invocations).expect("json");
-    let pending_request_id = invocation_json["entries"]
-        .as_array()
-        .and_then(|entries| {
-            entries.iter().find_map(|entry| {
-                if entry["policy_decision"] == "NeedsApproval" {
-                    entry["request_id"].as_str().map(ToString::to_string)
-                } else {
-                    None
-                }
-            })
-        })
-        .expect("pending invocation");
+    let awaiting_json: serde_json::Value = serde_json::from_slice(&awaiting).expect("json");
+    assert_eq!(awaiting_json["state"], "AwaitingApproval");
 
     cli_command()
         .current_dir(workspace.path())
@@ -155,7 +187,7 @@ fn systemic_requirements_run_requires_invocation_approval_and_completes_on_resum
             "--run",
             run_id,
             "--target",
-            &format!("invocation:{pending_request_id}"),
+            &requirements_generation_approval_target(run_id),
             "--by",
             "principal-engineer",
             "--decision",

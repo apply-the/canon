@@ -13,6 +13,8 @@ pub fn execute(service: &EngineService, run: &str) -> CliResult<i32> {
 mod tests {
     use std::fs;
 
+    use serde_json::json;
+
     use canon_engine::{
         EngineService, RunRequest,
         domain::mode::Mode,
@@ -48,5 +50,40 @@ mod tests {
         let code = execute(&service, &run.run_id).expect("resume should succeed");
 
         assert_eq!(code, 3);
+    }
+
+    #[test]
+    fn execute_records_explicit_continuation_on_resume() {
+        let workspace = tempdir().expect("create temp workspace");
+        fs::write(
+            workspace.path().join("idea.md"),
+            "# Requirements Brief\n\n## Problem\nResume the same governed work item.\n",
+        )
+        .expect("write idea file");
+        let service = EngineService::new(workspace.path());
+        let run = service
+            .run(RunRequest {
+                mode: Mode::Requirements,
+                risk: RiskClass::LowImpact,
+                zone: UsageZone::Green,
+                system_context: None,
+                classification: ClassificationProvenance::explicit(),
+                owner: "Owner <owner@example.com>".to_string(),
+                inputs: vec!["idea.md".to_string()],
+                inline_inputs: Vec::new(),
+                excluded_paths: Vec::new(),
+                policy_root: None,
+                method_root: None,
+            })
+            .expect("requirements draft run should succeed");
+
+        let code = execute(&service, &run.run_id).expect("resume should succeed");
+        assert_eq!(code, 3);
+
+        let resumed = service.resume(&run.run_id).expect("resumed summary");
+        let payload = serde_json::to_value(&resumed).expect("resume json payload");
+
+        assert_eq!(payload["run_id"], json!(run.run_id));
+        assert_eq!(payload["refinement_state"]["explicit_continuation_required"], json!(false));
     }
 }

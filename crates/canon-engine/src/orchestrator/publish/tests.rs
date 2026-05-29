@@ -33,6 +33,7 @@ fn sample_manifest(run_id: &str) -> RunManifest {
         system_context: None,
         classification: ClassificationProvenance::explicit(),
         owner: "Owner <owner@example.com>".to_string(),
+        lineage: None,
         created_at: OffsetDateTime::parse("2026-04-22T08:00:00Z", &Rfc3339)
             .expect("parse timestamp"),
     }
@@ -122,6 +123,7 @@ fn sample_context(repo_root: &Path, manifest: &RunManifest) -> RunContext {
         implementation_execution: None,
         refactor_execution: None,
         backlog_planning: None,
+        clarification_refinement: None,
         inline_inputs: Vec::new(),
         captured_at: manifest.created_at,
     }

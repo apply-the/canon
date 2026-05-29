@@ -114,7 +114,46 @@ fn create_requirements_run(workspace: &TempDir) -> String {
         .success();
     let stdout = String::from_utf8_lossy(&assert.get_output().stdout).to_string();
     let json: serde_json::Value = serde_json::from_str(&stdout).expect("run json");
-    json["run_id"].as_str().expect("run_id").to_string()
+    let run_id = json["run_id"].as_str().expect("run_id").to_string();
+
+    let first_resume = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", &run_id])
+        .output()
+        .expect("resume requirements run");
+    let first_code = first_resume.status.code().expect("resume exit code");
+
+    match first_code {
+        0 | 2 => {}
+        3 => {
+            cli_command()
+                .current_dir(workspace.path())
+                .args([
+                    "approve",
+                    "--run",
+                    &run_id,
+                    "--target",
+                    &format!("invocation:{run_id}-generate"),
+                    "--by",
+                    "principal-engineer",
+                    "--decision",
+                    "approve",
+                    "--rationale",
+                    "Requirements generation may proceed after review.",
+                ])
+                .assert()
+                .success();
+
+            cli_command()
+                .current_dir(workspace.path())
+                .args(["resume", "--run", &run_id])
+                .assert()
+                .success();
+        }
+        other => panic!("unexpected requirements resume exit code: {other}"),
+    }
+
+    run_id
 }
 
 fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {

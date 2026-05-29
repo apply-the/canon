@@ -69,6 +69,15 @@ Optional:
 - `--to` can relocate the visible packet copy, but the ADR registry stays fixed under `docs/adr/`.
 - Treat the ADR as a publish-time projection of the governed packet, not as a second authored source. If the packet carries `## Missing Authored Body` or other honesty markers, preserve those signals instead of glossing over them in chat.
 
+## Refinement Lifecycle
+
+- Architecture is one of Canon's five targeted planning modes with first-class same-run refinement.
+- During draft clarification, Canon may materialize `.canon/runs/<RUN_ID>/artifacts/architecture/working-brief.md` while keeping `canon-input/` read-only.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `refine`, or `same run`, supplies a `RUN_ID`, or chooses Canon's explicit continuation path.
+- Pre-start corrections across the targeted planning modes stay on the same run id. After a run has started, mode redirection creates a successor run with carried-forward lineage instead of mutating the original run in place.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the working-brief path, clarification records, readiness delta, or lineage.
+
 ## Author Architecture Body Before Invoking Canon
 
 - The architecture brief MUST author the decision-facing sections

@@ -1,4 +1,7 @@
 version = 1
+# Targeted planning mode with first-class same-run draft refinement.
+# Canon materializes a run-local working brief while keeping canon-input immutable.
+# Candidate detection is advisory; continuation requires explicit intent.
 mode = "requirements"
 emphasis = "analysis-heavy"
 implementation_depth = "full"

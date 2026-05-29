@@ -1,4 +1,5 @@
 use std::fs;
+use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
 use canon_engine::artifacts::contract::contract_for_mode;
@@ -21,6 +22,43 @@ fn cli_command() -> Command {
         "--",
     ]);
     command
+}
+
+fn git(workspace: &TempDir, args: &[&str]) {
+    let output = ProcessCommand::new("git")
+        .args(args)
+        .current_dir(workspace.path())
+        .output()
+        .expect("git command");
+    assert!(
+        output.status.success(),
+        "git {:?} failed: stdout=`{}` stderr=`{}`",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_change_repo(workspace: &TempDir) {
+    git(workspace, &["init", "-b", "main"]);
+    git(workspace, &["config", "user.name", "Canon Test"]);
+    git(workspace, &["config", "user.email", "canon@example.com"]);
+
+    fs::create_dir_all(workspace.path().join("src/auth")).expect("src dir");
+    fs::create_dir_all(workspace.path().join("tests")).expect("tests dir");
+    fs::write(
+        workspace.path().join("src/auth/session.rs"),
+        "pub fn revoke_session(id: &str) -> String {\n    format!(\"revoked:{id}\")\n}\n",
+    )
+    .expect("source file");
+    fs::write(
+        workspace.path().join("tests/session.md"),
+        "# Session Checks\n\n- revocation formatting remains stable\n",
+    )
+    .expect("test file");
+
+    git(workspace, &["add", "."]);
+    git(workspace, &["commit", "-m", "seed change repo"]);
 }
 
 fn blocked_brief() -> &'static str {
@@ -123,6 +161,7 @@ fn pending_request_id(workspace: &TempDir, run_id: &str) -> String {
 #[test]
 fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
@@ -146,28 +185,47 @@ fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
             "json",
         ])
         .assert()
-        .code(2)
-        .stdout(contains("\"state\": \"Blocked\""))
+        .success()
         .get_output()
         .stdout
         .clone();
 
     let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
     let run_id = run_json["run_id"].as_str().expect("run id");
-    assert_eq!(run_json["blocking_classification"], "artifact-blocked");
+    assert_eq!(run_json["state"], "Draft");
     assert!(
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
-        "blocked artifact runs should not imply approval targets when none exist"
+        "draft change runs should not imply approval targets before continuation"
     );
-    assert_eq!(run_json["artifact_count"], 7);
+    assert_eq!(run_json["artifact_count"], 0);
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
-        "blocked change runs should expose all readable artifact paths"
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.is_empty()),
+        "draft change runs should not expose final artifact paths before continuation"
     );
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "System Slice");
-    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
+    assert_eq!(run_json["refinement_state"]["explicit_continuation_required"], true);
 
-    let blocked_gates = run_json["blocked_gates"].as_array().expect("blocked gates");
+    let resume_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", run_id])
+        .assert()
+        .code(2)
+        .stdout(contains("\"state\": \"Blocked\""))
+        .get_output()
+        .stdout
+        .clone();
+
+    let resume_json: serde_json::Value =
+        serde_json::from_slice(&resume_output).expect("resume json");
+    assert_eq!(resume_json["blocking_classification"], "artifact-blocked");
+    assert_eq!(resume_json["artifact_count"], 7);
+    assert!(
+        resume_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 7),
+        "blocked change runs should expose all readable artifact paths after continuation"
+    );
+    assert_eq!(resume_json["mode_result"]["primary_artifact_title"], "System Slice");
+    assert_eq!(resume_json["recommended_next_action"]["action"], "inspect-artifacts");
+
+    let blocked_gates = resume_json["blocked_gates"].as_array().expect("blocked gates");
     let preservation_gate = blocked_gates
         .iter()
         .find(|gate| gate["gate"] == "change-preservation")
@@ -212,6 +270,7 @@ fn blocked_change_run_returns_exit_code_2_and_mentions_preservation_gap() {
 #[test]
 fn approve_unblocks_systemic_change_runs_and_persists_the_approval_record() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
@@ -235,19 +294,32 @@ fn approve_unblocks_systemic_change_runs_and_persists_the_approval_record() {
             "json",
         ])
         .assert()
-        .code(3)
+        .success()
         .get_output()
         .stdout
         .clone();
     let run_id = parse_run_id(&run_output);
     let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
-    assert_eq!(run_json["state"], "AwaitingApproval");
-    assert_eq!(run_json["blocking_classification"], "approval-gated");
+    assert_eq!(run_json["state"], "Draft");
     assert!(
         run_json["artifact_paths"].as_array().is_some_and(|paths| paths.is_empty()),
-        "approval-gated change runs should not advertise readable artifacts before generation emits them"
+        "draft change runs should not advertise readable artifacts before continuation"
     );
-    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-evidence");
+    assert_eq!(run_json["refinement_state"]["explicit_continuation_required"], true);
+
+    let resume_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", &run_id])
+        .assert()
+        .code(3)
+        .get_output()
+        .stdout
+        .clone();
+    let resume_json: serde_json::Value =
+        serde_json::from_slice(&resume_output).expect("resume json");
+    assert_eq!(resume_json["state"], "AwaitingApproval");
+    assert_eq!(resume_json["blocking_classification"], "approval-gated");
+    assert_eq!(resume_json["recommended_next_action"]["action"], "inspect-evidence");
     let request_id = pending_request_id(&workspace, &run_id);
 
     let status_output = cli_command()
@@ -307,6 +379,7 @@ fn approve_unblocks_systemic_change_runs_and_persists_the_approval_record() {
 #[test]
 fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
     let workspace = TempDir::new().expect("temp dir");
+    init_change_repo(&workspace);
     let brief_path = workspace.path().join("change.md");
     fs::write(&brief_path, blocked_brief()).expect("brief file");
 
@@ -330,11 +403,21 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
             "json",
         ])
         .assert()
-        .code(2)
+        .success()
         .get_output()
         .stdout
         .clone();
     let run_id = parse_run_id(&run_output);
+
+    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    assert_eq!(run_json["state"], "Draft");
+
+    cli_command()
+        .current_dir(workspace.path())
+        .args(["resume", "--run", &run_id])
+        .assert()
+        .code(2)
+        .stdout(contains("\"state\": \"Blocked\""));
 
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(&run_id).join("change");
@@ -388,11 +471,15 @@ fn resume_re_evaluates_fixed_artifacts_and_refuses_stale_context() {
             "json",
         ])
         .assert()
-        .code(2)
+        .success()
         .get_output()
         .stdout
         .clone();
     let stale_run_id = parse_run_id(&second_run_output);
+
+    let stale_run_json: serde_json::Value =
+        serde_json::from_slice(&second_run_output).expect("stale run json");
+    assert_eq!(stale_run_json["state"], "Draft");
 
     fs::write(
         &brief_path,

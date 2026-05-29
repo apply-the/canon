@@ -106,7 +106,7 @@ Translate this packet into requirements mode with concrete scope cuts.
 }
 
 #[test]
-fn discovery_run_completes_with_authored_sections_and_no_missing_marker() {
+fn discovery_run_starts_draft_refinement_and_persists_working_brief() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("discovery.md"), complete_discovery_brief())
         .expect("discovery brief");
@@ -114,26 +114,27 @@ fn discovery_run_completes_with_authored_sections_and_no_missing_marker() {
     let service = EngineService::new(workspace.path());
     let summary = service.run(discovery_request("discovery.md")).expect("discovery run");
 
-    assert_eq!(summary.state, "Completed");
+    assert_eq!(summary.state, "Draft");
 
-    let problem_map = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("artifacts")
-            .join(&summary.run_id)
-            .join("discovery")
-            .join("01-problem-map.md"),
-    )
-    .expect("problem map");
+    let refinement =
+        summary.refinement_state.expect("discovery run should expose refinement state");
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+
+    assert_eq!(refinement.workflow_family, "planning");
+    assert_eq!(refinement.current_mode, "discovery");
+    assert!(refinement.explicit_continuation_required);
+    assert!(working_brief.contains("# Discovery Brief"));
     assert!(
-        problem_map.contains("## Repo Surface\n\n- crates/canon-engine/src/orchestrator/service/")
+        working_brief
+            .contains("## Repo Surface\n\n- crates/canon-engine/src/orchestrator/service/")
     );
-    assert!(!problem_map.contains("## Missing Authored Body"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+    assert!(working_brief.contains("## Readiness Delta"));
 }
 
 #[test]
-fn discovery_run_blocks_with_missing_body_marker_when_required_heading_is_absent() {
+fn discovery_run_blocks_follow_up_when_required_heading_is_absent() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(
         workspace.path().join("discovery.md"),
@@ -144,19 +145,16 @@ fn discovery_run_blocks_with_missing_body_marker_when_required_heading_is_absent
     let service = EngineService::new(workspace.path());
     let summary = service.run(discovery_request("discovery.md")).expect("discovery run");
 
-    assert_eq!(summary.state, "Blocked");
-    assert_eq!(summary.blocking_classification.as_deref(), Some("artifact-blocked"));
+    assert_eq!(summary.state, "Draft");
 
-    let problem_map = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("artifacts")
-            .join(&summary.run_id)
-            .join("discovery")
-            .join("01-problem-map.md"),
-    )
-    .expect("problem map");
-    assert!(problem_map.contains("## Missing Authored Body"));
-    assert!(problem_map.contains("`## Repo Surface`"));
+    let refinement =
+        summary.refinement_state.expect("discovery run should expose refinement state");
+    let working_brief = fs::read_to_string(workspace.path().join(&refinement.working_brief_path))
+        .expect("working brief");
+    assert!(working_brief.contains("# Discovery Brief"));
+    assert!(working_brief.contains("## Clarification Provenance"));
+
+    let resumed = service.resume(&summary.run_id).expect("resume discovery run");
+    assert_eq!(resumed.state, "Blocked");
+    assert_eq!(resumed.blocking_classification.as_deref(), Some("artifact-blocked"));
 }

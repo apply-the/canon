@@ -464,6 +464,12 @@ mod tests {
     }
 
     #[test]
+    fn truncate_context_excerpt_falls_back_when_no_whitespace_exists() {
+        let value = "abcdefghijk";
+        assert_eq!(truncate_context_excerpt(value, 5), "abcde...");
+    }
+
+    #[test]
     fn split_context_items_parses_bullet_list() {
         let block = "- first item\n- second item\n- third item";
         let items = split_context_items(block);
@@ -517,6 +523,23 @@ mod tests {
     }
 
     #[test]
+    fn extract_context_inline_marker_returns_none_for_blank_value() {
+        let source = "Problem:\n\n## Next\nignored";
+        let normalized = source.to_lowercase();
+        assert_eq!(extract_context_inline_marker(source, &normalized, "problem"), None);
+    }
+
+    #[test]
+    fn extract_context_list_uses_inline_marker_when_heading_missing() {
+        let source = "Constraints: first item, second item";
+        let normalized = source.to_lowercase();
+        assert_eq!(
+            extract_context_list(source, &normalized, &["constraints"]),
+            vec!["first item, second item".to_string()]
+        );
+    }
+
+    #[test]
     fn count_markdown_entries_counts_bullets() {
         let block = "- alpha\n- beta\n- gamma";
         assert_eq!(count_markdown_entries(block), 3);
@@ -556,6 +579,52 @@ mod tests {
     }
 
     #[test]
+    fn extract_markdown_section_stops_at_sentinel_boundary() {
+        let source = "## Scope\nKeep this section\nGenerated framing:\nignore this";
+        assert_eq!(
+            extract_markdown_section(source, "Scope"),
+            Some("Keep this section".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_markdown_section_returns_none_for_empty_body() {
+        let source = "## Scope\n\n## Next\nignored";
+        assert_eq!(extract_markdown_section(source, "Scope"), None);
+    }
+
+    #[test]
+    fn extract_inline_marker_collects_multiline_body_and_stops_at_next_marker() {
+        let source = "Problem:\n\n  First line\n  Second line\n\nStatus: done";
+        let normalized = source.to_lowercase();
+        assert_eq!(
+            extract_inline_marker(source, &normalized, "problem"),
+            Some("  First line\n  Second line".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_inline_marker_returns_none_when_only_blank_continuation_exists() {
+        let source = "Problem:\n\nStatus: done";
+        let normalized = source.to_lowercase();
+        assert_eq!(extract_inline_marker(source, &normalized, "problem"), None);
+    }
+
+    #[test]
+    fn looks_like_inline_marker_distinguishes_bullets_and_labels() {
+        assert!(!looks_like_inline_marker("- bullet entry"));
+        assert!(!looks_like_inline_marker("plain text"));
+        assert!(looks_like_inline_marker("Status: ready"));
+    }
+
+    #[test]
+    fn extract_marker_entries_deduplicates_and_skips_empty_segments() {
+        let source = "Change Surface:\n- auth, session; auth\n- , cache ; SESSION";
+        let entries = extract_change_surface_entries(source);
+        assert_eq!(entries, vec!["auth", "session", "cache"]);
+    }
+
+    #[test]
     fn extract_result_section_returns_section_content_and_false() {
         let contents = "## Task Mapping\nDo the work.\n\n## Next\nOther";
         let (value, missing) =
@@ -577,6 +646,18 @@ mod tests {
     fn infer_discovery_next_phase_returns_architecture_for_boundary_keywords() {
         let source = "We need to define the architecture boundaries.";
         assert!(infer_discovery_next_phase(source).contains("architecture"));
+    }
+
+    #[test]
+    fn infer_discovery_next_phase_returns_change_for_legacy_keywords() {
+        let source = "This change must preserve existing legacy behavior.";
+        assert!(infer_discovery_next_phase(source).contains("change mode"));
+    }
+
+    #[test]
+    fn infer_discovery_next_phase_returns_system_shaping_for_new_system_keywords() {
+        let source = "We are defining a new system with a new capability.";
+        assert!(infer_discovery_next_phase(source).contains("system-shaping"));
     }
 
     #[test]
@@ -612,6 +693,21 @@ mod tests {
             extract_labeled_context_value(block, "Status"),
             Some("awaiting-disposition".to_string())
         );
+    }
+
+    #[test]
+    fn extract_result_section_prefixes_missing_section_contents() {
+        let source = "## Missing Context\nCurrent brief omitted the scope section.";
+        let result = extract_result_section(source, "Scope", "Missing Context", "fallback");
+        assert_eq!(
+            result,
+            ("NOT CAPTURED - Current brief omitted the scope section.".to_string(), true)
+        );
+    }
+
+    #[test]
+    fn trim_context_block_returns_empty_for_all_blank_input() {
+        assert_eq!(trim_context_block("\n  \n\t\n"), "");
     }
 
     #[test]

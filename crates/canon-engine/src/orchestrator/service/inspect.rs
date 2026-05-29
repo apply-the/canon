@@ -1,5 +1,6 @@
 use super::EngineService;
 use super::*;
+use crate::domain::run::ClarificationRecord;
 
 impl EngineService {
     /// Runs a structured inspection against the given target and returns an inspect response.
@@ -193,6 +194,27 @@ impl EngineService {
                     })
                     .unwrap_or_default();
                 ("evidence".to_string(), system_context, entries)
+            }
+            InspectTarget::Refinement { run_id } => {
+                let run_id = self.resolve_run(&run_id)?;
+                let run_manifest = store.load_run_manifest(&run_id)?;
+                let run_state = store.load_run_state(&run_id)?;
+                let run_context = store.load_run_context(&run_id).ok();
+                let system_context =
+                    run_context.as_ref().and_then(|context| context.system_context);
+                let entries = run_context
+                    .as_ref()
+                    .and_then(|context| {
+                        Self::build_refinement_inspect_summary(
+                            &run_id,
+                            &run_manifest,
+                            &run_state,
+                            context,
+                        )
+                    })
+                    .map(|summary| vec![InspectEntry::Refinement(summary)])
+                    .unwrap_or_default();
+                ("refinement".to_string(), system_context, entries)
             }
         };
 
@@ -512,5 +534,310 @@ impl EngineService {
             authoring_lifecycle,
             recommended_focus,
         })
+    }
+}
+
+impl EngineService {
+    fn build_refinement_inspect_summary(
+        run_id: &str,
+        run_manifest: &RunManifest,
+        run_state: &RunStateManifest,
+        context: &RunContext,
+    ) -> Option<RefinementInspectSummary> {
+        let refinement = context.clarification_refinement.as_ref()?;
+        let clarification_records = refinement
+            .records
+            .iter()
+            .map(|record| RefinementClarificationRecordSummary {
+                id: record.id.clone(),
+                prompt: record.prompt.clone(),
+                answer: record.answer.clone(),
+                answer_kind: refinement_answer_kind_label(record).to_string(),
+                affected_sections: record.affected_sections.clone(),
+                resolution_state: refinement_resolution_state_label(record).to_string(),
+                recorded_at: record.recorded_at,
+            })
+            .collect::<Vec<_>>();
+        let readiness_delta = refinement
+            .readiness_delta
+            .iter()
+            .map(|item| RefinementReadinessItemSummary {
+                id: item.id.clone(),
+                section: item.section.clone(),
+                summary: item.summary.clone(),
+                blocking: item.blocking,
+                source_kind: refinement_readiness_source_kind_label(item).to_string(),
+                default_available: item.default_available,
+                resolved: item.resolved,
+            })
+            .collect::<Vec<_>>();
+
+        Some(RefinementInspectSummary {
+            run_id: run_id.to_string(),
+            mode: run_manifest.mode.as_str().to_string(),
+            state: format!("{:?}", run_state.state),
+            working_brief_path: refinement.working_brief_path.clone(),
+            authoritative_inputs: refinement.authoritative_input_refs.clone(),
+            supporting_inputs: refinement.supporting_input_refs.clone(),
+            clarification_records,
+            readiness_delta,
+            suggested_continuation: refinement.suggested_candidate.as_ref().map(|candidate| {
+                SuggestedContinuationSummary {
+                    run_id: candidate.run_id.clone(),
+                    mode: candidate.mode.as_str().to_string(),
+                    state: format!("{:?}", candidate.state),
+                    match_reason: candidate.match_reason.clone(),
+                    advisory: candidate.advisory,
+                    mutation_allowed: false,
+                }
+            }),
+            lineage: run_manifest.lineage.as_ref().map(|lineage| RefinementLineageSummary {
+                carried_from: lineage.carried_from.clone(),
+                supersedes: lineage.supersedes.clone(),
+                mode_change_reason: lineage.mode_change_reason.clone(),
+            }),
+        })
+    }
+}
+
+fn refinement_answer_kind_label(record: &ClarificationRecord) -> &'static str {
+    match record.answer_kind {
+        crate::domain::run::ClarificationAnswerKind::Explicit => "explicit",
+        crate::domain::run::ClarificationAnswerKind::Defaulted => "defaulted",
+        crate::domain::run::ClarificationAnswerKind::Deferred => "deferred",
+    }
+}
+
+fn refinement_resolution_state_label(record: &ClarificationRecord) -> &'static str {
+    match record.resolution_state {
+        crate::domain::run::ClarificationResolutionState::Resolved => "resolved",
+        crate::domain::run::ClarificationResolutionState::Deferred => "deferred",
+        crate::domain::run::ClarificationResolutionState::Superseded => "superseded",
+    }
+}
+
+fn refinement_readiness_source_kind_label(item: &ReadinessDeltaItem) -> &'static str {
+    match item.source_kind {
+        crate::domain::run::ReadinessDeltaSourceKind::AuthorityGap => "authority-gap",
+        crate::domain::run::ReadinessDeltaSourceKind::MissingContext => "missing-context",
+        crate::domain::run::ReadinessDeltaSourceKind::ClarificationGap => "clarification-gap",
+        crate::domain::run::ReadinessDeltaSourceKind::SupportingInputWarning => {
+            "supporting-input-warning"
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use time::OffsetDateTime;
+
+    use super::*;
+    use crate::domain::mode::Mode;
+    use crate::domain::policy::{RiskClass, UsageZone};
+    use crate::domain::run::{
+        ClarificationAnswerKind, ClarificationRecord, ClarificationRefinementContext,
+        ClarificationRefinementStatus, ClarificationResolutionState, ContinuationCandidateSummary,
+        ReadinessDeltaItem, ReadinessDeltaSourceKind, RefinementWorkflowFamily, RunContext,
+        RunLineageLink, RunState, SystemContext,
+    };
+    use crate::persistence::manifests::{RunManifest, RunStateManifest};
+
+    fn sample_refinement_context() -> ClarificationRefinementContext {
+        ClarificationRefinementContext {
+            workflow_family: RefinementWorkflowFamily::Planning,
+            current_mode: Mode::Requirements,
+            working_brief_path:
+                ".canon/runs/R-20260529-test/artifacts/requirements/working-brief.md".to_string(),
+            template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+            status: ClarificationRefinementStatus::Active,
+            explicit_continuation_required: true,
+            authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],
+            supporting_input_refs: vec!["canon-input/requirements/context.md".to_string()],
+            suggested_candidate: Some(ContinuationCandidateSummary {
+                run_id: "R-20260529-prev".to_string(),
+                mode: Mode::Requirements,
+                state: RunState::Draft,
+                match_reason: "shared authoritative fingerprints".to_string(),
+                advisory: true,
+            }),
+            records: vec![ClarificationRecord {
+                id: "cq-001".to_string(),
+                prompt: "Who owns this problem?".to_string(),
+                answer: "platform".to_string(),
+                answer_kind: ClarificationAnswerKind::Explicit,
+                affected_sections: vec!["Actors".to_string()],
+                resolution_state: ClarificationResolutionState::Resolved,
+                recorded_at: OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("timestamp"),
+            }],
+            readiness_delta: vec![ReadinessDeltaItem {
+                id: "rd-001".to_string(),
+                section: "Decision checklist".to_string(),
+                summary: "Owner approval is still required.".to_string(),
+                blocking: true,
+                source_kind: ReadinessDeltaSourceKind::ClarificationGap,
+                default_available: false,
+                resolved: false,
+            }],
+        }
+    }
+
+    fn sample_manifest_with_lineage() -> RunManifest {
+        RunManifest {
+            run_id: "R-20260529-test".to_string(),
+            uuid: None,
+            short_id: None,
+            slug: None,
+            title: None,
+            mode: Mode::Requirements,
+            risk: RiskClass::BoundedImpact,
+            zone: UsageZone::Yellow,
+            system_context: Some(SystemContext::Existing),
+            classification: crate::domain::run::ClassificationProvenance::explicit(),
+            owner: "Owner <owner@example.com>".to_string(),
+            lineage: Some(RunLineageLink {
+                carried_from: "R-20260529-old".to_string(),
+                supersedes: "R-20260528-prev".to_string(),
+                mode_change_reason: "preserve same-run refinement".to_string(),
+            }),
+            created_at: OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("timestamp"),
+        }
+    }
+
+    #[test]
+    fn build_refinement_inspect_summary_returns_none_without_refinement_context() {
+        let run_context = RunContext {
+            repo_root: "/tmp/repo".to_string(),
+            owner: None,
+            inputs: vec![],
+            excluded_paths: vec![],
+            input_fingerprints: vec![],
+            system_context: Some(SystemContext::Existing),
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            clarification_refinement: None,
+            inline_inputs: vec![],
+            captured_at: OffsetDateTime::from_unix_timestamp(1_700_000_001).expect("timestamp"),
+        };
+        let manifest = sample_manifest_with_lineage();
+        let state = RunStateManifest {
+            state: RunState::Draft,
+            updated_at: OffsetDateTime::from_unix_timestamp(1_700_000_002).expect("timestamp"),
+        };
+
+        let summary = EngineService::build_refinement_inspect_summary(
+            "R-20260529-test",
+            &manifest,
+            &state,
+            &run_context,
+        );
+
+        assert!(summary.is_none());
+    }
+
+    #[test]
+    fn build_refinement_inspect_summary_maps_records_readiness_candidate_and_lineage() {
+        let run_context = RunContext {
+            repo_root: "/tmp/repo".to_string(),
+            owner: Some("Owner <owner@example.com>".to_string()),
+            inputs: vec!["canon-input/requirements/brief.md".to_string()],
+            excluded_paths: vec![],
+            input_fingerprints: vec![],
+            system_context: Some(SystemContext::Existing),
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            clarification_refinement: Some(sample_refinement_context()),
+            inline_inputs: vec![],
+            captured_at: OffsetDateTime::from_unix_timestamp(1_700_000_003).expect("timestamp"),
+        };
+        let manifest = sample_manifest_with_lineage();
+        let state = RunStateManifest {
+            state: RunState::Draft,
+            updated_at: OffsetDateTime::from_unix_timestamp(1_700_000_004).expect("timestamp"),
+        };
+
+        let summary = EngineService::build_refinement_inspect_summary(
+            "R-20260529-test",
+            &manifest,
+            &state,
+            &run_context,
+        )
+        .expect("refinement summary");
+
+        assert_eq!(summary.run_id, "R-20260529-test");
+        assert_eq!(summary.mode, "requirements");
+        assert_eq!(summary.state, "Draft");
+        assert_eq!(summary.clarification_records.len(), 1);
+        assert_eq!(summary.clarification_records[0].answer_kind, "explicit");
+        assert_eq!(summary.readiness_delta.len(), 1);
+        assert_eq!(summary.readiness_delta[0].source_kind, "clarification-gap");
+        assert!(summary.suggested_continuation.is_some());
+        assert!(summary.lineage.is_some());
+    }
+
+    #[test]
+    fn label_helpers_cover_all_variants() {
+        let explicit = ClarificationRecord {
+            id: "id-1".to_string(),
+            prompt: "prompt".to_string(),
+            answer: "answer".to_string(),
+            answer_kind: ClarificationAnswerKind::Explicit,
+            affected_sections: vec![],
+            resolution_state: ClarificationResolutionState::Resolved,
+            recorded_at: OffsetDateTime::from_unix_timestamp(1_700_000_010).expect("timestamp"),
+        };
+        assert_eq!(refinement_answer_kind_label(&explicit), "explicit");
+        assert_eq!(refinement_resolution_state_label(&explicit), "resolved");
+
+        let defaulted = ClarificationRecord {
+            answer_kind: ClarificationAnswerKind::Defaulted,
+            resolution_state: ClarificationResolutionState::Deferred,
+            ..explicit.clone()
+        };
+        assert_eq!(refinement_answer_kind_label(&defaulted), "defaulted");
+        assert_eq!(refinement_resolution_state_label(&defaulted), "deferred");
+
+        let deferred = ClarificationRecord {
+            answer_kind: ClarificationAnswerKind::Deferred,
+            resolution_state: ClarificationResolutionState::Superseded,
+            ..explicit
+        };
+        assert_eq!(refinement_answer_kind_label(&deferred), "deferred");
+        assert_eq!(refinement_resolution_state_label(&deferred), "superseded");
+
+        let item = ReadinessDeltaItem {
+            id: "rd-1".to_string(),
+            section: "section".to_string(),
+            summary: "summary".to_string(),
+            blocking: true,
+            source_kind: ReadinessDeltaSourceKind::AuthorityGap,
+            default_available: false,
+            resolved: false,
+        };
+        assert_eq!(refinement_readiness_source_kind_label(&item), "authority-gap");
+        assert_eq!(
+            refinement_readiness_source_kind_label(&ReadinessDeltaItem {
+                source_kind: ReadinessDeltaSourceKind::MissingContext,
+                ..item.clone()
+            }),
+            "missing-context"
+        );
+        assert_eq!(
+            refinement_readiness_source_kind_label(&ReadinessDeltaItem {
+                source_kind: ReadinessDeltaSourceKind::ClarificationGap,
+                ..item.clone()
+            }),
+            "clarification-gap"
+        );
+        assert_eq!(
+            refinement_readiness_source_kind_label(&ReadinessDeltaItem {
+                source_kind: ReadinessDeltaSourceKind::SupportingInputWarning,
+                ..item
+            }),
+            "supporting-input-warning"
+        );
     }
 }

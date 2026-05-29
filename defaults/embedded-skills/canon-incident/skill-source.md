@@ -109,6 +109,14 @@ guidance for operators and approvers.
 - Systemic-impact or red-zone incident runs surface `gate:risk` approval first; once approved, the packet can complete without a separate execution-resume path.
 - Approval-gated and blocked incident packets remain publishable when Canon emitted a readable artifact set.
 
+## Same-Work Continuity
+
+- Incident preserves explicit continuation identity continuity, but it does not provide the targeted working-brief lifecycle.
+- Candidate detection is advisory. Continuation requires explicit intent.
+- Fresh intake stays a new run unless the user explicitly says `continue`, `resume`, or `same run`, or supplies a `RUN_ID`.
+- Use `$canon-status` for the compact summary and `canon inspect refinement --run <RUN_ID>` when the user needs the advisory continuation state Canon persisted for the run.
+- Do not claim that `.canon/runs/<RUN_ID>/artifacts/incident/working-brief.md` exists for this mode unless Canon emits that surface in a future slice.
+
 ## Expected Output Shape
 
 - concise run-start or gated summary
