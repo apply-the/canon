@@ -532,3 +532,30 @@ impl WorkspaceStore {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tempfile::TempDir;
+
+    use super::*;
+
+    #[test]
+    fn install_skills_for_claude_creates_claude_md_and_lists_support_states() {
+        let workspace = TempDir::new().expect("temp dir");
+        let store = WorkspaceStore::new(workspace.path());
+
+        let summary = store
+            .install_skills(SkillMaterializationTarget::Claude)
+            .expect("skills install should succeed");
+
+        assert!(summary.skills_dir.ends_with(".claude/skills"));
+        assert!(summary.skills_materialized > 0);
+        assert!(summary.skills_skipped == 0);
+        assert!(summary.claude_md_created);
+        assert!(workspace.path().join(".claude").join("skills").is_dir());
+        assert!(workspace.path().join("CLAUDE.md").exists());
+
+        let listed = store.list_skills();
+        assert!(listed.iter().any(|entry| entry.support_state == "available-now"));
+    }
+}

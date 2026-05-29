@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-05-28T14:30:00Z",
+  "mode": "implementation",
+  "canon": {
+    "available": true,
+    "version": "0.61.0",
+    "initialized": true,
+    "error": null
+  },
+  "workspace": {
+    "path": "/path/to/repo",
+    "git_branch": "061-skill-runtime-contracts",
+    "git_user": "developer@example.com",
+    "error": null
+  },
+  "input": {
+    "file_exists": true,
+    "file_path": "canon-input/implementation.md",
+    "file_empty": false,
+    "folder_exists": false,
+    "folder_path": "canon-input/implementation/",
+    "folder_empty": null,
+    "resolved_path": "canon-input/implementation.md",
+    "ambiguous": false,
+    "error": null
+  },
+  "runs": {
+    "active": 2,
+    "pending_approvals": 1,
+    "error": null
+  }
+}

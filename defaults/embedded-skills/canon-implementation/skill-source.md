@@ -1,6 +1,14 @@
 ---
 name: canon-implementation
 description: Use when you need a governed implementation run for an existing system with explicit task mapping and mutation bounds.
+preflight:
+  requires_canon: true
+  requires_initialized: true
+  canonical_input: implementation
+  system_context: existing
+  risk_required: true
+  zone_required: true
+  owner_optional: true
 ---
 
 # Canon Implementation
@@ -36,6 +44,8 @@ Optional:
 - `OWNER` when the user wants to override Git-derived ownership explicitly
 
 ## Preflight Profile
+
+<!-- DEPRECATED: preflight behavior is governed by the 'preflight:' block. Do not use this prose as an execution contract. -->
 
 - Verify `canon` is on PATH. If missing, point to the install guide.
 - Verify `.canon/` exists. If missing, point to `$canon-init`.
@@ -152,3 +162,49 @@ options for maintainers and approvers inside a task-mapped delivery packet.
 - `$canon-resume`
 - `$canon-change`
 - `$canon-pr-review`
+
+## Lifecycle Hook Detection
+
+Before starting the governed run, check for `before_run` hooks:
+
+1. If `.canon/hooks.toml` exists and is valid TOML with `version = 1`:
+   - Parse `hooks.before_run.actions` array.
+   - Filter by `mode_filter`: skip hooks whose `mode_filter` does not include
+     `implementation`. If `mode_filter` is null or absent, include the hook.
+   - For each matching hook, emit a proposal block:
+
+     ```markdown
+     ## Lifecycle Hook Detected
+
+     **Event**: before_run
+     **Hook**: <id>
+     **Command**: `<command>`
+     **Working Directory**: <repo-root>
+     **Description**: <description>
+     **Required**: <Yes if optional=false, No if optional=true>
+     **Trusted**: <Yes if trusted=true, No if trusted=false>
+
+     Proceed with this hook? [Yes / No / Skip all hooks]
+     ```
+
+   - Apply confirmation rules per the `optional`/`trusted` matrix in
+     `.agents/skills/canon-shared/references/hooks-schema.md`.
+   - For untrusted hooks (`trusted: false`), add an extra confirmation step
+     explaining that the command source is not in the trusted allowlist.
+
+2. If `.canon/hooks.toml` is missing, unreadable, or has invalid TOML, skip
+   hook detection silently. Do not block the run flow.
+
+3. Record hook trace in `ai-provenance.md` (see Hook Trace Recording below).
+
+## Hook Trace Recording
+
+After each hook proposal is resolved, append to the run's `ai-provenance.md`:
+
+```markdown
+## Hook Traces
+
+| Hook ID | Event | Command | Trusted | Outcome | Exit Code | Timestamp |
+|---------|-------|---------|---------|---------|-----------|-----------|
+| <id> | before_run | <command> | <yes/no> | <accepted/declined/skipped> | <code or n/a> | <ISO 8601> |
+```

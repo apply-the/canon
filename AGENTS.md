@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-19
+Auto-generated from all feature plans. Last updated: 2026-05-28
 
 ## Governing Constitution
 
@@ -81,6 +81,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-19
 - Repository files only; no new persistent schema. (057-s7-delight-provider)
 - Rust 1.95.0, Edition 2024, plus Markdown contract and planning artifacts + existing workspace crates `canon-engine`, `canon-cli`, and `canon-adapters`; `serde`, `strum_macros`, `thiserror`, `toml`, `tracing`, `uuid`, and `time` already used by the workspace (060-pr-review-anchors)
 - repository planning artifacts under `specs/060-pr-review-anchors/` and existing `.canon/` runtime evidence/artifact files for `pr-review` runs (060-pr-review-anchors)
+- Bash 5.x (macOS/Linux), PowerShell 7.x (cross-platform) + `jq` (JSON validation), `canon` CLI (version (061-skill-runtime-contracts)
+- `.canon/hooks.toml` (TOML), preflight JSON to stdout (ephemeral), (061-skill-runtime-contracts)
 
 - Rust 1.95.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -140,9 +142,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 061-skill-runtime-contracts: Added Bash 5.x (macOS/Linux), PowerShell 7.x (cross-platform) + `jq` (JSON validation), `canon` CLI (version
 - 060-pr-review-anchors: Added Rust 1.95.0, Edition 2024, plus Markdown contract and planning artifacts + existing workspace crates `canon-engine`, `canon-cli`, and `canon-adapters`; `serde`, `strum_macros`, `thiserror`, `toml`, `tracing`, `uuid`, and `time` already used by the workspace
 - 057-s7-delight-provider: Added Rust 1.95.0, Edition 2024 (existing types only, no new Rust code); + Existing workspace crates `canon-engine`, `canon-cli`,
-- 056-semantic-artifact-contract: Added Rust 1.95.0, Edition 2024, plus Markdown and JSON + existing workspace crates `canon-engine`,
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

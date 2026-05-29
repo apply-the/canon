@@ -15,6 +15,23 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.61.0] - 2026-05-28
+
+Delivered specs:
+
+- `specs/061-skill-runtime-contracts/`
+
+Highlights:
+
+- Added structured preflight JSON output via `canon-preflight.sh` and
+  `canon-preflight.ps1`, replacing key=value `check-runtime.sh` output for
+  migrated skills.
+- Introduced declarative `preflight:` YAML frontmatter in SKILL.md for
+  `canon-implementation`, `canon-change`, and `canon-publish` skills.
+- Added `.canon/hooks.toml` lifecycle hooks with detect/propose semantics and
+  trace recording in `ai-provenance.md`.
+- Existing skills with prose-only preflight continue working unchanged.
+
 ## [0.60.0] - 2026-05-19
 
 Delivered specs:

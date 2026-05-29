@@ -66,7 +66,10 @@ mod tests {
         render_requirements_artifact, render_requirements_artifact_from_evidence,
         render_review_artifact, render_system_shaping_artifact, render_verification_artifact,
     };
-    use crate::domain::run::{BacklogGranularity, BacklogPlanningContext, ClosureAssessment};
+    use crate::domain::run::{
+        BacklogGranularity, BacklogPlanningContext, ClosureAssessment, ClosureFinding,
+        ClosureFindingSeverity,
+    };
     use crate::review::findings::{
         ConventionalCommentScope, FindingCategory, FindingSeverity, ReviewAnchor, ReviewFinding,
         ReviewPacket,
@@ -620,6 +623,64 @@ mod tests {
         assert!(planning_risks.contains(MISSING_AUTHORED_BODY_MARKER));
         assert!(planning_risks.contains("instead of inventing risk bullets"));
         assert!(!planning_risks.contains("Sequencing uncertainty:"));
+    }
+
+    #[test]
+    fn render_backlog_artifacts_preserve_authored_sections_and_context_fallbacks() {
+        let brief = "# Backlog Brief\n\n## Delivery Intent\n\nPrepare a bounded delivery backlog for runtime honesty work.\n\n## Epic Tree\n\n- Epic 1: Bound the runtime honesty surface.\n\n## Capability To Epic Map\n\n- Runtime evidence hygiene -> Epic 1\n\n## Dependency Map\n\n- Epic 1 depends on the upstream evidence packet.\n\n## Delivery Slices\n\n- Slice A: Preserve existing packet boundaries.\n\n## Sequencing Plan\n\n1. Stabilize the upstream packet.\n\n## Acceptance Anchors\n\n- Anchor A: operators can inspect the bounded slice.\n\n## Planning Risks\n\n- Risk: upstream packet drift could invalidate the slice.\n";
+        let mut planning_context = sample_backlog_planning_context();
+        planning_context.source_refs = vec![
+            "specs/033-reasoning-evidence-clarity/plan.md".to_string(),
+            "docs/guides/skill-runtime-contracts.md".to_string(),
+        ];
+        planning_context.constraints = vec![
+            "Stay above task level".to_string(),
+            "Do not infer implementation steps".to_string(),
+        ];
+        planning_context.out_of_scope =
+            vec!["Tracker tickets".to_string(), "Implementation edits".to_string()];
+        planning_context.closure_assessment.findings = vec![ClosureFinding {
+            category: "missing-evidence".to_string(),
+            severity: ClosureFindingSeverity::Blocking,
+            affected_scope: "upstream backlog brief".to_string(),
+            recommended_followup: "attach the missing closure notes".to_string(),
+        }];
+
+        let epic_tree = render_backlog_artifact("epic-tree.md", brief, &planning_context);
+        let capability_map =
+            render_backlog_artifact("capability-to-epic-map.md", brief, &planning_context);
+        let dependency_map = render_backlog_artifact("dependency-map.md", brief, &planning_context);
+        let slices = render_backlog_artifact("delivery-slices.md", brief, &planning_context);
+        let sequencing = render_backlog_artifact("sequencing-plan.md", brief, &planning_context);
+        let anchors = render_backlog_artifact("acceptance-anchors.md", brief, &planning_context);
+        let planning_risks = render_backlog_artifact("planning-risks.md", brief, &planning_context);
+        let fallback = render_backlog_artifact("custom-note.md", brief, &planning_context);
+
+        assert!(epic_tree.contains("## Epic Tree\n\n- Epic 1: Bound the runtime honesty surface."));
+        assert!(
+            capability_map
+                .contains("## Capability Mapping\n\n- Runtime evidence hygiene -> Epic 1")
+        );
+        assert!(capability_map.contains("docs/guides/skill-runtime-contracts.md"));
+        assert!(capability_map.contains(
+            "- [blocking] missing-evidence on upstream backlog brief. Follow-up: attach the missing closure notes"
+        ));
+        assert!(
+            dependency_map
+                .contains("## Dependencies\n\n- Epic 1 depends on the upstream evidence packet.")
+        );
+        assert!(
+            slices
+                .contains("## Delivery Slices\n\n- Slice A: Preserve existing packet boundaries.")
+        );
+        assert!(sequencing.contains("## Sequencing\n\n1. Stabilize the upstream packet."));
+        assert!(anchors.contains(
+            "## Acceptance Anchors\n\n- Anchor A: operators can inspect the bounded slice."
+        ));
+        assert!(planning_risks.contains(
+            "## Planning Risks\n\n- Risk: upstream packet drift could invalidate the slice."
+        ));
+        assert!(fallback.starts_with("# custom-note.md\n\n## Summary\n\n# Backlog Brief"));
     }
 
     #[test]

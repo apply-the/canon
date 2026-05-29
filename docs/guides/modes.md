@@ -1257,6 +1257,17 @@ for a populated single-file example, and
 [`docs/examples/canon-input/carry-forward-packets.md`](docs/examples/canon-input/carry-forward-packets.md)
 for the folder-backed carry-forward packet pattern.
 
+### Preflight Contract and Hook Detection
+
+The `canon-implementation` skill declares its preflight requirements in YAML
+frontmatter (`preflight:` block). When invoked, the AI assistant runs
+`canon-preflight.sh --mode implementation` and surfaces only unmet
+requirements. Before the governed run starts, the skill also checks
+`.canon/hooks.toml` for `before_run` hooks matching mode `implementation` and
+proposes them with full command visibility. See
+[`docs/guides/skill-runtime-contracts.md`](skill-runtime-contracts.md) for
+details.
+
 ### Minimal Usage
 
 ```bash

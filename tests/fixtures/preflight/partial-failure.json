@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-05-28T14:30:00Z",
+  "mode": "change",
+  "canon": {
+    "available": true,
+    "version": "0.61.0",
+    "initialized": true,
+    "error": null
+  },
+  "workspace": {
+    "path": "/path/to/repo",
+    "git_branch": null,
+    "git_user": null,
+    "error": "git not available or not a git repository"
+  },
+  "input": {
+    "file_exists": true,
+    "file_path": "canon-input/change.md",
+    "file_empty": false,
+    "folder_exists": false,
+    "folder_path": "canon-input/change/",
+    "folder_empty": null,
+    "resolved_path": "canon-input/change.md",
+    "ambiguous": false,
+    "error": null
+  },
+  "runs": {
+    "active": null,
+    "pending_approvals": null,
+    "error": "permission denied reading .canon/runs/"
+  }
+}

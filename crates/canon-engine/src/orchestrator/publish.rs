@@ -120,6 +120,17 @@ struct PublishProfileWriteContext<'a> {
     lineage: &'a LineageMetadata,
 }
 
+fn operational_packet_state_publishable(state: &RunState) -> bool {
+    matches!(state, RunState::AwaitingApproval | RunState::Blocked | RunState::Completed)
+}
+
+fn create_parent_directory(path: &Path) -> Result<(), std::io::Error> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    Ok(())
+}
+
 /// Publishes the artifacts from the named run to the given destination using the default profile.
 pub fn publish_run(
     repo_root: &Path,
@@ -140,10 +151,7 @@ pub fn publish_run(
             | Mode::SupplyChainAnalysis
             | Mode::DomainLanguage
             | Mode::DomainModel
-    ) && matches!(
-        state.state,
-        RunState::AwaitingApproval | RunState::Blocked | RunState::Completed
-    );
+    ) && operational_packet_state_publishable(&state.state);
 
     if state.state != RunState::Completed && !operational_packet_publishable {
         return Err(EngineError::Validation(format!(
@@ -237,9 +245,7 @@ pub fn publish_run(
     published_files.push(display_path(repo_root, &metadata_path));
 
     if let Some(generated_adr) = generated_adr {
-        if let Some(parent) = generated_adr.destination.parent() {
-            fs::create_dir_all(parent)?;
-        }
+        create_parent_directory(&generated_adr.destination)?;
         fs::write(&generated_adr.destination, generated_adr.contents)?;
         published_files.push(generated_adr.display_path);
     }
@@ -359,9 +365,7 @@ pub fn publish_run_with_profile(
     };
 
     let metadata_path = profile_metadata_path(&published_to_path);
-    if let Some(parent) = metadata_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    create_parent_directory(&metadata_path)?;
     let metadata = PublishMetadata {
         run_id: manifest.run_id.clone(),
         mode: manifest.mode.as_str().to_string(),

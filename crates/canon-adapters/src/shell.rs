@@ -245,3 +245,129 @@ impl ShellAdapter {
         Ok(output)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::Path;
+    use std::process::Command as ProcessCommand;
+
+    use tempfile::tempdir;
+
+    use super::ShellAdapter;
+    use crate::{
+        AdapterError, CapabilityKind, InvocationOrientation, LineageClass, SideEffectClass,
+        TrustBoundaryKind,
+    };
+
+    fn git(cwd: &Path, args: &[&str]) {
+        let output = ProcessCommand::new("git")
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .expect("git command should run");
+
+        assert!(
+            output.status.success(),
+            "git {:?} failed: stdout=`{}` stderr=`{}`",
+            args,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    fn init_repo() -> tempfile::TempDir {
+        let repo = tempdir().expect("temp repo");
+        git(repo.path(), &["init", "-b", "main"]);
+        git(repo.path(), &["config", "user.name", "Coverage Tester"]);
+        git(repo.path(), &["config", "user.email", "coverage@example.com"]);
+        repo
+    }
+
+    fn commit_all(cwd: &Path, message: &str) {
+        git(cwd, &["add", "."]);
+        git(cwd, &["-c", "commit.gpgsign=false", "commit", "-m", message]);
+    }
+
+    #[test]
+    fn request_builders_assign_expected_capability_and_side_effect() {
+        let adapter = ShellAdapter;
+
+        let read_only = adapter.read_only_request("inspect repo state");
+        assert_eq!(read_only.capability, CapabilityKind::RunCommand);
+        assert_eq!(read_only.orientation, Some(InvocationOrientation::Context));
+        assert_eq!(read_only.trust_boundary, Some(TrustBoundaryKind::LocalProcess));
+        assert_eq!(read_only.lineage, Some(LineageClass::NonGenerative));
+        assert_eq!(read_only.side_effect, SideEffectClass::ReadOnly);
+
+        let mutating = adapter.mutating_request("rewrite file");
+        assert_eq!(mutating.capability, CapabilityKind::ExecuteBoundedTransformation);
+        assert_eq!(mutating.orientation, Some(InvocationOrientation::Generation));
+        assert_eq!(mutating.trust_boundary, Some(TrustBoundaryKind::LocalProcess));
+        assert_eq!(mutating.lineage, Some(LineageClass::NonGenerative));
+        assert_eq!(mutating.side_effect, SideEffectClass::WorkspaceMutation);
+    }
+
+    #[test]
+    fn git_diff_collects_changed_files_and_patch_between_refs() {
+        let repo = init_repo();
+        fs::write(repo.path().join("notes.md"), "one\n").expect("write first version");
+        commit_all(repo.path(), "initial");
+
+        fs::write(repo.path().join("notes.md"), "one\ntwo\n").expect("write second version");
+        commit_all(repo.path(), "update");
+
+        let adapter = ShellAdapter;
+        let diff =
+            adapter.git_diff("HEAD~1", "HEAD", repo.path()).expect("git diff should succeed");
+
+        assert_eq!(diff.base_ref, "HEAD~1");
+        assert_eq!(diff.head_ref, "HEAD");
+        assert_eq!(diff.changed_files, vec!["notes.md"]);
+        assert!(diff.changed_files_text.contains("notes.md"));
+        assert!(diff.patch.contains("notes.md"));
+        assert_eq!(diff.invocations.len(), 2);
+        assert!(diff.invocations.iter().all(|invocation| invocation.allowed));
+    }
+
+    #[test]
+    fn git_diff_worktree_reports_uncommitted_changes() {
+        let repo = init_repo();
+        fs::write(repo.path().join("worktree.md"), "before\n").expect("write first version");
+        commit_all(repo.path(), "initial");
+
+        fs::write(repo.path().join("worktree.md"), "before\nafter\n")
+            .expect("write worktree change");
+
+        let adapter = ShellAdapter;
+        let diff =
+            adapter.git_diff_worktree("HEAD", repo.path()).expect("worktree diff should succeed");
+
+        assert_eq!(diff.base_ref, "HEAD");
+        assert_eq!(diff.head_ref, "WORKTREE");
+        assert_eq!(diff.changed_files, vec!["worktree.md"]);
+        assert!(diff.patch.contains("worktree.md"));
+        assert!(adapter.has_uncommitted_changes(repo.path()).expect("status should succeed"));
+    }
+
+    #[test]
+    fn run_checked_returns_process_error_for_non_zero_exit_status() {
+        let adapter = ShellAdapter;
+        let request = adapter.validation_request("force shell adapter failure path");
+
+        let error = adapter
+            .run_checked(&request, "sh", &["-c", "printf boom >&2; exit 7"], None, false)
+            .expect_err("non-zero exit status should fail");
+
+        match error {
+            AdapterError::Process(io_error) => {
+                let message = io_error.to_string();
+                assert!(message.contains("failed with code 7"));
+                assert!(message.contains("boom"));
+            }
+            other => panic!("expected process error, got {other:?}"),
+        }
+
+        assert_eq!(request.side_effect, SideEffectClass::ReadOnly);
+    }
+}

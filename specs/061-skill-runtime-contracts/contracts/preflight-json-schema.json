@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Canon Preflight Report",
+  "description": "Structured environment snapshot emitted by canon-preflight.sh",
+  "type": "object",
+  "required": ["schema_version", "timestamp", "mode", "canon", "workspace", "input", "runs"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema version for forward compatibility"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of report generation"
+    },
+    "mode": {
+      "type": "string",
+      "description": "The --mode argument passed to the script"
+    },
+    "canon": {
+      "type": "object",
+      "required": ["available", "version", "initialized", "error"],
+      "properties": {
+        "available": { "type": "boolean" },
+        "version": { "type": ["string", "null"] },
+        "initialized": { "type": "boolean" },
+        "error": { "type": ["string", "null"] }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "required": ["path", "git_branch", "git_user", "error"],
+      "properties": {
+        "path": { "type": "string" },
+        "git_branch": { "type": ["string", "null"] },
+        "git_user": { "type": ["string", "null"] },
+        "error": { "type": ["string", "null"] }
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": ["file_exists", "file_path", "file_empty", "folder_exists", "folder_path", "folder_empty", "resolved_path", "ambiguous", "error"],
+      "properties": {
+        "file_exists": { "type": "boolean" },
+        "file_path": { "type": "string" },
+        "file_empty": { "type": ["boolean", "null"] },
+        "folder_exists": { "type": "boolean" },
+        "folder_path": { "type": "string" },
+        "folder_empty": { "type": ["boolean", "null"] },
+        "resolved_path": { "type": ["string", "null"] },
+        "ambiguous": { "type": "boolean" },
+        "error": { "type": ["string", "null"] }
+      }
+    },
+    "runs": {
+      "type": "object",
+      "required": ["active", "pending_approvals", "error"],
+      "properties": {
+        "active": { "type": ["integer", "null"] },
+        "pending_approvals": { "type": ["integer", "null"] },
+        "error": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

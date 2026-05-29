@@ -6,17 +6,19 @@ use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
 use super::{PublishMetadata, default_publish_directory, resolve_destination};
-use crate::domain::artifact::{ArtifactFormat, ArtifactRecord};
+use crate::domain::artifact::{
+    ArtifactContract, ArtifactFormat, ArtifactRecord, ArtifactRequirement, RuntimePacketMetadata,
+};
 use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::publish_profile::{
-    PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile,
-    SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor, SemanticEligibilityState,
-    SemanticProvenanceBoundary, UpdateStrategy,
+    ExpertiseInputMetadata, PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState,
+    PublishProfile, SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor,
+    SemanticEligibilityState, SemanticProvenanceBoundary, UpdateStrategy,
 };
-use crate::domain::run::{ClassificationProvenance, RunState, SystemContext};
-use crate::persistence::manifests::RunManifest;
-use crate::persistence::store::PersistedArtifact;
+use crate::domain::run::{ClassificationProvenance, RunContext, RunState, SystemContext};
+use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
+use crate::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 
 fn sample_manifest(run_id: &str) -> RunManifest {
     RunManifest {
@@ -72,6 +74,88 @@ fn json_artifact(run_id: &str, mode: Mode, file_name: &str, contents: &str) -> P
         },
         contents: contents.to_string(),
     }
+}
+
+fn persisted_markdown_artifact(
+    run_id: &str,
+    mode: Mode,
+    file_name: &str,
+    contents: &str,
+) -> PersistedArtifact {
+    PersistedArtifact {
+        record: ArtifactRecord {
+            file_name: file_name.to_string(),
+            relative_path: format!("artifacts/{run_id}/{}/{file_name}", mode.as_str()),
+            format: ArtifactFormat::Markdown,
+            provenance: None,
+        },
+        contents: contents.to_string(),
+    }
+}
+
+fn artifact_contract_for_files(files: &[(&str, bool)]) -> ArtifactContract {
+    ArtifactContract {
+        version: 1,
+        artifact_requirements: files
+            .iter()
+            .map(|(file_name, required)| ArtifactRequirement {
+                file_name: (*file_name).to_string(),
+                format: ArtifactFormat::Markdown,
+                required_sections: vec!["Summary".to_string()],
+                gates: Vec::new(),
+                required: *required,
+            })
+            .collect(),
+        required_verification_layers: Vec::new(),
+    }
+}
+
+fn sample_context(repo_root: &Path, manifest: &RunManifest) -> RunContext {
+    RunContext {
+        repo_root: repo_root.display().to_string(),
+        owner: Some(manifest.owner.clone()),
+        inputs: vec!["canon-input/publish.md".to_string()],
+        excluded_paths: Vec::new(),
+        input_fingerprints: Vec::new(),
+        system_context: manifest.system_context,
+        upstream_context: None,
+        implementation_execution: None,
+        refactor_execution: None,
+        backlog_planning: None,
+        inline_inputs: Vec::new(),
+        captured_at: manifest.created_at,
+    }
+}
+
+fn persist_publish_fixture(
+    repo_root: &Path,
+    manifest: &RunManifest,
+    state: RunState,
+    artifact_contract: ArtifactContract,
+    artifacts: Vec<PersistedArtifact>,
+) {
+    let store = WorkspaceStore::new(repo_root);
+    let bundle = PersistedRunBundle {
+        run: manifest.clone(),
+        context: sample_context(repo_root, manifest),
+        state: RunStateManifest { state, updated_at: manifest.created_at },
+        artifact_contract,
+        artifacts,
+        links: LinkManifest {
+            artifacts: Vec::new(),
+            decisions: Vec::new(),
+            traces: Vec::new(),
+            invocations: Vec::new(),
+            evidence: None,
+        },
+        gates: Vec::new(),
+        approvals: Vec::new(),
+        verification_records: Vec::new(),
+        evidence: None,
+        invocations: Vec::new(),
+    };
+
+    store.persist_run_bundle(&bundle).expect("persist publish bundle");
 }
 
 #[test]
@@ -148,6 +232,130 @@ fn runtime_packet_metadata_falls_back_to_inferred_order_when_sidecar_is_unparsea
     assert_eq!(metadata.primary_artifact, "01-problem-statement.md");
     assert_eq!(metadata.artifact_order.len(), 2);
     assert!(metadata.legacy_aliases.is_some());
+}
+
+#[test]
+fn resolve_expertise_input_metadata_prefers_normalized_packet_metadata() {
+    let packet_metadata = RuntimePacketMetadata {
+        expertise_input: Some(ExpertiseInputMetadata {
+            expertise_kind: Mode::DomainLanguage.governed_expertise_kind().expect("expertise kind"),
+            domain_families: vec![
+                " react ".to_string(),
+                "systems".to_string(),
+                "react".to_string(),
+                " ".to_string(),
+            ],
+        }),
+        ..RuntimePacketMetadata::default()
+    };
+
+    let metadata = super::resolve_expertise_input_metadata(
+        Path::new("/does/not/matter"),
+        Mode::DomainLanguage,
+        &packet_metadata,
+    )
+    .expect("normalized expertise metadata");
+
+    assert_eq!(metadata.domain_families, vec!["react".to_string(), "systems".to_string()]);
+}
+
+#[test]
+fn resolve_expertise_input_metadata_infers_package_and_repo_language_families() {
+    let workspace = tempdir().expect("temp workspace");
+    fs::write(
+        workspace.path().join("package.json"),
+        r#"{
+            "dependencies": {
+                "react": "18.0.0",
+                "vue": "3.0.0",
+                "@angular/core": "18.0.0",
+                "express": "5.0.0"
+            }
+        }"#,
+    )
+    .expect("write package json");
+    fs::write(workspace.path().join("Cargo.toml"), "[package]\nname = \"fixture\"\n")
+        .expect("write cargo toml");
+    fs::write(workspace.path().join("pyproject.toml"), "[project]\nname = \"fixture\"\n")
+        .expect("write pyproject");
+    fs::write(
+        workspace.path().join("build.gradle.kts"),
+        "plugins { kotlin(\"jvm\") version \"1.9.0\" }\n",
+    )
+    .expect("write gradle");
+    fs::write(workspace.path().join("Gemfile"), "source \"https://rubygems.org\"\n")
+        .expect("write gemfile");
+    fs::write(workspace.path().join("composer.json"), "{}\n").expect("write composer");
+    fs::create_dir_all(workspace.path().join("clients/dotnet")).expect("create dotnet dir");
+    fs::write(
+        workspace.path().join("clients/dotnet/Fixture.csproj"),
+        "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>\n",
+    )
+    .expect("write csproj");
+
+    let metadata = super::resolve_expertise_input_metadata(
+        workspace.path(),
+        Mode::DomainLanguage,
+        &RuntimePacketMetadata::default(),
+    )
+    .expect("inferred expertise metadata");
+
+    assert_eq!(
+        metadata.domain_families,
+        vec![
+            "angular".to_string(),
+            "dotnet_service".to_string(),
+            "jvm_service".to_string(),
+            "node_service".to_string(),
+            "php".to_string(),
+            "python_service".to_string(),
+            "react".to_string(),
+            "ruby".to_string(),
+            "systems".to_string(),
+            "vue".to_string(),
+            "web_ui".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn resolve_expertise_input_metadata_falls_back_to_node_service_from_repo_extensions() {
+    let workspace = tempdir().expect("temp workspace");
+    fs::write(workspace.path().join("package.json"), "{\"name\":\"fixture\"}\n")
+        .expect("write package json");
+    fs::create_dir_all(workspace.path().join("src/client")).expect("create source dir");
+    fs::create_dir_all(workspace.path().join("node_modules/ignored"))
+        .expect("create node_modules dir");
+    fs::create_dir_all(workspace.path().join(".git/hooks")).expect("create dot git dir");
+    fs::write(workspace.path().join("src/client/app.tsx"), "export const app = 1;\n")
+        .expect("write tsx file");
+    fs::write(workspace.path().join("node_modules/ignored/index.js"), "module.exports = {};\n")
+        .expect("write ignored js file");
+    fs::write(workspace.path().join(".git/hooks/pre-commit"), "echo ignored\n")
+        .expect("write ignored git file");
+
+    let metadata = super::resolve_expertise_input_metadata(
+        workspace.path(),
+        Mode::DomainLanguage,
+        &RuntimePacketMetadata::default(),
+    )
+    .expect("fallback expertise metadata");
+
+    assert_eq!(metadata.domain_families, vec!["node_service".to_string()]);
+}
+
+#[test]
+fn resolve_expertise_input_metadata_returns_none_for_missing_repo_root() {
+    let workspace = tempdir().expect("temp workspace");
+    let missing_root = workspace.path().join("missing-root");
+
+    let metadata = super::resolve_expertise_input_metadata(
+        &missing_root,
+        Mode::DomainLanguage,
+        &RuntimePacketMetadata::default(),
+    );
+
+    assert!(metadata.is_none());
 }
 
 #[test]
@@ -279,6 +487,160 @@ fn resolve_destination_suffixes_collisions_for_other_runs() {
         resolve_destination(workspace.path(), &manifest, None),
         workspace.path().join("specs").join("2026-04-22-publish-scope--abcd1234")
     );
+}
+
+#[test]
+fn publish_run_allows_operational_packets_awaiting_approval_and_exports_adr() {
+    let workspace = tempdir().expect("temp workspace");
+    let manifest = manifest_for(Mode::Migration, "R-20260422-migrate3");
+    let artifacts = vec![
+        persisted_markdown_artifact(
+            &manifest.run_id,
+            manifest.mode,
+            "source-target-map.md",
+            "# Source-Target Map\n\n## Current State\n\n- auth-v1 serves login and token refresh traffic.\n\n## Target State\n\n- auth-v2 serves the same bounded traffic surface.\n\n## Transition Boundaries\n\n- login and token refresh only.\n",
+        ),
+        persisted_markdown_artifact(
+            &manifest.run_id,
+            manifest.mode,
+            "compatibility-matrix.md",
+            "# Compatibility Matrix\n\n## Options Matrix\n\n- Option 1 keeps dual-write through the cutover window.\n",
+        ),
+        persisted_markdown_artifact(
+            &manifest.run_id,
+            manifest.mode,
+            "decision-record.md",
+            "# Decision Record\n\n## Migration Decisions\n\n- retain dual-write during the bounded cutover\n\n## Tradeoff Analysis\n\n- dual-write raises temporary complexity but keeps rollback safer while the bounded surface proves stable\n",
+        ),
+    ];
+    persist_publish_fixture(
+        workspace.path(),
+        &manifest,
+        RunState::AwaitingApproval,
+        artifact_contract_for_files(&[
+            ("source-target-map.md", true),
+            ("compatibility-matrix.md", true),
+            ("decision-record.md", true),
+        ]),
+        artifacts,
+    );
+
+    let summary =
+        super::publish_run(workspace.path(), &manifest.run_id, None, true).expect("publish run");
+
+    assert!(summary.published_to.contains("docs/migrations"));
+    assert!(summary.published_files.iter().any(|file| file.starts_with("docs/adr/ADR-")));
+}
+
+#[test]
+fn publish_run_reports_missing_required_persisted_artifacts() {
+    let workspace = tempdir().expect("temp workspace");
+    let manifest = sample_manifest("R-20260422-missing-required");
+    persist_publish_fixture(
+        workspace.path(),
+        &manifest,
+        RunState::Completed,
+        artifact_contract_for_files(&[("01-problem-statement.md", true)]),
+        Vec::new(),
+    );
+
+    let error = super::publish_run(workspace.path(), &manifest.run_id, None, false)
+        .expect_err("missing required artifact should fail");
+
+    assert!(error.to_string().contains("has no publishable artifacts"));
+}
+
+#[test]
+fn publish_run_rejects_empty_publishable_artifacts() {
+    let workspace = tempdir().expect("temp workspace");
+    let manifest = sample_manifest("R-20260422-empty-publish");
+    persist_publish_fixture(
+        workspace.path(),
+        &manifest,
+        RunState::Completed,
+        artifact_contract_for_files(&[]),
+        Vec::new(),
+    );
+
+    let error = super::publish_run(workspace.path(), &manifest.run_id, None, false)
+        .expect_err("empty publish packet should fail");
+
+    assert!(error.to_string().contains("has no publishable artifacts"));
+}
+
+#[test]
+fn publish_run_with_profile_reports_missing_required_persisted_artifacts() {
+    let workspace = tempdir().expect("temp workspace");
+    let manifest = sample_manifest("R-20260422-profile-missing-required");
+    persist_publish_fixture(
+        workspace.path(),
+        &manifest,
+        RunState::Completed,
+        artifact_contract_for_files(&[("01-problem-statement.md", true)]),
+        Vec::new(),
+    );
+
+    let error = super::publish_run_with_profile(
+        workspace.path(),
+        &manifest.run_id,
+        PublishProfile::ProjectMemory,
+        None,
+    )
+    .expect_err("missing required artifact should fail");
+
+    assert!(error.to_string().contains("has no publishable artifacts"));
+}
+
+#[test]
+fn publish_run_with_profile_rejects_empty_publishable_artifacts() {
+    let workspace = tempdir().expect("temp workspace");
+    let manifest = sample_manifest("R-20260422-profile-empty");
+    persist_publish_fixture(
+        workspace.path(),
+        &manifest,
+        RunState::Completed,
+        artifact_contract_for_files(&[]),
+        Vec::new(),
+    );
+
+    let error = super::publish_run_with_profile(
+        workspace.path(),
+        &manifest.run_id,
+        PublishProfile::ProjectMemory,
+        None,
+    )
+    .expect_err("empty profile publish packet should fail");
+
+    assert!(error.to_string().contains("has no publishable artifacts"));
+}
+
+#[test]
+fn publish_run_with_profile_writes_metadata_for_directory_override() {
+    let workspace = tempdir().expect("temp workspace");
+    let manifest = sample_manifest("R-20260422-profile-success");
+    persist_publish_fixture(
+        workspace.path(),
+        &manifest,
+        RunState::Completed,
+        artifact_contract_for_files(&[("01-problem-statement.md", true)]),
+        vec![persisted_markdown_artifact(
+            &manifest.run_id,
+            manifest.mode,
+            "01-problem-statement.md",
+            "# Problem Statement\n\n## Summary\n\nBounded publish packet.\n",
+        )],
+    );
+
+    let summary = super::publish_run_with_profile(
+        workspace.path(),
+        &manifest.run_id,
+        PublishProfile::ProjectMemory,
+        Some(Path::new("docs/project/custom-dest")),
+    )
+    .expect("profile publish");
+
+    assert!(summary.published_to.contains("docs/project/custom-dest"));
+    assert!(summary.published_files.iter().any(|file| file.ends_with("packet-metadata.json")));
 }
 
 #[test]
