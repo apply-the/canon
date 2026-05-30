@@ -18,7 +18,7 @@ guide instead.
 
 ## Prerequisites
 
-- Rust `1.95.0` via `rustup`
+- Rust `1.96.0` via `rustup`
 - Git
 -`cargo-deny`
 - `cargo-nextest` if you want the same test runner used by the repository pre-push hook and blocking CI workflows
@@ -30,7 +30,7 @@ guide instead.
 Recommended tool installation:
 
 ```bash
-rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
 cargo install cargo-nextest cargo-deny cargo-llvm-cov
 ```
 
@@ -46,7 +46,7 @@ cargo build
 If you want a locally installed contributor binary:
 
 ```bash
-cargo +1.95.0 install --path crates/canon-cli --bin canon
+cargo +1.96.0 install --path crates/canon-cli --bin canon
 canon --help
 ```
 
@@ -79,7 +79,7 @@ cargo build --release -p canon-cli --bin canon
 Install the locally built CLI into your Cargo bin directory:
 
 ```bash
-cargo +1.95.0 install --path crates/canon-cli --bin canon
+cargo +1.96.0 install --path crates/canon-cli --bin canon
 ```
 
 ## Test and Validation Commands

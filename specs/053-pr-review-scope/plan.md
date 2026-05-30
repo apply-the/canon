@@ -30,7 +30,7 @@ surfaces are modified; the change is purely additive to the domain model and ren
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024
+**Language/Version**: Rust 1.96.0, Edition 2024
 **Primary Dependencies**: `serde`, `strum_macros`, existing `canon-engine` crate internals
 **Storage**: local `.canon/` runtime artifacts only
 **Testing**: `cargo nextest run`, `cargo test`, `cargo llvm-cov`

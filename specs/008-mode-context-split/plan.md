@@ -55,7 +55,7 @@ Replace Canon's overloaded `brownfield-change` mode with a uniform two-axis mode
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0  
+**Language/Version**: Rust 1.96.0  
 **Primary Dependencies**: existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: local filesystem under `.canon/`, TOML manifests and `context.toml`, Markdown artifacts, repo-local skill source documents under `defaults/` and `.agents/skills/`  
 **Testing**: `cargo test`, `cargo nextest run`, targeted contract tests under `tests/contract`, targeted integration tests under `tests/integration`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`  

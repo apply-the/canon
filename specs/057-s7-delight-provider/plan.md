@@ -63,7 +63,7 @@ remain in force for implementation.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024 (existing types only, no new Rust code);
+**Language/Version**: Rust 1.96.0, Edition 2024 (existing types only, no new Rust code);
 Markdown for all contract artifacts.
 **Primary Dependencies**: Existing workspace crates `canon-engine`, `canon-cli`,
 `canon-adapters`; `serde`, `serde_json` output contracts already in place.

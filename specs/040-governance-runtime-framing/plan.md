@@ -26,7 +26,7 @@ Reframe Canon's public identity around one explicit promise: it is the governed 
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown documentation  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown documentation  
 **Primary Dependencies**: Existing workspace crates, `assert_cmd`, `predicates`, `serde_json`, `tempfile`, `toml`, and the existing Spec Kit shell scripts  
 **Storage**: Repository files and `.canon/` runtime semantics are documented but not structurally changed  
 **Testing**: `cargo nextest run`, targeted Rust integration or contract tests, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`  

@@ -26,7 +26,7 @@ Add two new first-class Canon modes: `domain-language` (governed ubiquitous-lang
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024
+**Language/Version**: Rust 1.96.0, Edition 2024
 **Framework**: Canon workspace (canon-cli, canon-engine, canon-adapters)
 **Architecture**: Mode enum in domain layer; artifact contracts in `artifacts/contract.rs`; markdown renderers in `artifacts/markdown.rs`; gatekeepers in `orchestrator/gatekeeper.rs`; summarizers in `orchestrator/service/summarizers.rs`; mode shaping in `orchestrator/service/mode_shaping.rs`; publish in `orchestrator/publish.rs`.
 

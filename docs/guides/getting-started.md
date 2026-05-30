@@ -47,10 +47,10 @@ Expand-Archive -Path $Archive -DestinationPath "$env:USERPROFILE\bin" -Force
 
 ### Build From Source
 
-If you already have Rust `1.95.0` installed:
+If you already have Rust `1.96.0` installed:
 
 ```bash
-cargo +1.95.0 install --path crates/canon-cli --bin canon
+cargo +1.96.0 install --path crates/canon-cli --bin canon
 canon --help
 ```
 

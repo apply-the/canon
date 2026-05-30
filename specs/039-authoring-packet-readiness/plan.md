@@ -58,7 +58,7 @@ impact slice; independent validation evidence remains mandatory.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown documentation and embedded skill artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown documentation and embedded skill artifacts  
 **Primary Dependencies**: workspace crates `canon-engine`, `canon-cli`, and `canon-adapters`; existing `serde` or `serde_json` output contracts; repo-local Speckit and embedded skill mirrors  
 **Storage**: repository files plus the existing `.canon/` runtime layout only; no new persistence family  
 **Testing**: focused `cargo test` targets for `inspect_clarity`, engine service helpers, CLI clarity rendering, authoring-doc sync, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo nextest run`  

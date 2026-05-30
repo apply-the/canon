@@ -52,7 +52,7 @@ mandatory before completion.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Bash and PowerShell release helpers, JSON metadata, and Markdown documentation artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Bash and PowerShell release helpers, JSON metadata, and Markdown documentation artifacts  
 **Primary Dependencies**: existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, existing packaging templates, and GitHub Actions release automation  
 **Storage**: repository files plus ephemeral `dist/` release artifacts and generated `lcov.info` during validation  
 **Testing**: `cargo test`, focused Rust release-surface tests, direct shell validation of release scripts, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, and `cargo clippy --workspace --all-targets --all-features -- -D warnings`  

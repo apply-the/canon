@@ -58,7 +58,7 @@ producer-side metadata changes before merge.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, edition 2024  
+**Language/Version**: Rust 1.96.0, edition 2024  
 **Primary Dependencies**: Existing workspace dependencies including `serde`, `serde_json`, `sha2`, `time`, `thiserror`, `toml`, `tracing`, and `uuid`; no new runtime dependencies planned for this slice  
 **Storage**: `.canon/` runtime artifacts, repo-visible docs under `docs/integration/project-memory-promotion-contract.md` and other evidence-facing published surfaces, plus feature-local spec artifacts under `specs/051-artifact-indexing-contract/`  
 **Testing**: `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, targeted unit tests for publish-profile and artifact metadata behavior, `cargo test --no-run --all-targets`, `cargo nextest run --workspace --all-features`, and file-scoped coverage validation for modified files  

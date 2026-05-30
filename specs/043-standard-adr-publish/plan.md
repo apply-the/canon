@@ -26,7 +26,7 @@ Extend Canon's publish surface so `architecture` emits a standard Nygard ADR int
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown documentation and Spec Kit feature artifacts.  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown documentation and Spec Kit feature artifacts.  
 **Primary Dependencies**: existing workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`.  
 **Storage**: local filesystem under `.canon/` for runtime artifacts plus repository-published outputs under `docs/`, `specs/`, and the new `docs/adr/` registry.  
 **Testing**: focused Rust CLI, publish, contract, and integration tests; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo nextest run`; and touched-file coverage inspection with `cargo llvm-cov`.  

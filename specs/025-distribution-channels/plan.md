@@ -56,7 +56,7 @@ but no additional pre-implementation human gate is required
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus GitHub Actions YAML, Bash,
+**Language/Version**: Rust 1.96.0 workspace plus GitHub Actions YAML, Bash,
 PowerShell, Markdown, and generated Ruby formula output  
 **Primary Dependencies**: existing workspace crates `canon-cli`,
 `canon-engine`, and `canon-adapters`; current release workflow in

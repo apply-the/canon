@@ -54,7 +54,7 @@ for bounded-impact work; independent validation evidence remains mandatory.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown skill sources, templates, and documentation artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown skill sources, templates, and documentation artifacts  
 **Primary Dependencies**: existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), existing `serde`/`serde_json` surfaces, shared architecture skill documents, and existing Spec Kit scripts  
 **Storage**: repository files plus the existing `.canon/` runtime artifact layout only; no new persistence family  
 **Testing**: `cargo test`, focused architecture clarity and run tests, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo nextest run`  

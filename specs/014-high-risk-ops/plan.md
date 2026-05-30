@@ -53,7 +53,7 @@ declared for `incident` (`Risk`, `IncidentContainment`, `Architecture`,
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024  
+**Language/Version**: Rust 1.96.0, Edition 2024  
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: Local filesystem under `.canon/` for runtime artifacts and evidence, plus published markdown under `docs/incidents/` and `docs/migrations/`  
 **Testing**: `cargo test`, `cargo nextest run`, targeted contract/integration/runtime coverage suites under `tests/`  

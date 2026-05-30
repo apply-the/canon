@@ -32,7 +32,7 @@ Add `backlog` by extending the existing Canon runtime surfaces rather than inven
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024  
+**Language/Version**: Rust 1.96.0, Edition 2024  
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: Local filesystem under `.canon/`, TOML manifests and `context.toml`, Markdown artifacts, repo-local skill source documents under `defaults/embedded-skills/` and `.agents/skills/`  
 **Testing**: `cargo test`, `cargo nextest run`, contract and integration tests under `tests/`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `bash scripts/validate-canon-skills.sh`  

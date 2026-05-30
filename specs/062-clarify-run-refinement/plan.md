@@ -71,7 +71,7 @@ lineage guidance pages after validation evidence is complete.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024; Markdown documentation and templates; existing Spec Kit shell helpers  
+**Language/Version**: Rust 1.96.0, Edition 2024; Markdown documentation and templates; existing Spec Kit shell helpers  
 **Primary Dependencies**: workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local methods, templates, and skill-source documents  
 **Storage**: existing `.canon/runs/<RUN_ID>/manifest.toml`, `context.toml`, `artifacts/`, and `inputs/`; published docs and templates under `docs/`, `defaults/`, and `.agents/skills/`  
 **Testing**: `cargo test`, targeted Rust unit or integration tests for run context, manifests, status, inspect, markdown rendering, and question-selection behavior; recorded operator walkthrough evidence for `status` and `inspect refinement`; explicit regression review for publish destinations, artifact families, and source-input honesty markers; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; doc or template validation where touched  

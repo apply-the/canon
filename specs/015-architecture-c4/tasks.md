@@ -28,7 +28,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T005 Verify `cargo +1.95.0 build --workspace` builds clean before starting
+- [x] T005 Verify `cargo +1.96.0 build --workspace` builds clean before starting
 - [x] T006 Verify `cargo test --workspace` passes before starting (baseline)
 - [x] T007 [P] Confirm directories `docs/templates/canon-input/architecture/` and `docs/examples/canon-input/architecture/` exist (create if missing)
 

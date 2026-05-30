@@ -52,7 +52,7 @@ Canon or changing existing runtime storage semantics.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024
+**Language/Version**: Rust 1.96.0, Edition 2024
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`
 **Storage**: Local filesystem under `.canon/` (TOML manifests, Markdown artifacts)
 **Testing**: `cargo test` / `cargo nextest run` / `cargo llvm-cov`

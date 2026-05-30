@@ -58,7 +58,7 @@ adding a separate release-only approval path
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown skill sources, Bash runtime checks, and documentation artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown skill sources, Bash runtime checks, and documentation artifacts  
 **Primary Dependencies**: workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; existing shell and filesystem adapters; repo-local skill validation scripts  
 **Storage**: Repository files plus existing `.canon/` runtime filesystem; scanner outputs and machine-readable SBOM references persist as normal run artifacts or payload references without a new persistent schema  
 **Testing**: focused `cargo test --test ...` coverage for the new mode, direct `EngineService` tests for orchestration coverage, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `/bin/bash scripts/validate-canon-skills.sh`, and final workspace regression checks  

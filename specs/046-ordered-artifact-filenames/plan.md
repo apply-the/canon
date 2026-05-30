@@ -26,7 +26,7 @@ Add a two-digit numeric prefix (`01-`, `02-`, ...) to every artifact filename Ca
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024
+**Language/Version**: Rust 1.96.0, Edition 2024
 **Primary Dependencies**: existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; `serde`, `serde_json`, `toml`, `thiserror`, `tracing`.
 **Storage**: local filesystem under `.canon/`
 **Testing**: `cargo nextest run`, `cargo llvm-cov`

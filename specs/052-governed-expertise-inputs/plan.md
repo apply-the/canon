@@ -54,7 +54,7 @@ source-level classification changes before merge.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, edition 2024  
+**Language/Version**: Rust 1.96.0, edition 2024  
 **Primary Dependencies**: Existing workspace dependencies including `serde`, `serde_json`, `thiserror`, `toml`, `tracing`, `uuid`, and standard-library types; no new runtime dependencies planned for this slice  
 **Storage**: `.canon/` packet metadata, repo-visible docs under `docs/integration/`, existing project-memory and evidence-facing publication surfaces, and feature-local spec artifacts under `specs/052-governed-expertise-inputs/`  
 **Testing**: `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, targeted unit tests for expertise classification and publish-profile helpers, `cargo test --no-run --all-targets`, `cargo nextest run --workspace --all-features` when feasible, and modified-file coverage validation at 95% or higher  

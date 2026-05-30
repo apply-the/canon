@@ -68,7 +68,7 @@ review of the contract alignment and validation report.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024, plus Markdown and JSON
+**Language/Version**: Rust 1.96.0, Edition 2024, plus Markdown and JSON
 integration contracts  
 **Primary Dependencies**: existing workspace crates `canon-engine`,
 `canon-cli`, and `canon-adapters`; `serde`, `serde_json`, `serde_yaml`,

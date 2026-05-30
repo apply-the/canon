@@ -57,7 +57,7 @@ runtime approval gate is introduced by this feature.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown and JSON-facing contract artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown and JSON-facing contract artifacts  
 **Primary Dependencies**: workspace crates `canon-cli`, `canon-engine`, and `canon-adapters` with existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`  
 **Storage**: Repository files plus existing `.canon/` runtime filesystem; no new persistent schema  
 **Testing**: `cargo test`, `cargo nextest run`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, focused CLI contract and engine integration tests, and one live consumer-driven smoke against the current Synod adapter expectations  

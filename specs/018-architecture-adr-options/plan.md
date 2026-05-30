@@ -39,7 +39,7 @@ Upgrade the `architecture` mode with a tighter authored decision contract that c
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024.  
+**Language/Version**: Rust 1.96.0, Edition 2024.  
 **Primary Dependencies**: existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`) with `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.  
 **Storage**: repository files plus existing `.canon/` runtime persistence; no schema or layout changes.  
 **Testing**: `cargo test`, focused top-level renderer and run tests, `tests/contract/*`, and `/bin/bash scripts/validate-canon-skills.sh`.  

@@ -49,7 +49,7 @@ and a separate final diff and artifact review before merge.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown skill sources and documentation artifacts  
 **Primary Dependencies**: workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts  
 **Storage**: Repository files plus existing `.canon/` runtime filesystem; no new persistent schema  
 **Testing**: `cargo test`, `cargo nextest run --workspace --all-features`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, focused mode-specific integration and renderer tests, release-surface checks, and `scripts/validate-canon-skills.sh`  

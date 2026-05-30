@@ -66,7 +66,7 @@ implementation, the plan must be re-classified before proceeding.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024  
+**Language/Version**: Rust 1.96.0, Edition 2024  
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `serde_yaml`,
 `toml`, `thiserror`, `tracing`, `uuid` (v7), `time`, `sha2`  
 **Storage**: Local filesystem under `.canon/` only; TOML manifests, Markdown

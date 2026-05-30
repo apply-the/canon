@@ -60,7 +60,7 @@ separate release-only approval flow
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown skill sources and documentation artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown skill sources and documentation artifacts  
 **Primary Dependencies**: workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local skill validation scripts  
 **Storage**: Repository files plus existing `.canon/` runtime filesystem; no new persistent schema  
 **Testing**: focused `cargo test --test ...` coverage for `system-assessment`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `/bin/bash scripts/validate-canon-skills.sh`  

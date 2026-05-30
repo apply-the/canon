@@ -52,7 +52,7 @@ mandatory before completion.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Bash and PowerShell release helpers and GitHub Actions YAML  
+**Language/Version**: Rust 1.96.0 workspace plus Bash and PowerShell release helpers and GitHub Actions YAML  
 **Primary Dependencies**: existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), shell tooling (`jq`, `shasum`, `unzip`), and Windows Package Manager manifest schema v1.12.0  
 **Storage**: repository files plus ephemeral release artifacts in `dist/` during packaging and validation  
 **Testing**: `cargo test`, focused release/documentation tests, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and script-level validation  

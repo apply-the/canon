@@ -42,7 +42,7 @@ Extend the existing `architecture` mode with three textual C4 model artifacts (`
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024.
+**Language/Version**: Rust 1.96.0, Edition 2024.
 **Primary Dependencies**: existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`); `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`.
 **Storage**: local filesystem under `.canon/`; no schema or layout changes; published architecture artifacts continue to land in their existing publish destination.
 **Testing**: `cargo test`, `cargo nextest run`, plus `/bin/bash scripts/validate-canon-skills.sh` for skill structure.

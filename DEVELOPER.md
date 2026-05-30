@@ -7,14 +7,14 @@ archives, see [`README.md`](README.md).
 
 ## Prerequisites
 
-- **Rust 1.95.0** — install via `rustup`
+- **Rust 1.96.0** — install via `rustup`
 - **Git**
 - `cargo-nextest` (optional, recommended for faster test runs)
 - `cargo-deny` (required for license/advisory checks)
 - `cargo-llvm-cov` (required if you use the installed `pre-push` hook)
 
 ```bash
-rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
 cargo install cargo-nextest cargo-deny cargo-llvm-cov
 ```
 
@@ -37,7 +37,7 @@ which is already on PATH after a standard `rustup` setup.
 
 ```bash
 # From the repo root — always matches the current source
-cargo +1.95.0 install --path crates/canon-cli --bin canon
+cargo +1.96.0 install --path crates/canon-cli --bin canon
 ```
 
 Then verify:

@@ -26,7 +26,7 @@ Add a consolidated published requirements PRD without breaking the existing sect
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Markdown documentation and repo-local skills  
+**Language/Version**: Rust 1.96.0 workspace plus Markdown documentation and repo-local skills  
 **Primary Dependencies**: Existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`), `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`, and repo skill validation scripts  
 **Storage**: Local filesystem under `.canon/` plus published repository files under `specs/`, `docs/`, and `.agents/skills/`  
 **Testing**: `cargo test`, focused Rust integration or contract tests, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `scripts/validate-canon-skills.sh`  

@@ -27,7 +27,7 @@ Add host-specific assistant plugin package folders that let Claude Code, Codex, 
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus JSON, Markdown, Bash, and SVG repository assets.  
+**Language/Version**: Rust 1.96.0 workspace plus JSON, Markdown, Bash, and SVG repository assets.  
 **Primary Dependencies**: existing workspace crates and dev dependencies including `serde_json`; no new external crates are planned.  
 **Storage**: repository files only: hidden host package folders, shared assistant metadata under `assistant/`, docs under `docs/`, validation scripts under `scripts/`, and Spec Kit artifacts under `specs/044-assistant-plugin-packages/`.  
 **Testing**: `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test`, `cargo test --test assistant_plugin_packages`, `bash scripts/validate-assistant-plugins.sh`, and touched-file coverage inspection with `cargo llvm-cov` if available.  

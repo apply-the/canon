@@ -33,7 +33,7 @@ Promote `implementation` and `refactor` by extending existing Canon runtime prim
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024  
+**Language/Version**: Rust 1.96.0, Edition 2024  
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: Local filesystem under `.canon/`, TOML manifests and `context.toml`, Markdown artifacts, repo-local skill source documents under `defaults/embedded-skills/` and `.agents/skills/`  
 **Testing**: `cargo test`, `cargo nextest run`, contract and integration suites under `tests/`, `scripts/validate-canon-skills.sh`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`  

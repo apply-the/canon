@@ -56,7 +56,7 @@ mandatory before completion.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Bash, PowerShell release helpers, GitHub Actions YAML, and JSON packaging metadata  
+**Language/Version**: Rust 1.96.0 workspace plus Bash, PowerShell release helpers, GitHub Actions YAML, and JSON packaging metadata  
 **Primary Dependencies**: existing workspace crates (`canon-cli`, `canon-engine`, `canon-adapters`), `jq`, `shasum`, `unzip`, GitHub Actions release automation, and Scoop manifest JSON conventions  
 **Storage**: repository files plus ephemeral `dist/` release artifacts and generated `lcov.info` during validation  
 **Testing**: `cargo test`, focused release and documentation tests, direct shell validation, `cargo llvm-cov`, `cargo fmt --check`, and `cargo clippy --workspace --all-targets --all-features -- -D warnings`  

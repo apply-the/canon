@@ -54,7 +54,7 @@ bounded-impact slice; independent validation evidence remains mandatory.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0 workspace plus Bash, PowerShell, and Markdown documentation artifacts  
+**Language/Version**: Rust 1.96.0 workspace plus Bash, PowerShell, and Markdown documentation artifacts  
 **Primary Dependencies**: workspace crates `canon-cli`, `canon-engine`, and `canon-adapters`; existing `serde`/`serde_json` output contracts; shared skill helper scripts under `.agents/skills` and `defaults/embedded-skills`  
 **Storage**: repository files plus the existing `.canon/` runtime artifact layout only; no new persistence family  
 **Testing**: focused `cargo test` targets for engine or CLI summaries, `tests/render_next_steps.rs`, targeted integration or contract tests for gated and resumed runs, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo nextest run`  

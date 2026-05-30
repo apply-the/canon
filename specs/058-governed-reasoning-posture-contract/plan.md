@@ -46,7 +46,7 @@ scope.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, edition 2024; Markdown for contract and planning artifacts  
+**Language/Version**: Rust 1.96.0, edition 2024; Markdown for contract and planning artifacts  
 **Primary Dependencies**: Existing workspace dependencies only (`serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs); no new runtime dependencies are planned for this slice  
 **Storage**: Repository files only; stable docs under `docs/integration/`, release surfaces at repo root and under `assistant/` and `defaults/`, tests under `tests/`, and feature-local planning artifacts under `specs/058-governed-reasoning-posture-contract/`  
 **Testing**: `cargo test --test governed_reasoning_posture_contract`, targeted release-surface tests such as `cargo test --test assistant_plugin_packages metadata_paths_and_versions_are_aligned -- --exact`, targeted gatekeeper tests under `crates/canon-engine/src/orchestrator/gatekeeper/tests.rs`, `cargo test --no-run --all-targets`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, and `cargo fmt`  

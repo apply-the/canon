@@ -58,12 +58,12 @@ and AI-authored changes.
 
 ## Clean Code & Modularity
 
-- **File Size and Responsibilities**: Do not generate gigantic monolithic files. Extract complex logic, internal algorithms, state transitions, and UI/CLI formatters into private helper modules (`pub(crate)` or private). Each file and module should have a single, cohesive responsibility.
-- **Design Patterns**: Avoid massive inline match statements or monolithic functions. Use appropriate design patterns (e.g., Builder, Strategy, Dependency Injection, State Machine) and separate I/O from business logic.
-- **Magic Strings and Numbers**: Zero tolerance for magic values. Every repeated string literal, timeout, retry count, or protocol boundary value must be extracted into a `const` or a typed `enum`.
-- **Helpers**: Aim for <50 lines per function. Whenever a function exceeds this or you need a comment to explain the middle of a function, proactively extract the lower-level steps into isolated, well-named helper functions.
-- **No Dead Code**: Remove all commented-out code, unused variables, and unreachable branches immediately. `git` remembers.
-- **Why Not What**: Documentation and comments must explain the *why*, business constraints, and invariants, not narrate the *what*.
-- **Comprehensive Documentation**: Every module or folder must have a module-level doc comment (`//!` in the module file, e.g., `module.rs` or `mod.rs`) explaining the module's purpose. These docs MUST be kept up to date with code changes. Furthermore, all structs, enums, constants, and public functions must be documented with clear, up-to-date doc comments (`///`).
-- **Logging & Secrets**: Log at major state-transition decision points using structured `tracing` spans/events. Always include reproducible context (IDs) but NEVER log secrets, tokens, or PII.
-- **Concurrency**: Avoid `Arc<Mutex<T>>` lock-contention. Prefer message-passing (channels) or immutable data snapshots to share state across async boundaries.
+- **NO GIGANTIC FILES**: Do not dump all logic into a single massive file. If a module grows complex, extract helpers, algorithms, and state transitions into private submodules (`pub(crate)`).
+- **APPLY DESIGN PATTERNS**: Do not use monolithic match statements or procedural god-functions. Extract responsibilities using appropriate design patterns (e.g. Builder, Strategy, Dependency Injection). Keep business logic strictly isolated from I/O and HTTP/CLI transport boundaries.
+- **ZERO MAGIC STRINGS/NUMBERS**: You MUST NOT use magic strings or magic numbers in domain logic, protocol handling, persistence, configuration, CLI contracts, timeouts, retry limits, or serialization paths. Extract them into named `const` items or typed `enum`s/newtypes owned by the relevant module or type.
+- **EXTRACT HELPERS PROACTIVELY**: Aim for <50 lines per function. If you need a comment to explain the middle of a function, extract that block into a well-named helper function.
+- **NO DEAD CODE**: Remove all commented-out code, unused variables, and unreachable branches immediately. `git` remembers.
+- **WHY NOT WHAT**: Documentation and comments must explain the *why*, business constraints, and invariants, not narrate the *what*.
+- **COMPREHENSIVE DOCUMENTATION**: Every folder/module MUST have a module-level doc comment (e.g. `//!` in `mod.rs` or `<module_name>.rs`) explaining its purpose, and these docs must be kept up to date. Furthermore, all structs, public functions, enums, and constants MUST have clear and up-to-date doc comments (`///`).
+- **LOGGING & OUTPUT BOUNDARIES**: Log at major state-transition decision points using structured `tracing` spans/events. Always include reproducible context (IDs) but NEVER log secrets, tokens, or PII. Maintain strict separation between presentation and core logic: use `println!` or `eprintln!` ONLY in presentation layers (e.g., `cli.rs`, `init.rs`). For orchestrator, core logic, and adapters, NEVER use `println!`. User-facing messages must be propagated up to the CLI layer via return values (e.g., `Result<T, Error>`).
+- **CONCURRENCY**: Avoid `Arc<Mutex<T>>` lock-contention. Prefer message-passing (channels) or immutable data snapshots to share state across async boundaries.

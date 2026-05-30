@@ -26,7 +26,7 @@ Establish a Canon-owned logical packet-ordering contract for new packets. The fe
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024  
+**Language/Version**: Rust 1.96.0, Edition 2024  
 **Primary Dependencies**: existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; `serde`, `serde_json`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: local filesystem under `.canon/` plus repo-visible published packet directories and docs  
 **Testing**: `cargo test`, `cargo nextest run`, `cargo llvm-cov`, targeted integration and contract tests  

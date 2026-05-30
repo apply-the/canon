@@ -62,7 +62,7 @@
 - `scripts/validate-canon-skills.sh`: passed
 - `pwsh -File scripts/validate-canon-skills.ps1`: passed
 - `cargo deny check licenses advisories bans sources`: passed
-- `cargo llvm-cov --workspace --all-features --json --output-path target/llvm-cov-summary.json`: completed, overall line coverage `91.95%`
+- `cargo llvm-cov --workspace --all-features --json --output-path target/llvm-cov-summary.json`: completed, overall line coverage `91.96%`
 
 ## Artifact Review Notes
 

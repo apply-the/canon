@@ -62,12 +62,7 @@ impl EngineService {
                 let artifacts = store
                     .load_run_manifest(&run_id)
                     .ok()
-                    .and_then(|manifest| {
-                        store
-                            .load_artifact_contract(&run_id)
-                            .ok()
-                            .map(|contract| (manifest, contract))
-                    })
+                    .zip(store.load_artifact_contract(&run_id).ok())
                     .and_then(|(manifest, contract)| {
                         store.load_persisted_artifacts(&run_id, manifest.mode, &contract).ok()
                     })

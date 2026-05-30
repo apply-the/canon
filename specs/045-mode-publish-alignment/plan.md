@@ -27,7 +27,7 @@ Align the only confirmed publish-behavior mismatch between runtime and documenta
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024, plus Markdown/JSON/YAML repository docs and metadata  
+**Language/Version**: Rust 1.96.0, Edition 2024, plus Markdown/JSON/YAML repository docs and metadata  
 **Primary Dependencies**: Existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time` surfaces  
 **Storage**: Local filesystem under `.canon/` for runtime artifacts plus repository files under `docs/`, `assistant/`, `.agents/`, `defaults/`, `tests/`, and release metadata surfaces  
 **Testing**: Focused `cargo test` targets, `cargo nextest run --workspace --all-features`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, and `cargo clippy --workspace --all-targets --all-features -- -D warnings`  

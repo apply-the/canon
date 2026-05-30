@@ -65,7 +65,7 @@ validation evidence and packet-sample behavior.
 
 ## Technical Context
 
-**Language/Version**: Rust 1.95.0, Edition 2024, plus Markdown contract and planning artifacts  
+**Language/Version**: Rust 1.96.0, Edition 2024, plus Markdown contract and planning artifacts  
 **Primary Dependencies**: existing workspace crates `canon-engine`, `canon-cli`, and `canon-adapters`; `serde`, `strum_macros`, `thiserror`, `toml`, `tracing`, `uuid`, and `time` already used by the workspace  
 **Storage**: repository planning artifacts under `specs/060-pr-review-anchors/` and existing `.canon/` runtime evidence/artifact files for `pr-review` runs  
 **Testing**: `cargo test`, `cargo nextest run`, focused unit and integration coverage for `pr-review`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, plus packet-sample review recorded in `validation-report.md`  
