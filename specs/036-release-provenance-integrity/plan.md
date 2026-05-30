@@ -1,6 +1,6 @@
 # Implementation Plan: Release Provenance And Channel Integrity
 
-**Branch**: `036-release-provenance-integrity` | **Date**: 2026-05-02 | **Spec**: `specs/036-release-provenance-integrity/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/036-release-provenance-integrity/spec.md`
 
 ## Summary

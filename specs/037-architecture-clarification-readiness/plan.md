@@ -1,6 +1,6 @@
 # Implementation Plan: Architecture Clarification, Assumptions, And Readiness Reroute
 
-**Branch**: `037-architecture-clarification-readiness` | **Date**: 2026-05-02 | **Spec**: `specs/037-architecture-clarification-readiness/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/037-architecture-clarification-readiness/spec.md`
 
 ## Summary

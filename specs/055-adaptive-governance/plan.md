@@ -1,6 +1,6 @@
 # Implementation Plan: Adaptive Governance Semantics
 
-**Branch**: `055-adaptive-governance` | **Date**: 2026-05-16 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/055-adaptive-governance/spec.md](/Users/rt/workspace/apply-the/canon/specs/055-adaptive-governance/spec.md)
+**Branch**: `055-adaptive-governance` | **Date**: 2026-05-16 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/055-adaptive-governance/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See
@@ -43,7 +43,7 @@ owned surfaces.
 - Any `adaptive-governance-v1` companion semantics remain advisory and semantic, and MUST NOT assign runtime councils, confidence, routes, or stop transitions.
 - Approval, readiness, project-memory, lineage, and promotion-state semantics remain Canon-owned even when downstream runtimes enforce stronger or weaker governance behavior.
 
-**Decision Log**: `/Users/rt/workspace/apply-the/canon/specs/055-adaptive-governance/decision-log.md`  
+**Decision Log**: `specs/055-adaptive-governance/decision-log.md`  
 **Validation Ownership**: Implementation updates Canon-owned semantic models, packet metadata, adapter documentation, and governed publication surfaces; validation comes from targeted unit and contract tests, documentation review, `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, executable test coverage, modified-file coverage checks, and recorded evidence in `specs/055-adaptive-governance/validation-report.md`  
 **Approval Gates**: Human review of the contract boundary, packet metadata changes, and adapter documentation before merge
 

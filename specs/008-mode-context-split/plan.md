@@ -1,6 +1,6 @@
 # Implementation Plan: Mode Context Split
 
-**Branch**: `008-mode-context-split` | **Date**: 2026-04-20 | **Spec**: `specs/008-mode-context-split/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/008-mode-context-split/spec.md`
 
 **Note**: This plan covers Phase 0 research and Phase 1 design artifacts for the semantic split between governed work type and system context. Phase 2 implementation will execute the shared runtime refactor first, then public-surface renames, then coverage-driven regression expansion.

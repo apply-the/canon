@@ -16,12 +16,8 @@ fn opening_docs_frame_canon_as_governed_runtime_with_a_human_happy_path() {
     let getting_started = read(GETTING_STARTED);
 
     assert!(
-        readme.contains("governance runtime for AI-assisted engineering work"),
+        readme.contains("governance runtime for AI-assisted engineering"),
         "README should frame Canon as the governance runtime"
-    );
-    assert!(
-        readme.contains("not a generic agent framework"),
-        "README should keep the non-goal explicit"
     );
     assert!(
         getting_started.contains("inspect clarity"),

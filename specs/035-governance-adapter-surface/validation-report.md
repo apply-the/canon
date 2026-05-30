@@ -63,7 +63,7 @@ Completed
 
 - Ran one live consumer-driven smoke in an initialized temporary Canon
   workspace via
-  `cargo run --manifest-path /Users/rt/workspace/apply-the/canon/crates/canon-cli/Cargo.toml --bin canon -- governance ...`.
+  `cargo run --manifest-path crates/canon-cli/Cargo.toml --bin canon -- governance ...`.
 - Smoke result: a supported requirements start request returned
   `status: governed_ready` with reusable packet refs; after overwriting the
   run's `artifact-contract.toml` with invalid TOML, refresh returned

@@ -1,6 +1,6 @@
 # Implementation Plan: Governance Runtime Framing
 
-**Branch**: `040-governance-runtime-framing` | **Date**: 2026-05-03 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/040-governance-runtime-framing/spec.md](/Users/rt/workspace/apply-the/canon/specs/040-governance-runtime-framing/spec.md)
+**Branch**: `040-governance-runtime-framing` | **Date**: 2026-05-03 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/040-governance-runtime-framing/spec.md`
 
 ## Summary

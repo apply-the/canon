@@ -1,6 +1,6 @@
 # Implementation Plan: Governed Expertise Inputs
 
-**Branch**: `052-governed-expertise-inputs` | **Date**: 2026-05-14 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/spec.md](/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/spec.md)
+**Branch**: `052-governed-expertise-inputs` | **Date**: 2026-05-14 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/052-governed-expertise-inputs/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See

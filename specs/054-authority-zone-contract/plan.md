@@ -1,6 +1,6 @@
 # Implementation Plan: Authority Zone Contract
 
-**Branch**: `054-authority-zone-contract` | **Date**: 2026-05-15 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/spec.md](/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/spec.md)
+**Branch**: `054-authority-zone-contract` | **Date**: 2026-05-15 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/054-authority-zone-contract/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See

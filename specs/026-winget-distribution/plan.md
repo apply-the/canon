@@ -1,6 +1,6 @@
 # Implementation Plan: Winget Distribution And Roadmap Refocus
 
-**Branch**: `026-winget-distribution` | **Date**: 2026-04-30 | **Spec**: `specs/026-winget-distribution/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/026-winget-distribution/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See
@@ -135,7 +135,7 @@ Cargo.toml
 
 No constitution deviations are currently identified.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/research.md
+*** Add File: specs/026-winget-distribution/research.md
 # Research: Winget Distribution And Roadmap Refocus
 
 ## Decision 1: Reuse the existing Windows zip as a winget archive installer
@@ -213,7 +213,7 @@ traction.
 - Replace it with a generic interoperability note: rejected because that would
   remain too abstract to guide next delivery work.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/data-model.md
+*** Add File: specs/026-winget-distribution/data-model.md
 # Data Model: Winget Distribution And Roadmap Refocus
 
 ## Release Bundle
@@ -298,7 +298,7 @@ traction.
 - **Relationships**:
   - Changes in this entity are recorded in the feature `decision-log.md`.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/contracts/distribution-metadata.md
+*** Add File: specs/026-winget-distribution/contracts/distribution-metadata.md
 # Contract: Distribution Metadata
 
 ## Purpose
@@ -350,7 +350,7 @@ For the supported Windows release asset, the metadata MUST provide:
 - Metadata validation MUST reject any Windows asset whose URL, checksum, or
   binary name do not match the release bundle.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/contracts/winget-manifest-bundle.md
+*** Add File: specs/026-winget-distribution/contracts/winget-manifest-bundle.md
 # Contract: Winget Manifest Bundle
 
 ## Purpose
@@ -415,7 +415,7 @@ acceptable if they remain stable and documented.
 - The generated YAML MUST remain deterministic for the same release metadata
   input.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/quickstart.md
+*** Add File: specs/026-winget-distribution/quickstart.md
 # Quickstart: Winget Distribution And Roadmap Refocus
 
 ## Goal
@@ -443,7 +443,7 @@ artifact validation and documentation verification.
 - `ROADMAP.md` no longer presents Protocol Interoperability / MCP as active
   next work.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/decision-log.md
+*** Add File: specs/026-winget-distribution/decision-log.md
 # Decision Log: Winget Distribution And Roadmap Refocus
 
 ## D-001: Choose `winget` as the next concrete distribution slice
@@ -473,7 +473,7 @@ artifact validation and documentation verification.
 - **Rationale**: No concrete MCP consumer or server target currently unlocks
   enough value to justify roadmap priority over packaging and authoring quality.
 
-*** Add File: /Users/rt/workspace/apply-the/canon/specs/026-winget-distribution/validation-report.md
+*** Add File: specs/026-winget-distribution/validation-report.md
 # Validation Report: Winget Distribution And Roadmap Refocus
 
 ## Planned Structural Validation

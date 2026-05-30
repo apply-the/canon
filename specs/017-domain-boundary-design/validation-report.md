@@ -17,13 +17,13 @@ Each recorded validation step should capture:
 - `checklists/requirements.md` is complete with no incomplete items.
 - `.specify/extensions.yml` is absent, so no pre-implement or post-implement hooks apply.
 - `.gitignore` already covers the Rust workspace patterns relevant to this feature (`target`, `debug`, `release`, `*.log`, `.env*`, `.DS_Store`, `.vscode/`, `.idea/`).
-- The default Cargo target directory remained externally locked during implementation, so the final workspace baseline was validated with `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --workspace`.
+- The default Cargo target directory remained externally locked during implementation, so the final workspace baseline was validated with `CARGO_TARGET_DIR=target-agent cargo test --workspace`.
 
 ## Structural Validation
 
 - **Status**: Passed
 - `cargo fmt --check`
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `CARGO_TARGET_DIR=target-agent cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - `/bin/bash scripts/validate-canon-skills.sh`
 - `AGENTS.md` reflects the 017 plan metadata after `.specify/scripts/bash/update-agent-context.sh codex`.
 
@@ -35,7 +35,7 @@ Each recorded validation step should capture:
 - `CARGO_TARGET_DIR=target-agent cargo test --test architecture_contract --test architecture_run --test architecture_domain_modeling_docs`
 - `CARGO_TARGET_DIR=target-agent cargo test --test change_contract --test change_run --test change_domain_modeling_docs`
 - `CARGO_TARGET_DIR=target-agent cargo test --test direct_runtime_coverage`
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --workspace`
+- `CARGO_TARGET_DIR=target-agent cargo test --workspace`
 
 ## Independent Validation
 

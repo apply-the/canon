@@ -1,6 +1,6 @@
 # Implementation Plan: Canon v0.1 Native CLI
 
-**Branch**: `001-canon-spec` | **Date**: 2026-03-27 | **Spec**: `specs/001-canon-spec/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/001-canon-spec/spec.md`
 
 ## Summary

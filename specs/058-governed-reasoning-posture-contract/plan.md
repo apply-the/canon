@@ -1,6 +1,6 @@
 # Implementation Plan: Governed Reasoning Posture Contract
 
-**Branch**: `058-governed-reasoning-posture-contract` | **Date**: 2026-05-18 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/058-governed-reasoning-posture-contract/spec.md](/Users/rt/workspace/apply-the/canon/specs/058-governed-reasoning-posture-contract/spec.md)
+**Branch**: `058-governed-reasoning-posture-contract` | **Date**: 2026-05-18 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/058-governed-reasoning-posture-contract/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See
@@ -40,8 +40,8 @@ scope.
 - The gatekeeper split is valid only as behavior-preserving maintainability work.
 - Release metadata used by downstream validation must stay aligned with the contract this branch declares.
 
-**Decision Log**: `/Users/rt/workspace/apply-the/canon/specs/058-governed-reasoning-posture-contract/decision-log.md`  
-**Validation Ownership**: Canon authors the contract, release-alignment surfaces, and gatekeeper maintainability changes; validation comes from executable Canon tests, cross-repo comparison with Boundline `061-reasoning-profile-contracts`, and recorded evidence in `/Users/rt/workspace/apply-the/canon/specs/058-governed-reasoning-posture-contract/validation-report.md`  
+**Decision Log**: `specs/058-governed-reasoning-posture-contract/decision-log.md`  
+**Validation Ownership**: Canon authors the contract, release-alignment surfaces, and gatekeeper maintainability changes; validation comes from executable Canon tests, cross-repo comparison with Boundline `061-reasoning-profile-contracts`, and recorded evidence in `specs/058-governed-reasoning-posture-contract/validation-report.md`  
 **Approval Gates**: Human review of the cross-repo contract boundary and of any touched runtime-adjacent gatekeeper behavior before merge
 
 ## Technical Context

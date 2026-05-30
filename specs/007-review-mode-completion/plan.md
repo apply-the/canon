@@ -1,6 +1,6 @@
 # Implementation Plan: Review Mode Completion
 
-**Branch**: `007-review-mode-completion` | **Date**: 2026-04-19 | **Spec**: `specs/007-review-mode-completion/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/007-review-mode-completion/spec.md`
 
 ## Summary

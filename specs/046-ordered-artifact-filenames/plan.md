@@ -1,6 +1,6 @@
 # Implementation Plan: Ordered Artifact Filenames
 
-**Branch**: `046-ordered-artifact-filenames` | **Date**: 2026-05-12 | **Spec**: `specs/046-ordered-artifact-filenames/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/046-ordered-artifact-filenames/spec.md`
 
 ## Summary

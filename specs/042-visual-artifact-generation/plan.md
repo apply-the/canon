@@ -1,6 +1,6 @@
 # Implementation Plan: Pragmatic C4 Architecture Packets And Visual Artifacts
 
-**Branch**: `042-visual-artifact-generation` | **Date**: 2026-05-08 | **Spec**: [specs/042-visual-artifact-generation/spec.md](specs/042-visual-artifact-generation/spec.md)
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/042-visual-artifact-generation/spec.md`
 
 ## Summary

@@ -24,9 +24,9 @@ be implemented and validated independently.
 
 **Purpose**: Establish the required version bump, stable contract brief, and closeout scaffold
 
-- [x] T001 Bump the Canon workspace version from `0.53.0` to `0.54.0` in `/Users/rt/workspace/apply-the/canon/Cargo.toml` and update `/Users/rt/workspace/apply-the/canon/CHANGELOG.md`
-- [x] T002 [P] Align the local contract briefs in `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/contracts/authority-governance-adapter-projection.md` with the stable release intent
-- [x] T003 [P] Create the closeout evidence scaffold in `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/validation-report.md` and align it with `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/decision-log.md`
+- [x] T001 Bump the Canon workspace version from `0.53.0` to `0.54.0` in `Cargo.toml` and update `CHANGELOG.md`
+- [x] T002 [P] Align the local contract briefs in `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md` and `specs/054-authority-zone-contract/contracts/authority-governance-adapter-projection.md` with the stable release intent
+- [x] T003 [P] Create the closeout evidence scaffold in `specs/054-authority-zone-contract/validation-report.md` and align it with `specs/054-authority-zone-contract/decision-log.md`
 
 ---
 
@@ -36,10 +36,10 @@ be implemented and validated independently.
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete
 
-- [x] T004 Extend shared authority-zone and change-class primitives in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/policy.rs`
-- [x] T005 [P] Add typed `authority-governance-v1` envelope and metadata helpers in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T006 [P] Extend intended-persona and advisory stage-role-hint metadata in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`
-- [ ] T007 [P] Add foundational validation entry points in `/Users/rt/workspace/apply-the/canon/tests/governance_adapter_surface.rs`, `/Users/rt/workspace/apply-the/canon/tests/mode_profiles.rs`, and `/Users/rt/workspace/apply-the/canon/tests/policy_and_traces.rs`
+- [x] T004 Extend shared authority-zone and change-class primitives in `crates/canon-engine/src/domain/policy.rs`
+- [x] T005 [P] Add typed `authority-governance-v1` envelope and metadata helpers in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
+- [x] T006 [P] Extend intended-persona and advisory stage-role-hint metadata in `crates/canon-engine/src/domain/mode.rs`
+- [ ] T007 [P] Add foundational validation entry points in `tests/governance_adapter_surface.rs`, `tests/mode_profiles.rs`, and `tests/policy_and_traces.rs`
 
 **Checkpoint**: Shared authority-contract primitives and test entry points are ready
 
@@ -53,15 +53,15 @@ be implemented and validated independently.
 
 ### Validation for User Story 1
 
-- [ ] T008 [P] [US1] Add required-versus-optional field coverage in `/Users/rt/workspace/apply-the/canon/tests/governance_adapter_surface.rs` and `/Users/rt/workspace/apply-the/canon/tests/policy_and_traces.rs`
-- [ ] T009 [P] [US1] Add contract-shape coverage for packet metadata carriers in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs` and `/Users/rt/workspace/apply-the/canon/tests/governance_adapter_surface.rs`
+- [ ] T008 [P] [US1] Add required-versus-optional field coverage in `tests/governance_adapter_surface.rs` and `tests/policy_and_traces.rs`
+- [ ] T009 [P] [US1] Add contract-shape coverage for packet metadata carriers in `crates/canon-engine/src/domain/artifact.rs` and `tests/governance_adapter_surface.rs`
 
 ### Implementation for User Story 1
 
-- [x] T010 [P] [US1] Implement the typed `authority-governance-v1` envelope in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T011 [US1] Extend policy vocabulary for `AuthorityZone` and `ChangeClass` in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/policy.rs`
-- [x] T012 [US1] Align the stable and feature-local contract docs in `/Users/rt/workspace/apply-the/canon/docs/integration/governance-adapter.md` and `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
-- [x] T013 [US1] Capture the MVP contract decisions in `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/decision-log.md`
+- [x] T010 [P] [US1] Implement the typed `authority-governance-v1` envelope in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
+- [x] T011 [US1] Extend policy vocabulary for `AuthorityZone` and `ChangeClass` in `crates/canon-engine/src/domain/policy.rs`
+- [x] T012 [US1] Align the stable and feature-local contract docs in `docs/integration/governance-adapter.md` and `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
+- [x] T013 [US1] Capture the MVP contract decisions in `specs/054-authority-zone-contract/decision-log.md`
 
 **Checkpoint**: User Story 1 is independently valid as the authority-contract MVP
 
@@ -75,14 +75,14 @@ be implemented and validated independently.
 
 ### Validation for User Story 2
 
-- [ ] T014 [P] [US2] Add mode-profile coverage for intended personas and advisory-only role hints in `/Users/rt/workspace/apply-the/canon/tests/mode_profiles.rs`
-- [ ] T015 [P] [US2] Add boundary coverage that rejects runtime-directive semantics in `/Users/rt/workspace/apply-the/canon/tests/governance_adapter_surface.rs` and `/Users/rt/workspace/apply-the/canon/tests/policy_and_traces.rs`
+- [ ] T014 [P] [US2] Add mode-profile coverage for intended personas and advisory-only role hints in `tests/mode_profiles.rs`
+- [ ] T015 [P] [US2] Add boundary coverage that rejects runtime-directive semantics in `tests/governance_adapter_surface.rs` and `tests/policy_and_traces.rs`
 
 ### Implementation for User Story 2
 
-- [x] T016 [P] [US2] Extend mode metadata for intended personas, optional anti-behaviors, and optional stage-role hints in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`
-- [x] T017 [US2] Keep adapter and metadata projection advisory-only in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`, and `/Users/rt/workspace/apply-the/canon/docs/integration/governance-adapter.md`
-- [x] T018 [US2] Publish the human-facing boundary guide in `/Users/rt/workspace/apply-the/canon/docs/guides/governed-personas-and-authority-zones.md` and keep `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/contracts/authority-governance-adapter-projection.md` aligned
+- [x] T016 [P] [US2] Extend mode metadata for intended personas, optional anti-behaviors, and optional stage-role hints in `crates/canon-engine/src/domain/mode.rs`
+- [x] T017 [US2] Keep adapter and metadata projection advisory-only in `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, and `docs/integration/governance-adapter.md`
+- [x] T018 [US2] Publish the human-facing boundary guide in `docs/guides/governed-personas-and-authority-zones.md` and keep `specs/054-authority-zone-contract/contracts/authority-governance-adapter-projection.md` aligned
 
 **Checkpoint**: User Stories 1 and 2 both work independently and preserve the ownership boundary
 
@@ -96,14 +96,14 @@ be implemented and validated independently.
 
 ### Validation for User Story 3
 
-- [ ] T019 [P] [US3] Add fail-closed coverage for unsupported contract lines and missing required fields in `/Users/rt/workspace/apply-the/canon/tests/governance_adapter_surface.rs` and `/Users/rt/workspace/apply-the/canon/tests/policy_and_traces.rs`
-- [ ] T020 [P] [US3] Add additive-compatibility coverage for unknown optional metadata and optional missing provenance in `/Users/rt/workspace/apply-the/canon/tests/mode_profiles.rs` and `/Users/rt/workspace/apply-the/canon/tests/governance_adapter_surface.rs`
+- [ ] T019 [P] [US3] Add fail-closed coverage for unsupported contract lines and missing required fields in `tests/governance_adapter_surface.rs` and `tests/policy_and_traces.rs`
+- [ ] T020 [P] [US3] Add additive-compatibility coverage for unknown optional metadata and optional missing provenance in `tests/mode_profiles.rs` and `tests/governance_adapter_surface.rs`
 
 ### Implementation for User Story 3
 
-- [x] T021 [P] [US3] Encode fail-closed required-field validation and additive optional-field behavior in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/artifact.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T022 [US3] Document compatibility rules and consumer guidance in `/Users/rt/workspace/apply-the/canon/docs/integration/governance-adapter.md` and `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
-- [x] T023 [US3] Capture compatibility evidence and closeout notes in `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/validation-report.md`
+- [x] T021 [P] [US3] Encode fail-closed required-field validation and additive optional-field behavior in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
+- [x] T022 [US3] Document compatibility rules and consumer guidance in `docs/integration/governance-adapter.md` and `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
+- [x] T023 [US3] Capture compatibility evidence and closeout notes in `specs/054-authority-zone-contract/decision-log.md` and `specs/054-authority-zone-contract/validation-report.md`
 
 **Checkpoint**: All user stories are independently functional and compatibility-safe
 
@@ -113,12 +113,12 @@ be implemented and validated independently.
 
 **Purpose**: Finish docs, release surfaces, formatting, lint, tests, and coverage
 
-- [x] T024 [P] Update release-facing and integration docs in `/Users/rt/workspace/apply-the/canon/README.md`, `/Users/rt/workspace/apply-the/canon/docs/integration/governance-adapter.md`, `/Users/rt/workspace/apply-the/canon/docs/guides/governed-personas-and-authority-zones.md`, and `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/quickstart.md`
-- [x] T025 [P] Record cross-repo alignment evidence against `/Users/rt/workspace/apply-the/boundline/specs/056-authority-zoned-councils/spec.md` in `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/validation-report.md`
-- [x] T026 Run `cargo fmt --all` in `/Users/rt/workspace/apply-the/canon`
-- [x] T027 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` in `/Users/rt/workspace/apply-the/canon`
-- [x] T028 Run `cargo test --no-run --all-targets` and `cargo nextest run --workspace --all-features` in `/Users/rt/workspace/apply-the/canon`
-- [x] T029 Run focused modified-file coverage in `/Users/rt/workspace/apply-the/canon` and confirm at least 95% coverage for every modified file in `/Users/rt/workspace/apply-the/canon/specs/054-authority-zone-contract/validation-report.md`
+- [x] T024 [P] Update release-facing and integration docs in `README.md`, `docs/integration/governance-adapter.md`, `docs/guides/governed-personas-and-authority-zones.md`, and `specs/054-authority-zone-contract/quickstart.md`
+- [x] T025 [P] Record cross-repo alignment evidence against `../boundline/specs/056-authority-zoned-councils/spec.md` in `specs/054-authority-zone-contract/validation-report.md`
+- [x] T026 Run `cargo fmt --all` from the repository root
+- [x] T027 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` from the repository root
+- [x] T028 Run `cargo test --no-run --all-targets` and `cargo nextest run --workspace --all-features` from the repository root
+- [x] T029 Run focused modified-file coverage from the repository root and confirm at least 95% coverage for every modified file in `specs/054-authority-zone-contract/validation-report.md`
 
 ---
 

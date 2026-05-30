@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-28  
-**Feature**: [specs/003-codex-skills-frontend/spec.md](../spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

@@ -1,6 +1,6 @@
 # Implementation Plan: Artifact Indexing Contract
 
-**Branch**: `051-artifact-indexing-contract` | **Date**: 2026-05-14 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/spec.md](/Users/rt/workspace/apply-the/canon/specs/051-artifact-indexing-contract/spec.md)
+**Branch**: `051-artifact-indexing-contract` | **Date**: 2026-05-14 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/051-artifact-indexing-contract/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See

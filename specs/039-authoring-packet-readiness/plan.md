@@ -1,6 +1,6 @@
 # Implementation Plan: Authoring Experience And Packet Readiness
 
-**Branch**: `039-authoring-packet-readiness` | **Date**: 2026-05-02 | **Spec**: `specs/039-authoring-packet-readiness/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/039-authoring-packet-readiness/spec.md`
 
 ## Summary

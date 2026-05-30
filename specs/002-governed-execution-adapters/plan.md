@@ -1,6 +1,6 @@
 # Implementation Plan: Governed Execution Adapters
 
-**Branch**: `002-governed-execution-adapters` | **Date**: 2026-03-28 | **Spec**: [specs/002-governed-execution-adapters/spec.md](./spec.md)
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/002-governed-execution-adapters/spec.md`
 
 ## Summary

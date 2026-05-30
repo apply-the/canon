@@ -22,7 +22,7 @@
 
 - Completed T005: captured the focused pre-implementation baseline for the three targeted modes before authored-body changes land.
 - Baseline suite:
-	- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run`
+	- `CARGO_TARGET_DIR=target-agent cargo test --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run`
 - Baseline result:
 	- `system_shaping_contract`: 3 passed
 	- `system_shaping_run`: 2 passed
@@ -40,9 +40,9 @@
 
 ### Focused Validation Evidence
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test implementation_run --test refactor_run`
+- `CARGO_TARGET_DIR=target-agent cargo test --test implementation_run --test refactor_run`
 	- Result: 6 passed, 0 failed after restoring authored-brief handoff in `mode_change.rs`.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test system_shaping_authoring_renderer --test implementation_authoring_renderer --test refactor_authoring_renderer`
+- `CARGO_TARGET_DIR=target-agent cargo test --test system_shaping_authoring_renderer --test implementation_authoring_renderer --test refactor_authoring_renderer`
 	- Result: 9 passed, 0 failed after the authored-body renderer refactor in `markdown.rs`.
 
 ## User-Facing Authored Guidance Progress
@@ -56,7 +56,7 @@
 
 ### Focused Docs-Sync Evidence
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test system_shaping_domain_modeling_docs --test implementation_authoring_docs --test refactor_authoring_docs`
+- `CARGO_TARGET_DIR=target-agent cargo test --test system_shaping_domain_modeling_docs --test implementation_authoring_docs --test refactor_authoring_docs`
 	- Result: 6 passed, 0 failed after synchronizing the skills, templates, and examples with the canonical authored H2 contract.
 
 ## Runtime Preservation Progress
@@ -70,11 +70,11 @@
 
 ### Focused Runtime Evidence
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test system_shaping_authoring_renderer --test implementation_authoring_renderer --test refactor_authoring_renderer`
+- `CARGO_TARGET_DIR=target-agent cargo test --test system_shaping_authoring_renderer --test implementation_authoring_renderer --test refactor_authoring_renderer`
 	- Result: 9 passed, 0 failed. Verbatim preservation, missing-body markers, and near-match rejection are covered at the renderer layer.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run`
+- `CARGO_TARGET_DIR=target-agent cargo test --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run`
 	- Result: 17 passed, 0 failed. Complete packets preserve authored sections; incomplete packets emit `## Missing Authored Body` and remain gate-blocked with `artifact-blocked` classification.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test direct_runtime_coverage`
+- `CARGO_TARGET_DIR=target-agent cargo test --test direct_runtime_coverage`
 	- Result: 17 passed, 0 failed after switching the engine-level fixtures to canonical H2 authored briefs for `system-shaping`, `implementation`, and `refactor`.
 
 ## Rollout And Non-Regression Progress
@@ -88,9 +88,9 @@
 
 ### Focused Rollout Evidence
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test mode_authoring_follow_on_docs`
+- `CARGO_TARGET_DIR=target-agent cargo test --test mode_authoring_follow_on_docs`
 	- Result: 2 passed, 0 failed after synchronizing `ROADMAP.md` and `docs/guides/modes.md` with the delivered follow-on slice.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test policy_and_traces --test refactor_preservation_run --test direct_runtime_coverage`
+- `CARGO_TARGET_DIR=target-agent cargo test --test policy_and_traces --test refactor_preservation_run --test direct_runtime_coverage`
 	- Result: 25 passed, 0 failed after converting the shared execution and preservation fixtures to canonical H2 authored briefs and reaffirming recommendation-only posture.
 
 ## Planned Structural Validation
@@ -139,14 +139,14 @@
 
 - `cargo fmt --check`
 	- Result: PASS after applying repository-standard formatting to the touched Rust test and renderer files.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `CARGO_TARGET_DIR=target-agent cargo clippy --workspace --all-targets --all-features -- -D warnings`
 	- Result: PASS.
 - `/bin/bash scripts/validate-canon-skills.sh`
 	- Result: PASS. Canon skill structure, support-state labels, overlap boundaries, and fake-run protections remain valid.
 
 ## Final Logical Validation Results
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test system_shaping_authoring_renderer --test implementation_authoring_renderer --test refactor_authoring_renderer --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run --test system_shaping_domain_modeling_docs --test implementation_authoring_docs --test refactor_authoring_docs --test mode_authoring_follow_on_docs --test policy_and_traces --test refactor_preservation_run --test direct_runtime_coverage`
+- `CARGO_TARGET_DIR=target-agent cargo test --test system_shaping_authoring_renderer --test implementation_authoring_renderer --test refactor_authoring_renderer --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run --test system_shaping_domain_modeling_docs --test implementation_authoring_docs --test refactor_authoring_docs --test mode_authoring_follow_on_docs --test policy_and_traces --test refactor_preservation_run --test direct_runtime_coverage`
 	- Result: 60 passed, 0 failed.
 	- Coverage summary: renderer preservation and near-miss rejection, contract sections and gates, complete and incomplete run behavior, docs synchronization, trace posture, preservation blocking, and engine-direct fixtures all passed under the canonical H2 contract.
 

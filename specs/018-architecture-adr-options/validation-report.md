@@ -22,13 +22,13 @@
 
 ### Focused Validation Evidence
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test architecture_contract --test architecture_c4_renderer`
+- `CARGO_TARGET_DIR=target-agent cargo test --test architecture_contract --test architecture_c4_renderer`
 	- Result: 10 passed, 0 failed after the runtime contract and renderer changes.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test architecture_run --test architecture_contract`
+- `CARGO_TARGET_DIR=target-agent cargo test --test architecture_run --test architecture_contract`
 	- Result: 6 passed, 0 failed after the architecture summarizer and gate compatibility fix.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test architecture_c4_contract --test architecture_c4_run`
+- `CARGO_TARGET_DIR=target-agent cargo test --test architecture_c4_contract --test architecture_c4_run`
 	- Result: 5 passed, 0 failed with explicit C4 non-regression assertions.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test architecture_decision_shape_docs`
+- `CARGO_TARGET_DIR=target-agent cargo test --test architecture_decision_shape_docs`
 	- Result: 2 passed, 0 failed.
 
 ## Story Evidence
@@ -52,7 +52,7 @@
 
 - `cargo fmt --check`
 	- Result: passed after applying `cargo fmt` to the touched Rust files.
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo clippy --workspace --all-targets --all-features -- -D warnings`
+- `CARGO_TARGET_DIR=target-agent cargo clippy --workspace --all-targets --all-features -- -D warnings`
 	- Result: passed.
 - `/bin/bash scripts/validate-canon-skills.sh`
 	- Result: passed (`PASS: Canon skill structure, support-state labels, overlap boundaries, and fake-run protections are valid.`).
@@ -66,7 +66,7 @@
 
 ## Logical Validation Results
 
-- `CARGO_TARGET_DIR=/Users/rt/workspace/apply-the/canon/target-agent cargo test --test architecture_contract --test architecture_c4_renderer --test architecture_run --test architecture_c4_contract --test architecture_c4_run --test architecture_decision_shape_docs`
+- `CARGO_TARGET_DIR=target-agent cargo test --test architecture_contract --test architecture_c4_renderer --test architecture_run --test architecture_c4_contract --test architecture_c4_run --test architecture_decision_shape_docs`
 	- Result: 19 passed, 0 failed.
 
 ## Planned Independent Validation

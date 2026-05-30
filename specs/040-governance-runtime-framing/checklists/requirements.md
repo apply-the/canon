@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-05-03  
-**Feature**: [spec.md](/Users/rt/workspace/apply-the/canon/specs/040-governance-runtime-framing/spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

@@ -1,6 +1,6 @@
 # Implementation Plan: Standard ADR Publish Artifacts
 
-**Branch**: `043-standard-adr-publish` | **Date**: 2026-05-10 | **Spec**: [specs/043-standard-adr-publish/spec.md](specs/043-standard-adr-publish/spec.md)
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/043-standard-adr-publish/spec.md`
 
 ## Summary

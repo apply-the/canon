@@ -65,7 +65,7 @@ Planned validation for this feature covers:
 
 | Platform | Artifact | PATH Location | Version Check | `canon init` Smoke Test | Result | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| macOS arm64 | `canon-0.5.0-macos-arm64.tar.gz` | `/Users/rt/workspace/apply-the/canon/.canon/tmp/release-dry-run/install-bin/canon` | `canon 0.5.0` | success with `methods_materialized=12`, `policies_materialized=5` | PASS | local native-host install smoke from workflow-aligned dry run |
+| macOS arm64 | `canon-0.5.0-macos-arm64.tar.gz` | `.canon/tmp/release-dry-run/install-bin/canon` | `canon 0.5.0` | success with `methods_materialized=12`, `policies_materialized=5` | PASS | local native-host install smoke from workflow-aligned dry run |
 | macOS x86_64 | `canon-0.5.0-macos-x86_64.tar.gz` | pending native machine | pending native machine | pending native machine | BLOCKED | local dry run validated archive layout and parity, not native execution |
 | Linux arm64 | `canon-0.5.0-linux-arm64.tar.gz` | pending native machine | pending native machine | pending native machine | BLOCKED | local dry run validated archive layout and parity, not native execution |
 | Linux x86_64 | `canon-0.5.0-linux-x86_64.tar.gz` | pending native machine | pending native machine | pending native machine | BLOCKED | local dry run validated archive layout and parity, not native execution |

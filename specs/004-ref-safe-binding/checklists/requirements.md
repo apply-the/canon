@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-29  
-**Feature**: [specs/004-ref-safe-binding/spec.md](../spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

@@ -1,6 +1,6 @@
 # Implementation Plan: Codex Skills Frontend for Canon
 
-**Branch**: `003-codex-skills-frontend` | **Date**: 2026-03-28 | **Spec**: [specs/003-codex-skills-frontend/spec.md](./spec.md)  
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/003-codex-skills-frontend/spec.md`
 
 ## Summary

@@ -1,6 +1,6 @@
 # Implementation Plan: Scoop Distribution Follow-On
 
-**Branch**: `032-scoop-distribution` | **Date**: 2026-05-01 | **Spec**: `specs/032-scoop-distribution/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/032-scoop-distribution/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See

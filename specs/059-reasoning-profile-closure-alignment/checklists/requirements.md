@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding  
 **Created**: 2026-05-18  
-**Feature**: [spec.md](/Users/rt/workspace/apply-the/canon/specs/059-reasoning-profile-closure-alignment/spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

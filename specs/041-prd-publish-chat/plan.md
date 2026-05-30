@@ -1,6 +1,6 @@
 # Implementation Plan: Requirements PRD Publishing And Chat Publish Skill
 
-**Branch**: `041-prd-publish-chat` | **Date**: 2026-05-07 | **Spec**: [/Users/rt/workspace/apply-the/canon/specs/041-prd-publish-chat/spec.md](/Users/rt/workspace/apply-the/canon/specs/041-prd-publish-chat/spec.md)
+**Branch**: `041-prd-publish-chat` | **Date**: 2026-05-07 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/041-prd-publish-chat/spec.md`
 
 ## Summary

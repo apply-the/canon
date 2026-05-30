@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-04-26  
-**Feature**: [spec.md](/Users/rt/workspace/apply-the/canon/specs/018-architecture-adr-options/spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

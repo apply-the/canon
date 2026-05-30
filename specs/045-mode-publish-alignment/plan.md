@@ -1,6 +1,6 @@
 # Implementation Plan: Mode Publish Alignment
 
-**Branch**: `045-mode-publish-alignment` | **Date**: 2026-05-11 | **Spec**: `/Users/rt/workspace/apply-the/canon/specs/045-mode-publish-alignment/spec.md`
+**Branch**: `045-mode-publish-alignment` | **Date**: 2026-05-11 | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/045-mode-publish-alignment/spec.md`
 
 ## Summary
@@ -21,7 +21,7 @@ Align the only confirmed publish-behavior mismatch between runtime and documenta
 - Publish continues to copy from `.canon/artifacts/` into visible destinations without mutating governed runtime artifacts.
 - Assistant command guidance stays a documentation/metadata consumer of the CLI contract and does not redefine the CLI.
 
-**Decision Log**: `/Users/rt/workspace/apply-the/canon/specs/045-mode-publish-alignment/decision-log.md`  
+**Decision Log**: `specs/045-mode-publish-alignment/decision-log.md`  
 **Validation Ownership**: Generation happens through repository code and documentation changes; validation happens through focused tests, formatter/linter/test commands, coverage review, and independent doc/runtime readback recorded in the validation report.  
 **Approval Gates**: No additional human approval gate beyond normal bounded-impact review; independent validation evidence is still mandatory before merge.
 

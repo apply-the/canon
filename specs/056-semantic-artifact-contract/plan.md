@@ -1,6 +1,6 @@
 # Implementation Plan: Semantic Artifact Contract
 
-**Branch**: `056-semantic-artifact-contract` | **Date**: 2026-05-17 | **Spec**: `/specs/056-semantic-artifact-contract/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/056-semantic-artifact-contract/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See

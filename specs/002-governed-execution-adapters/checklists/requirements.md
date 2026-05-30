@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-28  
-**Feature**: [specs/002-governed-execution-adapters/spec.md](../spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 

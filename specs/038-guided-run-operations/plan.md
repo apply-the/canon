@@ -1,6 +1,6 @@
 # Implementation Plan: Guided Run Operations And Review Experience
 
-**Branch**: `038-guided-run-operations` | **Date**: 2026-05-02 | **Spec**: `specs/038-guided-run-operations/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/038-guided-run-operations/spec.md`
 
 ## Summary

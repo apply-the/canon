@@ -1,6 +1,6 @@
 # Implementation Plan: Logical Packet Ordering
 
-**Branch**: `049-logical-packet-ordering` | **Date**: 2026-05-13 | **Spec**: `specs/049-logical-packet-ordering/spec.md`
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/049-logical-packet-ordering/spec.md`
 
 ## Summary

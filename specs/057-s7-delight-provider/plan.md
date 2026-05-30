@@ -1,6 +1,6 @@
 # Implementation Plan: Canon S7 Delight Provider Contracts
 
-**Branch**: `057-s7-delight-provider` | **Date**: 2026-05-17 | **Spec**: [specs/057-s7-delight-provider/spec.md](spec.md)
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/057-s7-delight-provider/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See

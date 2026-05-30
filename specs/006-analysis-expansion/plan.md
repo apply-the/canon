@@ -1,6 +1,6 @@
 # Implementation Plan: Analysis Mode Expansion
 
-**Branch**: `006-analysis-expansion` | **Date**: 2026-04-13 | **Spec**: [spec.md](specs/006-analysis-expansion/spec.md)  
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `specs/006-analysis-expansion/spec.md`
 
 ## Summary

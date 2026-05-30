@@ -1,6 +1,6 @@
 # Implementation Plan: Assistant Plugin Packages
 
-**Branch**: `044-assistant-plugin-packages` | **Date**: 2026-05-10 | **Spec**: [specs/044-assistant-plugin-packages/spec.md](specs/044-assistant-plugin-packages/spec.md)
+**Branch**: `PLACEHOLDER` | **Date**: PLACEHOLDER | **Spec**: [spec.md](spec.md)
 **Input**: Feature specification from `/specs/044-assistant-plugin-packages/spec.md`
 
 ## Summary

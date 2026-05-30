@@ -24,9 +24,9 @@ be implemented and validated independently.
 **Purpose**: Establish the required release move and stable expertise-input
 contract surface
 
-- [x] T001 Bump the Canon workspace version from `0.51.0` to `0.52.0` in `/Users/rt/workspace/apply-the/canon/Cargo.toml` and update `/Users/rt/workspace/apply-the/canon/CHANGELOG.md`
-- [x] T002 [P] Create the stable expertise-input contract scaffold and authority header in `/Users/rt/workspace/apply-the/canon/docs/integration/governed-expertise-input-contract.md` and keep `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md` aligned with the same contract line
-- [x] T003 [P] Refresh approval gates and evidence sections in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/validation-report.md`
+- [x] T001 Bump the Canon workspace version from `0.51.0` to `0.52.0` in `Cargo.toml` and update `CHANGELOG.md`
+- [x] T002 [P] Create the stable expertise-input contract scaffold and authority header in `docs/integration/governed-expertise-input-contract.md` and keep `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md` aligned with the same contract line
+- [x] T003 [P] Refresh approval gates and evidence sections in `specs/052-governed-expertise-inputs/decision-log.md` and `specs/052-governed-expertise-inputs/validation-report.md`
 
 ---
 
@@ -36,9 +36,9 @@ contract surface
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete
 
-- [x] T004 Extend shared expertise-kind and classification helpers in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`
-- [x] T005 [P] Extend publish-profile lineage helpers for the `expertise_input` metadata carrier and domain-family matching data in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T006 [P] Add focused expertise-input validation coverage in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`, `/Users/rt/workspace/apply-the/canon/tests/domain_analysis_direct_runtime.rs`, and `/Users/rt/workspace/apply-the/canon/tests/publish_runtime.rs`
+- [x] T004 Extend shared expertise-kind and classification helpers in `crates/canon-engine/src/domain/mode.rs`
+- [x] T005 [P] Extend publish-profile lineage helpers for the `expertise_input` metadata carrier and domain-family matching data in `crates/canon-engine/src/domain/publish_profile.rs`
+- [x] T006 [P] Add focused expertise-input validation coverage in `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `tests/domain_analysis_direct_runtime.rs`, and `tests/publish_runtime.rs`
 
 **Checkpoint**: Shared expertise classification primitives and test entry points are ready
 
@@ -52,15 +52,15 @@ contract surface
 
 ### Validation for User Story 1
 
-- [x] T007 [P] [US1] Add supported expertise-kind and explicit exclusion coverage in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`
-- [x] T008 [P] [US1] Add source-level classification and metadata coverage in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs` and `/Users/rt/workspace/apply-the/canon/tests/domain_analysis_direct_runtime.rs`
+- [x] T007 [P] [US1] Add supported expertise-kind and explicit exclusion coverage in `crates/canon-engine/src/domain/mode.rs`
+- [x] T008 [P] [US1] Add source-level classification and metadata coverage in `crates/canon-engine/src/domain/publish_profile.rs` and `tests/domain_analysis_direct_runtime.rs`
 
 ### Implementation for User Story 1
 
-- [x] T009 [P] [US1] Implement mode-to-expertise classification in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`
-- [x] T010 [US1] Add `expertise_input` classification and compatibility helpers in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T011 [US1] Fill the supported expertise kinds, classification rules, and compatibility content in `/Users/rt/workspace/apply-the/canon/docs/integration/governed-expertise-input-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
-- [x] T012 [US1] Capture MVP decisions in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/decision-log.md`
+- [x] T009 [P] [US1] Implement mode-to-expertise classification in `crates/canon-engine/src/domain/mode.rs`
+- [x] T010 [US1] Add `expertise_input` classification and compatibility helpers in `crates/canon-engine/src/domain/publish_profile.rs`
+- [x] T011 [US1] Fill the supported expertise kinds, classification rules, and compatibility content in `docs/integration/governed-expertise-input-contract.md` and `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
+- [x] T012 [US1] Capture MVP decisions in `specs/052-governed-expertise-inputs/decision-log.md`
 
 **Checkpoint**: User Story 1 is independently valid as the expertise-input contract MVP
 
@@ -74,14 +74,14 @@ contract surface
 
 ### Validation for User Story 2
 
-- [x] T013 [P] [US2] Add publication-boundary coverage in `/Users/rt/workspace/apply-the/canon/tests/publish_runtime.rs`
-- [x] T014 [P] [US2] Add ownership-boundary coverage in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs` and `/Users/rt/workspace/apply-the/canon/tests/domain_analysis_direct_runtime.rs`
+- [x] T013 [P] [US2] Add publication-boundary coverage in `tests/publish_runtime.rs`
+- [x] T014 [P] [US2] Add ownership-boundary coverage in `crates/canon-engine/src/domain/publish_profile.rs` and `tests/domain_analysis_direct_runtime.rs`
 
 ### Implementation for User Story 2
 
-- [x] T015 [P] [US2] Align publish-path and metadata projection helpers for `expertise_input.domain_families` and publication-state output in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/orchestrator/publish.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T016 [US2] Cross-reference publication semantics in `/Users/rt/workspace/apply-the/canon/docs/integration/governed-expertise-input-contract.md` while keeping `/Users/rt/workspace/apply-the/canon/docs/integration/project-memory-promotion-contract.md` as the companion publication contract
-- [x] T017 [US2] Refresh the feature-local classification brief in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/contracts/expertise-classification-contract.md` and capture evidence in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/validation-report.md`
+- [x] T015 [P] [US2] Align publish-path and metadata projection helpers for `expertise_input.domain_families` and publication-state output in `crates/canon-engine/src/orchestrator/publish.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
+- [x] T016 [US2] Cross-reference publication semantics in `docs/integration/governed-expertise-input-contract.md` while keeping `docs/integration/project-memory-promotion-contract.md` as the companion publication contract
+- [x] T017 [US2] Refresh the feature-local classification brief in `specs/052-governed-expertise-inputs/contracts/expertise-classification-contract.md` and capture evidence in `specs/052-governed-expertise-inputs/validation-report.md`
 
 **Checkpoint**: User Stories 1 and 2 both work independently and preserve the ownership boundary
 
@@ -95,14 +95,14 @@ contract surface
 
 ### Validation for User Story 3
 
-- [x] T018 [P] [US3] Add compatibility coverage for unknown expertise kinds, blocked or pending publication states, unsupported contract lines, and non-matching `expertise_input.domain_families` in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs` and `/Users/rt/workspace/apply-the/canon/tests/publish_runtime.rs`
-- [x] T019 [P] [US3] Add fail-closed contract-alignment coverage in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`, `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs`, and `/Users/rt/workspace/apply-the/canon/tests/publish_runtime.rs`
+- [x] T018 [P] [US3] Add compatibility coverage for unknown expertise kinds, blocked or pending publication states, unsupported contract lines, and non-matching `expertise_input.domain_families` in `crates/canon-engine/src/domain/publish_profile.rs` and `tests/publish_runtime.rs`
+- [x] T019 [P] [US3] Add fail-closed contract-alignment coverage in `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, and `tests/publish_runtime.rs`
 
 ### Implementation for User Story 3
 
-- [x] T020 [P] [US3] Encode fail-closed compatibility helpers in `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/publish_profile.rs` and `/Users/rt/workspace/apply-the/canon/crates/canon-engine/src/domain/mode.rs`
-- [x] T021 [US3] Document additive-versus-breaking expertise evolution rules in `/Users/rt/workspace/apply-the/canon/docs/integration/governed-expertise-input-contract.md` and `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
-- [x] T022 [US3] Capture compatibility decisions and validation evidence in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/decision-log.md` and `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/validation-report.md`
+- [x] T020 [P] [US3] Encode fail-closed compatibility helpers in `crates/canon-engine/src/domain/publish_profile.rs` and `crates/canon-engine/src/domain/mode.rs`
+- [x] T021 [US3] Document additive-versus-breaking expertise evolution rules in `docs/integration/governed-expertise-input-contract.md` and `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
+- [x] T022 [US3] Capture compatibility decisions and validation evidence in `specs/052-governed-expertise-inputs/decision-log.md` and `specs/052-governed-expertise-inputs/validation-report.md`
 
 **Checkpoint**: All user stories are independently functional and compatibility-safe
 
@@ -112,12 +112,12 @@ contract surface
 
 **Purpose**: Finish docs, formatting, lint, tests, cross-repo review, and coverage
 
-- [x] T023 [P] Update downstream-facing runtime-compatibility and metadata surfaces in `/Users/rt/workspace/apply-the/canon/.agents/skills/canon-shared/references/runtime-compatibility.toml`, `/Users/rt/workspace/apply-the/canon/defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, and `/Users/rt/workspace/apply-the/canon/assistant/plugin-metadata.json` when release drift affects consumer bootstrap guidance
-- [x] T024 Run `cargo fmt --all` in `/Users/rt/workspace/apply-the/canon`
-- [x] T025 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` in `/Users/rt/workspace/apply-the/canon`
-- [x] T026 Run `cargo test --no-run --all-targets` and `cargo nextest run --workspace --all-features` in `/Users/rt/workspace/apply-the/canon` and record outcomes in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/validation-report.md`
-- [x] T027 Perform a cross-repo consistency review against `/Users/rt/workspace/apply-the/boundline/specs/053-expert-pack-selection/spec.md` and record findings in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/validation-report.md`
-- [x] T028 Run focused modified-file coverage in `/Users/rt/workspace/apply-the/canon` and confirm at least 95% coverage for every modified file in `/Users/rt/workspace/apply-the/canon/specs/052-governed-expertise-inputs/validation-report.md`
+- [x] T023 [P] Update downstream-facing runtime-compatibility and metadata surfaces in `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, and `assistant/plugin-metadata.json` when release drift affects consumer bootstrap guidance
+- [x] T024 Run `cargo fmt --all` from the repository root
+- [x] T025 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` from the repository root
+- [x] T026 Run `cargo test --no-run --all-targets` and `cargo nextest run --workspace --all-features` from the repository root and record outcomes in `specs/052-governed-expertise-inputs/validation-report.md`
+- [x] T027 Perform a cross-repo consistency review against `../boundline/specs/053-expert-pack-selection/spec.md` and record findings in `specs/052-governed-expertise-inputs/validation-report.md`
+- [x] T028 Run focused modified-file coverage from the repository root and confirm at least 95% coverage for every modified file in `specs/052-governed-expertise-inputs/validation-report.md`
 
 ---
 

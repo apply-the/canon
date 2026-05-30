@@ -127,6 +127,7 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 
 ## Repo Safety Rules
 
+- NEVER save fully qualified paths in any file, but use relative paths and only related to this git repo. Other repos must be referenced by url (or if working locally by git project name).
 - NEVER run `canon` CLI commands against this repository root as a working
 	workspace. Doing so writes workspace-local `.canon/` session state,
 	pollutes tracked repo history, and can dirty the developer worktree. Use a

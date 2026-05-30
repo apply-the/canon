@@ -1,24 +1,12 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
+**Feature Branch**: `[###-feature-name]`
+
+**Created**: [DATE]
+
+**Status**: Draft
+
 **Input**: User description: "$ARGUMENTS"
-
-## Governance Context *(mandatory)*
-
-**Mode**: [system-shaping, change, review, architecture, debugging, operations
-or NEEDS CLARIFICATION]
-**Risk Classification**: [low-impact | bounded-impact | systemic-impact with rationale]
-**Scope In**: [What this feature is allowed to change]
-**Scope Out**: [Explicitly excluded work and non-goals]
-
-**Invariants**:
-
-- [Constraint that MUST remain true]
-- [Boundary that implementation MUST preserve]
-
-**Decision Traceability**: [Where decisions for this feature will be recorded]
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -39,10 +27,9 @@ or NEEDS CLARIFICATION]
 
 [Describe this user journey in plain language]
 
-**Why this priority**: [Explain the value and why this has the highest priority]
+**Why this priority**: [Explain the value and why it has this priority level]
 
-**Independent Test**: [Describe how this can be tested independently and what
-value it delivers]
+**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
 
 **Acceptance Scenarios**:
 
@@ -55,7 +42,7 @@ value it delivers]
 
 [Describe this user journey in plain language]
 
-**Why this priority**: [Explain the value and why this has this priority]
+**Why this priority**: [Explain the value and why it has this priority level]
 
 **Independent Test**: [Describe how this can be tested independently]
 
@@ -69,7 +56,7 @@ value it delivers]
 
 [Describe this user journey in plain language]
 
-**Why this priority**: [Explain the value and why this has this priority]
+**Why this priority**: [Explain the value and why it has this priority level]
 
 **Independent Test**: [Describe how this can be tested independently]
 
@@ -89,8 +76,7 @@ value it delivers]
 -->
 
 - What happens when [boundary condition]?
-- How does the system handle [error scenario]?
-- Which invariant is most likely to be stressed by this case?
+- How does system handle [error scenario]?
 
 ## Requirements *(mandatory)*
 
@@ -130,26 +116,6 @@ value it delivers]
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
-
-## Validation Plan *(mandatory)*
-
-- **Structural validation**: [linting, schema checks, static analysis, contract
-  validation, or N/A]
-- **Logical validation**: [tests, user journey walkthroughs, simulations, or
-  manual scenarios]
-- **Independent validation**: [reviewer, separate model, or adversarial pass]
-- **Evidence artifacts**: [where validation results and findings will be
-  recorded]
-
-## Decision Log *(mandatory)*
-
-- **D-001**: [Initial decision or open question], **Rationale**: [Why this
-  default is acceptable for now]
-
-## Non-Goals
-
-- [Explicitly excluded behavior]
-- [Deferred concern that MUST NOT silently enter scope]
 
 ## Assumptions
 

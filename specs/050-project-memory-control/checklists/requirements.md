@@ -2,7 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-05-13  
-**Feature**: [/Users/rt/workspace/apply-the/canon/specs/050-project-memory-control/spec.md](/Users/rt/workspace/apply-the/canon/specs/050-project-memory-control/spec.md)
+**Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
