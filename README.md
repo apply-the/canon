@@ -12,354 +12,53 @@
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_canon&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_canon)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=apply-the_canon&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=apply-the_canon)
 
-**Canon is the governance runtime for AI-assisted engineering work. You run it inside a repository to start bounded work, record approvals and evidence, and publish durable packets when they are ready.**
+**The governance runtime for AI-assisted engineering.** Keep AI agents bounded, inspectable, and safely restricted to approved work zones.
 
-The current delivery line in this repository targets Canon `0.61.0`. This is
-the documented governed companion line for Boundline `0.62.x`.
+## 🚀 Why Canon?
 
-When a human is driving the repository directly, the shipped `canon` CLI is the
-local control surface. When an external orchestrator needs machine-stable JSON
-control flow, use the governance adapter documented in `docs/integration/governance-adapter.md`.
+- 🚫 **No Opaque Loops:** You control exactly when agents plan, run, and publish.
+- 🛡️ **Bounded Execution:** Agents operate strictly within approved risk and zone limits.
+- 🔍 **Inspectable State:** Every decision, approval, and output is captured as durable evidence.
+- 📖 **Governed Packets:** Turn unstructured chat into canonical, versioned markdown artifacts.
 
-For file-backed modes, the shared authored lifecycle is explicit: author the
-packet, run `inspect clarity`, start the governed run, critique the emitted
-packet, and publish only when the packet is truly ready.
+## 🧠 How it Works
 
-For `pr-review`, Canon now keeps Conventional Comments explicit about both reach
-and precision: every entry still carries derived `scope`, and evidence-backed
-single-surface findings may also carry a host-agnostic anchor such as
-`surface:start` or `surface:start-end`. When that precision is not durable,
-Canon degrades honestly to scope-only output.
+Canon operates on a simple, predictable four-step mental model:
+1. `init` -> Prepare the workspace.
+2. `run` -> Start a governed session with explicit boundaries.
+3. `approve` -> Review and unblock the agent when human judgment is needed.
+4. `publish` -> Promote the final artifacts into your repository's permanent memory.
 
+## ⚡ Quick Start
 
-## What Canon Does
-
-Canon is the governance runtime. The shipped binary is `canon`.
-
-Use it when you want AI-assisted work to stay inspectable and bounded:
-
-- Start a governed run with an explicit `mode`, `risk`, `zone`, `owner`, and authored input.
-- Keep generated artifacts, evidence, approvals, and invocation history under `.canon/`.
-- Inspect what happened with `status`, `inspect`, `approve`, `resume`, and `publish`.
-- Work with an AI assistant through repo-local skills without hiding the CLI contract.
-
-Canon is not a generic agent framework, it is not an opaque agent loop, and it
-is not the higher-level orchestrator. It is the local-first runtime that keeps
-the control surface on disk.
-
-## Machine-Facing Governance Adapter
-
-Canon now also exposes a machine-facing governance adapter for external
-orchestrators that need stable JSON control flow instead of human-oriented CLI
-summaries:
+Get your first governed session running in seconds:
 
 ```bash
-canon governance capabilities --json
-canon governance start --json < request.json
-canon governance refresh --json < request.json
-```
-
-The `v1` adapter surface returns flat JSON with lifecycle `status`,
-`approval_state`, machine-readable `reason_code`, and canonical
-workspace-relative packet or document refs. Use `canon run` and `canon status`
-when a human is driving the repository directly; use `canon governance` when a
-tool needs a stable integration boundary. See
-`docs/integration/governance-adapter.md` for request or response examples,
-stable field expectations, `authority-governance-v1` packet metadata, and
-boundary rules for external orchestrators. See
-`docs/guides/governed-personas-and-authority-zones.md` for the first-slice
-authority-zone vocabulary and persona guidance.
-
-## Adaptive Governance Semantics
-
-Canon also defines the S4 semantic boundary used by downstream runtimes such as
-Boundline.
-
-- `authority-governance-v1` remains the required posture baseline
-- `adaptive-governance-v1` is an optional additive companion
-- Canon owns semantic posture, approval, readiness, lineage, project memory,
-  and promotion meaning
-- downstream runtimes own confidence, trust, degradation, escalation,
-  councils, and stop behavior
-
-Use `docs/governance-semantics-and-authority-zones.md` for the semantic
-vocabulary and authority-boundary rules, and
-`docs/integration/governance-adapter.md` for the machine-facing projection.
-
-For Boundline S7 delight consumption specifically, use
-`docs/integration/delight-provider-contract.md` as the stable Canon-owned
-contract for packets, approval states, readiness signals, security findings,
-audit findings, and promotion references.
-
-## Assistant Plugin Packages
-
-Canon includes host package folders for assistant support:
-
-- `.claude-plugin/`
-- `.codex-plugin/`
-- `.cursor-plugin/`
-
-Copilot support is documented as a command and prompt pack at
-`assistant/prompts/copilot-command-pack.md`. Installation steps, host
-limitations, and validation are covered in
-`docs/guides/assistant-plugin-packages.md`.
-
-## Install
-
-Canon ships as a single binary named `canon`.
-
-GitHub Releases remain the canonical source of truth for the Homebrew formula,
-`winget` bundle, and Scoop manifest.
-
-### Homebrew
-
-On macOS and Linux you can install Canon from the dedicated Homebrew tap
-repository `apply-the/homebrew-canon`:
-
-```bash
-brew tap apply-the/canon
-brew install canon
-canon --version
-```
-
-The tap formula builds Canon directly from the tagged source release, so the
-tap remains the authoritative Homebrew surface even when package metadata is
-maintained outside the main Canon repository.
-
-### Windows via winget
-
-Install or upgrade Canon from Windows Package Manager:
-
-```powershell
-winget install ApplyThe.Canon
-winget upgrade ApplyThe.Canon
-canon --version
-```
-
-### Windows via Scoop
-
-Install or upgrade Canon from Scoop after the generated manifest lands in the
-Scoop main bucket:
-
-```powershell
-scoop install canon
-scoop update canon
-canon --version
-```
-
-If the Scoop bucket update is not available yet, use `winget` or the direct
-release zip fallback below.
-
-### Prebuilt Binary
-
-Download the latest release from [Releases](https://github.com/apply-the/canon/releases).
-
-**macOS / Linux**
-
-```bash
-VERSION=X.Y.Z
-
-case "$(uname -s)" in
-  Darwin) OS=macos ;;
-  Linux) OS=linux ;;
-  *) echo "Unsupported OS" >&2; exit 1 ;;
-esac
-
-case "$(uname -m)" in
-  arm64|aarch64) ARCH=arm64 ;;
-  x86_64) ARCH=x86_64 ;;
-  *) echo "Unsupported architecture" >&2; exit 1 ;;
-esac
-
-ARCHIVE="canon-${VERSION}-${OS}-${ARCH}.tar.gz"
-
-curl -LO "https://github.com/apply-the/canon/releases/download/v${VERSION}/${ARCHIVE}"
-tar -xzf "${ARCHIVE}"
-install -m 0755 canon "$HOME/.local/bin/canon"
-```
-
-**Windows (PowerShell fallback)**
-
-```powershell
-$Version = 'X.Y.Z'
-$Archive = "canon-$Version-windows-x86_64.zip"
-
-Invoke-WebRequest -Uri "https://github.com/apply-the/canon/releases/download/v$Version/$Archive" -OutFile $Archive
-Expand-Archive -Path $Archive -DestinationPath "$env:USERPROFILE\bin" -Force
-```
-
-### Developing Canon
-
-If you want to build or install Canon from source while developing this
-repository, use [DEVELOPER.md](DEVELOPER.md) for local install paths and
-[CONTRIBUTING.md](CONTRIBUTING.md) for repository workflow, validation, and
-pull-request expectations.
-
-For LCOV inspection and patch-coverage triage helpers, use
-`scripts/common/coverage/` and
-[docs/guides/patch-coverage.md](docs/guides/patch-coverage.md).
-
-## Use Canon
-
-The short version is:
-
-1. Initialize the repository.
-2. Write authored input in `canon-input/`.
-3. Run Canon with a mode, risk, and zone.
-4. Inspect the run and publish the packet when ready.
-
-### 1. Initialize The Repository
-
-Inside the repository you want to govern:
-
-```bash
+brew tap apply-the/canon && brew install canon
+cd my-project
 canon init
+canon run --mode requirements --risk bounded-impact
 ```
 
-Canon resolves the active repository automatically: it prefers the nearest
-initialized `.canon/` ancestor, then the nearest `.git/` root, and only then
-falls back to the current working directory. You can run `canon` from a subdirectory
-without re-specifying the repository root.
+## 🛠️ Key Commands
 
-If you want Canon to materialize repo-local AI skills as well:
+These are the commands you'll actually use every day:
 
-```bash
-canon init --ai codex
-canon init --ai copilot
-canon init --ai claude
-```
+| Command | What it does |
+|---|---|
+| `canon run` | Start a new governed session with explicit boundaries. |
+| `canon status` | See exactly what the agent is doing right now. |
+| `canon inspect` | Review generated evidence and artifacts. |
+| `canon approve` | Unblock a session that hit a governance gate. |
+| `canon publish` | Commit the final work into your repository. |
 
-### 2. Write Authored Input
+## 📚 Deep Dive Documentation
 
-Canon expects authored input in canonical locations under `canon-input/`. For example, a requirements run typically starts from `canon-input/requirements.md`.
+For advanced integrations, semantics, and architecture, explore the `docs/` folder:
+- [Getting Started Guide](docs/guides/getting-started.md)
+- [Governance Modes](docs/guides/modes.md)
+- [Risk and Authority Zones](docs/guides/risk-and-zone.md)
+- [Machine-Facing Governance Adapter](docs/integration/governance-adapter.md)
 
-```bash
-mkdir -p canon-input
-cat > canon-input/requirements.md <<'EOF'
-# Requirements Brief
-
-## Problem
-Define requirements for a bounded internal CLI without letting scope drift.
-
-## Outcome
-Leave behind a governable requirements packet with explicit scope cuts,
-tradeoffs, and open questions.
-EOF
-```
-
-Canon now combines canonical packet shapes with bounded authoring personas
-across planning, shaping, operational security, and review-heavy surfaces.
-`requirements`, `architecture`, and `change` keep their established product
-lead, architect, and change-owner packet shaping. `discovery` now uses an
-exploratory research lead posture to seed an Opportunity Solution Tree plus
-Jobs-To-Be-Done brief, `system-shaping` now uses a bounded system designer
-posture for domain-map and structural-options packets, and `review` now uses a
-skeptical reviewer posture for findings-first acceptance packets.
-`security-assessment`, `supply-chain-analysis`, `system-assessment`,
-`incident`, and `migration` remain the adjacent recommendation-only operational
-or assessment packets. Persona guidance shapes voice and audience fit only; it
-never replaces missing required sections.
-
-Before starting any file-backed mode, you can inspect the authored packet with
-`canon inspect clarity --mode <MODE> --input <PATH>`.
-
-```bash
-canon inspect clarity --mode change --input canon-input/change.md
-```
-
-That pre-run surface now works across the file-backed governed modes and
-returns missing-context findings, explicit output-quality posture,
-evidence or downgrade reasons, targeted clarification questions with affected
-outputs and explicit default-if-skipped behavior, and reasoning signals that
-can say the packet is still only
-`structurally-complete`, already `materially-useful`, fully `publishable`, or
-already materially closes the decision. For architecture packets it can also
-say directly when the brief should reroute to `discovery`, `requirements`, or
-`system-shaping` instead of pretending the decision is ready. `pr-review`
-stays excluded because it is diff-backed.
-
-### 3. Start A Run
-
-Run Canon with an explicit mode, risk class, and usage zone:
-
-```bash
-canon run \
-  --mode requirements \
-  --risk bounded-impact \
-  --zone yellow \
-  --owner product-lead \
-  --input canon-input/requirements.md
-```
-
-Canon returns a `run_id`. Use that id to inspect or continue the governed run.
-
-### 4. Inspect, Approve, Resume, Publish
-
-These are the commands you will use most often after `canon run`:
-
-```bash
-canon status --run <RUN_ID>
-canon inspect invocations --run <RUN_ID>
-canon inspect evidence --run <RUN_ID>
-canon inspect artifacts --run <RUN_ID>
-canon approve --run <RUN_ID> --target <APPROVAL_TARGET> --decision approve --rationale "bounded approval for the packet"
-canon resume --run <RUN_ID>
-canon publish <RUN_ID>
-canon publish <RUN_ID> --adr
-```
-
-Generated packet files land under `.canon/artifacts/<RUN_ID>/...` first. The
-`publish` step copies those governed artifacts into a visible repository
-destination. For `requirements`, the published directory now includes the
-sectional packet files plus a consolidated `prd.md`. For `architecture`, the
-published directory now centers one `architecture-overview.md` handoff doc,
-keeps required System Context, Container, and Deployment sidecars alongside
-Mermaid `.mmd` sources, and records optional deeper views in a machine-readable
-manifest instead of forcing every packet to carry component-level boilerplate.
-The same `architecture` publish step also projects one standard ADR into the
-fixed repository registry at `docs/adr/ADR-XXXX-<slug>.md`. `change` and
-`migration` keep publishing only their packet directories unless you opt into
-the same registry with `canon publish <RUN_ID> --adr`. `--to` changes the
-packet destination only; ADR files still land under `docs/adr/`.
-
-If you initialized repo-local AI skills, the same publish step is also exposed
-in chat through `$canon-publish`.
-
-`canon run` and `canon status` now return one coherent operator story instead
-of leaving you to reconstruct the flow manually: a readable result packet when
-one exists, explicit blockers when the run is blocked, one recommended next
-step that preserves the active run context, and ordered possible actions for
-review, approval, resume, evidence, or artifact inspection. When Canon already
-emitted a readable packet for a gated or blocked run, the control surface stays
-review-first instead of jumping straight to approval.
-
-## Common Workflow
-
-- Use `canon init` once per repository.
-- Keep authored input under `canon-input/`.
-- Use `canon run` to start a governed packet.
-- Use `canon inspect ...` to see what Canon actually recorded.
-- Use `canon approve` and `canon resume` when a run is gated.
-- Use `canon publish` when you want a completed packet copied into `docs/` or `specs/` under a structured default folder, or into another visible path with `--to`; add `--adr` when a `change` or `migration` packet should also enter the durable ADR registry.
-- Expect generated artifacts to exist first under `.canon/artifacts/`; publish is the step that materializes visible docs in the repository.
-
-## Documentation
-
-Start here if you want more than the short README flow:
-
-- **[Getting Started](docs/guides/getting-started.md)** — Install Canon, initialize a repository, run your first packet, then inspect, approve, resume, and publish it.
-- **[Governance Modes](docs/guides/modes.md)** — Choose the right mode and canonical input shape for the work you are doing.
-- **[Publishing to winget](docs/guides/publishing-to-winget.md)** — Generate, verify, and submit the Windows package-manager manifest bundle from the canonical release artifacts.
-- **[Publishing to Scoop](docs/guides/publishing-to-scoop.md)** — Generate, verify, and submit the Scoop manifest derived from the canonical release bundle.
-- **[Templates and Examples](docs/templates/canon-input/requirements.md)** — Start from the canonical first-slice packet shapes and follow through to the worked examples in `docs/examples/canon-input/`.
-- **[Governance Guardrails: Risk and Zone](docs/guides/risk-and-zone.md)** — Understand how risk and zone constrain autonomy and gate sensitive work.
-
-## Roadmap
-
-To see what is planned next for Canon beyond the current implementation, see [ROADMAP.md](ROADMAP.md).
-
-## How To Contribute
-
-If you want to build or develop Canon itself, see [CONTRIBUTING.md](CONTRIBUTING.md).
-Use the GitHub issue templates under [.github/ISSUE_TEMPLATE/](.github/ISSUE_TEMPLATE/) when reporting bugs, documentation gaps, feature requests, or other repository issues.
-For vulnerabilities, follow [SECURITY.md](SECURITY.md). Participation in Canon project spaces follows the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
+## 🤝 Contributing
+Want to build or develop Canon itself? See [CONTRIBUTING.md](CONTRIBUTING.md). Use the GitHub issue templates under `.github/ISSUE_TEMPLATE/` when reporting bugs or feature requests. For vulnerabilities, follow [SECURITY.md](SECURITY.md).
