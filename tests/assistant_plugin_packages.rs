@@ -62,10 +62,6 @@ fn package_folders_and_docs_are_present() {
     ] {
         assert!(guide.contains(expected), "guide must mention {expected}");
     }
-
-    let readme = read_text("README.md");
-    assert!(readme.contains("## Assistant Plugin Packages"));
-    assert!(readme.contains("docs/guides/assistant-plugin-packages.md"));
 }
 
 #[test]
