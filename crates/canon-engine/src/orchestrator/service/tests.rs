@@ -791,6 +791,8 @@ fn service_helper_branches_cover_inline_inputs_authority_and_process_failures() 
     );
     assert_eq!(AiTool::Claude.materialization_target(), SkillMaterializationTarget::Claude);
     assert_eq!(AiTool::Copilot.materialization_target(), SkillMaterializationTarget::Agents);
+    assert_eq!(AiTool::Cursor.materialization_target(), SkillMaterializationTarget::Agents);
+    assert_eq!(AiTool::Antigravity.materialization_target(), SkillMaterializationTarget::Agents);
     assert_eq!(AuthorityStatus::DerivedAuthoritativeInput.as_str(), "derived-authoritative-input");
     assert_eq!(
         authority_approval_state(&[ApprovalRecord::for_gate(

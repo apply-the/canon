@@ -8,6 +8,7 @@ Canon CLI and the governance adapter remain authoritative for packet behavior, r
 
 | Host | Package Folder | Contents | Install Shape |
 |------|----------------|----------|---------------|
+| Antigravity | `.antigravity-plugin/` | `manifest.json` plus command bindings | Copy or link the folder into the host extension/package location expected by Antigravity. |
 | Claude Code | `.claude-plugin/` | `manifest.json` plus command bindings | Copy or link the folder into the host plugin/package location expected by Claude Code. |
 | Codex | `.codex-plugin/` | `plugin.json` with interface metadata, capabilities, prompts, and paths | Use the folder as the Codex plugin package root for this repository. |
 | Cursor | `.cursor-plugin/` | `manifest.json` plus command bindings | Copy or link the folder into the host extension/package location expected by Cursor. |
@@ -17,6 +18,7 @@ Canon CLI and the governance adapter remain authoritative for packet behavior, r
 
 Host package folders reference shared Canon-owned files instead of copying the full skill or method corpus:
 
+- `.antigravity-plugin/`
 - `.agents/skills/`
 - `.canon/methods/`
 - `defaults/embedded-skills/`

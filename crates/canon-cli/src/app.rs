@@ -121,6 +121,8 @@ pub enum AiTarget {
     Codex,
     Copilot,
     Claude,
+    Cursor,
+    Antigravity,
 }
 
 impl From<AiTarget> for AiTool {
@@ -129,6 +131,8 @@ impl From<AiTarget> for AiTool {
             AiTarget::Codex => AiTool::Codex,
             AiTarget::Copilot => AiTool::Copilot,
             AiTarget::Claude => AiTool::Claude,
+            AiTarget::Cursor => AiTool::Cursor,
+            AiTarget::Antigravity => AiTool::Antigravity,
         }
     }
 }
@@ -198,6 +202,8 @@ pub enum Command {
     Init {
         #[arg(long, value_enum)]
         ai: Option<AiTarget>,
+        #[arg(long)]
+        non_interactive: bool,
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
@@ -274,8 +280,8 @@ pub struct Cli {
 
 fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command) -> CliResult<i32> {
     match command {
-        Command::Init { ai, output } => {
-            commands::init::execute(service, ai.map(Into::into), output)
+        Command::Init { ai, non_interactive, output } => {
+            commands::init::execute(service, ai.map(Into::into), non_interactive, output)
         }
         Command::Run(run_command) => {
             let RunCommand {
@@ -379,6 +385,8 @@ mod tests {
         assert_eq!(AiTool::from(AiTarget::Codex), AiTool::Codex);
         assert_eq!(AiTool::from(AiTarget::Copilot), AiTool::Copilot);
         assert_eq!(AiTool::from(AiTarget::Claude), AiTool::Claude);
+        assert_eq!(AiTool::from(AiTarget::Cursor), AiTool::Cursor);
+        assert_eq!(AiTool::from(AiTarget::Antigravity), AiTool::Antigravity);
     }
 
     #[test]
@@ -553,8 +561,10 @@ mod tests {
         let init_cli = Cli::parse_from(["canon", "init", "--ai", "claude", "--output", "yaml"]);
         assert_command!(
             init_cli.command,
-            Command::Init { ai, output }
-                if ai == Some(AiTarget::Claude) && output == OutputFormat::Yaml
+            Command::Init { ai, non_interactive, output }
+                if ai == Some(AiTarget::Claude)
+                    && !non_interactive
+                    && output == OutputFormat::Yaml
         );
 
         let status_cli = Cli::parse_from(["canon", "status", "--run", "run-123"]);
@@ -610,6 +620,17 @@ mod tests {
                     && by.is_none()
                     && decision == "approve"
                     && rationale == "looks good"
+        );
+    }
+
+    #[test]
+    fn init_command_accepts_non_interactive_flag() {
+        let cli = Cli::parse_from(["canon", "init", "--non-interactive", "--output", "json"]);
+
+        assert_command!(
+            cli.command,
+            Command::Init { ai, non_interactive, output }
+                if ai.is_none() && non_interactive && output == OutputFormat::Json
         );
     }
 
@@ -762,7 +783,13 @@ mod tests {
 
         assert_eq!(
             run_with(
-                Cli { command: Command::Init { ai: None, output: OutputFormat::Json } },
+                Cli {
+                    command: Command::Init {
+                        ai: None,
+                        non_interactive: true,
+                        output: OutputFormat::Json,
+                    },
+                },
                 repo_root.clone(),
             )
             .expect("init should succeed"),

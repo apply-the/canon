@@ -40,6 +40,14 @@ canon init
 canon run --mode requirements --risk bounded-impact
 ```
 
+In supported interactive terminals, `canon init` now opens a guided assistant
+selector by default. Use `canon init --non-interactive` for scripts, CI, or
+machine-readable output such as `--output json`. The guided selector includes
+Codex, Copilot, Claude, Cursor, and Antigravity.
+
+The public documentation is aligned with `0.63.0`. Where the site links back
+to repository source, it now points at the `0.63.0` release line.
+
 ## 🛠️ Key Commands
 
 These are the commands you'll actually use every day:

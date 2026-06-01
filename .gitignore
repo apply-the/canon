@@ -42,3 +42,8 @@ Thumbs.db
 **/__pycache__/
 *.pyc
 *.pyo
+
+# VitePress and Node.js
+node_modules
+site/.vitepress/dist
+site/.vitepress/cache

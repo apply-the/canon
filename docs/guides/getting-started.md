@@ -64,6 +64,10 @@ Inside the repository you want to govern:
 canon init
 ```
 
+When the current terminal supports the interactive flow, Canon opens a guided
+assistant selector before initialization. Use `canon init --non-interactive`
+when you need the existing script-safe path or machine-readable output.
+
 If you want repo-local AI skills as well:
 
 ```bash
@@ -71,6 +75,9 @@ canon init --ai codex
 canon init --ai copilot
 canon init --ai claude
 ```
+
+The guided flow uses `--ai` as a preselection hint; it still asks for a final
+confirmation before materializing the chosen assistant.
 
 ### 2. Write Authored Input
 

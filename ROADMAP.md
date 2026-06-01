@@ -1,25 +1,30 @@
 # Next Features
 
+## Current 0.63.0
+
+Canon 0.63.0 is the current public release line. The guided `canon init` flow,
+assistant selector, README, changelog, roadmap, and site now describe one
+consistent `0.63.0` story.
+
 ## Recently Landed
 
-Canon 0.60.0 shipped optional inline anchors for `pr-review` Conventional
-Comments when persisted diff evidence resolves to one changed surface and one
-contiguous changed interval. The rendered comment still keeps explicit derived
-scope in every case and degrades cleanly to scope-only output when anchor
-precision would be cross-surface, stale, ambiguous, or otherwise unsupported.
+Canon 0.63.0 shipped a guided interactive `canon init` flow in supported
+terminals. The CLI now opens a branded assistant selector by default, keeps a
+confirmation step before initialization, preserves the existing script-safe
+contract behind `--non-interactive`, and restores the terminal cleanly on
+success, `Ctrl+C`, and guided-path failures.
+
+The assistant surface also now includes Cursor and Antigravity across guided
+init, non-interactive init, and repository-level assistant package metadata.
 
 ## Open Ideas
 
-A future nice-to-have could add an optional interactive `canon init`
-onboarding flow when Canon needs to configure explicit external integration
-surfaces rather than only materialize local runtime state. If Canon later
-needs to capture operator choices such as default AI target, external publish
-or backlog handoff destinations, or credential references for MCP-backed
-services such as Atlassian-family systems, an interactive configurator could
-guide that setup while preserving the existing non-interactive CLI and
-governance adapter contracts for automation. Any such onboarding should keep
-secrets out of versioned repository state and prefer environment or
-host-managed credential references over raw token persistence.
+A future follow-on could extend the interactive init surface beyond local
+runtime materialization into optional integration onboarding. If Canon later
+needs to collect operator choices such as publish destinations, backlog
+handoff targets, or credential references for MCP-backed services, that next
+slice should build on the existing guided init contract without weakening the
+non-interactive path used by automation.
 
 This roadmap remains intentionally sparse: a macrofeature only moves forward
 once its bounds, artifact contract, and validation story are explicit.

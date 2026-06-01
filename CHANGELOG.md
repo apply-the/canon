@@ -15,6 +15,35 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [Upcoming]
+
+Planning notes for the next release line are not fixed yet. This section will
+be updated once new work is scoped.
+
+## [0.63.0] - 2026-06-01
+
+Delivered specs:
+
+- `specs/063-interactive-init-ui/`
+
+Highlights:
+
+- Added a guided full-screen `canon init` experience in `canon-cli` using
+  `ratatui` and `crossterm`, with assistant preselection and a confirmation
+  step before runtime initialization.
+- Preserved script-safe init behavior behind `--non-interactive`, including
+  assistant flags, machine-readable output, and default fallback when an
+  interactive terminal is unavailable.
+- Expanded assistant coverage so guided and non-interactive init now support
+  Cursor and Antigravity alongside the existing assistant targets.
+- Added explicit rejection for structured output without
+  `--non-interactive`, plus preflight layout-fit checks that fail before the
+  TUI opens when the current terminal is too small.
+- Hardened terminal cleanup so success, `Ctrl+C`, and guided-path failures all
+  restore the terminal before control returns to the shell.
+- Aligned the published docs, roadmap, and source-guide links with the current
+  `0.63.0` release line.
+
 ## [0.61.0] - 2026-05-28
 
 Delivered specs:

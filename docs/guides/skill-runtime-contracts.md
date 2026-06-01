@@ -32,7 +32,7 @@ The script emits JSON conforming to
   "mode": "implementation",
   "canon": {
     "available": true,
-    "version": "0.61.0",
+    "version": "0.63.0",
     "initialized": true,
     "error": null
   },

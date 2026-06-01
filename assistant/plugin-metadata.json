@@ -1,7 +1,7 @@
 {
   "name": "canon",
   "displayName": "Canon Assistant Support",
-  "version": "0.62.0",
+  "version": "0.63.0",
   "description": "Governed packet runtime for AI-assisted engineering work",
   "author": {
     "name": "Apply The",
@@ -81,6 +81,12 @@
       "displayName": "Cursor",
       "packagePath": ".cursor-plugin",
       "manifestPath": ".cursor-plugin/manifest.json"
+    },
+    {
+      "id": "antigravity",
+      "displayName": "Antigravity",
+      "packagePath": ".antigravity-plugin",
+      "manifestPath": ".antigravity-plugin/manifest.json"
     },
     {
       "id": "copilot",

@@ -3,6 +3,7 @@ mod app;
 mod commands;
 mod error;
 mod output;
+mod tui;
 mod workspace;
 
 use crate::error::CliError;
