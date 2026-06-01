@@ -44,7 +44,7 @@ fn init_workspace() -> TempDir {
     let workspace = tempfile::tempdir().expect("tempdir");
     cli_command()
         .current_dir(workspace.path())
-        .args(["init", "--output", "json"])
+        .args(["init", "--non-interactive", "--output", "json"])
         .assert()
         .success();
     workspace

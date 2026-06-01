@@ -222,12 +222,18 @@ pub enum AiTool {
     Copilot,
     /// Anthropic Claude desktop or Claude Code.
     Claude,
+    /// Cursor IDE or Cursor agent flows.
+    Cursor,
+    /// Antigravity assistant host integrations.
+    Antigravity,
 }
 
 impl AiTool {
     fn materialization_target(self) -> SkillMaterializationTarget {
         match self {
-            Self::Codex | Self::Copilot => SkillMaterializationTarget::Agents,
+            Self::Codex | Self::Copilot | Self::Cursor | Self::Antigravity => {
+                SkillMaterializationTarget::Agents
+            }
             Self::Claude => SkillMaterializationTarget::Claude,
         }
     }

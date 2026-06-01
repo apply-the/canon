@@ -13,8 +13,8 @@ env:
   RUST_TOOLCHAIN: 1.96.0
 
 jobs:
-  nextest:
-    name: nextest
+  test:
+    name: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
-      - run: cargo nextest run --workspace --all-features
+      - run: cargo nextest run --workspace --all-features --no-fail-fast
 
   fmt:
     name: fmt

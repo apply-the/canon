@@ -6,10 +6,16 @@ use serde_json::{Value, json};
 use std::fs;
 use std::path::PathBuf;
 
-const MANIFESTS: &[&str] =
-    &[".claude-plugin/manifest.json", ".codex-plugin/plugin.json", ".cursor-plugin/manifest.json"];
+const MANIFESTS: &[&str] = &[
+    ".claude-plugin/manifest.json",
+    ".codex-plugin/plugin.json",
+    ".cursor-plugin/manifest.json",
+    ".antigravity-plugin/manifest.json",
+];
 
 const PACKAGE_FILES: &[&str] = &[
+    ".antigravity-plugin/manifest.json",
+    ".antigravity-plugin/commands.json",
     ".claude-plugin/manifest.json",
     ".claude-plugin/commands.json",
     ".codex-plugin/plugin.json",
@@ -45,7 +51,9 @@ fn workspace_version() -> String {
 #[test]
 fn package_folders_and_docs_are_present() {
     let root = repo_root();
-    for folder in [".claude-plugin", ".codex-plugin", ".cursor-plugin", "assistant"] {
+    for folder in
+        [".antigravity-plugin", ".claude-plugin", ".codex-plugin", ".cursor-plugin", "assistant"]
+    {
         assert!(root.join(folder).is_dir(), "missing package folder {folder}");
     }
     for file in PACKAGE_FILES {
@@ -54,6 +62,7 @@ fn package_folders_and_docs_are_present() {
 
     let guide = read_text("docs/guides/assistant-plugin-packages.md");
     for expected in [
+        ".antigravity-plugin/",
         ".claude-plugin/",
         ".codex-plugin/",
         ".cursor-plugin/",

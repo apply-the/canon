@@ -39,3 +39,28 @@ fn init_is_idempotent_and_creates_runtime_scaffolding() {
     assert!(canon.join("methods").join("supply-chain-analysis.toml").exists());
     assert!(canon.join("policies").join("adapters.toml").exists());
 }
+
+#[test]
+fn init_non_interactive_is_idempotent_and_creates_runtime_scaffolding() {
+    let workspace = TempDir::new().expect("temp dir");
+
+    let mut first = cli_command();
+    first
+        .current_dir(workspace.path())
+        .args(["init", "--non-interactive", "--output", "json"])
+        .assert()
+        .success();
+
+    let canon = workspace.path().join(".canon");
+    assert!(canon.is_dir(), ".canon should be created");
+
+    let mut second = cli_command();
+    second
+        .current_dir(workspace.path())
+        .args(["init", "--non-interactive", "--output", "json"])
+        .assert()
+        .success();
+
+    assert!(canon.join("methods").join("pr-review.toml").exists());
+    assert!(canon.join("policies").join("adapters.toml").exists());
+}
