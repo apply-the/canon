@@ -1,0 +1,36 @@
+example_id = "invalid-independence-impossible-minima"
+expected_validation_result = "reject"
+expected_reason = "independence requirements are impossible to satisfy"
+contract_lines_involved = ["governed_reasoning_posture_v2"]
+contract_line = "governed_reasoning_posture_v2"
+schema_version = "v2"
+publication_status = "active"
+
+[compatibility_window]
+boundline_min = "0.63.0"
+boundline_max_exclusive = "0.64.0"
+canon_min = "0.64.0"
+canon_max_exclusive = "0.65.0"
+contract_line = "governed_reasoning_posture_v2"
+
+[profile_selector]
+selector_kind = "profile_id"
+required_profile_id = "independent_pair_review"
+
+[minimum_independence.hard_minima]
+route_distinct = true
+provider_distinct = true
+context_distinct = true
+prompt_pattern_distinct = true
+minimum_participants = 1
+
+[confidence_handoff]
+state = "none"
+rejection_mode = "fail_closed"
+
+[provenance]
+state = "minimal"
+
+[[provenance.references]]
+reference_kind = "fixture"
+reference_id = "tests/fixtures/governed_reasoning_posture_v2/invalid-independence-impossible-minima.toml"

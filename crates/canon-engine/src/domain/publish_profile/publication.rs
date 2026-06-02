@@ -1,3 +1,8 @@
+//! Publication-state helpers for Canon-owned publish-profile metadata.
+
+use std::collections::BTreeSet;
+
+use super::semantic::ReasoningPostureContractLine;
 use super::*;
 
 /// Contract version string for project-memory promotion lineage.
@@ -31,6 +36,114 @@ pub const OPTIONAL_V1_LINEAGE_FIELDS: &[&str] = &[
     "packet_readiness",
     "promotion_profile",
 ];
+
+/// Stable publication-state vocabulary for governed reasoning posture releases.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReasoningPosturePublicationStatus {
+    Active,
+    Legacy,
+}
+
+impl ReasoningPosturePublicationStatus {
+    /// Returns the stable serialized string for this publication status.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Legacy => "legacy",
+        }
+    }
+}
+
+impl std::fmt::Display for ReasoningPosturePublicationStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// One published reasoning-posture line within a release surface.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReasoningPosturePublicationLine {
+    pub contract_line: ReasoningPostureContractLine,
+    pub publication_status: ReasoningPosturePublicationStatus,
+}
+
+/// Typed helper for validating active-versus-legacy publication rules.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReasoningPosturePublicationSet {
+    pub published_lines: Vec<ReasoningPosturePublicationLine>,
+}
+
+impl ReasoningPosturePublicationSet {
+    /// Returns the active contract line when the set is well-formed.
+    pub fn active_line(&self) -> Option<ReasoningPostureContractLine> {
+        self.published_lines.iter().find_map(|line| {
+            matches!(line.publication_status, ReasoningPosturePublicationStatus::Active)
+                .then_some(line.contract_line)
+        })
+    }
+
+    /// Validates the Canon-owned active-versus-legacy publication invariants.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.published_lines.is_empty() {
+            return Err("reasoning posture publication sets require at least one line".to_string());
+        }
+        if self.published_lines.len() > 2 {
+            return Err("reasoning posture publication sets support at most two lines".to_string());
+        }
+
+        let mut unique_lines = BTreeSet::new();
+        let mut active_count = 0_usize;
+        let mut legacy_count = 0_usize;
+
+        for line in &self.published_lines {
+            if !unique_lines.insert(line.contract_line) {
+                return Err(format!(
+                    "reasoning posture publication sets cannot repeat contract line `{}`",
+                    line.contract_line,
+                ));
+            }
+
+            match line.publication_status {
+                ReasoningPosturePublicationStatus::Active => active_count += 1,
+                ReasoningPosturePublicationStatus::Legacy => legacy_count += 1,
+            }
+        }
+
+        if active_count != 1 {
+            return Err(
+                "reasoning posture publication sets require exactly one active line".to_string()
+            );
+        }
+
+        if self.published_lines.len() == 2 {
+            if legacy_count != 1 {
+                return Err(
+                    "dual-line reasoning posture publication requires exactly one legacy line"
+                        .to_string(),
+                );
+            }
+
+            let has_v1_legacy = self.published_lines.iter().any(|line| {
+                matches!(line.contract_line, ReasoningPostureContractLine::V1)
+                    && matches!(line.publication_status, ReasoningPosturePublicationStatus::Legacy)
+            });
+            let has_v2_active = self.published_lines.iter().any(|line| {
+                matches!(line.contract_line, ReasoningPostureContractLine::V2)
+                    && matches!(line.publication_status, ReasoningPosturePublicationStatus::Active)
+            });
+
+            if !has_v1_legacy || !has_v2_active {
+                return Err(
+                    "dual-line reasoning posture publication requires v1 legacy and v2 active"
+                        .to_string(),
+                );
+            }
+        }
+
+        Ok(())
+    }
+}
 
 /// A publish profile determines how Canon routes governed output into
 /// project-visible surfaces.
@@ -264,4 +377,115 @@ pub struct PublishProfilesPolicy {
     pub contract_version: String,
     /// The per-mode promotion policy entries.
     pub profiles: Vec<ModePromotionPolicy>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reasoning_posture_publication_status_strings_and_display_are_stable() {
+        for (status, expected) in [
+            (ReasoningPosturePublicationStatus::Active, "active"),
+            (ReasoningPosturePublicationStatus::Legacy, "legacy"),
+        ] {
+            assert_eq!(status.as_str(), expected);
+            assert_eq!(status.to_string(), expected);
+            assert_eq!(serde_json::to_string(&status).unwrap(), format!("\"{expected}\""));
+        }
+    }
+
+    #[test]
+    fn reasoning_posture_publication_set_accepts_v2_active_v1_legacy() {
+        let publication_set = ReasoningPosturePublicationSet {
+            published_lines: vec![
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V1,
+                    publication_status: ReasoningPosturePublicationStatus::Legacy,
+                },
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Active,
+                },
+            ],
+        };
+
+        assert!(publication_set.validate().is_ok());
+        assert_eq!(publication_set.active_line(), Some(ReasoningPostureContractLine::V2));
+    }
+
+    #[test]
+    fn reasoning_posture_publication_set_rejects_dual_active_lines() {
+        let publication_set = ReasoningPosturePublicationSet {
+            published_lines: vec![
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V1,
+                    publication_status: ReasoningPosturePublicationStatus::Active,
+                },
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Active,
+                },
+            ],
+        };
+
+        let error = publication_set.validate().unwrap_err();
+        assert!(error.contains("exactly one active line"));
+    }
+
+    #[test]
+    fn reasoning_posture_publication_set_rejects_empty_duplicate_wrong_dual_line_and_too_many() {
+        let empty = ReasoningPosturePublicationSet { published_lines: Vec::new() };
+        let error = empty.validate().unwrap_err();
+        assert!(error.contains("at least one line"));
+
+        let duplicate = ReasoningPosturePublicationSet {
+            published_lines: vec![
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Active,
+                },
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Legacy,
+                },
+            ],
+        };
+        let error = duplicate.validate().unwrap_err();
+        assert!(error.contains("cannot repeat contract line"));
+
+        let wrong_dual_line = ReasoningPosturePublicationSet {
+            published_lines: vec![
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V1,
+                    publication_status: ReasoningPosturePublicationStatus::Active,
+                },
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Legacy,
+                },
+            ],
+        };
+        let error = wrong_dual_line.validate().unwrap_err();
+        assert!(error.contains("v1 legacy and v2 active"));
+
+        let too_many = ReasoningPosturePublicationSet {
+            published_lines: vec![
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V1,
+                    publication_status: ReasoningPosturePublicationStatus::Legacy,
+                },
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Active,
+                },
+                ReasoningPosturePublicationLine {
+                    contract_line: ReasoningPostureContractLine::V2,
+                    publication_status: ReasoningPosturePublicationStatus::Legacy,
+                },
+            ],
+        };
+        let error = too_many.validate().unwrap_err();
+        assert!(error.contains("at most two lines"));
+    }
 }

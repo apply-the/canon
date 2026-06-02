@@ -20,6 +20,29 @@ recorded workspace version.
 Planning notes for the next release line are not fixed yet. This section will
 be updated once new work is scoped.
 
+## [0.64.0] - 2026-06-02
+
+Delivered specs:
+
+- `specs/065-reasoning-posture-v2/`
+
+Highlights:
+
+- Published `governed_reasoning_posture_v2` as the current Canon-owned
+  reasoning-posture contract while freezing `governed_reasoning_posture_v1` as
+  legacy-only migration context.
+- Replaced the flat `v1` posture shape with typed selector,
+  `minimum_independence`, `confidence_handoff`, `provenance`, and
+  `compatibility_window` blocks, all backed by executable fixture validation.
+- Added fail-closed fixtures for malformed selectors, weakened independence,
+  incomplete confidence handoff, incompatible or stale provenance, unsupported
+  vocabulary, invalid compatibility windows, and release-metadata drift.
+- Published explicit dual-line coexistence and migration rejection rules so one
+  active line and one legacy line remain the only supported mixed-line state.
+- Aligned the workspace version, runtime compatibility metadata, assistant
+  package metadata, README, roadmap, CLI reference, and stable integration
+  contract to the Canon `0.64.0` release line.
+
 ## [0.63.1] - 2026-06-02
 
 Delivered changes:

@@ -14,20 +14,36 @@ pub use authority::{
     AdaptiveGovernanceState, AdaptiveGovernanceV1Envelope, AdaptiveGovernanceV1RuntimeInputs,
     AdaptiveRolloutProfile, AuthorityApprovalState, AuthorityGovernanceV1Envelope,
     AuthorityGovernanceV1RuntimeInputs, AuthorityPacketReadiness, AuthorityRiskClass,
+    ReasoningPostureAuthorityBoundary, ReasoningPostureConsumerCapability,
 };
 pub use publication::{
     CANON_PRODUCER, GOVERNED_EXPERTISE_INPUT_CONTRACT_VERSION, LineageMetadata,
     ManagedBlockDescriptor, ModePromotionPolicy, OPTIONAL_V1_LINEAGE_FIELDS,
     PROJECT_MEMORY_CONTRACT_VERSION, PROJECT_MEMORY_MANAGED_BLOCK_MARKER,
     PROJECT_MEMORY_PACKET_METADATA_FILE_NAME, PromotionState, PublishProfile,
-    PublishProfilesPolicy, REQUIRED_V1_LINEAGE_FIELDS, UpdateStrategy,
+    PublishProfilesPolicy, REQUIRED_V1_LINEAGE_FIELDS, ReasoningPosturePublicationLine,
+    ReasoningPosturePublicationSet, ReasoningPosturePublicationStatus, UpdateStrategy,
 };
 pub use semantic::{
     ArtifactIndexingMetadata, ArtifactMetadataCarrier, ExpertiseInputMetadata,
-    IndexableArtifactClass, PublicationTargetClass, SEMANTIC_ARTIFACT_CONTRACT_LINE_V1,
-    SemanticArtifactDescriptor, SemanticEligibilityState, SemanticProvenanceBoundary,
-    classify_governed_expertise_input, indexable_artifact_class_for_publication,
-    normalize_domain_families,
+    GOVERNED_REASONING_POSTURE_CONTRACT_LINE_V1, GOVERNED_REASONING_POSTURE_CONTRACT_LINE_V2,
+    GOVERNED_REASONING_POSTURE_SCHEMA_VERSION_V2,
+    GOVERNED_REASONING_POSTURE_V1_BOUNDLINE_MAX_EXCLUSIVE,
+    GOVERNED_REASONING_POSTURE_V1_BOUNDLINE_MIN, GOVERNED_REASONING_POSTURE_V1_CANON_MAX_EXCLUSIVE,
+    GOVERNED_REASONING_POSTURE_V1_CANON_MIN, GOVERNED_REASONING_POSTURE_V2_BOUNDLINE_MAX_EXCLUSIVE,
+    GOVERNED_REASONING_POSTURE_V2_BOUNDLINE_MIN, GOVERNED_REASONING_POSTURE_V2_CANON_MAX_EXCLUSIVE,
+    GOVERNED_REASONING_POSTURE_V2_CANON_MIN, IndexableArtifactClass, PublicationTargetClass,
+    ReasoningPostureCompatibilityWindow, ReasoningPostureConfidenceHandoff,
+    ReasoningPostureConfidenceHandoffState, ReasoningPostureConfidenceValidationRule,
+    ReasoningPostureContractLine, ReasoningPostureIndependenceDimension,
+    ReasoningPostureIndependenceGuidance, ReasoningPostureIndependenceHardMinima,
+    ReasoningPostureMinimumIndependence, ReasoningPostureProfileFamily, ReasoningPostureProfileId,
+    ReasoningPostureProfileSelector, ReasoningPostureProvenance,
+    ReasoningPostureProvenanceReference, ReasoningPostureProvenanceState,
+    ReasoningPostureReferenceKind, ReasoningPostureRejectionMode, ReasoningPostureSelectorKind,
+    SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor, SemanticEligibilityState,
+    SemanticProvenanceBoundary, classify_governed_expertise_input,
+    indexable_artifact_class_for_publication, normalize_domain_families,
 };
 
 #[cfg(test)]

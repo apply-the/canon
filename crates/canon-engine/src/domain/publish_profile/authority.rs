@@ -1,3 +1,7 @@
+//! Authority-boundary helpers for Canon-owned publish-profile metadata.
+
+use super::publication::ReasoningPosturePublicationStatus;
+use super::semantic::ReasoningPostureContractLine;
 use super::*;
 
 /// Contract line string for the first authority-governance metadata slice.
@@ -106,6 +110,64 @@ impl AdaptiveRolloutProfile {
 impl std::fmt::Display for AdaptiveRolloutProfile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.as_str())
+    }
+}
+
+/// Consumer capability vocabulary used to validate reasoning-posture migration boundaries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ReasoningPostureConsumerCapability {
+    V1Only,
+    V2Capable,
+    V2Required,
+}
+
+impl ReasoningPostureConsumerCapability {
+    /// Returns the stable serialized string for this capability.
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::V1Only => "v1-only",
+            Self::V2Capable => "v2-capable",
+            Self::V2Required => "v2-required",
+        }
+    }
+}
+
+impl std::fmt::Display for ReasoningPostureConsumerCapability {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Typed helper for validating reasoning-posture migration authority boundaries.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReasoningPostureAuthorityBoundary {
+    pub producer_line: ReasoningPostureContractLine,
+    pub publication_status: ReasoningPosturePublicationStatus,
+    pub consumer_capability: ReasoningPostureConsumerCapability,
+}
+
+impl ReasoningPostureAuthorityBoundary {
+    /// Validates whether the producer line may cross the requested consumer boundary.
+    pub fn validate_migration_state(&self) -> Result<(), String> {
+        match (self.producer_line, self.consumer_capability) {
+            (ReasoningPostureContractLine::V2, ReasoningPostureConsumerCapability::V1Only) => {
+                return Err("v1-only consumer cannot consume v2".to_string());
+            }
+            (ReasoningPostureContractLine::V1, ReasoningPostureConsumerCapability::V2Required) => {
+                return Err("v2-required workflow cannot consume v1".to_string());
+            }
+            _ => {}
+        }
+
+        if matches!(self.consumer_capability, ReasoningPostureConsumerCapability::V2Required)
+            && matches!(self.producer_line, ReasoningPostureContractLine::V2)
+            && !matches!(self.publication_status, ReasoningPosturePublicationStatus::Active)
+        {
+            return Err("v2-required workflow needs v2 published as active".to_string());
+        }
+
+        Ok(())
     }
 }
 
@@ -247,5 +309,65 @@ impl AuthorityGovernanceV1Envelope {
             promotion_refs,
             stage_role_hints: mode.stage_role_hints(),
         }
+    }
+}
+
+#[cfg(test)]
+mod reasoning_posture_authority_tests {
+    use super::*;
+
+    #[test]
+    fn reasoning_posture_consumer_capability_strings_and_display_are_stable() {
+        for (capability, expected) in [
+            (ReasoningPostureConsumerCapability::V1Only, "v1-only"),
+            (ReasoningPostureConsumerCapability::V2Capable, "v2-capable"),
+            (ReasoningPostureConsumerCapability::V2Required, "v2-required"),
+        ] {
+            assert_eq!(capability.as_str(), expected);
+            assert_eq!(capability.to_string(), expected);
+            assert_eq!(serde_json::to_string(&capability).unwrap(), format!("\"{expected}\""));
+        }
+    }
+
+    #[test]
+    fn reasoning_posture_authority_boundary_rejects_v2_for_v1_only_consumers() {
+        let boundary = ReasoningPostureAuthorityBoundary {
+            producer_line: ReasoningPostureContractLine::V2,
+            publication_status: ReasoningPosturePublicationStatus::Active,
+            consumer_capability: ReasoningPostureConsumerCapability::V1Only,
+        };
+
+        let error = boundary.validate_migration_state().unwrap_err();
+        assert!(error.contains("v1-only consumer cannot consume v2"));
+    }
+
+    #[test]
+    fn reasoning_posture_authority_boundary_requires_active_v2_for_v2_required_workflows() {
+        let boundary = ReasoningPostureAuthorityBoundary {
+            producer_line: ReasoningPostureContractLine::V2,
+            publication_status: ReasoningPosturePublicationStatus::Legacy,
+            consumer_capability: ReasoningPostureConsumerCapability::V2Required,
+        };
+
+        let error = boundary.validate_migration_state().unwrap_err();
+        assert!(error.contains("needs v2 published as active"));
+    }
+
+    #[test]
+    fn reasoning_posture_authority_boundary_rejects_v1_for_v2_required_and_accepts_v2_capable() {
+        let legacy_boundary = ReasoningPostureAuthorityBoundary {
+            producer_line: ReasoningPostureContractLine::V1,
+            publication_status: ReasoningPosturePublicationStatus::Legacy,
+            consumer_capability: ReasoningPostureConsumerCapability::V2Required,
+        };
+        let error = legacy_boundary.validate_migration_state().unwrap_err();
+        assert!(error.contains("v2-required workflow cannot consume v1"));
+
+        let compatible_boundary = ReasoningPostureAuthorityBoundary {
+            producer_line: ReasoningPostureContractLine::V2,
+            publication_status: ReasoningPosturePublicationStatus::Active,
+            consumer_capability: ReasoningPostureConsumerCapability::V2Capable,
+        };
+        assert!(compatible_boundary.validate_migration_state().is_ok());
     }
 }

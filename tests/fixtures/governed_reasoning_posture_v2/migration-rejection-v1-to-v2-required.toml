@@ -1,0 +1,15 @@
+example_id = "migration-rejection-v1-to-v2-required"
+expected_validation_result = "reject"
+expected_reason = "v1 payload cannot satisfy a v2-required workflow"
+contract_lines_involved = [
+  "governed_reasoning_posture_v1",
+  "governed_reasoning_posture_v2",
+]
+
+[producer]
+contract_line = "governed_reasoning_posture_v1"
+publication_status = "legacy"
+
+[consumer]
+required_contract_line = "governed_reasoning_posture_v2"
+compatibility_mode = "v2-required"

@@ -1,0 +1,29 @@
+example_id = "invalid-independence-missing-block"
+expected_validation_result = "reject"
+expected_reason = "minimum_independence missing"
+contract_lines_involved = ["governed_reasoning_posture_v2"]
+contract_line = "governed_reasoning_posture_v2"
+schema_version = "v2"
+publication_status = "active"
+
+[compatibility_window]
+boundline_min = "0.63.0"
+boundline_max_exclusive = "0.64.0"
+canon_min = "0.64.0"
+canon_max_exclusive = "0.65.0"
+contract_line = "governed_reasoning_posture_v2"
+
+[profile_selector]
+selector_kind = "profile_family"
+required_profile_family = "blind_review"
+
+[confidence_handoff]
+state = "none"
+rejection_mode = "fail_closed"
+
+[provenance]
+state = "minimal"
+
+[[provenance.references]]
+reference_kind = "stable_doc"
+reference_id = "tech-docs/integration/governed-reasoning-posture-contract.md"

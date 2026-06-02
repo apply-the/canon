@@ -21,6 +21,13 @@ Canon separates semantic posture into two contracts:
 - **Authority Governance (`authority-governance-v1`)**: The required baseline contract.
 - **Adaptive Governance (`adaptive-governance-v1`)**: An optional companion contract.
 
+For downstream reasoning-posture consumers such as Boundline, Canon also
+publishes the stable `governed_reasoning_posture_v2` contract in
+`tech-docs/integration/governed-reasoning-posture-contract.md`. That contract
+is Canon-owned, versioned independently from runtime orchestration, and now
+defines typed selector, `minimum_independence`, `confidence_handoff`,
+`provenance`, `compatibility_window`, and active-versus-legacy migration rules.
+
 | Type | Term | Definition |
 | --- | --- | --- |
 | Governance State | `advisory` | A state in the Adaptive Governance layer suggesting guidance. |
