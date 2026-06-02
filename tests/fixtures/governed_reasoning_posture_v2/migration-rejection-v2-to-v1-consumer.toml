@@ -1,0 +1,15 @@
+example_id = "migration-rejection-v2-to-v1-consumer"
+expected_validation_result = "reject"
+expected_reason = "v2 payload cannot be consumed by a v1-only consumer"
+contract_lines_involved = [
+  "governed_reasoning_posture_v1",
+  "governed_reasoning_posture_v2",
+]
+
+[producer]
+contract_line = "governed_reasoning_posture_v2"
+publication_status = "active"
+
+[consumer]
+required_contract_line = "governed_reasoning_posture_v1"
+compatibility_mode = "v1-only"

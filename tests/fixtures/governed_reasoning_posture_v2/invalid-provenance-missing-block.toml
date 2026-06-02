@@ -1,0 +1,29 @@
+example_id = "invalid-provenance-missing-block"
+expected_validation_result = "reject"
+expected_reason = "provenance missing"
+contract_lines_involved = ["governed_reasoning_posture_v2"]
+contract_line = "governed_reasoning_posture_v2"
+schema_version = "v2"
+publication_status = "active"
+
+[compatibility_window]
+boundline_min = "0.63.0"
+boundline_max_exclusive = "0.64.0"
+canon_min = "0.64.0"
+canon_max_exclusive = "0.65.0"
+contract_line = "governed_reasoning_posture_v2"
+
+[profile_selector]
+selector_kind = "profile_family"
+required_profile_family = "blind_review"
+
+[minimum_independence.hard_minima]
+route_distinct = true
+provider_distinct = true
+context_distinct = true
+prompt_pattern_distinct = true
+minimum_participants = 2
+
+[confidence_handoff]
+state = "none"
+rejection_mode = "fail_closed"

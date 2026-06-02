@@ -1,0 +1,16 @@
+example_id = "dual-line-coexistence-ambiguous"
+expected_validation_result = "reject"
+expected_reason = "dual-line publication is ambiguous"
+contract_lines_involved = [
+  "governed_reasoning_posture_v1",
+  "governed_reasoning_posture_v2",
+]
+publication_set_status = "coexisting"
+
+[[published_lines]]
+contract_line = "governed_reasoning_posture_v1"
+publication_status = "active"
+
+[[published_lines]]
+contract_line = "governed_reasoning_posture_v2"
+publication_status = "active"

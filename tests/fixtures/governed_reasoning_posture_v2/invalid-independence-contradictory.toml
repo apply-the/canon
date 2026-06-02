@@ -1,0 +1,44 @@
+example_id = "invalid-independence-contradictory"
+expected_validation_result = "reject"
+expected_reason = "independence requirements contradict each other"
+contract_lines_involved = ["governed_reasoning_posture_v2"]
+contract_line = "governed_reasoning_posture_v2"
+schema_version = "v2"
+publication_status = "active"
+
+[compatibility_window]
+boundline_min = "0.63.0"
+boundline_max_exclusive = "0.64.0"
+canon_min = "0.64.0"
+canon_max_exclusive = "0.65.0"
+contract_line = "governed_reasoning_posture_v2"
+
+[profile_selector]
+selector_kind = "profile_family"
+required_profile_family = "blind_review"
+
+[minimum_independence.hard_minima]
+route_distinct = false
+provider_distinct = false
+context_distinct = false
+prompt_pattern_distinct = false
+minimum_participants = 2
+
+[minimum_independence.guidance]
+preferred_distinct_dimensions = [
+  "route_distinct",
+  "provider_distinct",
+  "context_distinct",
+  "prompt_pattern_distinct",
+]
+
+[confidence_handoff]
+state = "none"
+rejection_mode = "fail_closed"
+
+[provenance]
+state = "minimal"
+
+[[provenance.references]]
+reference_kind = "fixture"
+reference_id = "tests/fixtures/governed_reasoning_posture_v2/invalid-independence-contradictory.toml"

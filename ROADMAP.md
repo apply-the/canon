@@ -1,10 +1,11 @@
 # Next Features
 
-## Current 0.63.1
+## Current 0.64.0
 
-Canon 0.63.1 is the current public release line. The `canon-pr-review` intake,
-skill validators, README, changelog, roadmap, and site now describe one
-consistent `0.63.1` story.
+Canon 0.64.0 is the current public release line. The stable reasoning-posture
+contract, executable fixture corpus, migration rules, runtime compatibility
+metadata, README, changelog, roadmap, and reference docs now describe one
+consistent `0.64.0` story.
 
 ## Recently Landed
 
@@ -17,6 +18,11 @@ success, `Ctrl+C`, and guided-path failures.
 Canon 0.63.1 follows that release by tightening `canon-pr-review` intake with
 guided comparison choices when base/head refs are missing or semantically
 unclear.
+
+Canon 0.64.0 follows by publishing `governed_reasoning_posture_v2` as the new
+stable contract line, with explicit fail-closed selector, independence,
+confidence handoff, provenance, compatibility-window, and active-versus-legacy
+coexistence semantics.
 
 The assistant surface also now includes Cursor and Antigravity across guided
 init, non-interactive init, and repository-level assistant package metadata.

@@ -3,12 +3,15 @@
 ## Contract Identity
 
 - `owner`: `canon`
-- `current_contract_line`: `governed_reasoning_posture_v1`
-- `schema_version`: `v1`
+- `current_contract_line`: `governed_reasoning_posture_v2`
+- `legacy_contract_line`: `governed_reasoning_posture_v1`
+- `schema_version`: `v2`
 - `stable_doc`: `tech-docs/integration/governed-reasoning-posture-contract.md`
+- `example_corpus`: `tests/fixtures/governed_reasoning_posture_v2/`
+- `migration_contract`: `specs/065-reasoning-posture-v2/contracts/governed-reasoning-posture-v2-migration.md`
 - `primary_consumer`: `boundline`
-- `supported_boundline_window`: `0.62.x`
-- `supported_canon_window`: `0.63.x`
+- `supported_boundline_window`: `0.63.x`
+- `supported_canon_window`: `0.64.x`
 
 ## Purpose
 
@@ -26,47 +29,75 @@ Boundline runtime orchestration.
 - If this stable contract and a Boundline feature brief diverge, the stable
   Canon document wins until both repositories are realigned.
 - Canon owns posture authoring, posture provenance, and contract-line
-  evolution; Boundline owns runtime activation, participant routing, trace
+  evolution, active-versus-legacy publication, and compatibility-window
+  truth; Boundline owns runtime activation, participant routing, trace
   emission, and operator-facing execution summaries.
 
 ## Producer Shape
 
 ```toml
-contract_line = "governed_reasoning_posture_v1"
-boundline_min = "0.62.0"
-boundline_max_exclusive = "0.63.0"
-canon_min = "0.63.1"
-canon_max_exclusive = "0.64.0"
-required_profile_family = "blind_review"
-admission_priority = "required_before_acceptance"
-confidence_handoff_required = true
-provenance_ref = "packet:reasoning-posture-123"
+contract_line = "governed_reasoning_posture_v2"
+schema_version = "v2"
+publication_status = "active"
 
-[minimum_independence]
+[compatibility_window]
+boundline_min = "0.63.0"
+boundline_max_exclusive = "0.64.0"
+canon_min = "0.64.0"
+canon_max_exclusive = "0.65.0"
+contract_line = "governed_reasoning_posture_v2"
+
+[profile_selector]
+selector_kind = "profile_family"
+required_profile_family = "blind_review"
+
+[minimum_independence.hard_minima]
 route_distinct = true
 provider_distinct = true
-context_distinct = false
+context_distinct = true
 prompt_pattern_distinct = true
 minimum_participants = 2
+
+[minimum_independence.guidance]
+recommended_minimum_participants = 3
+preferred_distinct_dimensions = ["route_distinct", "provider_distinct"]
+
+[confidence_handoff]
+state = "required"
+consumer_obligation = "require_structured_confidence_review"
+validation_rules = ["reference_kind_required", "evidence_backed_provenance_required"]
+evidence_ref_ids = ["validation-report:reasoning-posture-v2"]
+rejection_mode = "fail_closed"
+
+[provenance]
+state = "evidence_backed"
+
+[[provenance.references]]
+reference_kind = "validation_report"
+reference_id = "validation-report:reasoning-posture-v2"
+description = "Validation report entry for the canonical v2 posture payload"
 ```
 
 ## Required Fields
 
 Canon MUST publish all of the following fields for
-`governed_reasoning_posture_v1`:
+`governed_reasoning_posture_v2`:
 
 - `contract_line`
-- `boundline_min`
-- `boundline_max_exclusive`
-- `canon_min`
-- `canon_max_exclusive`
-- one of `required_profile_family` or `required_profile_id`
+- `schema_version`
+- `publication_status`
+- `compatibility_window`
+- `profile_selector`
 - `minimum_independence`
-- `admission_priority`
-- `confidence_handoff_required`
-- `provenance_ref`
+- `confidence_handoff`
+- `provenance`
 
 ## Supported Vocabulary
+
+Supported `selector_kind` values:
+
+- `profile_family`
+- `profile_id`
 
 Supported `required_profile_family` values:
 
@@ -83,13 +114,31 @@ Supported explicit `required_profile_id` values:
 - `heterogeneous_security_review`
 - `bounded_reflexion`
 
-Supported `admission_priority` values:
+Supported `confidence_handoff.state` values:
 
-- `advisory`
-- `required_before_continue`
-- `required_before_acceptance`
+- `none`
+- `required`
 
-`minimum_independence` MUST publish these keys:
+Every `confidence_handoff` block must also publish `rejection_mode`.
+
+Supported `rejection_mode` values:
+
+- `fail_closed`
+
+Supported `provenance.state` values:
+
+- `minimal`
+- `evidence_backed`
+
+Supported provenance `reference_kind` values:
+
+- `packet`
+- `artifact`
+- `stable_doc`
+- `validation_report`
+- `fixture`
+
+`minimum_independence.hard_minima` MUST publish these keys:
 
 - `route_distinct`
 - `provider_distinct`
@@ -97,14 +146,51 @@ Supported `admission_priority` values:
 - `prompt_pattern_distinct`
 - `minimum_participants`
 
+## Fail-Closed Rejection Rules
+
+Executable validation MUST reject:
+
+- missing required top-level blocks
+- contradictory selector data
+- selector payloads where both `required_profile_family` and
+  `required_profile_id` are present
+- selector payloads where neither `required_profile_family` nor
+  `required_profile_id` is present
+- absent or contradictory hard-minimum independence requirements
+- guidance that weakens hard minima
+- omitted `confidence_handoff`
+- `confidence_handoff.state = none` payloads that still carry required-handoff
+  semantics
+- omitted or incompatible `provenance`
+- provenance references that omit `reference_kind`
+- stale provenance references
+- contradictory provenance states or evidence
+- unsupported vocabulary values
+- invalid compatibility windows
+- stale release metadata
+- contradictory release metadata
+
 ## Compatibility Rules
 
 - Canon MUST fail closed on unsupported or incomplete producer data before the
   posture is published to consumers.
 - Additive optional fields MAY be introduced without a new contract line only
-  when they preserve backward compatibility for Boundline `0.62.x`.
+  when they preserve backward compatibility for Boundline `0.63.x`.
 - Any breaking change to required fields, compatibility semantics, or the
   supported vocabulary requires a new contract line.
+- Release-facing metadata that claims support for `governed_reasoning_posture_v2`
+  MUST align with Boundline `0.63.x` and Canon `0.64.x`.
+
+## Coexistence And Migration Rules
+
+- `v1` and `v2` may coexist only when exactly one line is marked `active` and
+  the other is explicitly marked `legacy`.
+- There is no implicit fallback from `governed_reasoning_posture_v2` to
+  `governed_reasoning_posture_v1`.
+- A `v1`-only consumer rejects `v2` with an explicit incompatibility reason.
+- A `v2`-required workflow rejects `v1` even when `v1` remains published as
+  `legacy`.
+- Mixed publication states that make the active line ambiguous fail closed.
 
 ## Consumer Boundary
 
