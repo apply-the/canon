@@ -49,7 +49,7 @@ Typical meanings:
 - approval rejected when downstream use should stop
 - approval expired when prior approval no longer applies
 
-Exact machine-facing values are part of the adapter contract. Canonical source: [Governance Adapter Integration](https://github.com/apply-the/canon/blob/0.63.0/tech-docs/integration/governance-adapter.md).
+Exact machine-facing values are part of the adapter contract. Canonical source: [Governance Adapter Integration](https://github.com/apply-the/canon/blob/0.63.1/tech-docs/integration/governance-adapter.md).
 
 ## Readiness States
 

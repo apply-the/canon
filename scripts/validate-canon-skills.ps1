@@ -227,6 +227,8 @@ Require-Text $PrReviewPath 'exact Canon CLI form' 'canon-pr-review: must promise
 Require-Text $PrReviewPath 'accepts local refs plus resolved remote-tracking refs' 'canon-pr-review: must state remote-tracking refs are accepted when they resolve'
 Require-Text $PrReviewPath 'inside Canon execution rather than before Canon execution' 'canon-pr-review: must distinguish preflight failures from Canon-execution failures'
 Require-Text $PrReviewPath 'guided fixed choices' 'canon-pr-review: must require guided choices for enum fields'
+Require-Text $PrReviewPath 'guided comparison choice' 'canon-pr-review: must require a guided comparison choice when refs are missing or unclear'
+Require-Text $PrReviewPath 'host rich-input widgets when available and plain guided text otherwise' 'canon-pr-review: must describe host rich-input fallback for guided comparison choices'
 Require-Text $PrReviewPath 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-pr-review: must list canonical risk choices'
 Require-Text $PrReviewPath 'green`, `yellow`, or `red' 'canon-pr-review: must list canonical zone choices'
 Require-Text $PrReviewPath 'guided choice between `WORKTREE` and providing a different head ref' 'canon-pr-review: must require a guided WORKTREE choice when refs collapse and worktree is dirty'

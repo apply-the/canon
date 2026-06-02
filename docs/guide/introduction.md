@@ -1,9 +1,9 @@
 # Canon
 
 > [!TIP]
-> This wiki is aligned with **Canon 0.63.0**. For older versions, refer to the repository tags.
+> This wiki is aligned with **Canon 0.63.1**. For older versions, refer to the repository tags.
 
-![Canon - Semantic Governance Runtime](https://github.com/apply-the/canon/blob/0.63.0/tech-docs/images/canon-banner.jpg)
+![Canon - Semantic Governance Runtime](https://github.com/apply-the/canon/blob/0.63.1/tech-docs/images/canon-banner.jpg)
 
 
 **The governance runtime for AI-assisted engineering.** Keep AI agents bounded, inspectable, and safely restricted to approved work zones.

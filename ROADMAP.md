@@ -1,10 +1,10 @@
 # Next Features
 
-## Current 0.63.0
+## Current 0.63.1
 
-Canon 0.63.0 is the current public release line. The guided `canon init` flow,
-assistant selector, README, changelog, roadmap, and site now describe one
-consistent `0.63.0` story.
+Canon 0.63.1 is the current public release line. The `canon-pr-review` intake,
+skill validators, README, changelog, roadmap, and site now describe one
+consistent `0.63.1` story.
 
 ## Recently Landed
 
@@ -13,6 +13,10 @@ terminals. The CLI now opens a branded assistant selector by default, keeps a
 confirmation step before initialization, preserves the existing script-safe
 contract behind `--non-interactive`, and restores the terminal cleanly on
 success, `Ctrl+C`, and guided-path failures.
+
+Canon 0.63.1 follows that release by tightening `canon-pr-review` intake with
+guided comparison choices when base/head refs are missing or semantically
+unclear.
 
 The assistant surface also now includes Cursor and Antigravity across guided
 init, non-interactive init, and repository-level assistant package metadata.
