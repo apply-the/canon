@@ -8,8 +8,8 @@ The goal of Canon is to transform AI-assisted engineering activity into a proces
 
 ## <i class="fa-solid fa-rocket"></i> Upcoming Features & Topics
 
-### Current 0.63.0
-- **Interactive `canon init` Guided Flow**: Canon 0.63.0 now opens a branded assistant selector by default in supported terminals, preserves `--non-interactive` for scripts and structured output, and restores the terminal cleanly on success, interruption, and guided-path failure.
+### Current 0.63.1
+- **Guided `pr-review` Ref Choice**: Canon 0.63.1 now hardens `canon-pr-review` intake with a guided comparison choice when base/head refs are missing or semantically unclear, while preserving host-rich-input support and plain guided-text fallback.
 
 ### Recently Landed
 - **Assistant Surface Expansion**: `canon init` now supports Cursor and Antigravity alongside the existing assistant targets, while repository-level assistant package metadata remains aligned with the current release.

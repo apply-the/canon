@@ -14,4 +14,9 @@ Use these prompts with the Canon CLI installed in the target repository:
 | Verify claims | Verify these claims against recorded evidence. | `canon run --mode verification --risk <RISK> --zone <ZONE> --owner <OWNER> --input <INPUT_PATH>` |
 | Publish packet | Publish this Canon packet after readiness is established. | `canon publish <RUN_ID>` |
 
+For `canon-pr-review`, if the requested comparison is missing or unclear,
+start with a guided comparison choice such as `origin/<default-branch> -> HEAD`,
+`<default-branch> -> HEAD`, `<base-ref> -> WORKTREE`, or a custom base/head
+pair. Use host selection UI when available and plain guided text otherwise.
+
 Canon CLI and the governance adapter remain authoritative for packet behavior, run state, evidence, approvals, and provenance. Copilot prompts should reference Canon-owned skills and method guidance when those files are present in the repository; they should not invent run ids, approvals, or evidence.

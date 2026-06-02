@@ -2,7 +2,7 @@
 
 Get Canon running in your repository in 5 minutes.
 
-This quick start tracks `0.63.0`.
+This quick start tracks `0.63.1`.
 
 ## 1. Install
 

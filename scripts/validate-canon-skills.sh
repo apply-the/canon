@@ -245,6 +245,8 @@ require_text "$pr_review_path" 'exact Canon CLI form' 'canon-pr-review: must pro
 require_text "$pr_review_path" 'accepts local refs plus resolved remote-tracking refs' 'canon-pr-review: must state remote-tracking refs are accepted when they resolve'
 require_text "$pr_review_path" 'inside Canon execution rather than before Canon execution' 'canon-pr-review: must distinguish preflight failures from Canon-execution failures'
 require_text "$pr_review_path" 'guided fixed choices' 'canon-pr-review: must require guided choices for enum fields'
+require_text "$pr_review_path" 'guided comparison choice' 'canon-pr-review: must require a guided comparison choice when refs are missing or unclear'
+require_text "$pr_review_path" 'host rich-input widgets when available and plain guided text otherwise' 'canon-pr-review: must describe host rich-input fallback for guided comparison choices'
 require_text "$pr_review_path" 'low-impact`, `bounded-impact`, or `systemic-impact' 'canon-pr-review: must list canonical risk choices'
 require_text "$pr_review_path" 'green`, `yellow`, or `red' 'canon-pr-review: must list canonical zone choices'
 require_text "$pr_review_path" 'guided choice between `WORKTREE` and providing a different head ref' 'canon-pr-review: must require a guided WORKTREE choice when refs collapse and worktree is dirty'

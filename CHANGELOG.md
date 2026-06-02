@@ -20,6 +20,24 @@ recorded workspace version.
 Planning notes for the next release line are not fixed yet. This section will
 be updated once new work is scoped.
 
+## [0.63.1] - 2026-06-02
+
+Delivered changes:
+
+- Patch-only bugfix release; no new `specs/` directory.
+
+Highlights:
+
+- Hardened `canon-pr-review` intake so missing or semantically unclear base/head
+  refs now start from a guided comparison choice instead of an open-ended ref
+  prompt.
+- Kept the repo-local and embedded `canon-pr-review` skill surfaces aligned,
+  including host-rich-input guidance with plain guided-text fallback.
+- Tightened the Bash and PowerShell skill validators so the guided comparison
+  choice contract stays enforced alongside the existing ref-binding rules.
+- Updated assistant package metadata, prompt-pack guidance, roadmap, and docs
+  release-line references to align on `0.63.1`.
+
 ## [0.63.0] - 2026-06-01
 
 Delivered specs:

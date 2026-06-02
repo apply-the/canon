@@ -45,8 +45,8 @@ selector by default. Use `canon init --non-interactive` for scripts, CI, or
 machine-readable output such as `--output json`. The guided selector includes
 Codex, Copilot, Claude, Cursor, and Antigravity.
 
-The public documentation is aligned with `0.63.0`. Where the site links back
-to repository source, it now points at the `0.63.0` release line.
+The public documentation is aligned with `0.63.1`. Where the site links back
+to repository source, it now points at the `0.63.1` release line.
 
 ## 🛠️ Key Commands
 

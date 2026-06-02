@@ -42,6 +42,9 @@ Optional:
 - Verify risk and zone are present.
 - Never infer base/head refs from the active editor file, recent `.canon/` artifacts, or any file-backed input path.
 - `pr-review` does not auto-bind from `canon-input/`; it requires explicit base/head refs or `WORKTREE`.
+- If base/head refs are missing or semantically unclear, the first interaction must offer a guided comparison choice instead of an open-ended ref prompt.
+- Offer canonical comparison options such as `origin/<default-branch> -> HEAD`, `<default-branch> -> HEAD`, `<base-ref> -> WORKTREE`, or a custom base/head pair.
+- Use host rich-input widgets when available and plain guided text otherwise.
 - `OWNER` is optional. If omitted, Canon should try repository-local or global Git identity before asking for explicit owner input.
 - Verify both --ref <BASE_REF> --ref <HEAD_REF> resolve in the local Git repository.
 - Canon accepts local refs plus resolved remote-tracking refs such as `origin/main`.
