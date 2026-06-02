@@ -21,7 +21,7 @@ independently and keep Canon ownership clear.
 
 **Purpose**: Freeze the owner-side contract direction before code changes.
 
-- [ ] T001 Refresh or create the canonical contract bump in `docs/integration/project-memory-promotion-contract.md` and `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md`
+- [ ] T001 Refresh or create the canonical contract bump in `tech-docs/integration/project-memory-promotion-contract.md` and `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md`
 - [ ] T002 [P] Align shared contract examples in `specs/050-project-memory-control/contracts/governed-stage-ref-contract.md`, `specs/050-project-memory-control/contracts/promotion-event-contract.md`, and `specs/050-project-memory-control/contracts/evidence-ref-contract.md`
 - [ ] T003 [P] Record accepted owner-side deltas in `specs/050-project-memory-control/decision-log.md`
 
@@ -34,9 +34,9 @@ independently and keep Canon ownership clear.
 **⚠️ CRITICAL**: No user story work starts until these tasks are complete.
 
 - [ ] T004 Extend producer contract primitives in `crates/canon-engine/src/domain/publish_profile.rs` for producer-neutral managed blocks and required versus optional V1 lineage
-- [ ] T005 [P] Add default target-category helpers for `docs/project/` and `docs/evidence/` in `crates/canon-engine/src/orchestrator/publish.rs`
+- [ ] T005 [P] Add default target-category helpers for `tech-docs/project/` and `tech-docs/evidence/` in `crates/canon-engine/src/orchestrator/publish.rs`
 - [ ] T006 [P] Add deterministic builders or fixtures for stable, pending, proposal, and evidence-only outputs in `crates/canon-engine/src/orchestrator/publish.rs`
-- [ ] T007 Preserve stable contract linkage notes in `docs/integration/project-memory-promotion-contract.md` and `specs/050-project-memory-control/quickstart.md`, then record the Phase 2 checkpoint decision in `specs/050-project-memory-control/decision-log.md`
+- [ ] T007 Preserve stable contract linkage notes in `tech-docs/integration/project-memory-promotion-contract.md` and `specs/050-project-memory-control/quickstart.md`, then record the Phase 2 checkpoint decision in `specs/050-project-memory-control/decision-log.md`
 
 **Checkpoint**: Canon has one coherent contract baseline and shared producer-side
 primitives for targets, markers, and lineage.
@@ -59,9 +59,9 @@ contract shapes are consistent.
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Update `docs/integration/project-memory-promotion-contract.md` to the V1 control-layer wording, target mapping, and compatibility policy
+- [ ] T010 [US1] Update `tech-docs/integration/project-memory-promotion-contract.md` to the V1 control-layer wording, target mapping, and compatibility policy
 - [ ] T011 [US1] Finalize `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md` to match the stable contract and owner boundary
-- [ ] T012 [US1] Link governed stage, promotion event, and evidence ref briefs from `docs/integration/project-memory-promotion-contract.md`
+- [ ] T012 [US1] Link governed stage, promotion event, and evidence ref briefs from `tech-docs/integration/project-memory-promotion-contract.md`
 
 **Checkpoint**: Canon exposes one stable owner-side contract path plus linked
 feature-local detail.
@@ -109,7 +109,7 @@ unambiguous.
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Update `docs/integration/project-memory-promotion-contract.md` and `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md` to document additive V1 changes, breaking changes, and previous-minor support
+- [ ] T021 [US3] Update `tech-docs/integration/project-memory-promotion-contract.md` and `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md` to document additive V1 changes, breaking changes, and previous-minor support
 - [ ] T022 [US3] Align producer metadata descriptions in `crates/canon-engine/src/domain/publish_profile.rs` with the V1 contract line
 
 **Checkpoint**: Consumers can decide whether to proceed or stop from the owner-side contract alone.
@@ -126,7 +126,7 @@ unambiguous.
 - [ ] T026 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings`
 - [ ] T027 Run `cargo nextest run`
 - [ ] T028 Run `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info` if modified-file coverage needs refresh
-- [ ] T029 Run an independent Boundline consumer walkthrough against `docs/integration/project-memory-promotion-contract.md` and record the outcome in `specs/050-project-memory-control/decision-log.md`
+- [ ] T029 Run an independent Boundline consumer walkthrough against `tech-docs/integration/project-memory-promotion-contract.md` and record the outcome in `specs/050-project-memory-control/decision-log.md`
 
 ---
 

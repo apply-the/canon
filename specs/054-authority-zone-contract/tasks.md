@@ -60,7 +60,7 @@ be implemented and validated independently.
 
 - [x] T010 [P] [US1] Implement the typed `authority-governance-v1` envelope in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
 - [x] T011 [US1] Extend policy vocabulary for `AuthorityZone` and `ChangeClass` in `crates/canon-engine/src/domain/policy.rs`
-- [x] T012 [US1] Align the stable and feature-local contract docs in `docs/integration/governance-adapter.md` and `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
+- [x] T012 [US1] Align the stable and feature-local contract docs in `tech-docs/integration/governance-adapter.md` and `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
 - [x] T013 [US1] Capture the MVP contract decisions in `specs/054-authority-zone-contract/decision-log.md`
 
 **Checkpoint**: User Story 1 is independently valid as the authority-contract MVP
@@ -81,8 +81,8 @@ be implemented and validated independently.
 ### Implementation for User Story 2
 
 - [x] T016 [P] [US2] Extend mode metadata for intended personas, optional anti-behaviors, and optional stage-role hints in `crates/canon-engine/src/domain/mode.rs`
-- [x] T017 [US2] Keep adapter and metadata projection advisory-only in `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, and `docs/integration/governance-adapter.md`
-- [x] T018 [US2] Publish the human-facing boundary guide in `docs/guides/governed-personas-and-authority-zones.md` and keep `specs/054-authority-zone-contract/contracts/authority-governance-adapter-projection.md` aligned
+- [x] T017 [US2] Keep adapter and metadata projection advisory-only in `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, and `tech-docs/integration/governance-adapter.md`
+- [x] T018 [US2] Publish the human-facing boundary guide in `tech-docs/guides/governed-personas-and-authority-zones.md` and keep `specs/054-authority-zone-contract/contracts/authority-governance-adapter-projection.md` aligned
 
 **Checkpoint**: User Stories 1 and 2 both work independently and preserve the ownership boundary
 
@@ -102,7 +102,7 @@ be implemented and validated independently.
 ### Implementation for User Story 3
 
 - [x] T021 [P] [US3] Encode fail-closed required-field validation and additive optional-field behavior in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T022 [US3] Document compatibility rules and consumer guidance in `docs/integration/governance-adapter.md` and `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
+- [x] T022 [US3] Document compatibility rules and consumer guidance in `tech-docs/integration/governance-adapter.md` and `specs/054-authority-zone-contract/contracts/authority-governance-v1-contract.md`
 - [x] T023 [US3] Capture compatibility evidence and closeout notes in `specs/054-authority-zone-contract/decision-log.md` and `specs/054-authority-zone-contract/validation-report.md`
 
 **Checkpoint**: All user stories are independently functional and compatibility-safe
@@ -113,7 +113,7 @@ be implemented and validated independently.
 
 **Purpose**: Finish docs, release surfaces, formatting, lint, tests, and coverage
 
-- [x] T024 [P] Update release-facing and integration docs in `README.md`, `docs/integration/governance-adapter.md`, `docs/guides/governed-personas-and-authority-zones.md`, and `specs/054-authority-zone-contract/quickstart.md`
+- [x] T024 [P] Update release-facing and integration docs in `README.md`, `tech-docs/integration/governance-adapter.md`, `tech-docs/guides/governed-personas-and-authority-zones.md`, and `specs/054-authority-zone-contract/quickstart.md`
 - [x] T025 [P] Record cross-repo alignment evidence against `../boundline/specs/056-authority-zoned-councils/spec.md` in `specs/054-authority-zone-contract/validation-report.md`
 - [x] T026 Run `cargo fmt --all` from the repository root
 - [x] T027 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` from the repository root

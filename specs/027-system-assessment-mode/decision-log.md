@@ -27,12 +27,12 @@
 - **Rationale**: Honest bounded coverage is more valuable than implied
   certainty, especially for large or partially observable repositories.
 
-## D-005: Publish under `docs/architecture/assessments/`
+## D-005: Publish under `tech-docs/architecture/assessments/`
 
 - **Status**: Accepted
 - **Rationale**: The packet belongs in the architecture family, but it must
   stay visibly separate from decision packets under
-  `docs/architecture/decisions/`.
+  `tech-docs/architecture/decisions/`.
 
 ## User Story 1 Decisions
 

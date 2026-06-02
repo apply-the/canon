@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Status**: Derived, non-normative brief
-- **Normative Stable Paths**: `docs/integration/governance-adapter.md` and the delivered Canon governance semantics guide
+- **Normative Stable Paths**: `tech-docs/integration/governance-adapter.md` and the delivered Canon governance semantics guide
 - **Required Baseline Relationship**: `authority-governance-v1` remains the required S3 posture contract
 - **Optional Companion Contract Line**: `adaptive-governance-v1`
 

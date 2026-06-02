@@ -328,7 +328,7 @@ mod tests {
         let service = EngineService::new(workspace.path());
         let run_id = persist_completed_requirements_run(workspace.path());
 
-        let override_path = PathBuf::from("docs/public/prd");
+        let override_path = PathBuf::from("tech-docs/public/prd");
         let code = execute(
             &service,
             PublishCommand {
@@ -357,7 +357,7 @@ mod tests {
             execute(&service, PublishCommand { run_id, to: None, adr: false, profile: None })
                 .expect("publish should succeed");
 
-        let adr_dir = workspace.path().join("docs").join("adr");
+        let adr_dir = workspace.path().join("tech-docs").join("adr");
         let adr_name = fs::read_dir(&adr_dir)
             .expect("adr dir")
             .next()
@@ -389,9 +389,12 @@ mod tests {
         .expect("profile publish should succeed");
 
         assert_eq!(code, 0);
-        assert!(workspace.path().join("docs/project/product-context.md").exists());
+        assert!(workspace.path().join("tech-docs/project/product-context.md").exists());
         assert!(
-            workspace.path().join("docs/project/product-context.packet-metadata.json").exists()
+            workspace
+                .path()
+                .join("tech-docs/project/product-context.packet-metadata.json")
+                .exists()
         );
     }
 }

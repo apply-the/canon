@@ -104,7 +104,7 @@
 
 **Goal**: Keep backlog packets publishable and reusable so downstream implementation work can consume slices and dependencies without losing rationale or source traceability.
 
-**Independent Test**: Publish a completed backlog run, inspect the packet under `docs/planning/<RUN_ID>/`, and confirm a downstream reader can identify source links, dependencies, sequencing context, and acceptance anchors for a selected slice without relying on hidden runtime state.
+**Independent Test**: Publish a completed backlog run, inspect the packet under `tech-docs/planning/<RUN_ID>/`, and confirm a downstream reader can identify source links, dependencies, sequencing context, and acceptance anchors for a selected slice without relying on hidden runtime state.
 
 ### Validation for User Story 3
 
@@ -120,7 +120,7 @@
 - [X] T038 [P] [US3] Add backlog embedded and materialized skill surfaces in `defaults/embedded-skills/canon-backlog/skill-source.md`, `.agents/skills/canon-backlog/SKILL.md`, and `defaults/embedded-skills/canon-shared/references/skill-index.md`
 - [X] T039 [US3] Capture downstream handoff and publish evidence in `specs/012-backlog-mode/validation-report.md`
 
-**Checkpoint**: Backlog packets publish cleanly to `docs/planning/<RUN_ID>/`, remain inspectable through existing surfaces, and preserve enough traceability for later `implementation` work.
+**Checkpoint**: Backlog packets publish cleanly to `tech-docs/planning/<RUN_ID>/`, remain inspectable through existing surfaces, and preserve enough traceability for later `implementation` work.
 
 ---
 
@@ -221,7 +221,7 @@ T038 Add backlog embedded and materialized skill surfaces
 1. One engineer handles mode taxonomy, method defaults, and CLI input binding.
 2. One engineer handles backlog artifacts, summaries, and publish routing.
 3. One engineer handles closure assessment, persistence, and gatekeeping.
-4. A docs/skills engineer updates README, mode guidance, and backlog skill surfaces once runtime behavior is stable.
+4. A tech-docs/skills engineer updates README, mode guidance, and backlog skill surfaces once runtime behavior is stable.
 
 ---
 
@@ -229,11 +229,11 @@ T038 Add backlog embedded and materialized skill surfaces
 
 - Total tasks: 44
 - User-story task counts: US1 = 9, US2 = 8, US3 = 8
-- Parallel opportunities identified: test scaffolds, foundational runtime scaffolding, validation-first story work, artifact-contract versus persistence work, and docs/skills versus publish routing in US3
+- Parallel opportunities identified: test scaffolds, foundational runtime scaffolding, validation-first story work, artifact-contract versus persistence work, and tech-docs/skills versus publish routing in US3
 - Suggested MVP scope: Phase 0 through Phase 3 (US1) only
 - Independent test criteria:
   - US1: a bounded backlog run emits the full eight-artifact packet without task-level output
   - US2: an insufficiently closed backlog run blocks or downgrades with explicit closure findings and no misleading full packet
-  - US3: a published backlog packet under `docs/planning/<RUN_ID>/` preserves source links, dependencies, sequencing context, and acceptance anchors for downstream execution planning
+  - US3: a published backlog packet under `tech-docs/planning/<RUN_ID>/` preserves source links, dependencies, sequencing context, and acceptance anchors for downstream execution planning
 - Validation evidence paths: `specs/012-backlog-mode/decision-log.md`, `specs/012-backlog-mode/validation-report.md`, `specs/012-backlog-mode/contracts/backlog-authored-input-contract.md`, `specs/012-backlog-mode/contracts/backlog-packet-contract.md`, and `specs/012-backlog-mode/quickstart.md`
 - Format validation target: every task above uses a checkbox, sequential task ID, optional `[P]`, required story label for user-story tasks, and exact file paths

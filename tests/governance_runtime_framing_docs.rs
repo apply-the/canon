@@ -1,9 +1,9 @@
 use std::fs;
 
 const README: &str = "README.md";
-const GETTING_STARTED: &str = "docs/guides/getting-started.md";
-const MODES_GUIDE: &str = "docs/guides/modes.md";
-const GOVERNANCE_ADAPTER_GUIDE: &str = "docs/integration/governance-adapter.md";
+const GETTING_STARTED: &str = "tech-docs/guides/getting-started.md";
+const MODES_GUIDE: &str = "tech-docs/guides/modes.md";
+const GOVERNANCE_ADAPTER_GUIDE: &str = "tech-docs/integration/governance-adapter.md";
 
 fn read(path: &str) -> String {
     fs::read_to_string(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), path))
@@ -36,11 +36,11 @@ fn governance_adapter_docs_define_the_machine_boundary_and_examples() {
     let adapter_guide = read(GOVERNANCE_ADAPTER_GUIDE);
 
     assert!(
-        readme.contains("docs/integration/governance-adapter.md"),
+        readme.contains("tech-docs/integration/governance-adapter.md"),
         "README should link to the dedicated governance adapter guide"
     );
     assert!(
-        modes_guide.contains("docs/integration/governance-adapter.md"),
+        modes_guide.contains("tech-docs/integration/governance-adapter.md"),
         "modes guide should link to the dedicated governance adapter guide"
     );
 

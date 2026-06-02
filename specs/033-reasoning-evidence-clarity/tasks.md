@@ -136,8 +136,8 @@ contract described everywhere without runtime drift.
 
 - [x] T028 [P] [US3] Update shared embedded reasoning-contract guidance in `defaults/embedded-skills/canon-inspect-clarity/skill-source.md` and `defaults/embedded-skills/canon-shared/references/output-shapes.md`
 - [x] T029 [P] [US3] Mirror the shared reasoning-contract guidance in `.agents/skills/canon-inspect-clarity/SKILL.md` and `.agents/skills/canon-shared/references/output-shapes.md`
-- [x] T030 [P] [US3] Review `docs/templates/canon-input/` and `docs/examples/canon-input/` for the impacted mode families and record when the existing H2 contracts already satisfy the `0.33.0` reasoning contract without further edits
-- [x] T031 [US3] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, and `CHANGELOG.md`, keeping `0.33.0` and the delivered reasoning contract synchronized
+- [x] T030 [P] [US3] Review `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/` for the impacted mode families and record when the existing H2 contracts already satisfy the `0.33.0` reasoning contract without further edits
+- [x] T031 [US3] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, and `CHANGELOG.md`, keeping `0.33.0` and the delivered reasoning contract synchronized
 - [x] T032 [US3] Capture docs, skill-sync, and release-alignment validation evidence in `specs/033-reasoning-evidence-clarity/validation-report.md`
 
 **Checkpoint**: Runtime and authoring surfaces agree on the delivered
@@ -245,6 +245,6 @@ With multiple developers:
 - `T031` is intentionally the impacted docs plus changelog closeout task as requested.
 - `T035` is intentionally the coverage task for modified or created Rust files.
 - `T036` is intentionally the explicit `cargo fmt` plus `cargo clippy` task.
-- Do not reintroduce brittle repository-doc content tests for `README.md`, `ROADMAP.md`, `docs/guides/`, or `CHANGELOG.md`.
+- Do not reintroduce brittle repository-doc content tests for `README.md`, `ROADMAP.md`, `tech-docs/guides/`, or `CHANGELOG.md`.
 - Each user story should be independently completable and validated.
 - Keep the decision log and validation report current as work progresses.

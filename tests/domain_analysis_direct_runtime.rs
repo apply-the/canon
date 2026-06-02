@@ -33,7 +33,7 @@ fn init_domain_repo(workspace: &TempDir) {
 
     fs::create_dir_all(workspace.path().join("src/api")).expect("api dir");
     fs::create_dir_all(workspace.path().join("src/domain")).expect("domain dir");
-    fs::create_dir_all(workspace.path().join("docs/domain")).expect("docs dir");
+    fs::create_dir_all(workspace.path().join("tech-docs/domain")).expect("tech-docs dir");
     fs::create_dir_all(workspace.path().join("db")).expect("db dir");
 
     fs::write(
@@ -47,7 +47,7 @@ fn init_domain_repo(workspace: &TempDir) {
     )
     .expect("order domain");
     fs::write(
-        workspace.path().join("docs/domain/ordering.md"),
+        workspace.path().join("tech-docs/domain/ordering.md"),
         "# Ordering Language\n\n- basket is still used in legacy admin flows\n- order is used in customer-facing surfaces\n",
     )
     .expect("domain doc");
@@ -110,7 +110,7 @@ fn complete_domain_language_brief() -> &'static str {
 
 ## Upstream Sources
 
-- docs/domain/ordering.md
+- tech-docs/domain/ordering.md
 - src/api/orders.rs
 
 ## Downstream Consumers
@@ -229,7 +229,7 @@ fn complete_domain_language_brief() -> &'static str {
 
 ## Decision Evidence
 
-- docs/domain/ordering.md and src/api/orders.rs already converge on order terminology
+- tech-docs/domain/ordering.md and src/api/orders.rs already converge on order terminology
 
 ## Recommendation
 
@@ -267,7 +267,7 @@ fn incomplete_domain_language_brief() -> &'static str {
 
 ## Upstream Sources
 
-- docs/domain/ordering.md
+- tech-docs/domain/ordering.md
 
 ## Downstream Consumers
 
@@ -275,7 +275,7 @@ fn incomplete_domain_language_brief() -> &'static str {
 
 ## Source References
 
-- docs/domain/ordering.md
+- tech-docs/domain/ordering.md
 
 ## Open Gaps
 
@@ -363,7 +363,7 @@ fn incomplete_domain_language_brief() -> &'static str {
 
 ## Decision Evidence
 
-- docs/domain/ordering.md
+- tech-docs/domain/ordering.md
 
 ## Recommendation
 
@@ -400,7 +400,7 @@ fn complete_domain_model_brief() -> &'static str {
 
 ## Upstream Sources
 
-- docs/domain/ordering.md
+- tech-docs/domain/ordering.md
 - src/domain/order.rs
 
 ## Downstream Consumers
@@ -749,7 +749,7 @@ fn domain_language_direct_run_exercises_service_summary_and_publish_paths() {
     assert!(
         pre_approval_publish
             .published_to
-            .ends_with(&format!("docs/domain/language/{pre_approval_leaf}"))
+            .ends_with(&format!("tech-docs/domain/language/{pre_approval_leaf}"))
     );
     assert!(
         pre_approval_publish
@@ -794,10 +794,13 @@ fn domain_language_direct_run_exercises_service_summary_and_publish_paths() {
         None,
     )
     .expect("project-memory publish should succeed");
-    assert_eq!(project_memory_publish.published_to, "docs/project/domain-language.md");
+    assert_eq!(project_memory_publish.published_to, "tech-docs/project/domain-language.md");
 
-    let metadata_path =
-        workspace.path().join("docs").join("project").join("domain-language.packet-metadata.json");
+    let metadata_path = workspace
+        .path()
+        .join("tech-docs")
+        .join("project")
+        .join("domain-language.packet-metadata.json");
     let metadata: serde_json::Value = serde_json::from_slice(
         &fs::read(&metadata_path).expect("read project-memory domain-language metadata"),
     )
@@ -809,13 +812,13 @@ fn domain_language_direct_run_exercises_service_summary_and_publish_paths() {
 
     let published = service.publish(&summary.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&summary.run_id, "domain-language");
-    assert!(published.published_to.ends_with(&format!("docs/domain/language/{leaf}")));
+    assert!(published.published_to.ends_with(&format!("tech-docs/domain/language/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("language-overview.md")));
     assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 
     let published_overview = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("domain")
         .join("language")
         .join(&leaf)
@@ -925,7 +928,7 @@ fn domain_model_direct_run_exercises_service_summary_json_and_publish_paths() {
     assert!(
         pre_approval_publish
             .published_to
-            .ends_with(&format!("docs/domain/model/{pre_approval_leaf}"))
+            .ends_with(&format!("tech-docs/domain/model/{pre_approval_leaf}"))
     );
     assert!(
         pre_approval_publish.published_files.iter().any(|path| path.ends_with("model-overview.md"))
@@ -970,10 +973,13 @@ fn domain_model_direct_run_exercises_service_summary_json_and_publish_paths() {
         None,
     )
     .expect("project-memory publish should succeed");
-    assert_eq!(project_memory_publish.published_to, "docs/project/domain-model.md");
+    assert_eq!(project_memory_publish.published_to, "tech-docs/project/domain-model.md");
 
-    let metadata_path =
-        workspace.path().join("docs").join("project").join("domain-model.packet-metadata.json");
+    let metadata_path = workspace
+        .path()
+        .join("tech-docs")
+        .join("project")
+        .join("domain-model.packet-metadata.json");
     let metadata: serde_json::Value = serde_json::from_slice(
         &fs::read(&metadata_path).expect("read project-memory domain-model metadata"),
     )
@@ -985,14 +991,14 @@ fn domain_model_direct_run_exercises_service_summary_json_and_publish_paths() {
 
     let published = service.publish(&summary.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&summary.run_id, "domain-model");
-    assert!(published.published_to.ends_with(&format!("docs/domain/model/{leaf}")));
+    assert!(published.published_to.ends_with(&format!("tech-docs/domain/model/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("model-overview.md")));
     assert!(published.published_files.iter().any(|path| path.ends_with("domain-model.json")));
     assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 
     let published_overview = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("domain")
         .join("model")
         .join(&leaf)

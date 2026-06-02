@@ -152,7 +152,7 @@ Observed evidence:
 - Completed runs surface `execution_posture = recommendation-only` through run and status summaries.
 - The emitted packet contains `task-mapping.md`, `mutation-bounds.md`, `implementation-notes.md`, `completion-evidence.md`, `validation-hooks.md`, and `rollback-notes.md`.
 - Trace persistence records `ExecuteBoundedTransformation` with `RecommendationOnly` outcome for implementation runs.
-- `canon publish <RUN_ID>` writes the default visible destination under `docs/implementation/<RUN_ID>/` without changing the governed `.canon/` copy.
+- `canon publish <RUN_ID>` writes the default visible destination under `tech-docs/implementation/<RUN_ID>/` without changing the governed `.canon/` copy.
 - The typed mode profile and embedded method defaults now advertise `implementation` as `full` depth and use the promoted artifact bundle.
 
 Residual note for later phases:
@@ -176,7 +176,7 @@ Observed evidence:
 - Completed runs surface `execution_posture = recommendation-only` through run and status summaries.
 - The emitted packet contains `preserved-behavior.md`, `refactor-scope.md`, `structural-rationale.md`, `regression-evidence.md`, `contract-drift-check.md`, and `no-feature-addition.md`.
 - Blocked runs surface missing-context markers when preserved behavior or feature-audit evidence is incomplete.
-- `canon publish <RUN_ID>` writes the default visible destination under `docs/refactors/<RUN_ID>/` without changing the governed `.canon/` copy.
+- `canon publish <RUN_ID>` writes the default visible destination under `tech-docs/refactors/<RUN_ID>/` without changing the governed `.canon/` copy.
 - The typed mode profile and embedded method defaults now advertise `refactor` as `full` depth and use the promoted artifact bundle.
 - Shared skill/index validation now accepts `canon-refactor` as `available-now` and keeps the embedded and materialized skill surfaces aligned.
 
@@ -202,7 +202,7 @@ Observed evidence:
 - `implementation` canonical authored-input auto-binding now succeeds through the real runtime path and still surfaces `execution_posture = recommendation-only`.
 - `inspect invocations` exposes `recommendation_only = true` for constrained execution requests, and `inspect evidence` exposes `execution_posture = recommendation-only` from persisted run context.
 - High-risk `implementation` and `refactor` runs no longer stop in `AwaitingApproval`; they complete as recommendation-only packets with the same bounded artifact bundles.
-- `canon publish <RUN_ID>` and `canon publish @last` continue to route recommendation-only implementation/refactor runs through the existing `docs/implementation/<RUN_ID>/` and `docs/refactors/<RUN_ID>/` destinations.
+- `canon publish <RUN_ID>` and `canon publish @last` continue to route recommendation-only implementation/refactor runs through the existing `tech-docs/implementation/<RUN_ID>/` and `tech-docs/refactors/<RUN_ID>/` destinations.
 - Trace persistence still records `ExecuteBoundedTransformation` with `RecommendationOnly` outcome for recommendation-only execution-heavy runs.
 - `inspect modes` text output and existing mode taxonomy remain stable while the promoted execution-heavy modes stay visible.
 
@@ -239,7 +239,7 @@ Observed evidence:
 - `.canon/runs/<RUN_ID>/context.toml` now round-trips optional `upstream_context` provenance alongside existing mode-specific execution metadata
 - `canon inspect evidence --output json` now exposes `upstream_feature_slice`, `primary_upstream_mode`, `upstream_source_refs`, `carried_forward_items`, and `excluded_upstream_scope` when the authored packet provides those markers
 - the quickstart examples were tightened to include the required runtime markers for both modes, not only the new carry-forward lineage markers
-- real folder-backed `implementation` and `refactor` runs completed, surfaced lineage in evidence inspection, and published to the existing `docs/implementation/<RUN_ID>/` and `docs/refactors/<RUN_ID>/` destinations
+- real folder-backed `implementation` and `refactor` runs completed, surfaced lineage in evidence inspection, and published to the existing `tech-docs/implementation/<RUN_ID>/` and `tech-docs/refactors/<RUN_ID>/` destinations
 - the carry-forward model remained explicit: current-mode `brief.md` governed readiness, while `source-map.md` populated provenance-only lineage
 
 Residual note for later phases:

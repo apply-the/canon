@@ -43,7 +43,7 @@ implementation to start
 
 - [x] T005 Update agent context from `specs/024-supply-chain-legacy/plan.md` into `AGENTS.md`
 - [x] T006 [P] Create the mode scaffolds in `defaults/methods/supply-chain-analysis.toml`, `defaults/embedded-skills/canon-supply-chain-analysis/skill-source.md`, and `.agents/skills/canon-supply-chain-analysis/SKILL.md`
-- [x] T007 [P] Create authored-input scaffolds in `docs/templates/canon-input/supply-chain-analysis.md` and `docs/examples/canon-input/supply-chain-analysis-rust-workspace.md`
+- [x] T007 [P] Create authored-input scaffolds in `defaults/templates/canon-input/supply-chain-analysis.md` and `tech-docs/examples/canon-input/supply-chain-analysis-rust-workspace.md`
 
 ---
 
@@ -72,7 +72,7 @@ stories depend on
 **Independent Test**: With a representative authored brief and repository
 surface, Canon can run `supply-chain-analysis`, emit the expected artifacts
 under `.canon/`, preserve recommendation-only posture, and publish the packet
-to `docs/supply-chain/<RUN_ID>/`.
+to `tech-docs/supply-chain/<RUN_ID>/`.
 
 ### Validation for User Story 1 (MANDATORY)
 
@@ -110,7 +110,7 @@ coverage-gap evidence without hand-editing runtime internals.
 - [x] T024 [P] [US2] Implement clarification intake, scanner decision recording, and coverage-gap packet behavior in `crates/canon-engine/src/orchestrator/service/mode_supply_chain_analysis.rs` and `crates/canon-engine/src/orchestrator/service/clarity.rs`
 - [x] T025 [P] [US2] Author the supply-chain skill surfaces in `defaults/embedded-skills/canon-supply-chain-analysis/skill-source.md` and `.agents/skills/canon-supply-chain-analysis/SKILL.md`
 - [x] T026 [P] [US2] Add shared compatibility and runtime helper updates in `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/scripts/check-runtime.sh`, and `.agents/skills/canon-shared/scripts/check-runtime.sh`
-- [x] T027 [P] [US2] Add mode guidance and examples in `docs/guides/modes.md`, `docs/templates/canon-input/supply-chain-analysis.md`, and `docs/examples/canon-input/supply-chain-analysis-rust-workspace.md`
+- [x] T027 [P] [US2] Add mode guidance and examples in `tech-docs/guides/modes.md`, `defaults/templates/canon-input/supply-chain-analysis.md`, and `tech-docs/examples/canon-input/supply-chain-analysis-rust-workspace.md`
 - [x] T028 [US2] Capture authoring and clarification validation evidence in `specs/024-supply-chain-legacy/validation-report.md`
 
 **Checkpoint**: The new mode is discoverable, authorable, and honest about missing-tool coverage
@@ -147,7 +147,7 @@ with explicit closeout expectations.
 - [x] T034 [P] Run shared regression checks for mode discovery, initialization, and skill materialization and record results in `specs/024-supply-chain-legacy/validation-report.md`
 - [x] T035 [P] Run `/bin/bash scripts/validate-canon-skills.sh` and record results in `specs/024-supply-chain-legacy/validation-report.md`
 - [x] T036 Perform independent review of recommendation-only posture, coverage-gap honesty, and final diff in `specs/024-supply-chain-legacy/validation-report.md`
-- [ ] T037 Guarantee at least 85% line coverage for every Rust file added or modified by this feature, update any remaining `docs/`, `docs/examples/`, and `ROADMAP.md` surfaces touched by the closeout, run `cargo fmt` plus `cargo fmt --check`, run `cargo clippy --workspace --all-targets --all-features -- -D warnings`, resolve warnings or errors in touched files, and record the clean final closeout in `specs/024-supply-chain-legacy/validation-report.md`
+- [ ] T037 Guarantee at least 85% line coverage for every Rust file added or modified by this feature, update any remaining `tech-docs/`, `tech-docs/examples/`, and `ROADMAP.md` surfaces touched by the closeout, run `cargo fmt` plus `cargo fmt --check`, run `cargo clippy --workspace --all-targets --all-features -- -D warnings`, resolve warnings or errors in touched files, and record the clean final closeout in `specs/024-supply-chain-legacy/validation-report.md`
 
 ---
 
@@ -195,7 +195,7 @@ Task: "Add failing authoring and docs coverage in tests/supply_chain_analysis_au
 
 # Launch compatible implementation slices in parallel after the runtime packet exists:
 Task: "Author the supply-chain skill surfaces in defaults/embedded-skills/canon-supply-chain-analysis/skill-source.md and .agents/skills/canon-supply-chain-analysis/SKILL.md"
-Task: "Add mode guidance and examples in docs/guides/modes.md, docs/templates/canon-input/supply-chain-analysis.md, and docs/examples/canon-input/supply-chain-analysis-rust-workspace.md"
+Task: "Add mode guidance and examples in tech-docs/guides/modes.md, defaults/templates/canon-input/supply-chain-analysis.md, and tech-docs/examples/canon-input/supply-chain-analysis-rust-workspace.md"
 ```
 
 ---
@@ -216,7 +216,7 @@ Task: "Add mode guidance and examples in docs/guides/modes.md, docs/templates/ca
 2. Add User Story 1 and validate independently.
 3. Add User Story 2 and validate independently.
 4. Add User Story 3 and validate independently.
-5. Finish with coverage growth, docs/examples/roadmap closeout, `cargo fmt`, and lint remediation.
+5. Finish with coverage growth, tech-docs/examples/roadmap closeout, `cargo fmt`, and lint remediation.
 
 ### Parallel Team Strategy
 
@@ -237,6 +237,6 @@ With multiple developers:
 - [Story] labels map tasks to user stories for traceability
 - `T001` is intentionally the version bump to `0.24.0` as requested
 - `T037` is intentionally the final task and explicitly includes high coverage,
-  docs/examples/roadmap updates, `cargo fmt`, and clippy clean-up as requested
+  tech-docs/examples/roadmap updates, `cargo fmt`, and clippy clean-up as requested
 - Each user story should be independently completable and validated
 - Keep the decision log and validation report current as work progresses

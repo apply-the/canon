@@ -132,7 +132,7 @@ for maintainers and reviewers of the live system.
 ## ADR Publish Contract
 
 - `canon publish <RUN_ID>` keeps publishing only the visible change packet by default.
-- Use `canon publish <RUN_ID> --adr` when the operator wants the same governed decision to enter the durable registry at `docs/adr/ADR-XXXX-<slug>.md`.
+- Use `canon publish <RUN_ID> --adr` when the operator wants the same governed decision to enter the durable registry at `tech-docs/adr/ADR-XXXX-<slug>.md`.
 - `--to` changes the packet destination only; `--adr` never relocates the ADR registry.
 - If the emitted packet preserves `## Missing Authored Body` or other honesty markers, keep those signals explicit when describing or reviewing the resulting ADR.
 

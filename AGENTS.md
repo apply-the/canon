@@ -18,7 +18,7 @@ Auto-generated from all feature plans. Last updated: 2026-06-01
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
 - `thiserror`, `tracing`, `tracing-subscriber`, `uuid`, `time`
 - Local filesystem under `.canon/` for runtime artifacts and evidence
-- Repository files under `docs/`, `specs/`, `.agents/skills/`, etc.
+- Repository files under `tech-docs/`, `specs/`, `.agents/skills/`, etc.
 
 ## Active Modes and Risk Profile
 

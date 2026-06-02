@@ -58,7 +58,7 @@
 
 - Compared the implemented artifact-indexing vocabulary, metadata carrier
   semantics, publish-path guards, and compatibility notes against
-  `docs/integration/project-memory-promotion-contract.md`, the feature-local
+  `tech-docs/integration/project-memory-promotion-contract.md`, the feature-local
   derived contract docs, and neighboring Canon artifact-producing specs.
 - Findings: no contract drift, no untyped publish-path expansion, and no scope
   creep beyond Canon’s producer-only boundary.

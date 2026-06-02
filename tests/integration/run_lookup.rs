@@ -280,11 +280,11 @@ fn publish_accepts_short_id_prefix_and_explicit_destination() {
 
     cli_command()
         .current_dir(workspace.path())
-        .args(["publish", short, "--to", "docs/public/prd"])
+        .args(["publish", short, "--to", "tech-docs/public/prd"])
         .assert()
         .success();
 
-    assert!(workspace.path().join("docs/public/prd").join("01-problem-statement.md").exists());
+    assert!(workspace.path().join("tech-docs/public/prd").join("01-problem-statement.md").exists());
 }
 
 #[test]
@@ -361,7 +361,7 @@ fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("implementation")
             .join(default_publish_leaf(run_id, "implementation"))
             .join("01-task-mapping.md")
@@ -378,7 +378,7 @@ fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
         .expect("backlog packet dir");
     fs::write(
         workspace.path().join("canon-input").join("backlog").join("brief.md"),
-        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
     )
     .expect("backlog brief");
     fs::write(
@@ -420,7 +420,7 @@ fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("planning")
             .join(default_publish_leaf(run_id, "backlog"))
             .join("01-backlog-overview.md")

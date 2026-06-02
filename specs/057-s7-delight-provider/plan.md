@@ -27,7 +27,7 @@ schema reference without modification. No new runtime Rust code is planned.
 affects all downstream S7 consumer surfaces and Canon governance authority.
 **Scope In**: Canon's delight-provider contract definition (artifact classes,
 metadata requirements, schema version, compatibility signaling, deprecation
-procedure); stable integration document at `docs/integration/`; feature-local
+procedure); stable integration document at `tech-docs/integration/`; feature-local
 contract brief at `specs/057-s7-delight-provider/contracts/`.
 **Scope Out**: Boundline UX, CLI rendering, chat-assistant command naming,
 operator-facing explanation vocabulary, Boundline's runtime decision logic or
@@ -55,7 +55,7 @@ validation by cross-team review (Canon + Boundline); structural validation
 by schema cross-reference check; logical validation by artifact-class review.
 Validation results recorded in [specs/057-s7-delight-provider/validation-report.md](validation-report.md).
 **Approval Gates**: Systemic-Impact requires explicit human ownership sign-off
-before the stable integration contract lands in `docs/integration/`.
+before the stable integration contract lands in `tech-docs/integration/`.
 **Implementation Confirmation**: Rechecked on 2026-05-17 against
 `specs/057-s7-delight-provider/tasks.md`; architecture mode, systemic-impact
 approval ownership, six-class contract vocabulary, and the stable-doc gate all
@@ -70,7 +70,7 @@ Markdown for all contract artifacts.
 **Storage**: Repository files only; no new persistent schema.
 **Testing**: Contract cross-reference checks (Markdown/structural); `cargo test`
 for any touched Rust files; independent cross-team review.
-**Target Platform**: Repository-local Markdown + `docs/integration/` stable doc.
+**Target Platform**: Repository-local Markdown + `tech-docs/integration/` stable doc.
 **Project Type**: Integration contract documentation.
 **Existing System Touchpoints**:
 - `crates/canon-engine/src/domain/publish_profile.rs` — defines
@@ -78,13 +78,13 @@ for any touched Rust files; independent cross-team review.
   `SemanticArtifactDescriptor`, `ExpertiseInputMetadata`,
   `SEMANTIC_ARTIFACT_CONTRACT_LINE_V1`, and related constants. These are the
   normative Rust schema anchors referenced by the new contract.
-- `docs/integration/project-memory-promotion-contract.md` — normative stable
+- `tech-docs/integration/project-memory-promotion-contract.md` — normative stable
   document for promotion semantics; contract format and authority rules are
   reused here.
-- `docs/integration/governed-expertise-input-contract.md` — normative stable
+- `tech-docs/integration/governed-expertise-input-contract.md` — normative stable
   document for expertise-input semantics; reuse of `current_contract_line: v1`
   pattern and classification rule format.
-- `docs/integration/governance-adapter.md` — JSON envelope examples for
+- `tech-docs/integration/governance-adapter.md` — JSON envelope examples for
   `authority-governance-v1` and `adaptive-governance-v1`; reused as
   reference metadata shapes for the delight-provider contract.
 **Performance Goals**: N/A (documentation artifact).
@@ -96,13 +96,13 @@ for any touched Rust files; independent cross-team review.
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 - [x] Execution mode is declared and matches the requested work — Architecture
-- [x] Risk classification is explicit and autonomy is appropriate — Systemic-Impact, human gate required before docs/integration/ landing
+- [x] Risk classification is explicit and autonomy is appropriate — Systemic-Impact, human gate required before tech-docs/integration/ landing
 - [x] Scope boundaries and exclusions are recorded — Scope In/Out in Governance Context
 - [x] Invariants are explicit before implementation — five invariants above
-- [x] Required artifacts are identified — decision-log.md, validation-report.md, contracts/, docs/integration/delight-provider-contract.md
+- [x] Required artifacts are identified — decision-log.md, validation-report.md, contracts/, tech-docs/integration/delight-provider-contract.md
 - [x] Decision logging is planned and linked — decision-log.md
 - [x] Validation plan separates generation from validation — Canon authors, cross-team validates
-- [x] Declared-risk approval checkpoints named — human gate before docs/integration/ landing
+- [x] Declared-risk approval checkpoints named — human gate before tech-docs/integration/ landing
 - [x] Constitution deviations documented — none required
 
 ## Project Structure
@@ -124,13 +124,13 @@ specs/057-s7-delight-provider/
 ### Published Integration Artifact
 
 ```text
-docs/integration/
+tech-docs/integration/
 └── delight-provider-contract.md    ← stable integration contract (after approval gate)
 ```
 
 **Structure Decision**: Documentation-only feature. All design artifacts land
 under `specs/057-s7-delight-provider/`. The stable integration document lands
-under `docs/integration/` after the Systemic-Impact human approval gate.
+under `tech-docs/integration/` after the Systemic-Impact human approval gate.
 
 ## Complexity Tracking
 

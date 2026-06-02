@@ -18,7 +18,7 @@
   - `source_packet_path`: published packet directory or override path associated with the source publish.
   - `source_artifacts`: list of source packet artifact paths used to synthesize the ADR.
 - **Validation rules**:
-  - `identifier` must be unique within `docs/adr/`.
+  - `identifier` must be unique within `tech-docs/adr/`.
   - `status` must be `Accepted` in this slice.
   - `source_mode` must be one of `architecture`, `change`, or `migration`.
   - `context`, `decision`, and `consequences` must preserve explicit missing-context markers rather than being replaced with fabricated filler.
@@ -35,7 +35,7 @@
   - `architecture` maps to `default`.
   - `change` and `migration` map to `opt-in`.
   - all other modes map to `unsupported`.
-  - `registry_path` remains `docs/adr/` regardless of packet `--to` destination overrides.
+  - `registry_path` remains `tech-docs/adr/` regardless of packet `--to` destination overrides.
 
 ## Entity: ADR Source Mapping
 

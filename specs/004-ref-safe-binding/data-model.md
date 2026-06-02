@@ -151,8 +151,8 @@ Represents what the skill shows after a preflight failure or normalization.
 - Forbidden inference sources: active editor file, open tabs, `.canon/`
   artifacts, or other incidental workspace files
 - Retry rendering:
-  - semantic: `input path docs/brief.md`
-  - CLI: `--input docs/brief.md`
+  - semantic: `input path tech-docs/brief.md`
+  - CLI: `--input tech-docs/brief.md`
 
 ### RefInput
 

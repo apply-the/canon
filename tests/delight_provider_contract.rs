@@ -4,7 +4,7 @@ mod delight_provider_contract;
 use std::fs;
 
 const STABLE_CONTRACT_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/docs/integration/delight-provider-contract.md");
+    concat!(env!("CARGO_MANIFEST_DIR"), "/tech-docs/integration/delight-provider-contract.md");
 const FEATURE_BRIEF_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/specs/057-s7-delight-provider/contracts/delight-provider-contract.md"
@@ -13,7 +13,9 @@ const FEATURE_BRIEF_PATH: &str = concat!(
 fn assert_identity_block(contract: &str) {
     assert!(contract.contains("- `owner`: `canon`"));
     assert!(contract.contains("- `current_contract_line`: `delight-provider-v1`"));
-    assert!(contract.contains("- `stable_doc`: `docs/integration/delight-provider-contract.md`"));
+    assert!(
+        contract.contains("- `stable_doc`: `tech-docs/integration/delight-provider-contract.md`")
+    );
     assert!(contract.contains("- `primary_consumer`: `boundline`"));
 }
 

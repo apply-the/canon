@@ -87,6 +87,6 @@ canon run \
 canon publish <RUN_ID>
 ```
 
-2. Confirm the published packets under `docs/incidents/<RUN_ID>/` and
-   `docs/migrations/<RUN_ID>/` contain all expected artifacts and remain
+2. Confirm the published packets under `tech-docs/incidents/<RUN_ID>/` and
+   `tech-docs/migrations/<RUN_ID>/` contain all expected artifacts and remain
    readable without internal runtime manifests.

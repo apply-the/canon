@@ -46,7 +46,7 @@ permit implementation to start.
 - [x] T006 [P] Create the Scoop packaging template in `packaging/scoop/canon.json.tpl`
 - [x] T007 [P] Create the Scoop renderer scaffold in `scripts/release/render-scoop-manifest.sh`
 - [x] T008 [P] Create the focused release regression test scaffold in `tests/release_032_scoop_distribution.rs`
-- [x] T009 [P] Create the maintainer publication guide scaffold in `docs/guides/publishing-to-scoop.md`
+- [x] T009 [P] Create the maintainer publication guide scaffold in `tech-docs/guides/publishing-to-scoop.md`
 
 ---
 
@@ -85,7 +85,7 @@ verified GitHub Release assets.
 ### Implementation for User Story 1
 
 - [x] T017 [US1] Wire Scoop manifest generation, verification, and artifact publication into `.github/workflows/release.yml`
-- [x] T018 [P] [US1] Update release artifact guidance in `.github/release-notes-template.md` and `docs/guides/publishing-to-scoop.md`
+- [x] T018 [P] [US1] Update release artifact guidance in `.github/release-notes-template.md` and `tech-docs/guides/publishing-to-scoop.md`
 - [x] T019 [US1] Capture release workflow validation evidence in `specs/032-scoop-distribution/validation-report.md`
 
 **Checkpoint**: The release workflow emits a reviewable Scoop manifest artifact
@@ -109,7 +109,7 @@ external context.
 
 ### Implementation for User Story 2
 
-- [x] T022 [US2] Update Scoop install and upgrade guidance plus Windows fallback wording in `README.md`, `docs/guides/publishing-to-scoop.md`, and `docs/guides/publishing-to-winget.md`
+- [x] T022 [US2] Update Scoop install and upgrade guidance plus Windows fallback wording in `README.md`, `tech-docs/guides/publishing-to-scoop.md`, and `tech-docs/guides/publishing-to-winget.md`
 - [x] T023 [US2] Update impacted docs and changelog for the `0.32.0` release in `CHANGELOG.md` and `.github/release-notes-template.md`
 - [x] T024 [US2] Capture install-guidance validation evidence in `specs/032-scoop-distribution/validation-report.md`
 
@@ -196,7 +196,7 @@ safely.
 ```bash
 # After foundational metadata and renderer work is complete:
 Task: "Wire Scoop manifest generation, verification, and artifact publication into .github/workflows/release.yml"
-Task: "Update release artifact guidance in .github/release-notes-template.md and docs/guides/publishing-to-scoop.md"
+Task: "Update release artifact guidance in .github/release-notes-template.md and tech-docs/guides/publishing-to-scoop.md"
 ```
 
 ---

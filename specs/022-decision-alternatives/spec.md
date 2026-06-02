@@ -188,13 +188,13 @@ explicitly defined now, which remain follow-on, and that the repo reports
 - **FR-010**: Persona guidance MUST remain guidance-only and MUST NOT weaken
   approval posture, risk semantics, missing-body honesty, or evidence
   requirements.
-- **FR-011**: `docs/templates/canon-input/` and `docs/examples/canon-input/`
+- **FR-011**: `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/`
   for the in-scope modes MUST demonstrate the same canonical decision or
   framework-evaluation sections documented in the skill guidance.
 - **FR-012**: Focused docs, renderer, run, and contract tests MUST exist for
   each runtime-targeted mode, covering both positive preservation and honest
   gap behavior for the new sections.
-- **FR-013**: `ROADMAP.md`, `docs/guides/modes.md`, `README.md`, `CHANGELOG.md`,
+- **FR-013**: `ROADMAP.md`, `tech-docs/guides/modes.md`, `README.md`, `CHANGELOG.md`,
   and shared runtime-compatibility references MUST describe this slice and the
   remaining roadmap candidates accurately.
 - **FR-014**: Cargo manifests and release-facing repository references MUST

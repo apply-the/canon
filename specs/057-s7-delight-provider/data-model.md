@@ -18,7 +18,7 @@ S7 may consume.
 | `owner` | string | Yes | Always `canon` |
 | `current_contract_line` | string | Yes | `delight-provider-v1` |
 | `schema_version` | string | Yes | `v1` |
-| `stable_doc` | string | Yes | `docs/integration/delight-provider-contract.md` |
+| `stable_doc` | string | Yes | `tech-docs/integration/delight-provider-contract.md` |
 | `primary_consumer` | string | Yes | `boundline` |
 | `authorized_artifact_classes` | `DelightArtifactClass[]` | Yes | List of contracted classes |
 | `deprecated_classes` | `DeprecatedArtifactClass[]` | No | Classes pending removal |
@@ -161,7 +161,7 @@ DelightProviderContractLine
 - **Source anchors**:
   - `AuthorityGovernanceV1Envelope`
   - `AdaptiveGovernanceV1Envelope`
-  - `docs/integration/project-memory-promotion-contract.md`
+  - `tech-docs/integration/project-memory-promotion-contract.md`
 - **Contract line**: packet family contract line, such as `authority-governance-v1` or `adaptive-governance-v1`
 - **Schema version**: packet family version, initially `v1`
 - **Additional required metadata**: `mode`, `source_ref`, `promotion_state`
@@ -171,7 +171,7 @@ DelightProviderContractLine
 
 - **Source anchors**:
   - `AuthorityApprovalState`
-  - `docs/integration/governance-adapter.md`
+  - `tech-docs/integration/governance-adapter.md`
 - **Contract line**: authority-governance contract line that carries the approval state
 - **Schema version**: `v1`
 - **Additional required metadata**: `approval_state`, `source_ref`, `promotion_state`
@@ -181,7 +181,7 @@ DelightProviderContractLine
 
 - **Source anchors**:
   - `AuthorityPacketReadiness`
-  - `docs/integration/governance-adapter.md`
+  - `tech-docs/integration/governance-adapter.md`
 - **Contract line**: authority-governance contract line that carries readiness posture
 - **Schema version**: `v1`
 - **Additional required metadata**: `packet_readiness`, `source_ref`, `promotion_state`
@@ -191,7 +191,7 @@ DelightProviderContractLine
 
 - **Source anchors**:
   - `security-assessment` packet families
-  - promoted `docs/security-assessments` surfaces
+  - promoted `tech-docs/security-assessments` surfaces
 - **Contract line**: Canon packet family or promoted-surface contract line carrying the finding
 - **Schema version**: packet family version or promoted-surface schema version
 - **Additional required metadata**: `finding_kind`, `severity`, `source_ref`, `promotion_state`
@@ -212,7 +212,7 @@ DelightProviderContractLine
 
 - **Source anchors**:
   - `promotion_refs` in `AuthorityGovernanceV1Envelope`
-  - `docs/integration/project-memory-promotion-contract.md`
+  - `tech-docs/integration/project-memory-promotion-contract.md`
 - **Contract line**: project-memory promotion contract line or source packet line that emits the reference
 - **Schema version**: `v1`
 - **Additional required metadata**: `promotion_ref`, `target_class`, `source_ref`, `promotion_state`

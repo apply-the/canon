@@ -11,7 +11,7 @@ canon publish <RUN_ID> --profile project-memory
 ```
 
 **Expected result**: Canon promotes architecture artifacts to
-`docs/project/architecture-map.md` using the managed-block update strategy,
+`tech-docs/project/architecture-map.md` using the managed-block update strategy,
 emits `architecture-map.packet-metadata.json` alongside, and preserves any
 human-authored content outside the Canon-managed range.
 
@@ -27,7 +27,7 @@ canon publish <RUN_ID> --profile project-memory
 ```
 
 **Expected result**: Promotion policy resolves to `PendingIndex` because the
-run is not approved. Canon updates `docs/project/pending-decisions.md` via
+run is not approved. Canon updates `tech-docs/project/pending-decisions.md` via
 managed blocks and does not touch stable project-memory targets.
 
 ## Scenario 3: Blocked run publishes evidence only
@@ -40,13 +40,13 @@ canon publish <RUN_ID> --profile project-memory
 ```
 
 **Expected result**: Promotion policy resolves to `EvidenceOnly`. Canon writes
-to `docs/project/audit-log.md`, preserves supporting artifacts under
-`docs/evidence/review/<RUN_ID>/`, and leaves stable project-memory surfaces
+to `tech-docs/project/audit-log.md`, preserves supporting artifacts under
+`tech-docs/evidence/review/<RUN_ID>/`, and leaves stable project-memory surfaces
 unchanged.
 
 ## Scenario 4: Managed-block preserves human content
 
-Given a `docs/project/domain-language.md` with:
+Given a `tech-docs/project/domain-language.md` with:
 
 ```markdown
 # Domain Language
@@ -85,8 +85,8 @@ canon publish <RUN_ID> --profile project-memory
 ```
 
 **Expected result**: A pending incident-style promotion using `proposal-files`
-emits `docs/project/open-risks.proposal.md` with the full promoted content and
-lineage metadata, leaving the existing `docs/project/open-risks.md` unchanged.
+emits `tech-docs/project/open-risks.proposal.md` with the full promoted content and
+lineage metadata, leaving the existing `tech-docs/project/open-risks.md` unchanged.
 The operator reviews and merges manually.
 
 ## Scenario 6: Lineage metadata inspection
@@ -94,7 +94,7 @@ The operator reviews and merges manually.
 After any project-memory publish, inspect the lineage sidecar:
 
 ```bash
-cat docs/project/architecture-map.packet-metadata.json
+cat tech-docs/project/architecture-map.packet-metadata.json
 ```
 
 ```json

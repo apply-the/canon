@@ -8,7 +8,7 @@
   - **Rationale**: Architecture decisions are durable by default, while tactical change and migration packets should enter the ADR register only when the operator intends that permanence.
   - **Consequence**: CLI and publish logic must distinguish default, opt-in, and unsupported mode behavior.
 
-- **D-003**: Use a fixed `docs/adr/` registry with sequential `ADR-XXXX-<slug>.md` filenames.
+- **D-003**: Use a fixed `tech-docs/adr/` registry with sequential `ADR-XXXX-<slug>.md` filenames.
   - **Rationale**: This matches common ADR practice and preserves stable human references.
   - **Consequence**: Publish logic must scan existing ADR files and allocate the next non-conflicting identifier without rewriting history.
 

@@ -29,8 +29,8 @@
 **Purpose**: Verify the current workspace and the existing mode/doc surfaces before specialization changes.
 
 - [x] T005 Verify `cargo test --workspace` passes before implementation begins
-- [x] T006 [P] Confirm the current authored-input docs in `docs/templates/canon-input/requirements.md`, `docs/templates/canon-input/discovery.md`, and `docs/templates/canon-input/change.md`
-- [x] T007 [P] Confirm the current worked examples in `docs/examples/canon-input/requirements-api-v2.md`, `docs/examples/canon-input/discovery-legacy-migration.md`, and `docs/examples/canon-input/change-add-caching.md`
+- [x] T006 [P] Confirm the current authored-input docs in `defaults/templates/canon-input/requirements.md`, `defaults/templates/canon-input/discovery.md`, and `defaults/templates/canon-input/change.md`
+- [x] T007 [P] Confirm the current worked examples in `tech-docs/examples/canon-input/requirements-api-v2.md`, `tech-docs/examples/canon-input/discovery-legacy-migration.md`, and `tech-docs/examples/canon-input/change-add-caching.md`
 - [x] T008 [P] Confirm the current skill sources in `defaults/embedded-skills/canon-requirements/skill-source.md`, `defaults/embedded-skills/canon-discovery/skill-source.md`, and `defaults/embedded-skills/canon-change/skill-source.md`
 
 ---
@@ -57,18 +57,18 @@
 
 ### Validation for User Story 1 (MANDATORY)
 
-- [x] T012 [P] [US1] Add a requirements docs-sync test in `tests/requirements_authoring_docs.rs` covering `specs/016-mode-authoring-specialization/contracts/requirements-authoring.md`, `defaults/embedded-skills/canon-requirements/skill-source.md`, `.agents/skills/canon-requirements/SKILL.md`, `docs/templates/canon-input/requirements.md`, and `docs/examples/canon-input/requirements-api-v2.md`
-- [x] T013 [P] [US1] Add a discovery docs-sync test in `tests/discovery_authoring_docs.rs` covering `specs/016-mode-authoring-specialization/contracts/discovery-authoring.md`, `defaults/embedded-skills/canon-discovery/skill-source.md`, `.agents/skills/canon-discovery/SKILL.md`, `docs/templates/canon-input/discovery.md`, and `docs/examples/canon-input/discovery-legacy-migration.md`
-- [x] T014 [P] [US1] Add a change docs-sync test in `tests/change_authoring_docs.rs` covering `specs/016-mode-authoring-specialization/contracts/change-authoring.md`, `defaults/embedded-skills/canon-change/skill-source.md`, `.agents/skills/canon-change/SKILL.md`, `docs/templates/canon-input/change.md`, and `docs/examples/canon-input/change-add-caching.md`
+- [x] T012 [P] [US1] Add a requirements docs-sync test in `tests/requirements_authoring_docs.rs` covering `specs/016-mode-authoring-specialization/contracts/requirements-authoring.md`, `defaults/embedded-skills/canon-requirements/skill-source.md`, `.agents/skills/canon-requirements/SKILL.md`, `defaults/templates/canon-input/requirements.md`, and `tech-docs/examples/canon-input/requirements-api-v2.md`
+- [x] T013 [P] [US1] Add a discovery docs-sync test in `tests/discovery_authoring_docs.rs` covering `specs/016-mode-authoring-specialization/contracts/discovery-authoring.md`, `defaults/embedded-skills/canon-discovery/skill-source.md`, `.agents/skills/canon-discovery/SKILL.md`, `defaults/templates/canon-input/discovery.md`, and `tech-docs/examples/canon-input/discovery-legacy-migration.md`
+- [x] T014 [P] [US1] Add a change docs-sync test in `tests/change_authoring_docs.rs` covering `specs/016-mode-authoring-specialization/contracts/change-authoring.md`, `defaults/embedded-skills/canon-change/skill-source.md`, `.agents/skills/canon-change/SKILL.md`, `defaults/templates/canon-input/change.md`, and `tech-docs/examples/canon-input/change-add-caching.md`
 
 ### Implementation for User Story 1
 
 - [x] T015 [US1] Update `defaults/embedded-skills/canon-requirements/skill-source.md` and `.agents/skills/canon-requirements/SKILL.md` with an explicit `Author Requirements Body Before Invoking Canon` section and canonical authored H2 headings
 - [x] T016 [US1] Update `defaults/embedded-skills/canon-discovery/skill-source.md` and `.agents/skills/canon-discovery/SKILL.md` with an explicit `Author Discovery Body Before Invoking Canon` section and canonical authored H2 headings
 - [x] T017 [US1] Update `defaults/embedded-skills/canon-change/skill-source.md` and `.agents/skills/canon-change/SKILL.md` with an explicit `Author Change Body Before Invoking Canon` section and canonical authored H2 headings
-- [x] T018 [US1] Update `docs/templates/canon-input/requirements.md` and `docs/examples/canon-input/requirements-api-v2.md` to reflect the requirements authored-body contract
-- [x] T019 [US1] Update `docs/templates/canon-input/discovery.md` and `docs/examples/canon-input/discovery-legacy-migration.md` to reflect the discovery authored-body contract
-- [x] T020 [US1] Update `docs/templates/canon-input/change.md` and `docs/examples/canon-input/change-add-caching.md` to replace inline labels with canonical H2-authored sections and reflect the change authored-body contract
+- [x] T018 [US1] Update `defaults/templates/canon-input/requirements.md` and `tech-docs/examples/canon-input/requirements-api-v2.md` to reflect the requirements authored-body contract
+- [x] T019 [US1] Update `defaults/templates/canon-input/discovery.md` and `tech-docs/examples/canon-input/discovery-legacy-migration.md` to reflect the discovery authored-body contract
+- [x] T020 [US1] Update `defaults/templates/canon-input/change.md` and `tech-docs/examples/canon-input/change-add-caching.md` to replace inline labels with canonical H2-authored sections and reflect the change authored-body contract
 - [x] T021 [US1] Capture the synchronized skill/template/example contract evidence in `specs/016-mode-authoring-specialization/validation-report.md`
 
 **Checkpoint**: All three first-slice modes have explicit authored-body contracts in skills, templates, and examples.
@@ -109,12 +109,12 @@
 
 ### Validation for User Story 3 (MANDATORY)
 
-- [x] T032 [P] [US3] Extend `tests/requirements_authoring_docs.rs`, `tests/discovery_authoring_docs.rs`, and `tests/change_authoring_docs.rs` or add sibling assertions so docs coverage includes `docs/guides/modes.md` and `ROADMAP.md`
+- [x] T032 [P] [US3] Extend `tests/requirements_authoring_docs.rs`, `tests/discovery_authoring_docs.rs`, and `tests/change_authoring_docs.rs` or add sibling assertions so docs coverage includes `tech-docs/guides/modes.md` and `ROADMAP.md`
 - [x] T033 [P] [US3] Run `scripts/validate-canon-skills.sh` and execute `pwsh -File scripts/validate-canon-skills.ps1` when PowerShell is available, otherwise record a parity review of `scripts/validate-canon-skills.ps1` against the shell validator in `specs/016-mode-authoring-specialization/validation-report.md`
 
 ### Implementation for User Story 3
 
-- [x] T034 [US3] Update `docs/guides/modes.md` to document authored-body expectations for `requirements`, `discovery`, and `change`
+- [x] T034 [US3] Update `tech-docs/guides/modes.md` to document authored-body expectations for `requirements`, `discovery`, and `change`
 - [x] T035 [US3] Update `ROADMAP.md` to record the delivered first slice of Mode Authoring Specialization and preserve the remaining roadmap scope honestly
 - [x] T036 [US3] Capture docs, roadmap, and validator-parity evidence in `specs/016-mode-authoring-specialization/validation-report.md`
 

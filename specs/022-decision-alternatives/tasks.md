@@ -43,7 +43,7 @@ implementation to start
 
 - [X] T005 Update agent context from `specs/022-decision-alternatives/plan.md` into `AGENTS.md`
 - [X] T006 Create release-surface regression coverage in `tests/release_022_docs.rs`
-- [X] T007 [P] Prepare missing authored-input scaffolds in `docs/templates/canon-input/migration.md`, `docs/templates/canon-input/incident.md`, and `docs/examples/canon-input/migration-platform-consolidation.md`
+- [X] T007 [P] Prepare missing authored-input scaffolds in `defaults/templates/canon-input/migration.md`, `defaults/templates/canon-input/incident.md`, and `tech-docs/examples/canon-input/migration-platform-consolidation.md`
 
 ---
 
@@ -84,8 +84,8 @@ chat history.
 
 - [X] T016 [P] [US1] Update structural decision guidance in `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, and `defaults/embedded-skills/canon-change/skill-source.md`
 - [X] T017 [P] [US1] Mirror structural decision guidance in `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-architecture/SKILL.md`, and `.agents/skills/canon-change/SKILL.md`
-- [X] T018 [P] [US1] Update structural decision templates in `docs/templates/canon-input/system-shaping.md`, `docs/templates/canon-input/architecture.md`, and `docs/templates/canon-input/change.md`
-- [X] T019 [P] [US1] Update structural decision examples in `docs/examples/canon-input/system-shaping-billing.md`, `docs/examples/canon-input/architecture-state-management.md`, and `docs/examples/canon-input/change-add-caching.md`
+- [X] T018 [P] [US1] Update structural decision templates in `defaults/templates/canon-input/system-shaping.md`, `defaults/templates/canon-input/architecture.md`, and `defaults/templates/canon-input/change.md`
+- [X] T019 [P] [US1] Update structural decision examples in `tech-docs/examples/canon-input/system-shaping-billing.md`, `tech-docs/examples/canon-input/architecture-state-management.md`, and `tech-docs/examples/canon-input/change-add-caching.md`
 - [X] T020 [US1] Capture structural decision validation evidence in `specs/022-decision-alternatives/validation-report.md`
 
 **Checkpoint**: `system-shaping`, `architecture`, and `change` packets preserve
@@ -112,8 +112,8 @@ ecosystem-health reasoning, adoption burden, and selected-direction rationale.
 
 - [X] T024 [P] [US2] Update framework-evaluation guidance in `defaults/embedded-skills/canon-implementation/skill-source.md` and `defaults/embedded-skills/canon-migration/skill-source.md`
 - [X] T025 [P] [US2] Mirror framework-evaluation guidance in `.agents/skills/canon-implementation/SKILL.md` and `.agents/skills/canon-migration/SKILL.md`
-- [X] T026 [P] [US2] Update framework-evaluation templates in `docs/templates/canon-input/implementation.md` and `docs/templates/canon-input/migration.md`
-- [X] T027 [P] [US2] Update framework-evaluation examples in `docs/examples/canon-input/implementation-auth-session-revocation.md` and `docs/examples/canon-input/migration-platform-consolidation.md`
+- [X] T026 [P] [US2] Update framework-evaluation templates in `defaults/templates/canon-input/implementation.md` and `defaults/templates/canon-input/migration.md`
+- [X] T027 [P] [US2] Update framework-evaluation examples in `tech-docs/examples/canon-input/implementation-auth-session-revocation.md` and `tech-docs/examples/canon-input/migration-platform-consolidation.md`
 - [X] T028 [US2] Capture framework-evaluation validation evidence in `specs/022-decision-alternatives/validation-report.md`
 
 **Checkpoint**: `implementation` and `migration` packets preserve concrete
@@ -156,7 +156,7 @@ surface is discoverable
 - [X] T036 [P] Run the targeted feature suite for `tests/system_shaping_contract.rs`, `tests/system_shaping_authoring_renderer.rs`, `tests/system_shaping_run.rs`, `tests/architecture_c4_docs.rs`, `tests/architecture_decision_shape_docs.rs`, `tests/architecture_c4_run.rs`, `tests/change_authoring_docs.rs`, `tests/change_authoring_renderer.rs`, `tests/change_authoring_run.rs`, `tests/implementation_authoring_docs.rs`, `tests/implementation_authoring_renderer.rs`, `tests/implementation_run.rs`, `tests/migration_authoring_docs.rs`, `tests/migration_authoring_renderer.rs`, `tests/migration_run.rs`, `tests/review_authoring_docs.rs`, `tests/pr_review_docs.rs`, `tests/verification_authoring_docs.rs`, and `tests/incident_authoring_docs.rs`, including an explicit architecture regression check that existing C4 and ADR behavior remains intact, then record results in `specs/022-decision-alternatives/validation-report.md`
 - [ ] T037 [P] Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo nextest run`, then record results in `specs/022-decision-alternatives/validation-report.md`
 - [X] T038 Perform independent review of persona boundaries, invariants, and final diff in `specs/022-decision-alternatives/validation-report.md`
-- [X] T039 Update docs, examples, and roadmap closeout in `README.md`, `AGENTS.md`, `docs/guides/modes.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/templates/canon-input/`, and `docs/examples/canon-input/`, and verify all release-facing `0.22.0` references are synchronized
+- [X] T039 Update docs, examples, and roadmap closeout in `README.md`, `AGENTS.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, `ROADMAP.md`, `defaults/templates/canon-input/`, and `tech-docs/examples/canon-input/`, and verify all release-facing `0.22.0` references are synchronized
 
 ---
 
@@ -203,8 +203,8 @@ Task: "Add failing structural-decision run coverage in tests/system_shaping_run.
 # Launch skill, mirror, template, and example work in parallel:
 Task: "Update structural decision guidance in defaults/embedded-skills/canon-system-shaping/skill-source.md, defaults/embedded-skills/canon-architecture/skill-source.md, and defaults/embedded-skills/canon-change/skill-source.md"
 Task: "Mirror structural decision guidance in .agents/skills/canon-system-shaping/SKILL.md, .agents/skills/canon-architecture/SKILL.md, and .agents/skills/canon-change/SKILL.md"
-Task: "Update structural decision templates in docs/templates/canon-input/system-shaping.md, docs/templates/canon-input/architecture.md, and docs/templates/canon-input/change.md"
-Task: "Update structural decision examples in docs/examples/canon-input/system-shaping-billing.md, docs/examples/canon-input/architecture-state-management.md, and docs/examples/canon-input/change-add-caching.md"
+Task: "Update structural decision templates in defaults/templates/canon-input/system-shaping.md, defaults/templates/canon-input/architecture.md, and defaults/templates/canon-input/change.md"
+Task: "Update structural decision examples in tech-docs/examples/canon-input/system-shaping-billing.md, tech-docs/examples/canon-input/architecture-state-management.md, and tech-docs/examples/canon-input/change-add-caching.md"
 ```
 
 ---
@@ -245,6 +245,6 @@ With multiple developers:
 - [P] tasks = different files, no dependencies
 - [Story] labels map tasks to user stories for traceability
 - `T001` is intentionally the version bump as requested
-- `T039` is intentionally the docs/examples/ROADMAP closeout as requested
+- `T039` is intentionally the tech-docs/examples/ROADMAP closeout as requested
 - Each user story should be independently completable and validated
 - Keep the decision log and validation report current as work progresses

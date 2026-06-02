@@ -37,7 +37,7 @@
 
 ### User Story 1
 
-- `architecture` publish now emits one ADR under `docs/adr/ADR-XXXX-<slug>.md` by default.
+- `architecture` publish now emits one ADR under `tech-docs/adr/ADR-XXXX-<slug>.md` by default.
 - CLI and integration coverage verified default ADR emission, publish summary surfacing, and required standard sections.
 - README and modes guidance were updated to describe the default architecture ADR path and the fixed registry behavior.
 
@@ -49,7 +49,7 @@
 
 ### User Story 3
 
-- ADR numbering, fixed `docs/adr/` registry behavior, unsupported-mode rejection, roadmap notes, and release-surface assertions all have dedicated regressions.
+- ADR numbering, fixed `tech-docs/adr/` registry behavior, unsupported-mode rejection, roadmap notes, and release-surface assertions all have dedicated regressions.
 - Unsupported modes reject `--adr` with a validation error instead of silently ignoring the request.
 
 ## Independent Validation Results
@@ -59,7 +59,7 @@
 	- `## Context` in the generated ADR preserved the authored architecture overview summary instead of inventing new prose.
 	- The ADR title and `## Decision` came from the authored decision section.
 	- `## Consequences` and `## Alternatives Considered` remained grounded in the tradeoff matrix content.
-	- The generated ADR stayed under `docs/adr/` even when packet publication used a separate visible destination.
+	- The generated ADR stayed under `tech-docs/adr/` even when packet publication used a separate visible destination.
 
 ## Coverage Closeout
 
@@ -100,6 +100,6 @@ None. All validation phases complete. Ready for commit and merge.
 
 Suggested body:
 
-- default architecture publishes into the durable `docs/adr/` registry
+- default architecture publishes into the durable `tech-docs/adr/` registry
 - add opt-in ADR export for change and migration publishes
 - document and test numbering, fixed registry semantics, and unsupported-mode rejection

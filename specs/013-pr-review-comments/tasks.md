@@ -87,9 +87,9 @@
 
 ## Phase 5: User Story 3 - Published Packet Is Readable Outside Canon (Priority: P3)
 
-**Goal**: Publish a readable Conventional Comments artifact and update docs/skills/roadmap to reflect the delivered slice.
+**Goal**: Publish a readable Conventional Comments artifact and update tech-docs/skills/roadmap to reflect the delivered slice.
 
-**Independent Test**: Publish a completed `pr-review` run and verify `docs/reviews/prs/<RUN_ID>/conventional-comments.md` is readable without hidden runtime state.
+**Independent Test**: Publish a completed `pr-review` run and verify `tech-docs/reviews/prs/<RUN_ID>/conventional-comments.md` is readable without hidden runtime state.
 
 ### Validation for User Story 3
 
@@ -130,7 +130,7 @@
 
 - **US1 (P1)**: MVP. Emit the Conventional Comments artifact.
 - **US2 (P2)**: Preserve existing approval and summary semantics.
-- **US3 (P3)**: Publish the new artifact and update docs/roadmap.
+- **US3 (P3)**: Publish the new artifact and update tech-docs/roadmap.
 
 ### Within Each User Story
 
@@ -181,7 +181,7 @@ T018 Record publish-surface and roadmap-cleanup decisions
 1. Add deterministic mapping and artifact contract.
 2. Emit the Conventional Comments artifact.
 3. Prove approval semantics are unchanged.
-4. Update docs/skills and clean the delivered roadmap slice.
+4. Update tech-docs/skills and clean the delivered roadmap slice.
 5. Finish with structural, logical, and independent validation.
 
 ## Notes

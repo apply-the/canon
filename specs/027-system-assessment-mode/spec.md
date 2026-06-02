@@ -30,7 +30,7 @@ materialization, summaries, docs, and release-facing version surfaces for
 - Make explicit observed findings, inferred findings, and assessment gaps plus
   confidence by assessed surface part of the emitted packet instead of letting
   the mode imply full repo certainty.
-- Publish completed packets under `docs/architecture/assessments/<RUN_ID>/`
+- Publish completed packets under `tech-docs/architecture/assessments/<RUN_ID>/`
   without changing `.canon/` runtime storage semantics.
 - Add embedded and mirrored skill guidance, templates, examples, runtime
   compatibility references, and focused regression coverage for the new mode.
@@ -119,7 +119,7 @@ surfaces will drift immediately and force users back into ad-hoc prompts.
 
 **Independent Test**: A maintainer can inspect the new skill and example, run
 the mode from a canonical input file, and publish the result to the expected
-architecture assessment docs directory without hand-editing internal runtime
+architecture assessment tech-docs directory without hand-editing internal runtime
 files.
 
 **Acceptance Scenarios**:
@@ -130,7 +130,7 @@ files.
    follow-on guidance.
 2. **Given** a completed `system-assessment` run, **When** `canon publish` is
    invoked, **Then** the packet publishes under
-   `docs/architecture/assessments/<RUN_ID>/`.
+   `tech-docs/architecture/assessments/<RUN_ID>/`.
 3. **Given** runtime compatibility and mode inspection surfaces, **When** they
    enumerate supported governed modes, **Then** `system-assessment` appears
    consistently in those shared lists.
@@ -140,7 +140,7 @@ files.
 ### User Story 3 - Ship 0.26.0 With Coverage And Quality Gates Closed (Priority: P3)
 
 As a maintainer shipping `0.26.0`, I want the version bump, targeted coverage,
-roadmap/docs/changelog updates, formatting, and lint clean-up to be part of
+roadmap/tech-docs/changelog updates, formatting, and lint clean-up to be part of
 the same feature package so release closeout happens with the mode delivery.
 
 **Why this priority**: The user explicitly asked for the version bump as the
@@ -217,7 +217,7 @@ validation report.
   artifacts MUST surface the explicit `## Missing Authored Body` behavior
   rather than fabricating plausible assessment content.
 - **FR-011**: `canon publish` MUST publish completed or publishable
-  `system-assessment` packets under `docs/architecture/assessments/`.
+  `system-assessment` packets under `tech-docs/architecture/assessments/`.
 - **FR-012**: Embedded skill sources and mirrored `.agents/skills/` copies
   MUST define the same canonical authored sections, input rules, ISO 42010
   framing, existing-system-only posture, and follow-on guidance.
@@ -266,7 +266,7 @@ validation report.
   published as a first-class mode in focused runtime tests.
 - **SC-002**: A positive-path run with a complete example brief emits the full
   ten-artifact assessment packet under `.canon/` and publishes it under
-  `docs/architecture/assessments/<RUN_ID>/`.
+  `tech-docs/architecture/assessments/<RUN_ID>/`.
 - **SC-003**: A negative-path validation proves that missing required authored
   sections or invalid system context produce honest blockers or missing-body
   markers instead of fabricated assessment coverage.
@@ -330,6 +330,6 @@ validation report.
 - Large repositories can be handled in this slice by explicit assessment scope,
   skipped-surface reporting, and confidence grading rather than exhaustive
   traversal.
-- `docs/architecture/assessments/` is an acceptable publish root for the first
+- `tech-docs/architecture/assessments/` is an acceptable publish root for the first
   delivered assessment packet until structured external publish destinations are
   addressed separately.

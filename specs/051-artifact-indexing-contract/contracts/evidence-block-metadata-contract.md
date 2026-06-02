@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Status**: Derived, non-normative brief
-- **Normative Stable Path**: `docs/integration/project-memory-promotion-contract.md`
+- **Normative Stable Path**: `tech-docs/integration/project-memory-promotion-contract.md`
 
 ## Purpose
 

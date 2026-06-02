@@ -11,7 +11,7 @@
 ## Structural Validation
 
 1. Compare `/specs/056-semantic-artifact-contract/contracts/semantic-artifact-contract.md`
-   with `/docs/integration/project-memory-promotion-contract.md` to confirm
+   with `/tech-docs/integration/project-memory-promotion-contract.md` to confirm
    semantic metadata does not redefine publication target classes, update
    strategies, lineage ownership, or metadata carriers.
 2. Compare the semantic contract with
@@ -66,7 +66,7 @@ The independent reviewer must confirm all of the following:
 - `/specs/056-semantic-artifact-contract/data-model.md`
 - `/specs/056-semantic-artifact-contract/decision-log.md`
 - `/specs/056-semantic-artifact-contract/contracts/semantic-artifact-contract.md`
-- diff or review notes for `/docs/integration/project-memory-promotion-contract.md`
+- diff or review notes for `/tech-docs/integration/project-memory-promotion-contract.md`
   and the eventual stable semantic contract path
 
 ## Exit Criteria

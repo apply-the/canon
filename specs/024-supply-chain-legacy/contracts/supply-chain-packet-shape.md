@@ -76,7 +76,7 @@ raw scanner output first.
 
 ## Publish Contract
 
-- Publish destination: `docs/supply-chain/<RUN_ID>/`
+- Publish destination: `tech-docs/supply-chain/<RUN_ID>/`
 - Recommendation-only posture must remain explicit in the packet summary.
 - Missing scanner or posture coverage must be called out in the affected
   artifact instead of being hidden in raw evidence.

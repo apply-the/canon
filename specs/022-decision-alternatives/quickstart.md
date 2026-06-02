@@ -18,7 +18,7 @@ Canon runtime semantics.
 4. Run `scripts/validate-canon-skills.sh` to confirm embedded and mirrored
    skills remain synchronized.
 5. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and a full `cargo nextest run` before closeout.
-6. Review `ROADMAP.md`, `README.md`, `CHANGELOG.md`, `docs/guides/modes.md`,
+6. Review `ROADMAP.md`, `README.md`, `CHANGELOG.md`, `tech-docs/guides/modes.md`,
    and runtime-compatibility references to confirm the `0.22.0` release
    surface and the remaining roadmap candidates are explicit.
 

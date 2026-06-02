@@ -28,11 +28,11 @@ Add a consolidated published requirements PRD without breaking the existing sect
 
 **Language/Version**: Rust 1.96.0 workspace plus Markdown documentation and repo-local skills  
 **Primary Dependencies**: Existing workspace crates (`canon-engine`, `canon-cli`, `canon-adapters`), `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`, and repo skill validation scripts  
-**Storage**: Local filesystem under `.canon/` plus published repository files under `specs/`, `docs/`, and `.agents/skills/`  
+**Storage**: Local filesystem under `.canon/` plus published repository files under `specs/`, `tech-docs/`, and `.agents/skills/`  
 **Testing**: `cargo test`, focused Rust integration or contract tests, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `scripts/validate-canon-skills.sh`  
 **Target Platform**: Local-first Canon usage on macOS, Linux, and Windows with chat skills for Copilot or Codex  
 **Project Type**: Rust CLI workspace with file-backed runtime artifacts, published markdown packets, and repo-local AI skills  
-**Existing System Touchpoints**: `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_requirements.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-cli/src/commands/publish.rs`, `.agents/skills/`, `defaults/embedded-skills/`, `README.md`, `docs/guides/modes.md`, `CHANGELOG.md`, `Cargo.toml`, and focused tests under `tests/` and `crates/canon-cli/src/commands/publish.rs`  
+**Existing System Touchpoints**: `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_requirements.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-cli/src/commands/publish.rs`, `.agents/skills/`, `defaults/embedded-skills/`, `README.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, `Cargo.toml`, and focused tests under `tests/` and `crates/canon-cli/src/commands/publish.rs`  
 **Performance Goals**: No meaningful runtime performance change; publish output should remain linear in the number of artifacts and the consolidated PRD should be generated within the normal requirements packet flow  
 **Constraints**: Preserve source artifact compatibility, keep metadata shape stable except for additive source paths, avoid fabricated publish semantics in chat skills, and keep the release slice tight enough to validate with targeted tests  
 **Scale/Scope**: One additive requirements artifact, one new repo-local skill mirrored into embedded skills, a handful of doc and release files, and focused test updates rather than a broad publish-system rewrite
@@ -75,7 +75,7 @@ specs/041-prd-publish-chat/
 Cargo.toml
 CHANGELOG.md
 README.md
-docs/
+tech-docs/
 └── guides/
   └── modes.md
 .agents/

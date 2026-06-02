@@ -133,7 +133,7 @@
 
 ### Implementation for User Story 4
 
-- [x] T030 [US4] Update impacted docs and changelog in `README.md`, `docs/guides/modes.md`, and `CHANGELOG.md`
+- [x] T030 [US4] Update impacted docs and changelog in `README.md`, `tech-docs/guides/modes.md`, and `CHANGELOG.md`
 - [x] T031 [US4] Clean roadmap continuity in `ROADMAP.md`
 - [x] T032 [US4] Capture docs, roadmap, and release-alignment validation evidence in `specs/035-governance-adapter-surface/validation-report.md`
 

@@ -28,7 +28,7 @@
 
 **Purpose**: Prepare the repo-visible documentation and targeted test scaffolds this semantic slice will use.
 
-- [x] T005 Create the S4 semantic-documentation anchors in `docs/governance-semantics-and-authority-zones.md`, `docs/integration/governance-adapter.md`, and `README.md`
+- [x] T005 Create the S4 semantic-documentation anchors in `tech-docs/governance-semantics-and-authority-zones.md`, `tech-docs/integration/governance-adapter.md`, and `README.md`
 - [ ] T006 [P] Prepare targeted semantic test scaffolds in `tests/governance_adapter_surface.rs`, `tests/mode_profiles.rs`, and `tests/policy_and_traces.rs`
 
 ---
@@ -44,8 +44,8 @@ place.
 - [x] T007 Create shared S4 governance-state and rollout-profile vocabulary in `crates/canon-engine/src/domain/publish_profile.rs`
 - [x] T008 [P] Add typed `AdaptiveGovernanceV1Envelope` and governed semantic pairing models in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
 - [ ] T009 [P] Add compatibility helpers for required-baseline versus optional-companion availability in `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, and `tests/policy_and_traces.rs`
-- [ ] T010 Implement publish and adapter scaffolding for companion semantics while preserving approval/readiness/project-memory/lineage/promotion-state projection in `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/orchestrator/service.rs`, and `docs/integration/governance-adapter.md`
-- [x] T011 Encode the shared semantic/runtime boundary scaffold in `docs/governance-semantics-and-authority-zones.md` and `README.md`
+- [ ] T010 Implement publish and adapter scaffolding for companion semantics while preserving approval/readiness/project-memory/lineage/promotion-state projection in `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/orchestrator/service.rs`, and `tech-docs/integration/governance-adapter.md`
+- [x] T011 Encode the shared semantic/runtime boundary scaffold in `tech-docs/governance-semantics-and-authority-zones.md` and `README.md`
 
 **Checkpoint**: Foundational semantic vocabulary, compatibility models, and adapter scaffolds are ready.
 
@@ -66,7 +66,7 @@ place.
 
 - [x] T014 [P] [US1] Define the S4 governance-state and rollout-profile vocabulary in `crates/canon-engine/src/domain/publish_profile.rs`
 - [x] T015 [US1] Attach the optional companion vocabulary to governed packet metadata while preserving approval/readiness/lineage/project-memory/promotion-state semantics in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T016 [US1] Document the published vocabulary in `docs/governance-semantics-and-authority-zones.md` and `specs/055-adaptive-governance/contracts/adaptive-governance-v1-contract.md`
+- [x] T016 [US1] Document the published vocabulary in `tech-docs/governance-semantics-and-authority-zones.md` and `specs/055-adaptive-governance/contracts/adaptive-governance-v1-contract.md`
 - [x] T017 [US1] Capture story validation evidence in `specs/055-adaptive-governance/validation-report.md`
 
 **Checkpoint**: User Story 1 provides a bounded MVP vocabulary that downstream consumers can understand from Canon-owned surfaces alone.
@@ -86,9 +86,9 @@ place.
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Keep companion semantics advisory-only in `crates/canon-engine/src/domain/publish_profile.rs` and `docs/governance-semantics-and-authority-zones.md`
-- [ ] T021 [US2] Prevent runtime-directive leakage through governed publication and adapter projection while keeping approval/readiness/lineage/project-memory/promotion-state semantics stable in `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/orchestrator/service.rs`, and `docs/integration/governance-adapter.md`
-- [x] T022 [US2] Align repo-facing documentation with the semantic/runtime boundary in `README.md` and `docs/governance-semantics-and-authority-zones.md`
+- [ ] T020 [P] [US2] Keep companion semantics advisory-only in `crates/canon-engine/src/domain/publish_profile.rs` and `tech-docs/governance-semantics-and-authority-zones.md`
+- [ ] T021 [US2] Prevent runtime-directive leakage through governed publication and adapter projection while keeping approval/readiness/lineage/project-memory/promotion-state semantics stable in `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/orchestrator/service.rs`, and `tech-docs/integration/governance-adapter.md`
+- [x] T022 [US2] Align repo-facing documentation with the semantic/runtime boundary in `README.md` and `tech-docs/governance-semantics-and-authority-zones.md`
 - [x] T023 [US2] Capture independent review findings for the boundary in `specs/055-adaptive-governance/validation-report.md`
 
 **Checkpoint**: User Stories 1 and 2 both work independently and Canon remains the semantic authority rather than the runtime controller.
@@ -109,7 +109,7 @@ place.
 ### Implementation for User Story 3
 
 - [ ] T026 [P] [US3] Implement optional-companion compatibility states in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
-- [ ] T027 [US3] Expose baseline-versus-companion availability together with approval/readiness/promotion-state semantics through adapter projection docs and service output in `docs/integration/governance-adapter.md` and `crates/canon-engine/src/orchestrator/service.rs`
+- [ ] T027 [US3] Expose baseline-versus-companion availability together with approval/readiness/promotion-state semantics through adapter projection docs and service output in `tech-docs/integration/governance-adapter.md` and `crates/canon-engine/src/orchestrator/service.rs`
 - [x] T028 [US3] Document additive evolution and fallback rules in `specs/055-adaptive-governance/contracts/adaptive-governance-adapter-projection.md` and `specs/055-adaptive-governance/quickstart.md`
 - [ ] T029 [US3] Capture story validation and independent contract-review evidence in `specs/055-adaptive-governance/validation-report.md`
 

@@ -32,7 +32,7 @@ Establish a Canon-owned logical packet-ordering contract for new packets. The fe
 **Testing**: `cargo test`, `cargo nextest run`, `cargo llvm-cov`, targeted integration and contract tests  
 **Target Platform**: macOS, Linux, Windows  
 **Project Type**: CLI + library workspace  
-**Existing System Touchpoints**: `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/mode_shaping.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/persistence/store.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-cli/src/output.rs`, packet tests under `tests/`, and mode docs under `docs/guides/`  
+**Existing System Touchpoints**: `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/mode_shaping.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/persistence/store.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-cli/src/output.rs`, packet tests under `tests/`, and mode docs under `tech-docs/guides/`  
 **Performance Goals**: no material regression in packet generation or publish responsiveness; ordering metadata must remain deterministic  
 **Constraints**: new packets use contiguous numeric ordering, sidecars stay distinct from packet-body artifacts, old packets must remain readable, and the feature must close with >=95% touched-file coverage plus clean clippy and fmt  
 **Scale/Scope**: current packet-emitting mode catalog plus future-mode ordering rules; multi-file contract update across engine, CLI-adjacent summaries, tests, and docs
@@ -90,7 +90,7 @@ crates/
 │   └── src/
 └── canon-adapters/
 
-docs/
+tech-docs/
 └── guides/
     └── modes.md
 

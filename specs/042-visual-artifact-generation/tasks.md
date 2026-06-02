@@ -34,7 +34,7 @@
 
 **Purpose**: Lock the release line and implementation surfaces before the packet redesign.
 
-- [ ] T005 Update the `0.42.0` release line across `Cargo.toml`, `Cargo.lock`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `README.md`, `CHANGELOG.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, `tests/release_036_release_provenance_integrity.rs`, `tests/release_040_governance_runtime_framing.rs`, and `tests/integration/skills_bootstrap.rs`
+- [ ] T005 Update the `0.42.0` release line across `Cargo.toml`, `Cargo.lock`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `README.md`, `CHANGELOG.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, `tests/release_036_release_provenance_integrity.rs`, `tests/release_040_governance_runtime_framing.rs`, and `tests/integration/skills_bootstrap.rs`
 - [ ] T006 Audit the current architecture artifact and publish anchors in `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, and `crates/canon-engine/src/orchestrator/publish.rs`
 
 ---
@@ -116,7 +116,7 @@
 ### Implementation for User Story 3
 
 - [ ] T029 [P] [US3] Implement pragmatic view-selection rules for component and dynamic artifacts in `crates/canon-engine/src/artifacts/markdown.rs` and adjacent architecture-mode runtime code under `crates/canon-engine/src/`
-- [ ] T030 [P] [US3] Update architecture packet documentation in `README.md`, `docs/guides/modes.md`, and `ROADMAP.md`
+- [ ] T030 [P] [US3] Update architecture packet documentation in `README.md`, `tech-docs/guides/modes.md`, and `ROADMAP.md`
 - [ ] T031 [US3] Update release notes in `CHANGELOG.md` and any related release verification surfaces under `tests/` or `scripts/release/`
 - [ ] T032 [US3] Capture User Story 3 validation evidence in `specs/042-visual-artifact-generation/validation-report.md`
 

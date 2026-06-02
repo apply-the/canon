@@ -51,7 +51,7 @@ splitting runtime and authoring work into separate feature deliveries
 **Testing**: `cargo test`, `cargo nextest run`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, focused contract and run tests, docs or skill-sync tests, and `/bin/bash scripts/validate-canon-skills.sh`  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows  
 **Project Type**: Rust CLI workspace with embedded skill sources, mirrored AI-facing skills, contract-driven markdown rendering, and repository documentation artifacts  
-**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/orchestrator/gatekeeper.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-cli/src/output.rs`, `defaults/embedded-skills/`, `.agents/skills/`, `docs/templates/canon-input/`, `docs/examples/canon-input/`, `docs/guides/modes.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, `AGENTS.md`, `tests/contract/inspect_clarity.rs`, targeted mode tests under `tests/`, and release/docs regression tests  
+**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/orchestrator/gatekeeper.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-cli/src/output.rs`, `defaults/embedded-skills/`, `.agents/skills/`, `defaults/templates/canon-input/`, `tech-docs/examples/canon-input/`, `tech-docs/guides/modes.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, `AGENTS.md`, `tests/contract/inspect_clarity.rs`, targeted mode tests under `tests/`, and release/docs regression tests  
 **Performance Goals**: Preserve current local CLI responsiveness, add no required network round trip, and avoid any new persistence or execution latency path beyond the existing mode flows  
 **Constraints**: Keep non-target mode semantics stable unless reasoning-evidence posture must be shared; preserve explicit honesty markers; avoid placeholder prose that reads like authored reasoning; keep the feature unsliced across runtime and authoring surfaces; align release-facing surfaces to `0.33.0`; and provide focused automated coverage for every modified or newly created Rust file  
 **Scale/Scope**: One cross-cutting feature spanning shared engine services, renderer helpers, mode-facing docs and skill mirrors, release surfaces, and focused regression coverage across the current governed mode set
@@ -115,7 +115,7 @@ defaults/embedded-skills/
 ├── canon-*/SKILL.md
 └── canon-shared/references/runtime-compatibility.toml
 
-docs/
+tech-docs/
 ├── guides/modes.md
 ├── templates/canon-input/
 └── examples/canon-input/

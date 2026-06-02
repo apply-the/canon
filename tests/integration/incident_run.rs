@@ -161,7 +161,7 @@ fn run_incident_emits_a_governed_containment_packet_and_publishes_after_risk_app
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("incidents")
             .join(default_publish_leaf(run_id, "incident"))
             .join("01-incident-frame.md")

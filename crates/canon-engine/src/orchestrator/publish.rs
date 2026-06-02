@@ -57,7 +57,7 @@ use surface::{
     append_index_entry, render_project_memory_surface, write_managed_block, write_proposal_file,
 };
 
-const ADR_REGISTRY_DIRECTORY: &str = "docs/adr";
+const ADR_REGISTRY_DIRECTORY: &str = "tech-docs/adr";
 const PROFILE_METADATA_FILE_SUFFIX: &str = ".packet-metadata.json";
 
 /// Summary returned after publishing a Canon run's artifacts.

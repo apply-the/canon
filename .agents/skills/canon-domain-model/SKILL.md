@@ -153,7 +153,7 @@ for developers, architects, and delivery teams.
 - Use `$canon-architecture` when the next real step is structural decisions informed by the model.
 - Use `$canon-backlog` when the model is stable enough for epic decomposition.
 - Use `$canon-change` when model gaps reveal bounded modifications needed.
-- Use `$canon-publish` to promote the packet to `docs/domain/model/`.
+- Use `$canon-publish` to promote the packet to `tech-docs/domain/model/`.
 
 ## Related Skills
 

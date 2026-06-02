@@ -14,7 +14,7 @@ artifact metadata across existing publish surfaces, resolving the undefined
 rule for each supported artifact class, and versioning compatibility rules
 without moving runtime indexing or orchestration into Canon. The first slice
 extends the existing normative contract at
-`docs/integration/project-memory-promotion-contract.md` rather than creating a
+`tech-docs/integration/project-memory-promotion-contract.md` rather than creating a
 second stable authority surface, stays inside existing publish-profile,
 artifact, and publish projection surfaces, bumps Canon to `0.55.0`, and closes
 with docs review, targeted tests, clippy, formatting, and coverage on modified
@@ -60,11 +60,11 @@ producer-side metadata changes before merge.
 
 **Language/Version**: Rust 1.96.0, edition 2024  
 **Primary Dependencies**: Existing workspace dependencies including `serde`, `serde_json`, `sha2`, `time`, `thiserror`, `toml`, `tracing`, and `uuid`; no new runtime dependencies planned for this slice  
-**Storage**: `.canon/` runtime artifacts, repo-visible docs under `docs/integration/project-memory-promotion-contract.md` and other evidence-facing published surfaces, plus feature-local spec artifacts under `specs/051-artifact-indexing-contract/`  
+**Storage**: `.canon/` runtime artifacts, repo-visible docs under `tech-docs/integration/project-memory-promotion-contract.md` and other evidence-facing published surfaces, plus feature-local spec artifacts under `specs/051-artifact-indexing-contract/`  
 **Testing**: `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, targeted unit tests for publish-profile and artifact metadata behavior, `cargo test --no-run --all-targets`, `cargo nextest run --workspace --all-features`, and file-scoped coverage validation for modified files  
 **Target Platform**: macOS, Linux, and Windows developer workstations and CI  
 **Project Type**: Rust CLI and library workspace  
-**Existing System Touchpoints**: `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `docs/integration/project-memory-promotion-contract.md`, and prior contract material from `specs/050-project-memory-control/` as supporting context only  
+**Existing System Touchpoints**: `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `tech-docs/integration/project-memory-promotion-contract.md`, and prior contract material from `specs/050-project-memory-control/` as supporting context only  
 **Performance Goals**: No material regression in publish-path responsiveness and no increase in consumer ambiguity about artifact semantics  
 **Constraints**: Preserve Canon producer boundaries, avoid turning Canon into a runtime registry, keep Boundline behavior out of scope, avoid incompatible metadata drift within a contract line, and maintain readable repo-visible artifacts  
 **Scale/Scope**: One stable contract line, a small number of existing producer-side metadata surfaces, and one feature-local contract bundle for downstream consumers
@@ -114,7 +114,7 @@ crates/
 │       └── orchestrator/
 │           └── publish.rs
 
-docs/
+tech-docs/
 └── integration/
   └── project-memory-promotion-contract.md
 

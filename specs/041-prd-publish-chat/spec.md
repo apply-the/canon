@@ -61,7 +61,7 @@ As a new Canon user, I want the docs and release notes to describe where generat
 
 **Acceptance Scenarios**:
 
-1. **Given** the updated docs, **When** a user reads the requirements or publish flow, **Then** the docs explain that generated artifacts first land under `.canon/` and only appear in `docs/` or `specs/` after publish.
+1. **Given** the updated docs, **When** a user reads the requirements or publish flow, **Then** the docs explain that generated artifacts first land under `.canon/` and only appear in `tech-docs/` or `specs/` after publish.
 2. **Given** the updated docs and version bump, **When** release-facing surfaces are reviewed, **Then** the new PRD artifact and chat publish workflow are discoverable without reading source code.
 
 ### Edge Cases

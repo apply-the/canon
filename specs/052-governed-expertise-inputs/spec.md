@@ -42,7 +42,7 @@ roles
 
 **Decision Traceability**: Decisions for this slice are recorded in
 `specs/052-governed-expertise-inputs/` and promoted Canon integration
-documentation under `docs/integration/`, with the expertise-input contract kept
+documentation under `tech-docs/integration/`, with the expertise-input contract kept
 consistent with the existing project-memory promotion contract.
 
 ## User Scenarios & Testing *(mandatory)*

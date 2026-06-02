@@ -850,7 +850,7 @@ mod tests {
             workflow_family: RefinementWorkflowFamily::Planning,
             current_mode: Mode::Requirements,
             working_brief_path: ".canon/runs/R/artifacts/requirements/working-brief.md".to_string(),
-            template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+            template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
             status: ClarificationRefinementStatus::Active,
             explicit_continuation_required: true,
             authoritative_input_refs: vec!["brief.md".to_string()],

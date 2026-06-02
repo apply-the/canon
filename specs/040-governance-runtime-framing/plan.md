@@ -32,7 +32,7 @@ Reframe Canon's public identity around one explicit promise: it is the governed 
 **Testing**: `cargo nextest run`, targeted Rust integration or contract tests, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`  
 **Target Platform**: Local CLI usage and repo-based orchestrator integration docs for macOS, Linux, and Windows readers  
 **Project Type**: Rust CLI workspace with repository documentation and Rust-based docs guardrail tests  
-**Existing System Touchpoints**: `README.md`, `docs/guides/getting-started.md`, `docs/guides/modes.md`, new `docs/integration/governance-adapter.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, and Rust tests under `tests/`  
+**Existing System Touchpoints**: `README.md`, `tech-docs/guides/getting-started.md`, `tech-docs/guides/modes.md`, new `tech-docs/integration/governance-adapter.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, and Rust tests under `tests/`  
 **Performance Goals**: N/A for runtime behavior; the feature optimizes clarity, contract readability, and drift resistance rather than execution speed  
 **Constraints**: Preserve existing adapter semantics, keep the happy path brutally simple for human operators, avoid Synod-specific orchestration logic in Canon core docs, and land the feature as one delivered macrofeature without slice splitting  
 **Scale/Scope**: One release-line bump, one new integration guide, several existing docs updates, one roadmap closeout, one changelog entry, and focused Rust guardrail coverage for touched tests or docs checks
@@ -77,7 +77,7 @@ CHANGELOG.md
 ROADMAP.md
 Cargo.toml
 Cargo.lock
-docs/
+tech-docs/
 ├── guides/
 │   ├── getting-started.md
 │   └── modes.md

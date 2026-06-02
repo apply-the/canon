@@ -42,7 +42,7 @@ canon run \
   --risk bounded-impact \
   --zone yellow \
   --owner "product-lead" \
-  --input docs/idea.md
+  --input tech-docs/idea.md
 ```
 
 Expected result:

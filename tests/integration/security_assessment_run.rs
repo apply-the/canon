@@ -171,7 +171,7 @@ fn run_security_assessment_emits_a_recommendation_only_packet_and_publishes_afte
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("security-assessments")
             .join(default_publish_leaf(run_id, "security-assessment"))
             .join("01-assessment-overview.md")

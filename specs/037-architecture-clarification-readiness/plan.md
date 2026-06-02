@@ -60,7 +60,7 @@ for bounded-impact work; independent validation evidence remains mandatory.
 **Testing**: `cargo test`, focused architecture clarity and run tests, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo nextest run`  
 **Target Platform**: local CLI-driven governed architecture workflows for repository-backed Canon projects  
 **Project Type**: Rust CLI workspace with Markdown artifact contracts, templates, and shared AI skill sources  
-**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-cli/src/output.rs`, `tests/contract/inspect_clarity.rs`, `tests/contract/architecture_contract.rs`, `tests/architecture_c4_run.rs`, `tests/architecture_decision_shape_docs.rs`, `docs/guides/modes.md`, `docs/templates/canon-input/architecture.md`, `docs/examples/canon-input/architecture-state-management.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, and runtime compatibility references  
+**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-cli/src/output.rs`, `tests/contract/inspect_clarity.rs`, `tests/contract/architecture_contract.rs`, `tests/architecture_c4_run.rs`, `tests/architecture_decision_shape_docs.rs`, `tech-docs/guides/modes.md`, `defaults/templates/canon-input/architecture.md`, `tech-docs/examples/canon-input/architecture-state-management.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, and runtime compatibility references  
 **Performance Goals**: keep architecture clarification deterministic and bounded to at most five inspect questions, preserve materially closed decisions without synthetic churn, and avoid any new persistence or orchestration path  
 **Constraints**: preserve the existing architecture artifact family and gates except for additive readiness sections; keep recommendation-only posture; keep version alignment at `0.37.0`; provide focused automated validation coverage for touched Rust files and finish with clean `cargo fmt` and `cargo clippy`  
 **Scale/Scope**: one architecture clarity and readiness contract expansion, bounded updates to shared docs and skills, one focused Rust test slice, one version bump, and one roadmap cleanup
@@ -123,7 +123,7 @@ tests/
     ├── architecture_contract.rs
     └── inspect_clarity.rs
 
-docs/
+tech-docs/
 ├── examples/canon-input/architecture-state-management.md
 ├── guides/modes.md
 └── templates/canon-input/architecture.md

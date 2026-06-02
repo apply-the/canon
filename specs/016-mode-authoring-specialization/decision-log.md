@@ -10,7 +10,7 @@
 
 - **D-003**: Update the existing docs template/example filenames instead of creating a second hierarchy.
   - **Rationale**: Preserve the repository's current discoverability path and avoid parallel conventions.
-  - **Alternatives considered**: nested `docs/templates/canon-input/<mode>/brief.md` and parallel examples.
+  - **Alternatives considered**: nested `defaults/templates/canon-input/<mode>/brief.md` and parallel examples.
 
 - **D-004**: Treat near-match authored headings as missing unless a compatibility alias is explicitly documented in the contract.
   - **Rationale**: Keeps the contract strict, deterministic, and honest.

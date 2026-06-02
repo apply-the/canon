@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Current Contract Line**: V1
-- **Stable Owner-Side Path**: `docs/integration/project-memory-promotion-contract.md`
+- **Stable Owner-Side Path**: `tech-docs/integration/project-memory-promotion-contract.md`
 - **Primary Consumer**: Boundline
 
 ## Purpose
@@ -32,8 +32,8 @@ validation is added in a compatible later contract minor.
 
 ## Default Targets
 
-- `docs/project/` for stable or pending project-memory surfaces
-- `docs/evidence/` for readable evidence summaries and mixed-producer evidence
+- `tech-docs/project/` for stable or pending project-memory surfaces
+- `tech-docs/evidence/` for readable evidence summaries and mixed-producer evidence
   blocks
 
 ## Managed Block Format

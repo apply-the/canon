@@ -53,7 +53,7 @@
 
 - Reviewed the final runtime wiring and publish path for scope drift. The new
   mode stays separate from `architecture`, remains `recommendation-only`, and
-  publishes under `docs/architecture/assessments/<RUN_ID>/` without changing
+  publishes under `tech-docs/architecture/assessments/<RUN_ID>/` without changing
   other mode roots.
 - Reviewed the authored-body contract surfaces. Skill, template, renderer, and
   release docs all preserve the observed findings, inferred findings, and

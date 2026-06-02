@@ -154,7 +154,7 @@ fn inspect_evidence_surfaces_upstream_context_from_folder_packet() {
     .expect("brief");
     fs::write(
         packet_root.join("source-map.md"),
-        "# Source Map\n\n## Upstream Sources\n\n- docs/changes/R-20260422-AUTHREVOC/change-surface.md\n- docs/changes/R-20260422-AUTHREVOC/implementation-plan.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
+        "# Source Map\n\n## Upstream Sources\n\n- tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md\n- tech-docs/changes/R-20260422-AUTHREVOC/implementation-plan.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
     )
     .expect("source map");
 
@@ -202,7 +202,7 @@ fn inspect_evidence_surfaces_upstream_context_from_folder_packet() {
     assert_eq!(evidence_json["entries"][0]["primary_upstream_mode"].as_str(), Some("change"));
     assert_eq!(
         evidence_json["entries"][0]["upstream_source_refs"][0].as_str(),
-        Some("docs/changes/R-20260422-AUTHREVOC/change-surface.md")
+        Some("tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md")
     );
     assert_eq!(
         evidence_json["entries"][0]["carried_forward_items"][0].as_str(),
@@ -297,7 +297,7 @@ fn inspect_invocations_and_evidence_capture_completed_backlog_runs() {
     fs::create_dir_all(&packet_root).expect("packet root");
     fs::write(
         packet_root.join("brief.md"),
-        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
     )
     .expect("brief");
     fs::write(

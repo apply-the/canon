@@ -102,7 +102,7 @@ Completed
   structured default materialization plus `packet-metadata.json`; it does not
   move runtime state out of `.canon/` or redefine canonical run identity.
 - Final release-surface review confirmed `README.md`, `ROADMAP.md`,
-  `docs/guides/getting-started.md`, `docs/guides/modes.md`, and
+  `tech-docs/guides/getting-started.md`, `tech-docs/guides/modes.md`, and
   `CHANGELOG.md` describe the shipped `0.29.0` publish contract accurately and
   keep the delivered `028` history visible.
 
@@ -116,8 +116,8 @@ Completed
 - `Cargo.toml`
 - `Cargo.lock`
 - `README.md`
-- `docs/guides/getting-started.md`
-- `docs/guides/modes.md`
+- `tech-docs/guides/getting-started.md`
+- `tech-docs/guides/modes.md`
 - `ROADMAP.md`
 - `CHANGELOG.md`
 - focused publish-path test outputs

@@ -9,12 +9,12 @@ Verify the first-slice specialization for `requirements`, `discovery`, and `chan
 - `defaults/embedded-skills/canon-requirements/skill-source.md`
 - `defaults/embedded-skills/canon-discovery/skill-source.md`
 - `defaults/embedded-skills/canon-change/skill-source.md`
-- `docs/templates/canon-input/requirements.md`
-- `docs/templates/canon-input/discovery.md`
-- `docs/templates/canon-input/change.md`
-- `docs/examples/canon-input/requirements-api-v2.md`
-- `docs/examples/canon-input/discovery-legacy-migration.md`
-- `docs/examples/canon-input/change-add-caching.md`
+- `defaults/templates/canon-input/requirements.md`
+- `defaults/templates/canon-input/discovery.md`
+- `defaults/templates/canon-input/change.md`
+- `tech-docs/examples/canon-input/requirements-api-v2.md`
+- `tech-docs/examples/canon-input/discovery-legacy-migration.md`
+- `tech-docs/examples/canon-input/change-add-caching.md`
 
 Confirm the skill guidance, template, and example agree on the canonical authored H2 headings for each mode.
 

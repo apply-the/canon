@@ -135,7 +135,7 @@ implemented, validated, and audited independently.
 ### Implementation for User Story 4
 
 - [x] T027 [US4] Update version surfaces in `Cargo.toml`, `Cargo.lock`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, and `.agents/skills/canon-shared/references/runtime-compatibility.toml`
-- [x] T028 [US4] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, `CHANGELOG.md`, and any artifact-shape guidance touched by the feature
+- [x] T028 [US4] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, and any artifact-shape guidance touched by the feature
 - [x] T029 [US4] Capture release-alignment validation evidence and touched-Rust-file coverage expectations in `specs/030-artifact-shapes-follow-on/validation-report.md`
 
 **Checkpoint**: Runtime behavior, docs, and release-facing `0.30.0` surfaces align cleanly.

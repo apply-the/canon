@@ -155,8 +155,8 @@ authoring surfaces describe the same reasoning-evidence posture as the engine.
 - **FR-007**: Placeholder-heavy fallback packet sections in affected modes MUST be tightened, removed, or converted into explicit missing-body, closure, or gap language that cannot be mistaken for authored reasoning.
 - **FR-008**: Existing `## Missing Authored Body`, `## Missing Evidence`, blocked-gate, unsupported-verdict, and unresolved-findings semantics MUST remain intact or become stricter; they MUST NOT be weakened by this feature.
 - **FR-009**: Embedded skill sources and mirrored `.agents/skills/` copies for impacted modes MUST document the same reasoning-evidence, clarity, and honesty posture as the runtime behavior.
-- **FR-010**: `docs/templates/canon-input/`, `docs/examples/canon-input/`, and impacted guidance docs MUST demonstrate the same reasoning-evidence and honest-gap handling expected by the runtime.
-- **FR-011**: `ROADMAP.md`, `README.md`, `docs/guides/modes.md`, other impacted docs, and `CHANGELOG.md` MUST describe the delivered feature consistently with the final runtime behavior.
+- **FR-010**: `defaults/templates/canon-input/`, `tech-docs/examples/canon-input/`, and impacted guidance docs MUST demonstrate the same reasoning-evidence and honest-gap handling expected by the runtime.
+- **FR-011**: `ROADMAP.md`, `README.md`, `tech-docs/guides/modes.md`, other impacted docs, and `CHANGELOG.md` MUST describe the delivered feature consistently with the final runtime behavior.
 - **FR-012**: Cargo manifests, lockfile surfaces, shared compatibility references, and other release-facing version anchors MUST report `0.33.0` consistently for this feature.
 - **FR-013**: The task plan for this feature MUST include an explicit version-bump task, an explicit impacted-docs-and-changelog task, an explicit coverage task for modified or created Rust files, and explicit `cargo clippy` plus `cargo fmt` tasks.
 - **FR-014**: Modified or newly created Rust files in the affected runtime paths MUST receive focused automated validation coverage before the feature is complete.

@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Status**: Derived, non-normative brief
-- **Normative Stable Path**: `docs/integration/project-memory-promotion-contract.md`
+- **Normative Stable Path**: `tech-docs/integration/project-memory-promotion-contract.md`
 - **Current Contract Line**: V1
 
 ## Purpose
@@ -14,7 +14,7 @@ without creating a second authority surface.
 
 - This brief mirrors the stable Canon contract and exists for feature-local
   planning and validation.
-- If this brief and `docs/integration/project-memory-promotion-contract.md`
+- If this brief and `tech-docs/integration/project-memory-promotion-contract.md`
   diverge, the stable Canon contract wins.
 
 ## Supported V1 Indexable Artifact Classes
@@ -25,7 +25,7 @@ without creating a second authority surface.
 - `proposal-artifact`:
   proposal files emitted when Canon must not mutate the stable target
 - `evidence-bundle`:
-  readable evidence artifacts published under `docs/evidence/` or another
+  readable evidence artifacts published under `tech-docs/evidence/` or another
   evidence-facing destination
 - `index-surface`:
   append-only summary or index surfaces used for visibility without stable

@@ -19,7 +19,7 @@
 ## Decision 3: Advance the repository release line to `0.45.0` as part of the slice
 
 - **Decision**: Bump the repository version and directly governed release-surface references to `0.45.0` while capturing validation evidence under the feature packet.
-- **Rationale**: The repository uses versioned feature slices with aligned docs/tests/release metadata, and the user explicitly requested the bump and closeout discipline.
+- **Rationale**: The repository uses versioned feature slices with aligned tech-docs/tests/release metadata, and the user explicitly requested the bump and closeout discipline.
 - **Alternatives considered**:
   - Keep `0.44.0`: rejected because it would ship behavior/doc changes without advancing the release line.
   - Delay the bump to a later feature: rejected because the current slice already touches governed release-facing surfaces.

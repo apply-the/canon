@@ -47,7 +47,7 @@ review-disposition approval remains authoritative for must-fix findings.
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`,
 `thiserror`, `tracing`, `uuid`, `time`  
 **Storage**: Local filesystem under `.canon/` for runtime artifacts and
-evidence, plus published markdown under `docs/reviews/prs/`  
+evidence, plus published markdown under `tech-docs/reviews/prs/`  
 **Testing**: `cargo test`, `cargo nextest run`, targeted contract and
 integration suites under `tests/`  
 **Target Platform**: Cross-platform local CLI workflows on macOS, Linux, and
@@ -70,7 +70,7 @@ in packet emission or publish readability.
 avoid host-specific export semantics, and keep the new artifact readable as
 standalone markdown.  
 **Scale/Scope**: One shipped mode, one additive artifact, focused contract and
-integration coverage, plus bounded docs/skill updates.
+integration coverage, plus bounded tech-docs/skill updates.
 
 ## Constitution Check
 

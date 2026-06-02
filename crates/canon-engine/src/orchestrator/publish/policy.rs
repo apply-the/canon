@@ -91,38 +91,40 @@ pub(super) fn canonical_project_memory_surface(
 
 pub(super) fn stable_project_memory_surface(mode: Mode) -> &'static str {
     match mode {
-        Mode::Discovery => "docs/project/overview.md",
-        Mode::Requirements => "docs/project/product-context.md",
-        Mode::SystemShaping | Mode::Architecture => "docs/project/architecture-map.md",
-        Mode::Change | Mode::Migration => "docs/project/decision-index.md",
-        Mode::Backlog | Mode::Implementation | Mode::Refactor => "docs/project/delivery-map.md",
-        Mode::DomainLanguage => "docs/project/domain-language.md",
-        Mode::DomainModel => "docs/project/domain-model.md",
+        Mode::Discovery => "tech-docs/project/overview.md",
+        Mode::Requirements => "tech-docs/project/product-context.md",
+        Mode::SystemShaping | Mode::Architecture => "tech-docs/project/architecture-map.md",
+        Mode::Change | Mode::Migration => "tech-docs/project/decision-index.md",
+        Mode::Backlog | Mode::Implementation | Mode::Refactor => {
+            "tech-docs/project/delivery-map.md"
+        }
+        Mode::DomainLanguage => "tech-docs/project/domain-language.md",
+        Mode::DomainModel => "tech-docs/project/domain-model.md",
         Mode::Verification
         | Mode::Review
         | Mode::PrReview
         | Mode::Incident
         | Mode::SecurityAssessment
         | Mode::SupplyChainAnalysis
-        | Mode::SystemAssessment => "docs/project/operational-context.md",
+        | Mode::SystemAssessment => "tech-docs/project/operational-context.md",
     }
 }
 
 pub(super) fn pending_project_memory_surface(mode: Mode) -> &'static str {
     match mode {
-        Mode::Incident => "docs/project/open-risks.md",
-        Mode::Verification | Mode::Review | Mode::PrReview => "docs/project/audit-log.md",
-        _ => "docs/project/pending-decisions.md",
+        Mode::Incident => "tech-docs/project/open-risks.md",
+        Mode::Verification | Mode::Review | Mode::PrReview => "tech-docs/project/audit-log.md",
+        _ => "tech-docs/project/pending-decisions.md",
     }
 }
 
 pub(super) fn evidence_project_memory_surface(mode: Mode) -> &'static str {
     match mode {
-        Mode::Review | Mode::PrReview | Mode::Verification => "docs/project/audit-log.md",
+        Mode::Review | Mode::PrReview | Mode::Verification => "tech-docs/project/audit-log.md",
         Mode::Incident
         | Mode::SecurityAssessment
         | Mode::SupplyChainAnalysis
-        | Mode::SystemAssessment => "docs/project/open-risks.md",
-        _ => "docs/project/audit-log.md",
+        | Mode::SystemAssessment => "tech-docs/project/open-risks.md",
+        _ => "tech-docs/project/audit-log.md",
     }
 }

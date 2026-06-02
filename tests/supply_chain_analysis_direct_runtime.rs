@@ -130,13 +130,13 @@ fn supply_chain_analysis_direct_run_exercises_service_summary_and_publish_paths(
         .publish(&summary.run_id, None, false)
         .expect("publish should succeed before risk approval");
     let leaf = default_publish_leaf(&summary.run_id, "supply-chain-analysis");
-    assert!(published.published_to.ends_with(&format!("docs/supply-chain/{leaf}")));
+    assert!(published.published_to.ends_with(&format!("tech-docs/supply-chain/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("analysis-overview.md")));
     assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 
     let published_overview = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("supply-chain")
         .join(&leaf)
         .join("01-analysis-overview.md");

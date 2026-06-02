@@ -30,7 +30,7 @@ implementation, validation, and auditability for each increment.
 - **Skills**: `.agents/skills/canon-{implementation,change,publish}/SKILL.md`
 - **Hooks config**: `.canon/hooks.toml`
 - **Fixtures**: `tests/fixtures/preflight/`, `tests/fixtures/hooks/`
-- **Docs**: `docs/guides/skill-runtime-contracts.md`
+- **Docs**: `tech-docs/guides/skill-runtime-contracts.md`
 - **Specs**: `specs/061-skill-runtime-contracts/`
 
 ---
@@ -142,9 +142,9 @@ if executed, the trace is recorded.
 
 **Purpose**: Update user-facing documentation and changelog
 
-- [x] T045 [P] Create user guide at `docs/guides/skill-runtime-contracts.md` covering preflight JSON usage, YAML contract authoring, and hooks.toml setup per `quickstart.md` content
+- [x] T045 [P] Create user guide at `tech-docs/guides/skill-runtime-contracts.md` covering preflight JSON usage, YAML contract authoring, and hooks.toml setup per `quickstart.md` content
 - [x] T046 [P] Update `CHANGELOG.md` with full feature description under the version bumped in T001
-- [x] T047 Update `docs/guides/modes.md` implementation section to reference the new preflight contract and hook detection behavior
+- [x] T047 Update `tech-docs/guides/modes.md` implementation section to reference the new preflight contract and hook detection behavior
 
 ---
 

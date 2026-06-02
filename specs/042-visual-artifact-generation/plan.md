@@ -27,7 +27,7 @@ Reshape Canon's `architecture` packet from a flat multi-file bundle into a pragm
 
 **Language/Version**: Rust 1.96.0 workspace plus Markdown documentation and Spec Kit feature artifacts.  
 **Primary Dependencies**: existing workspace crates `canon-engine`, `canon-cli`, `canon-adapters`, plus `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`, and current release helper shell scripts.  
-**Storage**: local filesystem under `.canon/`, published repository docs under `docs/` and `specs/`, and repo-local feature artifacts under `specs/042-visual-artifact-generation/`.  
+**Storage**: local filesystem under `.canon/`, published repository docs under `tech-docs/` and `specs/`, and repo-local feature artifacts under `specs/042-visual-artifact-generation/`.  
 **Testing**: focused Rust contract, renderer, run, and publish tests; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; `cargo nextest run`; and coverage inspection for touched Rust files with `cargo llvm-cov`.  
 **Target Platform**: local-first CLI usage on macOS, Linux, and Windows with publishable Markdown and text-based diagram artifacts.  
 **Project Type**: Rust CLI workspace with file-backed governed runtime artifacts and published documentation packets.  
@@ -86,7 +86,7 @@ crates/
         │   └── markdown.rs
         └── orchestrator/
             └── publish.rs
-docs/
+tech-docs/
 └── guides/
     └── modes.md
 tests/

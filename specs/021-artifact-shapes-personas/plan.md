@@ -21,7 +21,7 @@ modes without introducing a new runtime domain or persistence model
 **Scope In**: roadmap and planning artifacts for persona-aware artifact shapes;
 first-slice changes for `requirements`, `architecture`, and `change` skill
 source plus mirrored skills; renderer and artifact-contract support for the new
-packet expectations; focused docs/examples/tests that prove the slice  
+packet expectations; focused tech-docs/examples/tests that prove the slice  
 **Scope Out**: new Canon modes; full persona rollout for every remaining mode;
 package-manager distribution work; protocol interoperability; runtime schema or
 filesystem layout changes under `.canon/`
@@ -55,7 +55,7 @@ integration/unit tests, and `scripts/validate-canon-skills.sh`
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and
 Windows with repo-local AI skill materialization  
 **Project Type**: Rust CLI workspace with embedded skill sources, mirrored AI-facing skills, contract-based markdown rendering, and documentation artifacts  
-**Existing System Touchpoints**: `ROADMAP.md`; `docs/guides/modes.md`;
+**Existing System Touchpoints**: `ROADMAP.md`; `tech-docs/guides/modes.md`;
 `defaults/embedded-skills/canon-requirements/skill-source.md`;
 `defaults/embedded-skills/canon-architecture/skill-source.md`;
 `defaults/embedded-skills/canon-change/skill-source.md`;
@@ -124,7 +124,7 @@ crates/canon-engine/src/
     ├── contract.rs
     └── markdown.rs
 
-docs/
+tech-docs/
 ├── guides/modes.md
 └── examples/canon-input/
 

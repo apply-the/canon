@@ -173,5 +173,5 @@ Folder-backed `canon-input/backlog/` packets split the authored planning surface
 ## Compatibility Notes
 
 - No new run identity fields are added; display id, UUID, short id, slug, and `@last` behavior remain unchanged.
-- No new publish model is added; backlog packets publish through the existing flow to `docs/planning/<RUN_ID>/` by default.
+- No new publish model is added; backlog packets publish through the existing flow to `tech-docs/planning/<RUN_ID>/` by default.
 - No authored-input file is rewritten; immutable snapshots remain the runtime record.

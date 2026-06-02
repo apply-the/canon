@@ -312,7 +312,7 @@ mod tests {
                 working_brief_path:
                     ".canon/runs/R-20260529-ab12cd34/artifacts/requirements/working-brief.md"
                         .to_string(),
-                template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+                template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
                 status: ClarificationRefinementStatus::Active,
                 explicit_continuation_required: true,
                 authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],

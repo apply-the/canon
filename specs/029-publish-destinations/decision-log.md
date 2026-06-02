@@ -27,7 +27,7 @@
 
 ### D-004: Preserve existing family roots in the first slice
 
-- **Decision**: Keep the current family roots under `specs/` and `docs/` and
+- **Decision**: Keep the current family roots under `specs/` and `tech-docs/` and
   change only the default leaf structure.
 - **Rationale**: This bounds migration cost while still delivering readable
   publish paths.

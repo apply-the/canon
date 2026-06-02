@@ -14,8 +14,8 @@ aligned when the 028 decision-support slice ships as `0.28.0`.
 | `.agents/skills/canon-shared/references/runtime-compatibility.toml` | expected workspace version reports `0.28.0` | targeted runtime-compatibility review and skills bootstrap validation remain green |
 | `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml` | expected workspace version reports `0.28.0` | embedded skill validation matches the mirrored runtime compatibility contract |
 | `CHANGELOG.md` | `0.28.0` entry accurately describes the shipped slice | release-surface doc review reflects the final behavior |
-| `README.md`, `ROADMAP.md`, and `docs/guides/modes.md` | impacted guidance describes the targeted decision-support expansion without overstating runtime behavior | focused doc review and release-surface regression checks pass |
-| impacted templates and examples | canonical headings for decision analysis and framework evaluation are shown consistently | focused docs/examples tests pass |
+| `README.md`, `ROADMAP.md`, and `tech-docs/guides/modes.md` | impacted guidance describes the targeted decision-support expansion without overstating runtime behavior | focused doc review and release-surface regression checks pass |
+| impacted templates and examples | canonical headings for decision analysis and framework evaluation are shown consistently | focused tech-docs/examples tests pass |
 
 ## Release Validation Rules
 

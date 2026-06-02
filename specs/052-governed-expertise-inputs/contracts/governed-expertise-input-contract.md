@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Status**: Derived, non-normative brief
-- **Normative Stable Path**: `docs/integration/governed-expertise-input-contract.md`
+- **Normative Stable Path**: `tech-docs/integration/governed-expertise-input-contract.md`
 - **Current Contract Line**: v1
 
 ## Purpose
@@ -14,7 +14,7 @@ consumers without turning Canon into a runtime selector.
 
 - This brief mirrors the stable Canon expertise-input contract and exists for feature-local planning and validation.
 - If this brief and the stable Canon integration contract diverge, the stable Canon contract wins.
-- Publication and lineage semantics remain governed by `docs/integration/project-memory-promotion-contract.md`.
+- Publication and lineage semantics remain governed by `tech-docs/integration/project-memory-promotion-contract.md`.
 
 ## Supported Expertise Kinds
 
@@ -55,14 +55,14 @@ At minimum, consumers must be able to recover:
 - `expertise_input.domain_families`
 
 Additional lineage metadata remains governed by
-`docs/integration/project-memory-promotion-contract.md`.
+`tech-docs/integration/project-memory-promotion-contract.md`.
 
 ## Publication Surfaces And Target Classes
 
 - Governed expertise inputs reuse Canon's current project-memory and
 	evidence-facing publication semantics.
 - Target classes such as stable, pending, proposal, evidence, and index remain
-	defined by `docs/integration/project-memory-promotion-contract.md`.
+	defined by `tech-docs/integration/project-memory-promotion-contract.md`.
 - The expertise-input contract does not redefine artifact classes or metadata
 	carriers; consumers combine this contract with the stable promotion contract
 	to locate and classify published expertise inputs.

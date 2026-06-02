@@ -32,7 +32,7 @@ run orchestration, approval semantics, or non-review modes.
 - validation and fixture coverage for anchored and degraded findings in engine
   and integration tests
 - reviewer guidance mirrors for `canon-pr-review`
-- repository docs in `README.md` and `docs/guides/modes.md`, plus companion wiki
+- repository docs in `README.md` and `tech-docs/guides/modes.md`, plus companion wiki
   guidance under `../canon.wiki/`
 - release-facing version, lockfile, and changelog alignment in `Cargo.toml`,
   `Cargo.lock`, and `CHANGELOG.md`
@@ -71,7 +71,7 @@ validation evidence and packet-sample behavior.
 **Testing**: `cargo test`, `cargo nextest run`, focused unit and integration coverage for `pr-review`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, plus packet-sample review recorded in `validation-report.md`  
 **Target Platform**: macOS/Linux CLI workflows using local git diffs and published Markdown artifacts  
 **Project Type**: Rust workspace CLI plus engine/adapters crates with published governance artifacts  
-**Existing System Touchpoints**: `crates/canon-adapters/src/shell.rs`, `crates/canon-engine/src/review/findings.rs`, `crates/canon-engine/src/artifacts/markdown/governance.rs`, `crates/canon-engine/src/review/summary.rs`, `tests/contract/pr_review_anchor_contract.rs`, `tests/fixtures/`, `tests/integration/pr_review_run.rs`, `.agents/skills/canon-pr-review/SKILL.md`, `defaults/embedded-skills/canon-pr-review/skill-source.md`, `README.md`, `docs/guides/modes.md`, `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, `../canon.wiki/Canon-Modes.md`, `../canon.wiki/Example-Flow-Code-Review.md`, and `../canon.wiki/Reference.md`  
+**Existing System Touchpoints**: `crates/canon-adapters/src/shell.rs`, `crates/canon-engine/src/review/findings.rs`, `crates/canon-engine/src/artifacts/markdown/governance.rs`, `crates/canon-engine/src/review/summary.rs`, `tests/contract/pr_review_anchor_contract.rs`, `tests/fixtures/`, `tests/integration/pr_review_run.rs`, `.agents/skills/canon-pr-review/SKILL.md`, `defaults/embedded-skills/canon-pr-review/skill-source.md`, `README.md`, `tech-docs/guides/modes.md`, `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, `../canon.wiki/Canon-Modes.md`, `../canon.wiki/Example-Flow-Code-Review.md`, and `../canon.wiki/Reference.md`  
 **Performance Goals**: preserve current `pr-review` runtime posture with no observable change beyond lightweight diff-hunk parsing during packet construction  
 **Constraints**: keep anchors host-agnostic, preserve explicit scope as the fallback contract, avoid panic-prone control flow, avoid magic literals in owned Rust logic, and use typed serde models for any stable anchor shape  
 **Scale/Scope**: one review domain flow, one published artifact family, two to three Rust source files plus contract/integration fixtures, reviewer guidance mirrors, and release/documentation alignment surfaces
@@ -146,7 +146,7 @@ defaults/
     └── canon-pr-review/
         └── SKILL.md
 
-docs/
+tech-docs/
 └── guides/
   └── modes.md
 

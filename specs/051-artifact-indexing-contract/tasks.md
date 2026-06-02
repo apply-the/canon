@@ -72,7 +72,7 @@ be reviewed and validated independently.
 
 - [x] T016 [P] [US1] Codify required and optional indexing metadata in `crates/canon-engine/src/domain/publish_profile.rs`
 - [x] T017 [US1] Align publish metadata serialization and stable sidecar output in `crates/canon-engine/src/orchestrator/publish.rs`
-- [x] T018 [US1] Extend the stable normative contract in `docs/integration/project-memory-promotion-contract.md` and align the feature-local derived view in `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [x] T018 [US1] Extend the stable normative contract in `tech-docs/integration/project-memory-promotion-contract.md` and align the feature-local derived view in `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 - [x] T019 [US1] Capture MVP validation evidence in `specs/051-artifact-indexing-contract/validation-report.md`
 
 **Checkpoint**: User Story 1 is independently valid as a stable contract surface
@@ -93,7 +93,7 @@ be reviewed and validated independently.
 
 ### Implementation for User Story 2
 
-- [x] T023 [P] [US2] Resolve `safety-net packets` vocabulary, document at least one explicitly non-indexable artifact class, and define the metadata carrier and discovery rule in `docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [x] T023 [P] [US2] Resolve `safety-net packets` vocabulary, document at least one explicitly non-indexable artifact class, and define the metadata carrier and discovery rule in `tech-docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 - [x] T024 [US2] Align evidence-block metadata definitions in `crates/canon-engine/src/domain/publish_profile.rs`
 - [x] T025 [US2] Ensure publish output enforces the clarified evidence metadata in `crates/canon-engine/src/orchestrator/publish.rs`
 - [x] T026 [US2] Capture validation evidence in `specs/051-artifact-indexing-contract/validation-report.md`
@@ -115,7 +115,7 @@ be reviewed and validated independently.
 
 ### Implementation for User Story 3
 
-- [x] T029 [P] [US3] Document contract-line compatibility rules in `docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [x] T029 [P] [US3] Document contract-line compatibility rules in `tech-docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 - [x] T030 [US3] Align artifact validation helpers with compatibility expectations in `crates/canon-engine/src/domain/artifact.rs`
 - [x] T031 [US3] Preserve the producer-only boundary in publish-path metadata handling in `crates/canon-engine/src/orchestrator/publish.rs`
 - [x] T032 [US3] Capture versioning validation evidence in `specs/051-artifact-indexing-contract/validation-report.md`
@@ -128,7 +128,7 @@ be reviewed and validated independently.
 
 **Purpose**: Cross-cutting validation, documentation, and release closeout
 
-- [x] T033 [P] Update downstream-facing docs in `docs/integration/project-memory-promotion-contract.md`, `README.md`, and `AGENTS.md` if touched by the stabilized contract
+- [x] T033 [P] Update downstream-facing docs in `tech-docs/integration/project-memory-promotion-contract.md`, `README.md`, and `AGENTS.md` if touched by the stabilized contract
 - [x] T034 [P] Refresh `specs/051-artifact-indexing-contract/quickstart.md` and `specs/051-artifact-indexing-contract/validation-report.md`
 - [x] T035 Run `cargo fmt --all` from the repository root
 - [x] T036 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` from the repository root

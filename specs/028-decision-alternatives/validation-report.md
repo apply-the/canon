@@ -95,7 +95,7 @@ Completed
   recommendation-only posture beyond the existing model.
 - Final release-surface review confirmed `0.28.0` alignment across manifests,
   lockfile, shared runtime-compatibility references, `README.md`,
-  `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md`, `docs/guides/modes.md`, and the
+  `CHANGELOG.md`, `ROADMAP.md`, `AGENTS.md`, `tech-docs/guides/modes.md`, and the
   impacted templates/examples.
 - Evidence-honesty review confirmed the new sections only preserve authored
   decision drivers, candidate frameworks, decision evidence, and rejection

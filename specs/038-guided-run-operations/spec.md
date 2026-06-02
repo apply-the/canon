@@ -3,7 +3,7 @@
 **Feature Branch**: `038-guided-run-operations`  
 **Created**: 2026-05-02  
 **Status**: Draft  
-**Input**: User description: "Deliver feature 038 as a full guided run operations and review experience slice: unify run/status/result/blocker/approval/publish guidance across CLI and skill-facing outputs, strengthen operator ergonomics for approval-gated blocked resumable and partially publishable runs, preserve the governance adapter and existing approval/evidence semantics, include explicit 0.37.0 version alignment task, docs/changelog task, roadmap cleanup, coverage for touched Rust files, clean clippy and cargo fmt closeout, and implement end-to-end without splitting into slices."
+**Input**: User description: "Deliver feature 038 as a full guided run operations and review experience slice: unify run/status/result/blocker/approval/publish guidance across CLI and skill-facing outputs, strengthen operator ergonomics for approval-gated blocked resumable and partially publishable runs, preserve the governance adapter and existing approval/evidence semantics, include explicit 0.37.0 version alignment task, tech-docs/changelog task, roadmap cleanup, coverage for touched Rust files, clean clippy and cargo fmt closeout, and implement end-to-end without splitting into slices."
 
 ## Governance Context *(mandatory)*
 

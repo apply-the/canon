@@ -37,7 +37,7 @@
 
 - [ ] T005 Capture the focused baseline with `cargo test --test review_run --test verification_run --test incident_run --test migration_run --test review_contract --test verification_contract --test incident_contract --test migration_contract` and record results in `specs/020-authoring-specialization-completion/validation-report.md`
 - [ ] T006 [P] Confirm the current authored guidance surfaces in `defaults/embedded-skills/canon-review/skill-source.md`, `defaults/embedded-skills/canon-verification/skill-source.md`, `defaults/embedded-skills/canon-incident/skill-source.md`, `defaults/embedded-skills/canon-migration/skill-source.md`, `.agents/skills/canon-review/SKILL.md`, `.agents/skills/canon-verification/SKILL.md`, `.agents/skills/canon-incident/SKILL.md`, and `.agents/skills/canon-migration/SKILL.md`
-- [ ] T007 [P] Confirm the current runtime and release surfaces in `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_review.rs`, `crates/canon-engine/src/orchestrator/service/mode_incident.rs`, `crates/canon-engine/src/orchestrator/service/mode_migration.rs`, `Cargo.toml`, `CHANGELOG.md`, `ROADMAP.md`, `docs/guides/modes.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, and `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`
+- [ ] T007 [P] Confirm the current runtime and release surfaces in `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_review.rs`, `crates/canon-engine/src/orchestrator/service/mode_incident.rs`, `crates/canon-engine/src/orchestrator/service/mode_migration.rs`, `Cargo.toml`, `CHANGELOG.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, and `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`
 
 ---
 
@@ -70,8 +70,8 @@
 ### Implementation for User Story 1
 
 - [ ] T014 [US1] Update authored guidance in `defaults/embedded-skills/canon-review/skill-source.md`, `defaults/embedded-skills/canon-verification/skill-source.md`, `.agents/skills/canon-review/SKILL.md`, and `.agents/skills/canon-verification/SKILL.md`
-- [ ] T015 [US1] Convert the starter inputs to the canonical H2 contract in `docs/templates/canon-input/review.md` and `docs/templates/canon-input/verification.md`
-- [ ] T016 [US1] Rewrite the worked examples to exercise the full authored packet contract in `docs/examples/canon-input/review-db-migration.md` and `docs/examples/canon-input/verification-e2e-flakiness.md`
+- [ ] T015 [US1] Convert the starter inputs to the canonical H2 contract in `defaults/templates/canon-input/review.md` and `defaults/templates/canon-input/verification.md`
+- [ ] T016 [US1] Rewrite the worked examples to exercise the full authored packet contract in `tech-docs/examples/canon-input/review-db-migration.md` and `tech-docs/examples/canon-input/verification-e2e-flakiness.md`
 - [ ] T017 [US1] Extend `crates/canon-engine/src/artifacts/markdown.rs` and `crates/canon-engine/src/orchestrator/service/mode_review.rs` so `review` and `verification` preserve canonical authored bodies and emit honest missing-body markers without changing result semantics
 - [ ] T018 [US1] Record review/verification contract, docs-sync, and runtime evidence in `specs/020-authoring-specialization-completion/decision-log.md` and `specs/020-authoring-specialization-completion/validation-report.md`
 
@@ -94,8 +94,8 @@
 ### Implementation for User Story 2
 
 - [ ] T022 [US2] Update authored guidance in `defaults/embedded-skills/canon-incident/skill-source.md`, `defaults/embedded-skills/canon-migration/skill-source.md`, `.agents/skills/canon-incident/SKILL.md`, and `.agents/skills/canon-migration/SKILL.md`
-- [ ] T023 [US2] Convert the starter inputs to the canonical H2 contract in `docs/templates/canon-input/incident/brief.md` and `docs/templates/canon-input/migration/brief.md`
-- [ ] T024 [US2] Rewrite the worked examples to exercise the full authored packet contract in `docs/examples/canon-input/incident/brief.md` and `docs/examples/canon-input/migration/brief.md`
+- [ ] T023 [US2] Convert the starter inputs to the canonical H2 contract in `defaults/templates/canon-input/incident/brief.md` and `defaults/templates/canon-input/migration/brief.md`
+- [ ] T024 [US2] Rewrite the worked examples to exercise the full authored packet contract in `tech-docs/examples/canon-input/incident/brief.md` and `tech-docs/examples/canon-input/migration/brief.md`
 - [ ] T025 [US2] Extend `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_incident.rs`, and `crates/canon-engine/src/orchestrator/service/mode_migration.rs` so `incident` and `migration` preserve canonical authored bodies and emit honest missing-body markers without changing recommendation-only posture or publish roots
 - [ ] T026 [US2] Record incident/migration contract, docs-sync, and runtime evidence in `specs/020-authoring-specialization-completion/decision-log.md` and `specs/020-authoring-specialization-completion/validation-report.md`
 
@@ -107,18 +107,18 @@
 
 **Goal**: Synchronize roadmap, guide, changelog, compatibility references, manifests, and closeout validation so the specialization rollout is visibly complete and released as `0.20.0`.
 
-**Independent Test**: Read the updated roadmap, guide, changelog, compatibility references, and manifests, then run focused docs/version validation proving the repo describes rollout completion and reports `0.20.0` consistently.
+**Independent Test**: Read the updated roadmap, guide, changelog, compatibility references, and manifests, then run focused tech-docs/version validation proving the repo describes rollout completion and reports `0.20.0` consistently.
 
 ### Validation for User Story 3 (MANDATORY)
 
-- [ ] T027 [P] [US3] Add failing docs/version sync coverage in `tests/mode_authoring_completion_docs.rs`
+- [ ] T027 [P] [US3] Add failing tech-docs/version sync coverage in `tests/mode_authoring_completion_docs.rs`
 - [ ] T028 [P] [US3] Add failing non-regression coverage for critique posture, recommendation-only posture, and release/version surfaces in `tests/policy_and_traces.rs` and `tests/direct_runtime_coverage.rs`
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Update rollout guidance in `docs/guides/modes.md`, `ROADMAP.md`, and `CHANGELOG.md`
+- [ ] T029 [US3] Update rollout guidance in `tech-docs/guides/modes.md`, `ROADMAP.md`, and `CHANGELOG.md`
 - [ ] T030 [US3] Bump release/version surfaces in `Cargo.toml`, regenerate `Cargo.lock` through the normal Cargo workflow, and update `.agents/skills/canon-shared/references/runtime-compatibility.toml` plus `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`
-- [ ] T031 [US3] Update shared docs/version validation fixtures in `tests/mode_authoring_completion_docs.rs`, `tests/policy_and_traces.rs`, and `tests/direct_runtime_coverage.rs`
+- [ ] T031 [US3] Update shared tech-docs/version validation fixtures in `tests/mode_authoring_completion_docs.rs`, `tests/policy_and_traces.rs`, and `tests/direct_runtime_coverage.rs`
 - [ ] T032 [US3] Record rollout, release, and non-regression evidence in `specs/020-authoring-specialization-completion/decision-log.md` and `specs/020-authoring-specialization-completion/validation-report.md`
 
 **Checkpoint**: Maintainers have synchronized guidance, versioning, and non-regression evidence for the completed rollout.
@@ -145,7 +145,7 @@
 - Phase 2 depends on Phase 1 and blocks all story implementation.
 - Phase 3 depends on Phase 2.
 - Phase 4 depends on Phase 2 and should land before Phase 5 if the same contributor owns `markdown.rs` and the operational orchestrator files.
-- Phase 5 depends on Phases 3 and 4 because it closes shared docs/version/non-regression surfaces.
+- Phase 5 depends on Phases 3 and 4 because it closes shared tech-docs/version/non-regression surfaces.
 - Final Phase depends on all desired user stories being complete.
 
 ### User Story Dependencies
@@ -188,7 +188,7 @@ Task: "Add failing run coverage in tests/integration/incident_run.rs and tests/i
 ### Parallel Example: User Story 3
 
 ```bash
-Task: "Add failing docs/version sync coverage in tests/mode_authoring_completion_docs.rs"
+Task: "Add failing tech-docs/version sync coverage in tests/mode_authoring_completion_docs.rs"
 Task: "Add failing non-regression coverage in tests/policy_and_traces.rs and tests/direct_runtime_coverage.rs"
 ```
 
@@ -204,7 +204,7 @@ Task: "Add failing non-regression coverage in tests/policy_and_traces.rs and tes
 
 1. Deliver `review` and `verification` authored-body specialization (US1).
 2. Deliver `incident` and `migration` authored-body specialization (US2).
-3. Deliver release/docs/version closeout for `0.20.0` (US3).
+3. Deliver release/tech-docs/version closeout for `0.20.0` (US3).
 4. Finish with structural validation, logical validation, independent review, and closeout.
 
 ### Parallel Team Strategy

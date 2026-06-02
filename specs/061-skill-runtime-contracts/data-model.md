@@ -126,7 +126,7 @@ version = 1
 
 [[hooks.after_publish.actions]]
 id = "add-docs-to-git"
-command = "git add docs/"
+command = "git add tech-docs/"
 description = "Stage published documentation for commit"
 optional = true
 trusted = false
@@ -173,7 +173,7 @@ The record appended to the `ai-provenance.md` sidecar.
 
 - **Event**: after_publish
 - **Hook ID**: add-docs-to-git
-- **Command**: `git add docs/`
+- **Command**: `git add tech-docs/`
 - **Trusted**: false
 - **Proposal Outcome**: accepted
 - **Execution Result**: success (exit code 0)

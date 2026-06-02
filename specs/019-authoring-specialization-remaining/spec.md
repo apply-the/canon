@@ -103,9 +103,9 @@ A maintainer wants the roadmap, docs, tests, and examples to describe the delive
 - **FR-006**: The markdown renderer MUST preserve targeted-mode authored sections verbatim whenever the canonical heading is present and non-empty.
 - **FR-007**: When a required authored section is absent or empty, the renderer MUST emit `## Missing Authored Body` naming the missing canonical heading instead of generating fallback filler for that section.
 - **FR-008**: The relevant orchestrator paths MUST pass the authored brief body through to the renderer so authored-section extraction operates on the real packet text.
-- **FR-009**: Each targeted mode MUST ship a starter template under `docs/templates/canon-input/` that uses the same authored H2 contract documented in its skill.
-- **FR-010**: Each targeted mode MUST ship a realistic worked example under `docs/examples/canon-input/` that exercises the authored-body contract across the full emitted packet.
-- **FR-011**: `docs/guides/modes.md` MUST describe the new authored-body contract for the targeted modes without implying broader rollout completion.
+- **FR-009**: Each targeted mode MUST ship a starter template under `defaults/templates/canon-input/` that uses the same authored H2 contract documented in its skill.
+- **FR-010**: Each targeted mode MUST ship a realistic worked example under `tech-docs/examples/canon-input/` that exercises the authored-body contract across the full emitted packet.
+- **FR-011**: `tech-docs/guides/modes.md` MUST describe the new authored-body contract for the targeted modes without implying broader rollout completion.
 - **FR-012**: `ROADMAP.md` MUST record this slice as delivered follow-on scope for Mode Authoring Specialization and MUST keep remaining rollout scope explicit.
 - **FR-013**: `implementation` and `refactor` MUST keep their existing recommendation-only posture, gate behavior, and approval semantics unchanged.
 - **FR-014**: Focused renderer, contract, run, and docs tests MUST exist for each targeted mode, covering both successful authored preservation and honest missing-body behavior.

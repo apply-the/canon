@@ -87,7 +87,7 @@
   contract coverage.
 
 - **Decision**: Do not add repository-doc prose regression tests for
-  `README.md`, `ROADMAP.md`, `docs/guides/`, or `CHANGELOG.md`.
+  `README.md`, `ROADMAP.md`, `tech-docs/guides/`, or `CHANGELOG.md`.
 - **Rationale**: The user explicitly asked to remove brittle doc-content tests,
   so release alignment is validated through runtime-backed checks, skill
   validation, and focused release-surface review instead.

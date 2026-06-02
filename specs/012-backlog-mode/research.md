@@ -32,13 +32,13 @@
   - Emit one generic `backlog.md` file with subsections. Rejected because it weakens packet structure, inspectability, and downstream traceability.
   - Derive artifact requirements only from documentation. Rejected because documentation is not the runtime contract.
 
-## R-005: Publish should route backlog packets to `docs/planning/<RUN_ID>/`
+## R-005: Publish should route backlog packets to `tech-docs/planning/<RUN_ID>/`
 
-- **Decision**: Use `docs/planning/<RUN_ID>/` as the default publish destination for backlog packets.
-- **Rationale**: The feature brief in `NEXT_FEATURES.md` already names `docs/planning/<RUN_ID>/` as the natural public destination. Using that path keeps backlog outputs recognizable as planning artifacts instead of overloading architecture or change destinations.
+- **Decision**: Use `tech-docs/planning/<RUN_ID>/` as the default publish destination for backlog packets.
+- **Rationale**: The feature brief in `NEXT_FEATURES.md` already names `tech-docs/planning/<RUN_ID>/` as the natural public destination. Using that path keeps backlog outputs recognizable as planning artifacts instead of overloading architecture or change destinations.
 - **Alternatives considered**:
-  - Publish under `docs/backlog/<RUN_ID>/`. Rejected because the repository's own feature brief already establishes `docs/planning/` as the intended public surface.
-  - Publish under `docs/changes/<RUN_ID>/`. Rejected because backlog is decomposition planning, not executed change work.
+  - Publish under `tech-docs/backlog/<RUN_ID>/`. Rejected because the repository's own feature brief already establishes `tech-docs/planning/` as the intended public surface.
+  - Publish under `tech-docs/changes/<RUN_ID>/`. Rejected because backlog is decomposition planning, not executed change work.
 
 ## R-006: Successful and closure-blocked runs need different packet expectations
 
@@ -58,10 +58,10 @@
 
 ## R-008: Skills and docs should update only after runtime truth is designed
 
-- **Decision**: Add a dedicated backlog skill and update docs/defaults in lockstep with runtime design so product messaging only advertises delivered mode behavior.
+- **Decision**: Add a dedicated backlog skill and update tech-docs/defaults in lockstep with runtime design so product messaging only advertises delivered mode behavior.
 - **Rationale**: Canon already treats embedded and materialized skills as discoverable product surfaces. They must remain accurate and testable against the actual runtime contract.
 - **Alternatives considered**:
-  - Publish backlog docs/skills ahead of runtime design. Rejected because that would recreate the exact "modeled-only but described as available" drift the repo has been fixing elsewhere.
+  - Publish backlog tech-docs/skills ahead of runtime design. Rejected because that would recreate the exact "modeled-only but described as available" drift the repo has been fixing elsewhere.
 
 ## R-009: Validation should mirror existing mode-promotion patterns
 

@@ -16,7 +16,7 @@ override semantics.
 3. Inspect the published packet metadata and confirm run id, mode, risk, zone,
    publish timestamp, and source artifact lineage remain recoverable.
 4. Run release-surface checks for `Cargo.toml`, `Cargo.lock`, shared runtime
-   compatibility references, `README.md`, `ROADMAP.md`, `docs/guides/modes.md`,
+   compatibility references, `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`,
    and `CHANGELOG.md`.
 5. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets
    --all-features -- -D warnings`, `cargo nextest run --workspace

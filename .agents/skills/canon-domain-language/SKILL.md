@@ -142,7 +142,7 @@ for developers, architects, and product teams.
 - Use `$canon-domain-model` when the next real step is formalizing concepts and relationships.
 - Use `$canon-architecture` when the vocabulary is stable enough for boundary decisions.
 - Use `$canon-change` when the next step is renaming or alignment work.
-- Use `$canon-publish` to promote the packet to `docs/domain/language/`.
+- Use `$canon-publish` to promote the packet to `tech-docs/domain/language/`.
 
 ## Related Skills
 

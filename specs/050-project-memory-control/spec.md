@@ -18,7 +18,7 @@ governed producer and keeping delivery orchestration outside Canon
   stage refs, and evidence refs
 - producer-neutral managed block format for repo-visible project memory and
   evidence documents
-- default target mapping for `docs/project/` and `docs/evidence/`
+- default target mapping for `tech-docs/project/` and `tech-docs/evidence/`
 - minimum required V1 lineage fields and optional metadata set
 - stronger compatibility policy for additive versus breaking contract changes
 - explicit authorship rules for Canon-produced versus Boundline-produced
@@ -45,7 +45,7 @@ governed producer and keeping delivery orchestration outside Canon
   unbounded autonomy.
 
 **Decision Traceability**: Canon publishes the stable contract under
-`docs/integration/`, while the detailed feature-local contract set for this
+`tech-docs/integration/`, while the detailed feature-local contract set for this
 slice lives under `specs/050-project-memory-control/contracts/`.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -68,7 +68,7 @@ source code.
 **Acceptance Scenarios**:
 
 1. **Given** the accepted Canon contract bundle, **When** a maintainer reads
-   `docs/integration/project-memory-promotion-contract.md`, **Then** they can
+   `tech-docs/integration/project-memory-promotion-contract.md`, **Then** they can
    identify the owner, canonical managed-block format, compatibility policy,
    and required lineage fields from that stable path.
 2. **Given** the feature-local contract set, **When** a maintainer compares it
@@ -94,13 +94,13 @@ knowledge, pending knowledge, and evidence-only output remain distinguishable.
 **Independent Test**: Walk through completed, approval-gated, blocked, and
 conflicting promotion scenarios and verify that the contract always yields an
 explicit target and update strategy without implying Canon owns all authorship
-inside `docs/evidence/`.
+inside `tech-docs/evidence/`.
 
 **Acceptance Scenarios**:
 
 1. **Given** completed and approved stable knowledge, **When** Canon promotes
    it, **Then** the contract directs Canon to a stable target under
-   `docs/project/` or `docs/evidence/` using producer-neutral managed blocks.
+   `tech-docs/project/` or `tech-docs/evidence/` using producer-neutral managed blocks.
 2. **Given** a pending, blocked, or conflicting promotion candidate, **When**
    Canon evaluates it, **Then** the contract directs Canon to proposal files,
    pending indexes, or evidence-only targets instead of overwriting stable
@@ -161,13 +161,13 @@ changes have different documented handling.
   contract documents for this slice so design, planning, and implementation
   work stay versioned with the feature.
 - **FR-003**: Canon MUST define default repo-visible targets under
-  `docs/project/` and `docs/evidence/` and map Canon-owned promotion semantics
+  `tech-docs/project/` and `tech-docs/evidence/` and map Canon-owned promotion semantics
   to those targets.
 - **FR-004**: Canon MUST define a producer-neutral managed block format using a
   `project-memory:managed` marker family that includes `producer`,
   `source_ref`, and `contract_version`.
 - **FR-005**: Canon MUST allow Canon and Boundline to contribute blocks inside
-  `docs/evidence/` through the shared managed-block format while preserving
+  `tech-docs/evidence/` through the shared managed-block format while preserving
   Canon ownership of the contract and Canon-owned promotion rules; Boundline
   blocks may contribute evidence text and attribution metadata but MUST NOT
   redefine Canon promotion-state, approval, readiness, or target-routing
@@ -237,13 +237,13 @@ changes have different documented handling.
   contract bundle without finding Canon-side orchestration behavior or missing
   producer semantics.
 - **Evidence artifacts**: this `spec.md`, the feature-local contracts, the
-  stable `docs/integration/` contract doc, and later planning and validation
+  stable `tech-docs/integration/` contract doc, and later planning and validation
   artifacts under the same feature folder.
 
 ## Decision Log *(mandatory)*
 
 - **D-001**: Keep the canonical consumer-discovery path under
-  `docs/integration/`, **Rationale**: Canon already uses that stable surface and
+  `tech-docs/integration/`, **Rationale**: Canon already uses that stable surface and
   consumers should not be forced to hunt through numbered specs for the current
   contract.
 - **D-002**: Use producer-neutral managed blocks rather than Canon-specific
@@ -265,7 +265,7 @@ changes have different documented handling.
 
 - Boundline is the first consumer and will pin the Canon-owned contract line
   rather than vendoring a second source-of-truth contract.
-- `docs/project/` and `docs/evidence/` remain the default repo-visible targets
+- `tech-docs/project/` and `tech-docs/evidence/` remain the default repo-visible targets
   for V1, while any future overrides can be layered later without changing
   producer ownership.
 - Consumers need readable contracts and examples more urgently than they need a

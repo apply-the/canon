@@ -54,7 +54,7 @@
 - [x] T013 [US1] Add Claude Code package manifest and command glue in `.claude-plugin/manifest.json` and `.claude-plugin/commands.json`
 - [x] T014 [US1] Add Codex plugin manifest in `.codex-plugin/plugin.json`
 - [x] T015 [US1] Add Cursor package manifest and command glue in `.cursor-plugin/manifest.json` and `.cursor-plugin/commands.json`
-- [x] T016 [US1] Add assistant plugin installation guide in `docs/guides/assistant-plugin-packages.md`
+- [x] T016 [US1] Add assistant plugin installation guide in `tech-docs/guides/assistant-plugin-packages.md`
 - [x] T017 [US1] Add README assistant plugin package summary in `README.md`
 - [x] T018 [US1] Run `cargo test --test assistant_plugin_packages package_folders_and_docs_are_present` and record passing evidence in `specs/044-assistant-plugin-packages/validation-report.md`
 
@@ -110,7 +110,7 @@
 **Purpose**: Cross-cutting validation, documentation, and closeout.
 
 - [x] T030 Update `specs/044-assistant-plugin-packages/validation-report.md` with final invariant confirmation and implementation evidence
-- [x] T031 Run `rg -n "0\\.43\\.0|agent framework|orchestrator|coding agent|workspace mutation engine" .claude-plugin .codex-plugin .cursor-plugin assistant docs/guides/assistant-plugin-packages.md README.md specs/044-assistant-plugin-packages`, resolve invalid package-positioning findings, and record intentional negative-boundary mentions
+- [x] T031 Run `rg -n "0\\.43\\.0|agent framework|orchestrator|coding agent|workspace mutation engine" .claude-plugin .codex-plugin .cursor-plugin assistant tech-docs/guides/assistant-plugin-packages.md README.md specs/044-assistant-plugin-packages`, resolve invalid package-positioning findings, and record intentional negative-boundary mentions
 - [x] T032 Confirm all task checkboxes are complete in `specs/044-assistant-plugin-packages/tasks.md`
 - [x] T033 Ensure at least 95% line coverage on every new or modified Rust file, run `cargo clippy --workspace --all-targets --all-features -- -D warnings`, ensure tests are green with `cargo test`, and use `cargo fmt --check`
 

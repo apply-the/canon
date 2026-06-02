@@ -20,7 +20,7 @@ release-surface alignment without changing Canon runtime semantics.
    mirrored skills remain synchronized.
 5. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, and a full `cargo nextest run --workspace --all-features` before closeout.
 6. Review `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, runtime-compatibility
-   references, `README.md`, `ROADMAP.md`, and `docs/guides/modes.md` to
+   references, `README.md`, `ROADMAP.md`, and `tech-docs/guides/modes.md` to
    confirm the `0.28.0` release surface is explicit and internally consistent.
 
 ## Representative Packet Walkthroughs

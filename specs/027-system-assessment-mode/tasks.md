@@ -42,7 +42,7 @@ implementation to start
 
 - [x] T005 Update agent context from `specs/027-system-assessment-mode/plan.md` into `AGENTS.md`
 - [x] T006 [P] Create the mode scaffolds in `defaults/methods/system-assessment.toml`, `defaults/embedded-skills/canon-system-assessment/skill-source.md`, and `.agents/skills/canon-system-assessment/SKILL.md`
-- [x] T007 [P] Create authored-input scaffolds in `docs/templates/canon-input/system-assessment.md` and `docs/examples/canon-input/system-assessment-commerce-platform.md`
+- [x] T007 [P] Create authored-input scaffolds in `defaults/templates/canon-input/system-assessment.md` and `tech-docs/examples/canon-input/system-assessment-commerce-platform.md`
 
 ---
 
@@ -105,7 +105,7 @@ assessment docs location.
 
 - [x] T022 [P] [US2] Add shared compatibility and runtime helper updates in `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/scripts/check-runtime.sh`, and `.agents/skills/canon-shared/scripts/check-runtime.sh`
 - [x] T023 [P] [US2] Author the assessment skill surfaces in `defaults/embedded-skills/canon-system-assessment/skill-source.md` and `.agents/skills/canon-system-assessment/SKILL.md`
-- [x] T024 [P] [US2] Add mode guidance and authored-input examples in `docs/guides/modes.md`, `docs/templates/canon-input/system-assessment.md`, and `docs/examples/canon-input/system-assessment-commerce-platform.md`
+- [x] T024 [P] [US2] Add mode guidance and authored-input examples in `tech-docs/guides/modes.md`, `defaults/templates/canon-input/system-assessment.md`, and `tech-docs/examples/canon-input/system-assessment-commerce-platform.md`
 - [x] T025 [US2] Capture authoring and publish validation evidence in `specs/027-system-assessment-mode/validation-report.md`
 
 **Checkpoint**: The new mode is discoverable, authorable, and publishable through the documented surfaces
@@ -230,5 +230,5 @@ With multiple developers:
 - [P] tasks = different files, no dependencies
 - [Story] labels map tasks to user stories for traceability
 - `T001` intentionally bumps the next release to `0.26.0`
-- `T033` is intentionally the final closeout task and includes the requested coverage, roadmap/docs/changelog, formatting, and clippy work
+- `T033` is intentionally the final closeout task and includes the requested coverage, roadmap/tech-docs/changelog, formatting, and clippy work
 - Keep the decision log and validation report current as work progresses

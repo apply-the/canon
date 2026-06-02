@@ -60,7 +60,7 @@ fn migration_brief() -> &'static str {
 }
 
 fn read_single_adr(workspace: &TempDir) -> (String, String) {
-    let adr_dir = workspace.path().join("docs").join("adr");
+    let adr_dir = workspace.path().join("tech-docs").join("adr");
     let adr_entry = fs::read_dir(&adr_dir)
         .expect("adr registry dir")
         .next()
@@ -115,7 +115,7 @@ fn change_publish_only_emits_adr_when_opted_in() {
 
     cli_command().current_dir(workspace.path()).args(["publish", run_id]).assert().success();
     assert!(
-        !workspace.path().join("docs").join("adr").exists(),
+        !workspace.path().join("tech-docs").join("adr").exists(),
         "change publish should not emit an ADR without --adr"
     );
 
@@ -132,7 +132,7 @@ fn change_publish_only_emits_adr_when_opted_in() {
     let (adr_name, adr_text) = read_single_adr(&workspace);
 
     assert!(adr_name.starts_with("ADR-0001-"));
-    assert!(publish_text.contains(&format!("docs/adr/{adr_name}")));
+    assert!(publish_text.contains(&format!("tech-docs/adr/{adr_name}")));
     assert!(adr_text.starts_with(
         "# ADR 0001: Prefer additive change over normalization to preserve operator expectations."
     ));
@@ -209,7 +209,7 @@ fn migration_publish_only_emits_adr_when_opted_in() {
 
     cli_command().current_dir(workspace.path()).args(["publish", run_id]).assert().success();
     assert!(
-        !workspace.path().join("docs").join("adr").exists(),
+        !workspace.path().join("tech-docs").join("adr").exists(),
         "migration publish should not emit an ADR without --adr"
     );
 
@@ -226,7 +226,7 @@ fn migration_publish_only_emits_adr_when_opted_in() {
     let (adr_name, adr_text) = read_single_adr(&workspace);
 
     assert!(adr_name.starts_with("ADR-0001-"));
-    assert!(publish_text.contains(&format!("docs/adr/{adr_name}")));
+    assert!(publish_text.contains(&format!("tech-docs/adr/{adr_name}")));
     assert!(adr_text.starts_with("# ADR 0001: retain dual-write during the bounded cutover"));
     assert!(adr_text.contains("## Context"));
     assert!(adr_text.contains("auth-v1 serves login and token refresh traffic."));

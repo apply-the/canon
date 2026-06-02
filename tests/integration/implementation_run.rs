@@ -414,7 +414,7 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("implementation")
             .join(default_publish_leaf(run_id, "implementation"))
             .join("01-task-mapping.md")
@@ -555,7 +555,7 @@ fn systemic_implementation_run_remains_recommendation_only_and_publishable() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("implementation")
             .join(default_publish_leaf(run_id, "implementation"))
             .join("01-task-mapping.md")

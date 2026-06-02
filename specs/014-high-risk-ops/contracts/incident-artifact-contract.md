@@ -75,7 +75,7 @@ The packet must:
 - separate known facts from working hypotheses and evidence gaps
 - make blast radius and containment logic visible without hidden runtime state
 - surface when evidence is insufficient to justify progression
-- remain readable after publish under `docs/incidents/<RUN_ID>/`
+- remain readable after publish under `tech-docs/incidents/<RUN_ID>/`
 
 ## Compatibility Expectations
 

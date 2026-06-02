@@ -121,7 +121,7 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
     assert!(
         pre_approval_publish
             .published_to
-            .ends_with(&format!("docs/security-assessments/{pre_approval_leaf}"))
+            .ends_with(&format!("tech-docs/security-assessments/{pre_approval_leaf}"))
     );
     assert!(
         pre_approval_publish
@@ -161,13 +161,13 @@ fn security_assessment_direct_run_exercises_service_summary_and_publish_paths() 
 
     let published = service.publish(&summary.run_id, None, false).expect("publish should succeed");
     let leaf = default_publish_leaf(&summary.run_id, "security-assessment");
-    assert!(published.published_to.ends_with(&format!("docs/security-assessments/{leaf}")));
+    assert!(published.published_to.ends_with(&format!("tech-docs/security-assessments/{leaf}")));
     assert!(published.published_files.iter().any(|path| path.ends_with("assessment-overview.md")));
     assert!(published.published_files.iter().any(|path| path.ends_with("packet-metadata.json")));
 
     let published_overview = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("security-assessments")
         .join(&leaf)
         .join("01-assessment-overview.md");
@@ -230,7 +230,7 @@ fn security_assessment_direct_run_exposes_blocked_gate_and_missing_body_markers(
     assert!(
         blocked_publish
             .published_to
-            .ends_with(&format!("docs/security-assessments/{blocked_leaf}"))
+            .ends_with(&format!("tech-docs/security-assessments/{blocked_leaf}"))
     );
     assert!(
         blocked_publish.published_files.iter().any(|path| path.ends_with("assessment-overview.md"))

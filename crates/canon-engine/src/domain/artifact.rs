@@ -381,7 +381,7 @@ mod tests {
                 semantic_eligibility: SemanticEligibilityState::Eligible,
                 semantic_provenance_boundary: Some(SemanticProvenanceBoundary::ManagedBlock),
                 semantic_provenance_ref: Some(
-                    "docs/project/overview.md#managed-block-1".to_string(),
+                    "tech-docs/project/overview.md#managed-block-1".to_string(),
                 ),
                 semantic_labels: vec!["project-memory".to_string()],
                 semantic_exclusion_reason: None,
@@ -464,7 +464,7 @@ mod tests {
                 semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
                 semantic_eligibility: SemanticEligibilityState::Excluded,
                 semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
-                semantic_provenance_ref: Some("docs/project/open-risks.md".to_string()),
+                semantic_provenance_ref: Some("tech-docs/project/open-risks.md".to_string()),
                 semantic_labels: vec!["visibility-only".to_string()],
                 semantic_exclusion_reason: Some(
                     "index surfaces stay excluded from semantic retrieval".to_string(),

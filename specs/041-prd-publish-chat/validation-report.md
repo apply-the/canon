@@ -16,7 +16,7 @@
 ## Independent Validation
 
 - README readback confirms the publish boundary is explicit: artifacts land under `.canon/artifacts/<RUN_ID>/...` first, `requirements` publish now includes `prd.md`, and chat users can invoke the same step through `$canon-publish`.
-- `docs/guides/modes.md` readback confirms the requirements artifact list includes `prd.md` and that published requirements directories contain `prd.md`, the sectional packet files, and `packet-metadata.json`.
+- `tech-docs/guides/modes.md` readback confirms the requirements artifact list includes `prd.md` and that published requirements directories contain `prd.md`, the sectional packet files, and `packet-metadata.json`.
 - The `canon-publish` skill and embedded mirror continue to describe the real `canon publish <RUN_ID> [--to <DESTINATION>]` surface without bypassing completion or approval gates.
 
 ## Evidence Log

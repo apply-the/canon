@@ -44,11 +44,11 @@ As an architect or reviewer, I want `architecture` publishes to emit one reposit
 
 **Why this priority**: This is the main value of the feature. If `architecture` does not become the canonical ADR-producing mode, the slice does not actually establish a durable standard ADR workflow.
 
-**Independent Test**: Run a publishable `architecture` packet in a repository with no existing ADR register and verify that publish creates exactly one numbered ADR file under `docs/adr/` containing the required standard sections and links back to the packet artifacts.
+**Independent Test**: Run a publishable `architecture` packet in a repository with no existing ADR register and verify that publish creates exactly one numbered ADR file under `tech-docs/adr/` containing the required standard sections and links back to the packet artifacts.
 
 **Acceptance Scenarios**:
 
-1. **Given** a publishable `architecture` run with decision, constraints, and consequences recorded, **When** the operator publishes the packet, **Then** Canon writes one numbered ADR file under `docs/adr/` with title, date, status, context, decision, and consequences.
+1. **Given** a publishable `architecture` run with decision, constraints, and consequences recorded, **When** the operator publishes the packet, **Then** Canon writes one numbered ADR file under `tech-docs/adr/` with title, date, status, context, decision, and consequences.
 2. **Given** a repository with no prior ADR files, **When** the first `architecture` ADR is published, **Then** Canon creates the registry path and assigns the first non-conflicting ADR number using the canonical filename shape.
 
 ---
@@ -79,11 +79,11 @@ As a maintainer of Canon itself, I want the supported modes, numbering rules, st
 **Acceptance Scenarios**:
 
 1. **Given** a publishable `incident` or other unsupported-mode packet, **When** the operator publishes it, **Then** Canon produces the normal packet outputs and does not create an ADR file.
-2. **Given** existing ADR files already present in `docs/adr/`, **When** a new supported ADR export is published, **Then** Canon assigns a new non-conflicting number and leaves existing ADR files unchanged.
+2. **Given** existing ADR files already present in `tech-docs/adr/`, **When** a new supported ADR export is published, **Then** Canon assigns a new non-conflicting number and leaves existing ADR files unchanged.
 
 ### Edge Cases
 
-- `docs/adr/` does not exist yet and Canon must create the registry path without changing any unrelated publish destination.
+- `tech-docs/adr/` does not exist yet and Canon must create the registry path without changing any unrelated publish destination.
 - The registry already contains numbered ADR files and gaps in numbering; Canon must still assign the next non-conflicting identifier without overwriting prior records.
 - A supported source packet is publishable but still carries explicit missing-body or missing-context markers in decision sections; the exported ADR must preserve honesty rather than inventing standard prose.
 - A `change` or `migration` packet is published multiple times with and without ADR export; the opt-in boundary must remain explicit and predictable.
@@ -96,7 +96,7 @@ As a maintainer of Canon itself, I want the supported modes, numbering rules, st
 - **FR-001**: `architecture` publish MUST generate one standard ADR markdown artifact by default for every publishable architecture packet.
 - **FR-002**: Every generated ADR MUST include a unique ADR identifier, title, date, status, context, decision, and consequences in a stable Markdown shape aligned with the standard Nygard template.
 - **FR-003**: The generated `architecture` ADR MUST derive its content from the existing architecture packet artifacts and include traceability back to the source packet and its publish location.
-- **FR-004**: ADR files MUST be published under `docs/adr/` with a canonical numbered filename shape that preserves stable ordering and avoids collisions with existing ADR files.
+- **FR-004**: ADR files MUST be published under `tech-docs/adr/` with a canonical numbered filename shape that preserves stable ordering and avoids collisions with existing ADR files.
 - **FR-005**: ADR numbering MUST allocate the next non-conflicting identifier without mutating or renaming existing ADR files.
 - **FR-006**: `change` and `migration` publish flows MUST support explicit opt-in ADR export and MUST NOT create ADR files when that export is not requested.
 - **FR-007**: `incident` and all other unsupported modes MUST NOT create ADR files during publish.
@@ -108,7 +108,7 @@ As a maintainer of Canon itself, I want the supported modes, numbering rules, st
 
 ### Key Entities *(include if feature involves data)*
 
-- **ADR Registry Entry**: A durable Markdown document under `docs/adr/` containing the standard ADR sections plus traceability back to the Canon packet that produced it.
+- **ADR Registry Entry**: A durable Markdown document under `tech-docs/adr/` containing the standard ADR sections plus traceability back to the Canon packet that produced it.
 - **ADR Publish Policy**: The mode-specific rule set that decides whether ADR export is default, opt-in, or unsupported.
 - **ADR Source Mapping**: The traceability data connecting a generated ADR to the source mode, source packet artifacts, and publish operation that created it.
 - **ADR Identifier**: The sequential repository-local number and filename slug that give each ADR stable referenceability.
@@ -117,7 +117,7 @@ As a maintainer of Canon itself, I want the supported modes, numbering rules, st
 
 ### Measurable Outcomes
 
-- **SC-001**: Publishing a valid `architecture` packet in a repository with no ADR history creates exactly one ADR file under `docs/adr/` containing all required standard sections.
+- **SC-001**: Publishing a valid `architecture` packet in a repository with no ADR history creates exactly one ADR file under `tech-docs/adr/` containing all required standard sections.
 - **SC-002**: Publishing valid `change` and `migration` packets without ADR export enabled creates zero ADR files, while publishing the same packet with ADR export enabled creates exactly one ADR file per publish operation.
 - **SC-003**: Regression validation shows that unsupported modes create zero ADR files while preserving their existing publish outputs.
 - **SC-004**: 100% of generated ADR files contain a unique non-conflicting identifier and an explicit trace back to the source Canon packet.
@@ -146,7 +146,7 @@ As a maintainer of Canon itself, I want the supported modes, numbering rules, st
 
 ## Assumptions
 
-- `docs/adr/` is the correct repository-local destination for durable ADR publication in this project.
+- `tech-docs/adr/` is the correct repository-local destination for durable ADR publication in this project.
 - The first implementation slice can treat publish-generated ADR status as `Accepted` while still remaining compatible with the standard ADR template.
 - Existing `architecture`, `change`, and `migration` decision artifacts contain enough structured authored content to derive standard ADR sections without inventing new evidence.
 - The requested version bump, coverage closeout, and required formatting or lint cleanups are part of this feature’s mandatory implementation definition of done rather than optional polish.

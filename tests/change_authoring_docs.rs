@@ -63,7 +63,7 @@ fn change_contract_and_skill_share_canonical_headings() {
     assert!(
         skill_source.contains("## ADR Publish Contract")
             && skill_source.contains("canon publish <RUN_ID> --adr")
-            && skill_source.contains("docs/adr/ADR-XXXX-<slug>.md"),
+            && skill_source.contains("tech-docs/adr/ADR-XXXX-<slug>.md"),
         "skill source must document change ADR opt-in publish behavior"
     );
 }

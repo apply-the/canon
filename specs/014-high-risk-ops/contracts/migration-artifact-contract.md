@@ -75,7 +75,7 @@ The packet must:
 - make compatibility guarantees and temporary incompatibilities explicit
 - show sequencing and fallback as operational plans rather than generic prose
 - surface when rollback, coexistence, or verification credibility is missing
-- remain readable after publish under `docs/migrations/<RUN_ID>/`
+- remain readable after publish under `tech-docs/migrations/<RUN_ID>/`
 
 ## Compatibility Expectations
 

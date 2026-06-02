@@ -21,8 +21,8 @@ delivery orchestration into Canon
 - pending, audit, and evidence publication surfaces
 - the feature-local shared contract brief under `contracts/`
 - an explicit requirement to promote the accepted contract into a stable Canon
-  documentation path such as `docs/integration/project-memory-promotion-contract.md`
-  or `docs/contracts/project-memory-promotion-contract.md`
+  documentation path such as `tech-docs/integration/project-memory-promotion-contract.md`
+  or `tech-docs/contracts/project-memory-promotion-contract.md`
 
 **Scope Out**:
 
@@ -135,7 +135,7 @@ spec requires later promotion into a stable documentation path.
   compatibility rules and pre-1.0 change policy.
 2. **Given** the owner-side Canon spec, **When** implementation planning begins,
    **Then** the spec requires promotion of the accepted contract into a stable
-   Canon documentation path such as `docs/integration/...` or `docs/contracts/...`.
+   Canon documentation path such as `tech-docs/integration/...` or `tech-docs/contracts/...`.
 3. **Given** a future breaking contract change, **When** Canon updates the
   contract, **Then** the documented pre-1.0 change policy governs the update
   rather than an undocumented ad hoc process.
@@ -176,8 +176,8 @@ spec requires later promotion into a stable documentation path.
   slice `contracts/` directory during this first pass.
 - **FR-010**: Canon MUST require later promotion of the accepted shared contract
   into a stable Canon documentation path such as
-  `docs/integration/project-memory-promotion-contract.md` or
-  `docs/contracts/project-memory-promotion-contract.md`.
+  `tech-docs/integration/project-memory-promotion-contract.md` or
+  `tech-docs/contracts/project-memory-promotion-contract.md`.
 - **FR-011**: Canon MUST version the shared contract explicitly through
   `contract_version`, owner, known consumers, compatibility rules,
   and pre-1.0 change policy.

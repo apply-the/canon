@@ -72,7 +72,7 @@
 - **Rationale**: Review packets are more usable when findings are concrete, but
   Canon still needs explicit closure and evidence posture.
 
-### D-009: Reuse the current review renderer and enforce the contract in docs/tests
+### D-009: Reuse the current review renderer and enforce the contract in tech-docs/tests
 
 - **Decision**: Keep review rendering behavior unchanged and enforce the new
   findings-first shape through skill, template, example, docs, and regression

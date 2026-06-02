@@ -128,7 +128,7 @@ fn inspect_clarity_keeps_ambiguous_directory_packets_explicit() {
     fs::create_dir_all(&implementation_dir).expect("implementation dir");
     fs::write(
         implementation_dir.join("source-map.md"),
-        "# Source Map\n\n## Upstream Sources\n\n- docs/changes/auth-session.md\n",
+        "# Source Map\n\n## Upstream Sources\n\n- tech-docs/changes/auth-session.md\n",
     )
     .expect("source map");
     fs::write(
@@ -202,20 +202,24 @@ fn inspect_clarity_surfaces_targeted_questions_for_supply_chain_inputs() {
 
 fn representative_mode_input(mode: &str) -> &'static str {
     match mode {
-        "system-shaping" => "docs/examples/canon-input/system-shaping-billing.md",
-        "architecture" => "docs/examples/canon-input/architecture-state-management.md",
-        "change" => "docs/examples/canon-input/change-add-caching.md",
-        "backlog" => "docs/examples/canon-input/backlog-auth-session-hardening.md",
-        "implementation" => "docs/examples/canon-input/implementation-auth-session-revocation.md",
-        "refactor" => "docs/examples/canon-input/refactor-auth-session-cleanup.md",
-        "migration" => "docs/examples/canon-input/migration-platform-consolidation.md",
-        "review" => "canon-input/review.md",
-        "verification" => "docs/examples/canon-input/verification-e2e-flakiness.md",
-        "incident" => "docs/examples/canon-input/incident/brief.md",
-        "security-assessment" => {
-            "docs/examples/canon-input/security-assessment-webhook-platform.md"
+        "system-shaping" => "tech-docs/examples/canon-input/system-shaping-billing.md",
+        "architecture" => "tech-docs/examples/canon-input/architecture-state-management.md",
+        "change" => "tech-docs/examples/canon-input/change-add-caching.md",
+        "backlog" => "tech-docs/examples/canon-input/backlog-auth-session-hardening.md",
+        "implementation" => {
+            "tech-docs/examples/canon-input/implementation-auth-session-revocation.md"
         }
-        "system-assessment" => "docs/examples/canon-input/system-assessment-commerce-platform.md",
+        "refactor" => "tech-docs/examples/canon-input/refactor-auth-session-cleanup.md",
+        "migration" => "tech-docs/examples/canon-input/migration-platform-consolidation.md",
+        "review" => "canon-input/review.md",
+        "verification" => "tech-docs/examples/canon-input/verification-e2e-flakiness.md",
+        "incident" => "tech-docs/examples/canon-input/incident/brief.md",
+        "security-assessment" => {
+            "tech-docs/examples/canon-input/security-assessment-webhook-platform.md"
+        }
+        "system-assessment" => {
+            "tech-docs/examples/canon-input/system-assessment-commerce-platform.md"
+        }
         other => panic!("unexpected mode {other}"),
     }
 }

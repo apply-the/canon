@@ -297,7 +297,7 @@ mod tests {
             working_brief_path: format!(
                 ".canon/runs/R-20260529-ab12cd34/artifacts/{mode_slug}/working-brief.md"
             ),
-            template_ref: format!("docs/templates/canon-input/{mode_slug}.md"),
+            template_ref: format!("defaults/templates/canon-input/{mode_slug}.md"),
             status: ClarificationRefinementStatus::Active,
             explicit_continuation_required: true,
             authoritative_input_refs: vec![format!("canon-input/{mode_slug}/brief.md")],
@@ -960,7 +960,7 @@ mod tests {
         let mut planning_context = sample_backlog_planning_context();
         planning_context.source_refs = vec![
             "specs/033-reasoning-evidence-clarity/plan.md".to_string(),
-            "docs/guides/skill-runtime-contracts.md".to_string(),
+            "tech-docs/guides/skill-runtime-contracts.md".to_string(),
         ];
         planning_context.constraints = vec![
             "Stay above task level".to_string(),
@@ -990,7 +990,7 @@ mod tests {
             capability_map
                 .contains("## Capability Mapping\n\n- Runtime evidence hygiene -> Epic 1")
         );
-        assert!(capability_map.contains("docs/guides/skill-runtime-contracts.md"));
+        assert!(capability_map.contains("tech-docs/guides/skill-runtime-contracts.md"));
         assert!(capability_map.contains(
             "- [blocking] missing-evidence on upstream backlog brief. Follow-up: attach the missing closure notes"
         ));

@@ -23,8 +23,8 @@ docs) and Phase F (full validation) close the feature.
 ### Phase B — BUG-1 owner cosmetic cleanup
 
 - Remove the literal `Owner: maintainer` line from
-  `docs/templates/canon-input/{implementation,refactor}.md`,
-  `docs/examples/canon-input/{implementation-auth-session-revocation,refactor-auth-session-cleanup}.md`,
+  `defaults/templates/canon-input/{implementation,refactor}.md`,
+  `tech-docs/examples/canon-input/{implementation-auth-session-revocation,refactor-auth-session-cleanup}.md`,
   and the two java-html-sanitizer briefs created during T044.
 - Thread `default_owner: &str` through
   `render_change_artifact`, `render_implementation_artifact`,

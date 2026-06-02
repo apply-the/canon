@@ -28,7 +28,7 @@ silent destructive moves.
 **Scope In**: run manifest schema additions; deterministic display-id and
 slug derivation; new dated on-disk layout; authored-input vs run-snapshot
 contract enforcement; CLI lookup by `run_id`/`short_id`/`uuid` (and
-optionally `@last`); run listing surface; docs/help text alignment;
+optionally `@last`); run listing surface; tech-docs/help text alignment;
 read-compatibility shim for legacy UUID-keyed run directories.  
 **Scope Out**: replacing UUID; introducing a numeric counter as identity;
 new persistence engine; redesigning gates, zones, risk, skills, or

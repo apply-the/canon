@@ -6,7 +6,7 @@ use crate::domain::run::{
 use uuid::{ContextV7, Timestamp, Uuid};
 
 const REFINEMENT_WORKING_BRIEF_FILE_NAME: &str = "working-brief.md";
-const REFINEMENT_TEMPLATE_ROOT: &str = "docs/templates/canon-input";
+const REFINEMENT_TEMPLATE_ROOT: &str = "defaults/templates/canon-input";
 const REFINEMENT_MATCH_REASON_SAME_INPUTS: &str = "same authoritative input fingerprint";
 const RUN_ID_COLLISION_RETRY_LIMIT: usize = 8;
 const RUN_ID_COLLISION_WINDOW_MILLIS: i64 = 65_536;

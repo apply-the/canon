@@ -16,10 +16,10 @@ Numbered, dependency-ordered tasks. `[X]` marks completed work.
 ## Phase B — BUG-1 owner cleanup (independent of Phase C/D)
 
 - [X] T004 Remove `Owner: maintainer` from
-  `docs/templates/canon-input/implementation.md`,
-  `docs/templates/canon-input/refactor.md`,
-  `docs/examples/canon-input/implementation-auth-session-revocation.md`,
-  `docs/examples/canon-input/refactor-auth-session-cleanup.md`,
+  `defaults/templates/canon-input/implementation.md`,
+  `defaults/templates/canon-input/refactor.md`,
+  `tech-docs/examples/canon-input/implementation-auth-session-revocation.md`,
+  `tech-docs/examples/canon-input/refactor-auth-session-cleanup.md`,
   `/Users/rt/workspace/java-html-sanitizer/canon-input/implementation/brief.md`,
   `/Users/rt/workspace/java-html-sanitizer/canon-input/refactor/brief.md`.
 - [X] T005 Thread `default_owner: &str` through

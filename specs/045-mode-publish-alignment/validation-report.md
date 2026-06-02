@@ -29,7 +29,7 @@
 
 ## Independent Validation Results
 
-- Readback against `docs/guides/modes.md` confirmed the runtime now matches the documented operational publish posture for readable `security-assessment` packets in `AwaitingApproval` and `Blocked` states.
+- Readback against `tech-docs/guides/modes.md` confirmed the runtime now matches the documented operational publish posture for readable `security-assessment` packets in `AwaitingApproval` and `Blocked` states.
 - Readback against assistant package surfaces confirmed `assistant/commands/governed-methods.json` and `assistant/prompts/copilot-command-pack.md` both now use positional `canon publish <RUN_ID>` syntax, matching the CLI contract.
 - Readback of touched version-governed surfaces confirmed the active release line is `0.45.0` across workspace manifests, assistant package metadata, runtime compatibility references, README, tests, and the new changelog entries.
 

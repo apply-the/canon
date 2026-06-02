@@ -49,7 +49,7 @@ Add two new first-class Canon modes: `domain-language` (governed ubiquitous-lang
 ### Phase 3: Orchestration And Publish
 
 9. Add mode shaping integration for both modes.
-10. Add publish target configuration (`docs/domain/language/` and `docs/domain/model/`).
+10. Add publish target configuration (`tech-docs/domain/language/` and `tech-docs/domain/model/`).
 11. Add inspect clarity support for both modes.
 12. Add governance adapter capability output for both modes.
 
@@ -57,8 +57,8 @@ Add two new first-class Canon modes: `domain-language` (governed ubiquitous-lang
 
 13. Add governed method entries for both modes.
 14. Add repo-local and embedded skills for both modes.
-15. Add input templates under `docs/templates/`.
-16. Add worked examples under `docs/examples/`.
+15. Add input templates under `defaults/templates/`.
+16. Add worked examples under `tech-docs/examples/`.
 17. Update Mode Guide, README, and flow diagrams.
 
 ### Phase 5: Quality Gates And Release

@@ -9,7 +9,7 @@
 
 **Mode**: review
 **Risk Classification**: bounded-impact because this feature changes published compatibility statements, release anchors, and contract tests but does not change Canon runtime control flow or contract schema
-**Scope In**: `Cargo.toml` version anchors, `docs/integration/governed-reasoning-posture-contract.md`, companion contract tests, changelog, roadmap, and release-facing documentation required to publish Canon `0.58.0` for Boundline `0.62.x`
+**Scope In**: `Cargo.toml` version anchors, `tech-docs/integration/governed-reasoning-posture-contract.md`, companion contract tests, changelog, roadmap, and release-facing documentation required to publish Canon `0.58.0` for Boundline `0.62.x`
 **Scope Out**: Canon runtime behavior, new posture schema fields, new contract line introduction, Boundline-owned orchestration logic, and any feature work beyond companion publication alignment
 
 **Invariants**:

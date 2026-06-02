@@ -20,7 +20,7 @@
 
 **Scope Out**:
 
-- Reopening already-completed authored-body slices for `requirements`, `discovery`, `system-shaping`, `architecture`, `change`, `implementation`, or `refactor`, except for non-behavioral references needed for docs/version sync.
+- Reopening already-completed authored-body slices for `requirements`, `discovery`, `system-shaping`, `architecture`, `change`, `implementation`, or `refactor`, except for non-behavioral references needed for tech-docs/version sync.
 - Introducing new modes, new publish destinations, new runtime persistence schema, or new adapter capabilities.
 - Changing the critique-first posture of `review` and `verification`, or the recommendation-only operational posture of `incident` and `migration`.
 - Expanding into industry-standard artifact shape work beyond the authored-body contract needed to complete this rollout.
@@ -104,12 +104,12 @@ A maintainer wants the remaining rollout, docs, and release surfaces to describe
 - **FR-007**: The markdown renderer MUST preserve authored H2 bodies verbatim for the targeted modes whenever the canonical heading is present and non-empty.
 - **FR-008**: When a required authored section for a targeted mode is absent or empty, the renderer MUST emit `## Missing Authored Body` naming the missing canonical heading.
 - **FR-009**: The relevant orchestrator paths for the targeted modes MUST provide the renderer access to the authored packet text needed for section extraction.
-- **FR-010**: Each targeted mode MUST ship starter templates under `docs/templates/canon-input/` that use the same canonical authored H2 contract documented in the skill.
-- **FR-011**: Each targeted mode MUST ship worked examples under `docs/examples/canon-input/` that demonstrate complete authored packets aligned to the canonical contract.
+- **FR-010**: Each targeted mode MUST ship starter templates under `defaults/templates/canon-input/` that use the same canonical authored H2 contract documented in the skill.
+- **FR-011**: Each targeted mode MUST ship worked examples under `tech-docs/examples/canon-input/` that demonstrate complete authored packets aligned to the canonical contract.
 - **FR-012**: Focused renderer, contract, run, and docs tests MUST exist for each targeted mode, covering both verbatim preservation and honest missing-body behavior.
 - **FR-013**: `review` and `verification` MUST keep their existing critique-first, evidence-backed, and independent-validation posture unchanged.
 - **FR-014**: `incident` and `migration` MUST keep their existing recommendation-only operational posture, gate semantics, and publish behavior unchanged.
-- **FR-015**: `ROADMAP.md`, `docs/guides/modes.md`, `CHANGELOG.md`, and runtime-compatibility references MUST describe this slice as the completion of Mode Authoring Specialization.
+- **FR-015**: `ROADMAP.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, and runtime-compatibility references MUST describe this slice as the completion of Mode Authoring Specialization.
 - **FR-016**: Cargo manifests, shared compatibility references, and release-facing documentation MUST report Canon version `0.20.0` for this delivery.
 - **FR-017**: Non-target modes MUST retain their current runtime behavior unchanged except for documentation or version references required by this feature.
 
@@ -130,7 +130,7 @@ A maintainer wants the remaining rollout, docs, and release surfaces to describe
 - **SC-002**: Each targeted mode has at least one focused negative test proving a missing required authored section emits `## Missing Authored Body` naming the canonical heading.
 - **SC-003**: Skills, templates, and worked examples for all four targeted modes describe the same authored-body contract with no unresolved drift.
 - **SC-004**: The targeted validation suite passes without changing review/verification independence semantics, incident/migration recommendation-only posture, or non-target mode behavior.
-- **SC-005**: `ROADMAP.md`, `docs/guides/modes.md`, `CHANGELOG.md`, and compatibility references all reflect `0.20.0` and describe Mode Authoring Specialization as completed.
+- **SC-005**: `ROADMAP.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, and compatibility references all reflect `0.20.0` and describe Mode Authoring Specialization as completed.
 
 ## Validation Plan *(mandatory)*
 

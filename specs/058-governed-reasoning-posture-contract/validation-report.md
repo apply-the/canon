@@ -17,7 +17,7 @@ Feature closeout is complete for the scoped surfaces of
 
 ### Contract Surfaces Present In The Branch
 
-- `docs/integration/governed-reasoning-posture-contract.md`
+- `tech-docs/integration/governed-reasoning-posture-contract.md`
 - `tests/contract/governed_reasoning_posture_contract.rs`
 - `tests/governed_reasoning_posture_contract.rs`
 
@@ -62,7 +62,7 @@ Feature closeout is complete for the scoped surfaces of
 
 | Check | Status | Notes |
 |---|---|---|
-| Stable Canon doc and feature-local brief stay synchronized | Pass | `docs/integration/governed-reasoning-posture-contract.md` and `contracts/governed-reasoning-posture-contract.md` agree on owner, contract line, required shape, vocabulary, and the Boundline `0.61.x` / Canon `0.57.x` window |
+| Stable Canon doc and feature-local brief stay synchronized | Pass | `tech-docs/integration/governed-reasoning-posture-contract.md` and `contracts/governed-reasoning-posture-contract.md` agree on owner, contract line, required shape, vocabulary, and the Boundline `0.61.x` / Canon `0.57.x` window |
 | Boundline consumer contract matches the Canon producer contract | Pass | Boundline `specs/061-reasoning-profile-contracts/contracts/canon-challenge-posture-consumer-contract.md` carries the same contract line, required fields, and compatibility window |
 | Boundline version-alignment brief matches the supported release pair | Pass | Boundline `specs/061-reasoning-profile-contracts/contracts/reasoning-version-alignment-contract.md` states Boundline `0.61.x`, Canon `0.57.x`, and `governed_reasoning_posture_v1` |
 | Release-facing docs remain aligned with the active delivery line | Pass | `README.md` and `CHANGELOG.md` carry `0.57.0`; `ROADMAP.md` now reflects the post-gatekeeper large-file debt instead of stale gatekeeper debt |

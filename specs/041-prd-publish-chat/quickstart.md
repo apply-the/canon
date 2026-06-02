@@ -26,10 +26,10 @@ packet-metadata.json
 ## Scenario 2: Publish to a custom destination
 
 ```bash
-canon publish <RUN_ID> --to docs/public/prd
+canon publish <RUN_ID> --to tech-docs/public/prd
 ```
 
-Confirm `docs/public/prd/prd.md` exists alongside the sectional packet files and metadata.
+Confirm `tech-docs/public/prd/prd.md` exists alongside the sectional packet files and metadata.
 
 ## Scenario 3: Use chat-first publish guidance
 

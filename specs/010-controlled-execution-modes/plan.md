@@ -13,7 +13,7 @@ Promote `implementation` and `refactor` by extending existing Canon runtime prim
 
 **Execution Mode**: `change`
 **Risk Classification**: `bounded-impact`. The work changes runtime behavior across CLI, engine, defaults, embedded skills, and tests, but it remains bounded to the existing Canon workspace, storage layout, and publish surfaces.
-**Scope In**: Promote `implementation` and `refactor` to governed runtime modes; add mode-specific artifact contracts, gating, authored-input binding, execution posture handling, docs/skills updates, and regression coverage.
+**Scope In**: Promote `implementation` and `refactor` to governed runtime modes; add mode-specific artifact contracts, gating, authored-input binding, execution posture handling, tech-docs/skills updates, and regression coverage.
 **Scope Out**: New top-level CLI commands, parallel run identity or publish models, red-zone/systemic mutating execution, promotion of `incident` or `migration`, and any workflow that writes back into `canon-input/`.
 
 **Invariants**:

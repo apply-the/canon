@@ -69,7 +69,7 @@ version = 1
 
 [[hooks.after_publish.actions]]
 id = "stage-docs"
-command = "git add docs/"
+command = "git add tech-docs/"
 description = "Stage published documentation for commit"
 optional = true
 trusted = false

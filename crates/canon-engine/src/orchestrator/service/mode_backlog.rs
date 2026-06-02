@@ -626,7 +626,7 @@ mod tests {
             "## Planning Horizon\n",
             "next two delivery increments\n\n",
             "## Source References\n",
-            "- docs/architecture/decisions/R-20260422-AUTHREVOC/decision-summary.md\n\n",
+            "- tech-docs/architecture/decisions/R-20260422-AUTHREVOC/decision-summary.md\n\n",
             "## Priorities\n",
             "- Ship the rollback-safe slice first.\n\n",
             "## Constraints\n",
@@ -647,7 +647,7 @@ mod tests {
         assert_eq!(context.planning_horizon.as_deref(), Some("next two delivery increments"));
         assert_eq!(
             context.source_refs,
-            vec!["docs/architecture/decisions/R-20260422-AUTHREVOC/decision-summary.md"]
+            vec!["tech-docs/architecture/decisions/R-20260422-AUTHREVOC/decision-summary.md"]
         );
         assert_eq!(context.priority_inputs, vec!["Ship the rollback-safe slice first."]);
         assert_eq!(context.constraints, vec!["Keep the packet above task level."]);
@@ -709,7 +709,7 @@ mod tests {
             "## Planning Horizon\n",
             "next two releases\n\n",
             "## Source References\n",
-            "- docs/changes/auth-session.md\n\n",
+            "- tech-docs/changes/auth-session.md\n\n",
             "## Priorities\n",
             "- Ship the rollback-safe slice first.\n\n",
             "## Constraints\n",
@@ -729,7 +729,7 @@ mod tests {
         );
 
         assert!(generation_prompt.contains("## Closure Status\ndowngraded"));
-        assert!(generation_prompt.contains("- docs/changes/auth-session.md"));
+        assert!(generation_prompt.contains("- tech-docs/changes/auth-session.md"));
         assert!(critique_prompt.contains("## Closure Status\ndowngraded"));
         assert!(critique_prompt.contains("Generated framing placeholder"));
         assert!(evidence_summary.contains("## Closure Findings"));

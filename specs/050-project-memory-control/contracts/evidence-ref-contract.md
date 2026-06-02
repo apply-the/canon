@@ -14,7 +14,7 @@ runtime sources.
   "source": "boundline",
   "source_ref": "boundline-trace:TRACE-123",
   "evidence_type": "validation",
-  "target": "docs/evidence/validation.md",
+  "target": "tech-docs/evidence/validation.md",
   "status": "failed",
   "summary": "Validation failed after retry budget"
 }
@@ -26,7 +26,7 @@ runtime sources.
 - `kind` is recommended in V1 for standalone serialization and logging, but it
   is not yet a required validated field.
 - The ref is for attribution and traceability, not ownership transfer.
-- Evidence refs may appear inside shared `docs/evidence/` documents under the
+- Evidence refs may appear inside shared `tech-docs/evidence/` documents under the
   producer-neutral managed-block format.
 - Boundline-authored evidence blocks may carry attribution, status, summary,
   and source references for `source = "boundline"` entries.

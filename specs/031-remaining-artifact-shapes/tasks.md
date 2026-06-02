@@ -73,7 +73,7 @@ implemented, validated, and audited independently.
 ### Implementation for User Story 1
 
 - [x] T013 [P] [US1] Update implementation shape and persona guidance in `defaults/embedded-skills/canon-implementation/skill-source.md` and `.agents/skills/canon-implementation/SKILL.md`
-- [x] T014 [P] [US1] Update implementation input template and example in `docs/templates/canon-input/implementation.md` and `docs/examples/canon-input/implementation-auth-session-revocation.md`
+- [x] T014 [P] [US1] Update implementation input template and example in `defaults/templates/canon-input/implementation.md` and `tech-docs/examples/canon-input/implementation-auth-session-revocation.md`
 - [x] T015 [US1] Confirm implementation renderer-preservation and contract expectations in `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `tests/implementation_contract.rs`, and `tests/contract/implementation_contract.rs`
 - [x] T016 [US1] Capture implementation validation evidence in `specs/031-remaining-artifact-shapes/validation-report.md`
 
@@ -95,7 +95,7 @@ implemented, validated, and audited independently.
 ### Implementation for User Story 2
 
 - [x] T019 [P] [US2] Update refactor shape and persona guidance in `defaults/embedded-skills/canon-refactor/skill-source.md` and `.agents/skills/canon-refactor/SKILL.md`
-- [x] T020 [P] [US2] Update refactor input template and example in `docs/templates/canon-input/refactor.md` and `docs/examples/canon-input/refactor-auth-session-cleanup.md`
+- [x] T020 [P] [US2] Update refactor input template and example in `defaults/templates/canon-input/refactor.md` and `tech-docs/examples/canon-input/refactor-auth-session-cleanup.md`
 - [x] T021 [US2] Confirm refactor renderer-preservation and contract expectations in `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `tests/refactor_contract.rs`, and `tests/contract/refactor_contract.rs`
 - [x] T022 [US2] Capture refactor validation evidence in `specs/031-remaining-artifact-shapes/validation-report.md`
 
@@ -117,7 +117,7 @@ implemented, validated, and audited independently.
 ### Implementation for User Story 3
 
 - [x] T025 [P] [US3] Update verification shape and persona guidance in `defaults/embedded-skills/canon-verification/skill-source.md` and `.agents/skills/canon-verification/SKILL.md`
-- [x] T026 [P] [US3] Update verification input template and example in `docs/templates/canon-input/verification.md` and `docs/examples/canon-input/verification-e2e-flakiness.md`
+- [x] T026 [P] [US3] Update verification input template and example in `defaults/templates/canon-input/verification.md` and `tech-docs/examples/canon-input/verification-e2e-flakiness.md`
 - [x] T027 [US3] Confirm verification renderer-preservation and contract expectations in `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/artifacts/contract.rs`, `tests/verification_contract.rs`, and `tests/contract/verification_contract.rs`
 - [x] T028 [US3] Capture verification validation evidence in `specs/031-remaining-artifact-shapes/validation-report.md`
 
@@ -139,7 +139,7 @@ implemented, validated, and audited independently.
 ### Implementation for User Story 4
 
 - [x] T031 [US4] Update version surfaces in `Cargo.toml`, `Cargo.lock`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, and `.agents/skills/canon-shared/references/runtime-compatibility.toml`
-- [x] T032 [US4] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, `CHANGELOG.md`, and any touched authoring guidance
+- [x] T032 [US4] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, and any touched authoring guidance
 - [x] T033 [US4] Capture release-alignment validation evidence and touched-Rust-file coverage expectations in `specs/031-remaining-artifact-shapes/validation-report.md`
 
 **Checkpoint**: Runtime behavior, docs, and release-facing `0.31.0` surfaces align cleanly.
@@ -205,7 +205,7 @@ Task: "Record implementation-specific decisions in specs/031-remaining-artifact-
 
 # Update the source and mirrored implementation guidance in parallel with examples:
 Task: "Update implementation shape and persona guidance in defaults/embedded-skills/canon-implementation/skill-source.md and .agents/skills/canon-implementation/SKILL.md"
-Task: "Update implementation input template and example in docs/templates/canon-input/implementation.md and docs/examples/canon-input/implementation-auth-session-revocation.md"
+Task: "Update implementation input template and example in defaults/templates/canon-input/implementation.md and tech-docs/examples/canon-input/implementation-auth-session-revocation.md"
 ```
 
 ---

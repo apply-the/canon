@@ -28,11 +28,11 @@
 - **Decision**: Represent closure assessment explicitly in the run context and user-visible summaries, with named findings that can block or downgrade decomposition.
 - **Consequences**: Users receive durable reasons for planning failure, and later validation can prove Canon did not silently overreach.
 
-## D-005: Publish backlog packets to `docs/planning/<RUN_ID>/`
+## D-005: Publish backlog packets to `tech-docs/planning/<RUN_ID>/`
 
 - **Status**: Proposed
 - **Context**: Backlog outputs are durable planning artifacts, not architecture decisions or executed changes.
-- **Decision**: Use `docs/planning/<RUN_ID>/` as the default publish destination for backlog mode.
+- **Decision**: Use `tech-docs/planning/<RUN_ID>/` as the default publish destination for backlog mode.
 - **Consequences**: Published packets remain clearly identifiable as planning outputs and do not overload existing mode destinations.
 
 ## D-006: Differentiate successful packets from closure-limited packets
@@ -81,5 +81,5 @@
 
 - **Status**: Accepted for implementation
 - **Context**: US3 requires a published backlog packet to remain readable outside Canon and a downstream implementation lead to recover source links, dependencies, sequencing, and acceptance anchors without hidden runtime state. The runtime publish path already reused Canon's generic lookup and destination model, but the backlog skill and top-level docs still described backlog as planned rather than delivered.
-- **Decision**: Keep backlog on the existing `canon publish`, run lookup, inspect, and next-step surfaces; treat `docs/planning/<RUN_ID>/` as the authoritative public packet location; keep published backlog artifacts explicitly planning-only; and promote the backlog skill plus shared docs/index surfaces to `available-now` only after tests prove the packet and skill materialization behave as delivered.
+- **Decision**: Keep backlog on the existing `canon publish`, run lookup, inspect, and next-step surfaces; treat `tech-docs/planning/<RUN_ID>/` as the authoritative public packet location; keep published backlog artifacts explicitly planning-only; and promote the backlog skill plus shared tech-docs/index surfaces to `available-now` only after tests prove the packet and skill materialization behave as delivered.
 - **Consequences**: Downstream readers can reuse backlog packets through Canon's existing lifecycle without a parallel handoff interface, publish and `@last`/short-id lookup compatibility remain generic instead of mode-specific, and skills/docs now align with runtime truth instead of aspirational roadmap text.

@@ -15,7 +15,7 @@
   `crates/canon-engine/src/domain/publish_profile.rs` already define stable
   artifact metadata, packet sidecars, and publication lineage surfaces that can
   carry the authority-governance envelope.
-- `docs/integration/governance-adapter.md` already defines the machine-facing
+- `tech-docs/integration/governance-adapter.md` already defines the machine-facing
   adapter projection that downstream orchestrators consume.
 
 ## Boundaries Confirmed During Planning
@@ -85,8 +85,8 @@
 - `crates/canon-engine/src/domain/artifact.rs`
 - `crates/canon-engine/src/domain/publish_profile.rs`
 - `crates/canon-engine/src/domain/approval.rs`
-- `docs/integration/governance-adapter.md`
-- `docs/guides/`
+- `tech-docs/integration/governance-adapter.md`
+- `tech-docs/guides/`
 - `tests/governance_adapter_surface.rs`
 - `tests/mode_profiles.rs`
 - `tests/policy_and_traces.rs`

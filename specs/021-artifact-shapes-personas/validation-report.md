@@ -59,7 +59,7 @@ Validated
 - `specs/021-artifact-shapes-personas/decision-log.md`
 - `specs/021-artifact-shapes-personas/tasks.md`
 - `ROADMAP.md`
-- `docs/guides/modes.md`
+- `tech-docs/guides/modes.md`
 - `defaults/embedded-skills/canon-requirements/skill-source.md`
 - `defaults/embedded-skills/canon-architecture/skill-source.md`
 - `defaults/embedded-skills/canon-change/skill-source.md`

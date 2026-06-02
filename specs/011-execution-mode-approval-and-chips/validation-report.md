@@ -22,7 +22,7 @@ are still in flight.
 ## Tranche B — Owner cosmetic cleanup
 
 - `Owner: maintainer` removed from the four template/example briefs
-  in `docs/templates/canon-input/` and `docs/examples/canon-input/`
+  in `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/`
   and the two java-html-sanitizer briefs created during T044.
 - `render_change_artifact`, `render_implementation_artifact`,
   `render_refactor_artifact` now accept a `default_owner: &str`

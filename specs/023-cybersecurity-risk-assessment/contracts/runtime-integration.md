@@ -5,7 +5,7 @@
 - The new mode name is `security-assessment`.
 - Canonical authored input locations are `canon-input/security-assessment.md`
   and `canon-input/security-assessment/`.
-- The publish destination is `docs/security-assessments/<RUN_ID>/`.
+- The publish destination is `tech-docs/security-assessments/<RUN_ID>/`.
 - The mode stays recommendation-only in the current release.
 
 ## Required Runtime Hooks

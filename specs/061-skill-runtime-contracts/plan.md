@@ -137,7 +137,7 @@ tests/fixtures/
     ├── malformed-hooks.toml
     └── trusted-untrusted-mix.toml
 
-docs/guides/
+tech-docs/guides/
 └── skill-runtime-contracts.md (new: user-facing guide)
 ```
 

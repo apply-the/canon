@@ -23,7 +23,7 @@
 
 **Purpose**: Advance the release line first and keep the feature packet current before behavior changes land.
 
-- [x] T001 Upgrade the Canon release line from `0.44.0` to `0.45.0` in `Cargo.toml`, `Cargo.lock`, `README.md`, `CHANGELOG.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, `tests/integration/skills_bootstrap.rs`, and any directly affected release assertions
+- [x] T001 Upgrade the Canon release line from `0.44.0` to `0.45.0` in `Cargo.toml`, `Cargo.lock`, `README.md`, `CHANGELOG.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, `tests/integration/skills_bootstrap.rs`, and any directly affected release assertions
 - [x] T002 Record current alignment decisions and validation intent in `specs/045-mode-publish-alignment/decision-log.md` and `specs/045-mode-publish-alignment/validation-report.md`
 - [x] T003 Confirm `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/mode-publish-alignment-surface.md`, and `quickstart.md` remain coherent in `specs/045-mode-publish-alignment/`
 
@@ -105,7 +105,7 @@
 
 ### Implementation for User Story 3
 
-- [x] T021 [US3] Update touched release-surface docs and assertions for `0.45.0` in `README.md`, `CHANGELOG.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `tests/integration/skills_bootstrap.rs`, and any directly affected release checks
+- [x] T021 [US3] Update touched release-surface docs and assertions for `0.45.0` in `README.md`, `CHANGELOG.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `tests/integration/skills_bootstrap.rs`, and any directly affected release checks
 - [x] T022 [US3] Record version-surface closeout evidence in `specs/045-mode-publish-alignment/validation-report.md`
 
 **Checkpoint**: The delivery line is `0.45.0` and touched release surfaces are aligned.

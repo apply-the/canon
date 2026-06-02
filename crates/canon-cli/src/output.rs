@@ -213,7 +213,7 @@ mod tests {
                 "upstream_feature_slice": "auth session revocation",
                 "primary_upstream_mode": "change",
                 "upstream_source_refs": [
-                    "docs/changes/R-20260422-AUTHREVOC/change-surface.md"
+                    "tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md"
                 ],
                 "carried_forward_items": [
                     "Revocation output formatting stays stable."
@@ -233,7 +233,7 @@ mod tests {
         assert!(markdown.contains("Primary Upstream Mode: change"));
         assert!(markdown.contains("Excluded Upstream Scope: login UI flow"));
         assert!(markdown.contains("## Upstream Sources"));
-        assert!(markdown.contains("- docs/changes/R-20260422-AUTHREVOC/change-surface.md"));
+        assert!(markdown.contains("- tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md"));
         assert!(markdown.contains("## Carried-Forward Context"));
         assert!(markdown.contains("- Revocation output formatting stays stable."));
         assert!(markdown.contains("## Readable Artifacts"));
@@ -893,7 +893,7 @@ mod tests {
                 current_mode: "requirements".to_string(),
                 working_brief_path:
                     ".canon/runs/run-status-2/artifacts/requirements/working-brief.md".to_string(),
-                template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+                template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
                 status: "active".to_string(),
                 explicit_continuation_required: true,
                 authoritative_input_refs: vec!["idea.md".to_string()],
@@ -955,7 +955,7 @@ mod tests {
                 current_mode: "requirements".to_string(),
                 working_brief_path:
                     ".canon/runs/run-status-2/artifacts/requirements/working-brief.md".to_string(),
-                template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+                template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
                 status: "active".to_string(),
                 explicit_continuation_required: true,
                 authoritative_input_refs: vec!["idea.md".to_string()],

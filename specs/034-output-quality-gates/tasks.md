@@ -114,8 +114,8 @@
 
 ### Implementation for User Story 3
 
-- [x] T027 [P] [US3] Review and update impacted input guidance in `docs/templates/canon-input/` and `docs/examples/canon-input/`, recording unchanged-but-still-valid surfaces in `specs/034-output-quality-gates/validation-report.md`
-- [x] T028 [US3] Update impacted docs and changelog in `README.md`, `docs/guides/modes.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, and `CHANGELOG.md`
+- [x] T027 [P] [US3] Review and update impacted input guidance in `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/`, recording unchanged-but-still-valid surfaces in `specs/034-output-quality-gates/validation-report.md`
+- [x] T028 [US3] Update impacted docs and changelog in `README.md`, `tech-docs/guides/modes.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, and `CHANGELOG.md`
 - [x] T029 [US3] Clean roadmap continuity in `ROADMAP.md`
 - [x] T030 [US3] Capture docs, roadmap, and release-alignment validation evidence in `specs/034-output-quality-gates/validation-report.md`
 
@@ -224,6 +224,6 @@ With multiple developers:
 - `T029` is intentionally the roadmap cleanup task as requested.
 - `T033` is intentionally the coverage task for modified or created Rust files.
 - `T034` is intentionally the explicit `cargo fmt` plus `cargo clippy` task.
-- Do not reintroduce brittle repository-doc content tests for `README.md`, `ROADMAP.md`, `docs/guides/`, or `CHANGELOG.md`.
+- Do not reintroduce brittle repository-doc content tests for `README.md`, `ROADMAP.md`, `tech-docs/guides/`, or `CHANGELOG.md`.
 - Each user story should be independently completable and validated.
 - Keep the decision log and validation report current as work progresses.

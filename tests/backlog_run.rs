@@ -58,7 +58,7 @@ fn write_backlog_packet(workspace: &TempDir) {
     fs::create_dir_all(&packet_root).expect("backlog packet dir");
     fs::write(
 		packet_root.join("brief.md"),
-		"# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+		"# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
 	)
 	.expect("brief");
     fs::write(
@@ -68,7 +68,7 @@ fn write_backlog_packet(workspace: &TempDir) {
 	.expect("priorities");
     fs::write(
 		packet_root.join("context-links.md"),
-		"# Context Links\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n",
+		"# Context Links\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n",
 	)
 	.expect("context links");
 }
@@ -113,7 +113,7 @@ fn read_published_file(workspace: &TempDir, run_id: &str, file_name: &str) -> St
     fs::read_to_string(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("planning")
             .join(default_publish_leaf(run_id, "backlog"))
             .join(file_name),
@@ -225,7 +225,7 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("planning")
             .join(default_publish_leaf(&run_id, "backlog"))
             .join("05-delivery-slices.md")
@@ -234,7 +234,7 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("planning")
             .join(default_publish_leaf(&run_id, "backlog"))
             .join("packet-metadata.json")
@@ -247,11 +247,11 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
     let anchors = read_published_file(&workspace, &run_id, "07-acceptance-anchors.md");
 
     assert!(slices.contains("## Dependency Links"));
-    assert!(slices.contains("docs/changes/auth-session.md"));
+    assert!(slices.contains("tech-docs/changes/auth-session.md"));
     assert!(dependencies.contains("## Blocking Edges"));
     assert!(sequencing.contains("## Ordering Rationale"));
     assert!(anchors.contains("## Source Trace Links"));
-    assert!(anchors.contains("docs/architecture/auth-boundary.md"));
+    assert!(anchors.contains("tech-docs/architecture/auth-boundary.md"));
     assert!(!slices.contains("story points"));
     assert!(!anchors.contains("ticket"));
 }

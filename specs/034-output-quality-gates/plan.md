@@ -60,7 +60,7 @@ introduced.
 **Testing**: `cargo test`, `cargo nextest run`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, focused engine and contract tests, integration checks for skill-sync or version anchors, and `/bin/bash scripts/validate-canon-skills.sh`  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows  
 **Project Type**: Rust CLI workspace with shared orchestrator services, markdown artifact rendering, embedded skill sources, mirrored `.agents` skills, and repository documentation artifacts  
-**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/orchestrator/service/context_parse.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-cli/src/output.rs`, `tests/contract/inspect_clarity.rs`, targeted engine tests under `crates/canon-engine/src/orchestrator/service/`, `defaults/embedded-skills/`, `.agents/skills/`, `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, publication guides, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, and runtime-compatibility references  
+**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/orchestrator/service/context_parse.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-cli/src/output.rs`, `tests/contract/inspect_clarity.rs`, targeted engine tests under `crates/canon-engine/src/orchestrator/service/`, `defaults/embedded-skills/`, `.agents/skills/`, `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, publication guides, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, and runtime-compatibility references  
 **Performance Goals**: Preserve current local CLI responsiveness, add no required network round trips, and avoid new persistence or multi-pass artifact generation flows beyond the existing mode pipeline  
 **Constraints**: Reuse existing clarity and placeholder-aware helpers where possible; keep non-target mode behavior stable unless shared posture must change; avoid brittle repo-doc prose tests; ship version, docs, roadmap cleanup, and validation in the same feature; and provide focused automated coverage for every touched Rust file  
 **Scale/Scope**: One cross-cutting feature spanning shared engine services, artifact renderers, inspect and summary output, mirrored skills, repository docs, release anchors, and targeted regression coverage across the current governed mode set
@@ -125,7 +125,7 @@ defaults/embedded-skills/
     ├── output-shapes.md
     └── runtime-compatibility.toml
 
-docs/
+tech-docs/
 ├── guides/
 │   ├── modes.md
 │   ├── publishing-to-scoop.md

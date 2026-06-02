@@ -14,7 +14,7 @@
    `.github/release-notes-template.md` so releases publish and describe the new
    manifest artifact.
 5. Add or update user-facing and maintainer-facing docs in `README.md`,
-   `docs/guides/publishing-to-scoop.md`, `CHANGELOG.md`, and `ROADMAP.md`.
+   `tech-docs/guides/publishing-to-scoop.md`, `CHANGELOG.md`, and `ROADMAP.md`.
 6. Bump the workspace version to `0.32.0` in `Cargo.toml`, update shared
    runtime-compatibility references, and align any version-sensitive tests.
 7. Add `tests/release_032_scoop_distribution.rs` and use it as the focused

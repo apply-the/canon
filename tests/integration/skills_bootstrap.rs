@@ -111,7 +111,7 @@ fn init_with_codex_materializes_agents_skills_only() {
         .expect("read installed migration skill");
 
     assert!(
-        architecture_skill.contains("docs/adr/ADR-XXXX-<slug>.md"),
+        architecture_skill.contains("tech-docs/adr/ADR-XXXX-<slug>.md"),
         "installed architecture skill should include ADR registry guidance"
     );
     assert!(

@@ -39,7 +39,7 @@ risk approval using the normal governed approval flow before publishing.
 canon publish <RUN_ID>
 ```
 
-Published packets land under `docs/supply-chain/<RUN_ID>/`.
+Published packets land under `tech-docs/supply-chain/<RUN_ID>/`.
 
 ## 5. Validate The Feature Closeout
 

@@ -18,7 +18,7 @@ published as-is packet.
 5. Confirm the packet uses ISO 42010 coverage language and distinguishes
    observed findings, inferred findings, and assessment gaps.
 6. Publish the completed run and verify the packet lands under
-   `docs/architecture/assessments/<RUN_ID>/`.
+   `tech-docs/architecture/assessments/<RUN_ID>/`.
 7. Run the focused contract, integration, documentation, and shared-surface
    tests for the feature.
 

@@ -5,7 +5,7 @@
 - Decision: Limit the combined roadmap package to `architecture` rather than touching `requirements` or `change` in the same feature.
 - Rationale: This still combines authored-body specialization, standard artifact shape, and option-analysis behavior, but keeps the blast radius small enough to implement and validate in one slice.
 - Alternatives considered:
-  - Extend `requirements`, `architecture`, and `change` together. Rejected because the combined docs/renderer/test surface becomes too large for one bounded feature.
+  - Extend `requirements`, `architecture`, and `change` together. Rejected because the combined tech-docs/renderer/test surface becomes too large for one bounded feature.
   - Implement only ADR shape without option analysis. Rejected because it would leave the strongest review value of the package on the table.
 
 ## Decision 2: Strengthen existing architecture artifacts instead of adding a new artifact family

@@ -15,7 +15,7 @@
 
 ## Path Conventions
 
-- Canon repo root paths are repo-relative (`crates/`, `tests/`, `docs/`, `assistant/`)
+- Canon repo root paths are repo-relative (`crates/`, `tests/`, `tech-docs/`, `assistant/`)
 - Boundline cross-repo references use repo-relative identifiers under `boundline/specs/061-reasoning-profile-contracts/`
 
 ## Phase 0: Governance & Artifacts
@@ -33,7 +33,7 @@
 
 **Purpose**: Reconcile the branch-visible contract and release surfaces before deeper validation begins.
 
-- [x] T005 [P] Reconcile `docs/integration/governed-reasoning-posture-contract.md` with `specs/058-governed-reasoning-posture-contract/contracts/governed-reasoning-posture-contract.md`
+- [x] T005 [P] Reconcile `tech-docs/integration/governed-reasoning-posture-contract.md` with `specs/058-governed-reasoning-posture-contract/contracts/governed-reasoning-posture-contract.md`
 - [x] T006 [P] Reconcile the release-alignment surfaces in `Cargo.toml`, `Cargo.lock`, `assistant/plugin-metadata.json`, `.claude-plugin/manifest.json`, `.codex-plugin/plugin.json`, `.cursor-plugin/manifest.json`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `README.md`, `ROADMAP.md`, and `CHANGELOG.md`
 - [x] T007 Create or reconcile executable contract scaffolds in `tests/contract/governed_reasoning_posture_contract.rs` and `tests/governed_reasoning_posture_contract.rs`
 
@@ -67,7 +67,7 @@
 
 ### Implementation for User Story 1
 
-- [x] T014 [US1] Finalize the stable Canon contract wording in `docs/integration/governed-reasoning-posture-contract.md`
+- [x] T014 [US1] Finalize the stable Canon contract wording in `tech-docs/integration/governed-reasoning-posture-contract.md`
 - [x] T015 [P] [US1] Sync the feature-local contract brief and data model in `specs/058-governed-reasoning-posture-contract/contracts/governed-reasoning-posture-contract.md` and `specs/058-governed-reasoning-posture-contract/data-model.md`
 - [x] T016 [US1] Capture User Story 1 evidence in `specs/058-governed-reasoning-posture-contract/validation-report.md`
 

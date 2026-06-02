@@ -10,7 +10,7 @@ Complete the remaining Mode Authoring Specialization rollout by extending `revie
 ## Governance Context
 
 **Execution Mode**: change
-**Risk Classification**: bounded-impact. The slice finishes an existing authored-body rollout across four already-shipped modes and related repository-local docs/tests without changing persistence layout, publish destinations, or mode governance semantics.
+**Risk Classification**: bounded-impact. The slice finishes an existing authored-body rollout across four already-shipped modes and related repository-local tech-docs/tests without changing persistence layout, publish destinations, or mode governance semantics.
 **Scope In**:
 
 - Extend authored-body contracts for `review`, `verification`, `incident`, and `migration` artifact packets.
@@ -20,7 +20,7 @@ Complete the remaining Mode Authoring Specialization rollout by extending `revie
 
 **Scope Out**:
 
-- Reopening already-completed specialization slices for other modes except for sync-level docs/version references.
+- Reopening already-completed specialization slices for other modes except for sync-level tech-docs/version references.
 - Changing run identity, approval target semantics, publish destinations, `.canon/` layout, or adapter behavior.
 - Changing review/verification critique posture or incident/migration recommendation-only posture.
 - Solving unrelated hook/test harness issues unless a narrow fix is required to validate this slice.
@@ -62,15 +62,15 @@ Complete the remaining Mode Authoring Specialization rollout by extending `revie
 - `.agents/skills/canon-migration/SKILL.md`
 - `.agents/skills/canon-shared/references/runtime-compatibility.toml`
 - `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`
-- `docs/templates/canon-input/review.md`
-- `docs/templates/canon-input/verification.md`
-- `docs/templates/canon-input/incident/brief.md`
-- `docs/templates/canon-input/migration/brief.md`
-- `docs/examples/canon-input/review-db-migration.md`
-- `docs/examples/canon-input/verification-e2e-flakiness.md`
-- `docs/examples/canon-input/incident/brief.md`
-- `docs/examples/canon-input/migration/brief.md`
-- `docs/guides/modes.md`
+- `defaults/templates/canon-input/review.md`
+- `defaults/templates/canon-input/verification.md`
+- `defaults/templates/canon-input/incident/brief.md`
+- `defaults/templates/canon-input/migration/brief.md`
+- `tech-docs/examples/canon-input/review-db-migration.md`
+- `tech-docs/examples/canon-input/verification-e2e-flakiness.md`
+- `tech-docs/examples/canon-input/incident/brief.md`
+- `tech-docs/examples/canon-input/migration/brief.md`
+- `tech-docs/guides/modes.md`
 - `ROADMAP.md`
 - `CHANGELOG.md`
 - `Cargo.toml`
@@ -147,7 +147,7 @@ defaults/
     ├── canon-migration/SKILL.md
     └── canon-shared/references/runtime-compatibility.toml
 
-docs/
+tech-docs/
 ├── templates/canon-input/
 │   ├── review.md
 │   ├── verification.md

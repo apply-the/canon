@@ -19,7 +19,7 @@ authored input under `canon-input/`.
 ## Shape Rules
 
 - The artifact MUST preserve the current mode's canonical brief sections.
-- Canon MAY seed missing sections from `docs/templates/canon-input/<mode>.md`
+- Canon MAY seed missing sections from `defaults/templates/canon-input/<mode>.md`
   or equivalent mode guidance, but only the run-local working brief is mutated
   during clarification.
 - Canon MUST append a standard refinement appendix so all targeted modes expose

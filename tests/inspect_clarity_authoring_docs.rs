@@ -2,9 +2,9 @@ use std::fs;
 
 const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-inspect-clarity/skill-source.md";
 const SKILL_MIRROR: &str = ".agents/skills/canon-inspect-clarity/SKILL.md";
-const MODES_GUIDE: &str = "docs/guides/modes.md";
-const TEMPLATE_README: &str = "docs/templates/canon-input/README.md";
-const CARRY_FORWARD_GUIDE: &str = "docs/examples/canon-input/carry-forward-packets.md";
+const MODES_GUIDE: &str = "tech-docs/guides/modes.md";
+const TEMPLATE_README: &str = "defaults/templates/canon-input/README.md";
+const CARRY_FORWARD_GUIDE: &str = "tech-docs/examples/canon-input/carry-forward-packets.md";
 
 fn read(path: &str) -> String {
     fs::read_to_string(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), path))

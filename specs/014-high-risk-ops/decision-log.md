@@ -102,7 +102,7 @@
   emitted a readable artifact set, even if the run is still `AwaitingApproval`
   or `Blocked`.
 - **Consequences**: Publish remains strict for ordinary modes, while
-  operational docs under `docs/incidents/` and `docs/migrations/` can carry
+  operational docs under `tech-docs/incidents/` and `tech-docs/migrations/` can carry
   honest gate posture outside the runtime.
 
 ## D-010: Treat missing operational body sections as explicit gate blockers

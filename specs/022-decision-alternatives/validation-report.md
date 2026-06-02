@@ -85,7 +85,7 @@ In Progress
 - The authored feature contracts in `contracts/decision-packet-shapes.md` and
   `contracts/persona-completion.md` remain aligned with the implemented
   runtime-targeted decision surfaces and the advisory-only persona boundary.
-- Release-facing review across `README.md`, `CHANGELOG.md`, `docs/guides/modes.md`,
+- Release-facing review across `README.md`, `CHANGELOG.md`, `tech-docs/guides/modes.md`,
   `ROADMAP.md`, and the new migration plus incident scaffolds completed and is
   covered by `tests/release_022_docs.rs`.
 - Final read-only diff review across the touched 022 files found no persona
@@ -104,7 +104,7 @@ In Progress
 - `specs/022-decision-alternatives/contracts/decision-packet-shapes.md`
 - `specs/022-decision-alternatives/contracts/persona-completion.md`
 - `ROADMAP.md`
-- `docs/guides/modes.md`
+- `tech-docs/guides/modes.md`
 - `README.md`
 - `CHANGELOG.md`
 - `Cargo.toml`

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::Path;
 
 const STABLE_CONTRACT_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/docs/integration/delight-provider-contract.md");
+    concat!(env!("CARGO_MANIFEST_DIR"), "/tech-docs/integration/delight-provider-contract.md");
 const FEATURE_BRIEF_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/specs/057-s7-delight-provider/contracts/delight-provider-contract.md"
@@ -27,7 +27,7 @@ fn assert_identity_block(contract: &str) {
         "contract should expose the delight-provider contract line"
     );
     assert!(
-        contract.contains("- `stable_doc`: `docs/integration/delight-provider-contract.md`"),
+        contract.contains("- `stable_doc`: `tech-docs/integration/delight-provider-contract.md`"),
         "contract should expose the stable doc path"
     );
     assert!(

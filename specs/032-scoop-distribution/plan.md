@@ -62,7 +62,7 @@ mandatory before completion.
 **Testing**: `cargo test`, focused release and documentation tests, direct shell validation, `cargo llvm-cov`, `cargo fmt --check`, and `cargo clippy --workspace --all-targets --all-features -- -D warnings`  
 **Target Platform**: GitHub-hosted release automation and Windows x86_64 installation through `winget` and Scoop with GitHub Releases as the binary host  
 **Project Type**: Rust CLI with governed release automation, packaging helpers, and documentation surfaces  
-**Existing System Touchpoints**: `.github/workflows/release.yml`, `.github/release-notes-template.md`, `scripts/release/write-distribution-metadata.sh`, `scripts/release/verify-release-surface.sh`, `scripts/release/render-winget-manifests.sh`, new `scripts/release/render-scoop-manifest.sh`, `packaging/winget/`, new `packaging/scoop/`, `README.md`, `docs/guides/publishing-to-winget.md`, new `docs/guides/publishing-to-scoop.md`, `CHANGELOG.md`, `ROADMAP.md`, `Cargo.toml`, runtime-compatibility references, new `tests/release_032_scoop_distribution.rs`, and `tests/integration/skills_bootstrap.rs`  
+**Existing System Touchpoints**: `.github/workflows/release.yml`, `.github/release-notes-template.md`, `scripts/release/write-distribution-metadata.sh`, `scripts/release/verify-release-surface.sh`, `scripts/release/render-winget-manifests.sh`, new `scripts/release/render-scoop-manifest.sh`, `packaging/winget/`, new `packaging/scoop/`, `README.md`, `tech-docs/guides/publishing-to-winget.md`, new `tech-docs/guides/publishing-to-scoop.md`, `CHANGELOG.md`, `ROADMAP.md`, `Cargo.toml`, runtime-compatibility references, new `tests/release_032_scoop_distribution.rs`, and `tests/integration/skills_bootstrap.rs`  
 **Performance Goals**: keep release-surface generation deterministic and bounded to the existing packaging flow, with no manual checksum or URL derivation for Scoop publication artifacts  
 **Constraints**: GitHub Releases stay canonical, the Windows zip stays the source asset, Scoop submission remains manual to the bucket surface, archive fallback stays documented, and output filenames remain stable enough for release notes and verifier checks  
 **Scale/Scope**: one new manifest type, one new renderer script, one new packaging template, one maintainer guide, one focused Rust regression test, one version bump, and bounded updates to existing release and documentation surfaces
@@ -123,7 +123,7 @@ packaging/
 └── scoop/
     └── canon.json.tpl
 
-docs/
+tech-docs/
 └── guides/
     ├── publishing-to-winget.md
     └── publishing-to-scoop.md

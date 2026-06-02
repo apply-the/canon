@@ -98,7 +98,7 @@ fn approval_gated_incident_packet_is_publishable_before_risk_approval() {
 
     let published = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("incidents")
         .join(default_publish_leaf(run_id, "incident"))
         .join("06-follow-up-verification.md");
@@ -106,7 +106,7 @@ fn approval_gated_incident_packet_is_publishable_before_risk_approval() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("incidents")
             .join(default_publish_leaf(run_id, "incident"))
             .join("packet-metadata.json")

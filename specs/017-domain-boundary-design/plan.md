@@ -10,7 +10,7 @@ Extend `system-shaping`, `architecture`, and `change` with first-class domain-mo
 ## Governance Context
 
 **Execution Mode**: change
-**Risk Classification**: bounded-impact. The feature deepens three existing modes and their docs/tests but does not add a new mode, alter persistence layout, or change approval/publish mechanics.
+**Risk Classification**: bounded-impact. The feature deepens three existing modes and their tech-docs/tests but does not add a new mode, alter persistence layout, or change approval/publish mechanics.
 **Scope In**:
 
 - Add domain-modeling artifact surfaces to `system-shaping` and `architecture`.
@@ -62,18 +62,18 @@ Extend `system-shaping`, `architecture`, and `change` with first-class domain-mo
 - `.agents/skills/canon-system-shaping/SKILL.md`
 - `.agents/skills/canon-architecture/SKILL.md`
 - `.agents/skills/canon-change/SKILL.md`
-- `docs/templates/canon-input/system-shaping.md`
-- `docs/templates/canon-input/architecture.md`
-- `docs/templates/canon-input/change.md`
-- `docs/examples/canon-input/system-shaping-billing.md`
-- `docs/examples/canon-input/architecture-state-management.md`
-- `docs/examples/canon-input/change-add-caching.md`
-- `docs/guides/modes.md`
+- `defaults/templates/canon-input/system-shaping.md`
+- `defaults/templates/canon-input/architecture.md`
+- `defaults/templates/canon-input/change.md`
+- `tech-docs/examples/canon-input/system-shaping-billing.md`
+- `tech-docs/examples/canon-input/architecture-state-management.md`
+- `tech-docs/examples/canon-input/change-add-caching.md`
+- `tech-docs/guides/modes.md`
 - `ROADMAP.md`
 
 **Performance Goals**: N/A; this slice changes packet fidelity and reviewability, not throughput.  
 **Constraints**: preserve existing publish destinations and run lifecycle; keep docs in the current per-mode naming convention; prefer additive artifact changes and explicit uncertainty over inferred certainty; keep new plan metadata fields on one line so agent-context updates stay stable.  
-**Scale/Scope**: three target modes, one new dedicated domain-model artifact in `system-shaping`, one new dedicated context-map artifact in `architecture`, strengthened `change` artifact sections, synchronized skills/docs/examples, and focused validation additions.
+**Scale/Scope**: three target modes, one new dedicated domain-model artifact in `system-shaping`, one new dedicated context-map artifact in `architecture`, strengthened `change` artifact sections, synchronized skills/tech-docs/examples, and focused validation additions.
 
 ## Constitution Check
 
@@ -140,7 +140,7 @@ defaults/
   ├── canon-architecture/SKILL.md
   └── canon-change/SKILL.md
 
-docs/
+tech-docs/
 ├── templates/canon-input/
 │   ├── system-shaping.md
 │   ├── architecture.md

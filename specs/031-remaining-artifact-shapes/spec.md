@@ -200,7 +200,7 @@ clippy`, and `cargo fmt`.
 - **FR-011**: Repo-local skill sources and materialized `.agents/skills/`
   copies for the targeted modes MUST document the same canonical headings,
   persona guidance, and boundary conditions.
-- **FR-012**: `docs/templates/canon-input/`, `docs/examples/canon-input/`, and
+- **FR-012**: `defaults/templates/canon-input/`, `tech-docs/examples/canon-input/`, and
   other impacted operator-facing docs MUST demonstrate the same canonical
   sections documented in the targeted skill guidance.
 - **FR-013**: The system MUST provide focused positive-path and negative-path

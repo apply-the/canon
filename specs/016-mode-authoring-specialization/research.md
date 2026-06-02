@@ -26,7 +26,7 @@
 
 ## Decision 4: Update the existing template and example filenames instead of creating a new folder hierarchy
 
-- **Decision**: Modify the current docs inputs in `docs/templates/canon-input/*.md` and `docs/examples/canon-input/*.md` for the targeted modes.
+- **Decision**: Modify the current docs inputs in `defaults/templates/canon-input/*.md` and `tech-docs/examples/canon-input/*.md` for the targeted modes.
 - **Rationale**: The repository already uses a stable per-mode docs naming convention, and adding a second hierarchy would create drift and duplicate discoverability paths.
 - **Alternatives considered**:
   - Introduce nested `<mode>/brief.md` paths for all three modes: rejected because it creates needless migration work and parallel conventions.

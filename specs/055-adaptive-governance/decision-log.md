@@ -61,7 +61,7 @@ for adaptive governance.
 - Consequences: publication, service, and adapter docs must remain aligned
   about required-baseline and optional-companion availability.
 - Related artifacts: `research.md`, `plan.md`,
-  `docs/integration/governance-adapter.md`
+  `tech-docs/integration/governance-adapter.md`
 
 ### D-005 The first companion envelope stays minimal
 
@@ -88,7 +88,7 @@ for adaptive governance.
 - Consequences: docs and machine-readable semantics must avoid reusing council
   or zone vocabulary for rollout profiles.
 - Related artifacts: `research.md`, `spec.md`,
-  `docs/governance-semantics-and-authority-zones.md`
+  `tech-docs/governance-semantics-and-authority-zones.md`
 
 ## Pending Follow-Up
 

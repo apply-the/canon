@@ -91,7 +91,7 @@ stable documentation destination without hand-editing runtime internals.
    H2 sections, input locations, recommendation-only posture, and failure
    guidance.
 2. **Given** a completed security-assessment run, **When** `canon publish` is
-   invoked, **Then** the packet publishes under `docs/security-assessments/<RUN_ID>/`.
+   invoked, **Then** the packet publishes under `tech-docs/security-assessments/<RUN_ID>/`.
 3. **Given** runtime compatibility or skill-sync validation, **When** the
    repository checks supported modes, **Then** `security-assessment` is included
    consistently in the shared mode lists.
@@ -166,7 +166,7 @@ workspace quality gates recorded in the validation report.
 - **FR-008**: System-context validation for the new mode MUST stay explicit and
   aligned with the intended existing-system operational workflow.
 - **FR-009**: `canon publish` MUST publish completed or publishable
-  security-assessment packets under a dedicated `docs/security-assessments/`
+  security-assessment packets under a dedicated `tech-docs/security-assessments/`
   destination.
 - **FR-010**: Embedded skill sources and mirrored `.agents/skills/` copies MUST
   define the same canonical authored sections, input rules, posture, and next

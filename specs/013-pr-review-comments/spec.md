@@ -167,7 +167,7 @@ comment kinds, rationale, and affected surfaces visible.
   Conventional Comments kinds MUST be deterministic and documented in the
   feature design artifacts.
 - **FR-010**: The new artifact MUST publish through the existing `pr-review`
-  packet flow and remain readable under `docs/reviews/prs/<RUN_ID>/`.
+  packet flow and remain readable under `tech-docs/reviews/prs/<RUN_ID>/`.
 - **FR-011**: Documentation and skill surfaces that describe `pr-review` MUST
   reflect the delivered Conventional Comments behavior.
 

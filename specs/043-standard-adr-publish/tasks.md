@@ -35,7 +35,7 @@
 
 **Purpose**: Lock the release line before behavior changes begin.
 
-- [x] T005 Update the `0.43.0` release line across `Cargo.toml`, `Cargo.lock`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `README.md`, `CHANGELOG.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, `tests/integration/skills_bootstrap.rs`, and related release-surface assertions under `tests/`
+- [x] T005 Update the `0.43.0` release line across `Cargo.toml`, `Cargo.lock`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `README.md`, `CHANGELOG.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, `tests/integration/skills_bootstrap.rs`, and related release-surface assertions under `tests/`
 
 ---
 
@@ -58,7 +58,7 @@
 
 **Goal**: `architecture` publishes emit one standard ADR entry by default.
 
-**Independent Test**: A publishable `architecture` run creates a normal packet publish plus one `docs/adr/ADR-XXXX-<slug>.md` file with the required standard sections and source traceability.
+**Independent Test**: A publishable `architecture` run creates a normal packet publish plus one `tech-docs/adr/ADR-XXXX-<slug>.md` file with the required standard sections and source traceability.
 
 ### Validation for User Story 1 (MANDATORY)
 
@@ -70,7 +70,7 @@
 
 - [x] T013 [P] [US1] Implement architecture ADR section synthesis and file emission in `crates/canon-engine/src/orchestrator/publish.rs`
 - [x] T014 [P] [US1] Surface generated ADR files in publish summaries and packet metadata handling in `crates/canon-engine/src/orchestrator/publish.rs` and `crates/canon-cli/src/commands/publish.rs`
-- [x] T015 [US1] Update architecture ADR documentation in `README.md` and `docs/guides/modes.md`
+- [x] T015 [US1] Update architecture ADR documentation in `README.md` and `tech-docs/guides/modes.md`
 - [x] T016 [US1] Capture User Story 1 validation evidence in `specs/043-standard-adr-publish/validation-report.md`
 
 **Checkpoint**: `architecture` is the canonical ADR-producing mode and works end-to-end on its own.
@@ -94,7 +94,7 @@
 - [x] T020 [P] [US2] Implement `--adr` parsing and publish request wiring in `crates/canon-cli/src/app.rs`, `crates/canon-cli/src/commands/publish.rs`, and any affected engine service interfaces
 - [x] T021 [US2] Implement `change` and `migration` opt-in ADR synthesis paths in `crates/canon-engine/src/orchestrator/publish.rs`
 - [x] T022 [P] [US2] Update ADR export skill guidance in `.agents/skills/canon-change/SKILL.md`, `.agents/skills/canon-migration/SKILL.md`, `defaults/embedded-skills/canon-change/skill-source.md`, and `defaults/embedded-skills/canon-migration/skill-source.md`
-- [x] T023 [US2] Update user-facing ADR publish guidance for `change` and `migration` in `README.md` and `docs/guides/modes.md`
+- [x] T023 [US2] Update user-facing ADR publish guidance for `change` and `migration` in `README.md` and `tech-docs/guides/modes.md`
 - [x] T024 [US2] Capture User Story 2 validation evidence in `specs/043-standard-adr-publish/validation-report.md`
 
 **Checkpoint**: Tactical decision packets can enter the ADR registry only when explicitly requested.
@@ -116,9 +116,9 @@
 
 ### Implementation for User Story 3
 
-- [x] T029 [P] [US3] Implement registry numbering, fixed `docs/adr/` destination behavior, and unsupported-mode rejection in `crates/canon-engine/src/orchestrator/publish.rs`
-- [x] T030 [P] [US3] Update ADR registry documentation and examples in `README.md`, `docs/guides/modes.md`, `ROADMAP.md`, `.agents/skills/canon-architecture/SKILL.md`, and `defaults/embedded-skills/canon-architecture/skill-source.md`
-- [x] T031 [US3] Update release notes and related release-surface fixtures in `CHANGELOG.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, and affected tests under `tests/`
+- [x] T029 [P] [US3] Implement registry numbering, fixed `tech-docs/adr/` destination behavior, and unsupported-mode rejection in `crates/canon-engine/src/orchestrator/publish.rs`
+- [x] T030 [P] [US3] Update ADR registry documentation and examples in `README.md`, `tech-docs/guides/modes.md`, `ROADMAP.md`, `.agents/skills/canon-architecture/SKILL.md`, and `defaults/embedded-skills/canon-architecture/skill-source.md`
+- [x] T031 [US3] Update release notes and related release-surface fixtures in `CHANGELOG.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, and affected tests under `tests/`
 - [x] T032 [US3] Capture User Story 3 validation evidence in `specs/043-standard-adr-publish/validation-report.md`
 
 **Checkpoint**: ADR publication rules are stable, documented, and enforced for supported and unsupported modes.

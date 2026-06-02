@@ -24,7 +24,7 @@ domain or persistence model
 framework-evaluation authored contracts for `system-shaping`, `architecture`,
 `change`, `implementation`, and `migration`; persona guidance updates for those
 runtime-targeted modes plus guidance-only persona completion for `review`,
-`pr-review`, `verification`, and `incident`; focused docs/examples/tests; and
+`pr-review`, `verification`, and `incident`; focused tech-docs/examples/tests; and
 repository version or release-surface updates for `0.22.0`  
 **Scope Out**: new modes such as `security-assessment` or
 `supply-chain-analysis`; live external evidence collectors; package-manager
@@ -60,7 +60,7 @@ this feature.
 **Testing**: `cargo test`, `cargo nextest run`, focused docs or renderer or run tests, and `/bin/bash scripts/validate-canon-skills.sh`  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows with repo-local AI skill materialization  
 **Project Type**: Rust CLI workspace with embedded skill sources, mirrored AI-facing skills, contract-based markdown rendering, and documentation artifacts  
-**Existing System Touchpoints**: `ROADMAP.md`; `README.md`; `CHANGELOG.md`; `docs/guides/modes.md`; `Cargo.toml`; `defaults/embedded-skills/canon-system-shaping/skill-source.md`; `defaults/embedded-skills/canon-architecture/skill-source.md`; `defaults/embedded-skills/canon-change/skill-source.md`; `defaults/embedded-skills/canon-implementation/skill-source.md`; `defaults/embedded-skills/canon-migration/skill-source.md`; `defaults/embedded-skills/canon-review/skill-source.md`; `defaults/embedded-skills/canon-pr-review/skill-source.md`; `defaults/embedded-skills/canon-verification/skill-source.md`; `defaults/embedded-skills/canon-incident/skill-source.md`; mirrored `.agents/skills/.../SKILL.md` counterparts; `crates/canon-engine/src/artifacts/markdown.rs`; `crates/canon-engine/src/artifacts/contract.rs`; `docs/templates/canon-input/`; `docs/examples/canon-input/`; `tests/system_shaping_*`; `tests/architecture_*`; `tests/change_*`; `tests/implementation_*`; `tests/migration_*`; `tests/review_*`; `tests/pr_review_*`; `tests/verification_*`; `tests/incident_*`  
+**Existing System Touchpoints**: `ROADMAP.md`; `README.md`; `CHANGELOG.md`; `tech-docs/guides/modes.md`; `Cargo.toml`; `defaults/embedded-skills/canon-system-shaping/skill-source.md`; `defaults/embedded-skills/canon-architecture/skill-source.md`; `defaults/embedded-skills/canon-change/skill-source.md`; `defaults/embedded-skills/canon-implementation/skill-source.md`; `defaults/embedded-skills/canon-migration/skill-source.md`; `defaults/embedded-skills/canon-review/skill-source.md`; `defaults/embedded-skills/canon-pr-review/skill-source.md`; `defaults/embedded-skills/canon-verification/skill-source.md`; `defaults/embedded-skills/canon-incident/skill-source.md`; mirrored `.agents/skills/.../SKILL.md` counterparts; `crates/canon-engine/src/artifacts/markdown.rs`; `crates/canon-engine/src/artifacts/contract.rs`; `defaults/templates/canon-input/`; `tech-docs/examples/canon-input/`; `tests/system_shaping_*`; `tests/architecture_*`; `tests/change_*`; `tests/implementation_*`; `tests/migration_*`; `tests/review_*`; `tests/pr_review_*`; `tests/verification_*`; `tests/incident_*`  
 **Performance Goals**: Preserve current operator workflow and packet emission responsiveness; add no extra runtime step beyond the existing skill-guided authoring process  
 **Constraints**: Keep `.canon/` schema and publish destinations unchanged; preserve skill-source to mirror synchronization; preserve explicit gap honesty and approval or risk semantics; keep live ecosystem-data collection out of scope for this slice; keep release surfaces consistent with `0.22.0`  
 **Scale/Scope**: One feature branch spanning five runtime-targeted modes, four guidance-only persona completions, shared markdown artifact helpers, release-facing docs and compatibility references, and focused regression coverage
@@ -126,7 +126,7 @@ crates/canon-engine/src/
     ├── contract.rs
     └── markdown.rs
 
-docs/
+tech-docs/
 ├── guides/modes.md
 ├── templates/canon-input/
 └── examples/canon-input/

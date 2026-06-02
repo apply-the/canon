@@ -46,7 +46,7 @@
 
 **Goal**: Docs, changelog, and roadmap reflect the change.
 
-- [ ] T015 [US1] Update `docs/guides/modes.md` artifact listings to use prefixed filenames
+- [ ] T015 [US1] Update `tech-docs/guides/modes.md` artifact listings to use prefixed filenames
 - [ ] T016 [US1] Update `CHANGELOG.md` with the 0.46.0 entry
 - [ ] T017 [US1] Update `ROADMAP.md` with the ordered artifact filenames entry
 - [ ] T018 [US1] Run `cargo fmt`, `cargo clippy`, `cargo nextest run`, verify coverage >= 95%

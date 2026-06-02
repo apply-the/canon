@@ -58,7 +58,7 @@ mandatory before completion.
 **Testing**: `cargo test`, focused release/documentation tests, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and script-level validation  
 **Target Platform**: GitHub-hosted release automation and Windows x86_64 installation through `winget` with GitHub Releases as the binary host  
 **Project Type**: Rust CLI with governed release, packaging, and documentation surfaces  
-**Existing System Touchpoints**: `.github/workflows/release.yml`, `.github/release-notes-template.md`, `scripts/release/package-windows.ps1`, `scripts/release/write-distribution-metadata.sh`, `scripts/release/verify-release-surface.sh`, `README.md`, `CHANGELOG.md`, `ROADMAP.md`, and focused release docs/tests under `tests/`  
+**Existing System Touchpoints**: `.github/workflows/release.yml`, `.github/release-notes-template.md`, `scripts/release/package-windows.ps1`, `scripts/release/write-distribution-metadata.sh`, `scripts/release/verify-release-surface.sh`, `README.md`, `CHANGELOG.md`, `ROADMAP.md`, and focused release tech-docs/tests under `tests/`  
 **Performance Goals**: keep release-surface generation bounded to the existing packaging workflow and avoid any manual checksum or URL derivation step for Windows package publication  
 **Constraints**: GitHub Releases stay canonical, Windows support remains x86_64-first, direct-download fallback stays documented, and no protocol-interoperability work can enter scope through packaging  
 **Scale/Scope**: one new Windows package-manager channel, one new feature spec directory, one focused release-test slice, and bounded updates to existing packaging/docs surfaces

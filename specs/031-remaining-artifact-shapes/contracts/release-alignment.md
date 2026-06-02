@@ -12,7 +12,7 @@ aligned when feature 031 ships as `0.31.0`.
 | `Cargo.toml` | workspace version reports `0.31.0` | manifest review plus build and test commands read the same version |
 | `Cargo.lock` | workspace package versions align to `0.31.0` | lockfile review shows no stale `0.30.0` workspace package entries |
 | shared runtime compatibility references | expected workspace version reports `0.31.0` | embedded and mirrored references remain synchronized |
-| `README.md`, `ROADMAP.md`, and `docs/guides/modes.md` | remaining artifact-shape behavior is described accurately for the shipped slice | focused release-surface doc review passes |
+| `README.md`, `ROADMAP.md`, and `tech-docs/guides/modes.md` | remaining artifact-shape behavior is described accurately for the shipped slice | focused release-surface doc review passes |
 | `CHANGELOG.md` | `0.31.0` entry records the remaining artifact-shapes feature | changelog review matches implemented behavior |
 
 ## Release Validation Rules

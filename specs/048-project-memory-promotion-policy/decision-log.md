@@ -15,8 +15,8 @@ require a major version bump.
 
 **Context**: Design iteration benefits from co-location with the feature spec.
 **Decision**: The initial contract lives in `specs/048-*/contracts/`; promotion
-to `docs/integration/` is a requirement of this feature slice.
-**Alternatives**: Publish directly to `docs/integration/`; rejected because
+to `tech-docs/integration/` is a requirement of this feature slice.
+**Alternatives**: Publish directly to `tech-docs/integration/`; rejected because
 premature stabilization risks costly rework.
 **Consequences**: The tasks must include a promotion step that copies the
 accepted contract to the stable documentation path.

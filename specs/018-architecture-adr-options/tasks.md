@@ -36,8 +36,8 @@
 **Purpose**: Verify the current architecture surfaces before feature work begins.
 
 - [x] T005 Verify the focused architecture baseline with `cargo test --test architecture_c4_renderer --test architecture_c4_run --test architecture_run --test architecture_contract --test architecture_c4_contract` and record the result in `specs/018-architecture-adr-options/validation-report.md`
-- [x] T006 [P] Confirm the current architecture guidance in `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `docs/templates/canon-input/architecture.md`, and `docs/examples/canon-input/architecture-state-management.md`
-- [x] T007 [P] Confirm the current architecture packet contract in `defaults/methods/architecture.toml`, `crates/canon-engine/src/artifacts/contract.rs`, and `docs/guides/modes.md`
+- [x] T006 [P] Confirm the current architecture guidance in `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `defaults/templates/canon-input/architecture.md`, and `tech-docs/examples/canon-input/architecture-state-management.md`
+- [x] T007 [P] Confirm the current architecture packet contract in `defaults/methods/architecture.toml`, `crates/canon-engine/src/artifacts/contract.rs`, and `tech-docs/guides/modes.md`
 
 ---
 
@@ -69,7 +69,7 @@
 
 ### Implementation for User Story 1
 
-- [x] T014 [US1] Update authored guidance in `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `docs/templates/canon-input/architecture.md`, and `docs/examples/canon-input/architecture-state-management.md`
+- [x] T014 [US1] Update authored guidance in `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `defaults/templates/canon-input/architecture.md`, and `tech-docs/examples/canon-input/architecture-state-management.md`
 - [x] T015 [US1] Extend `crates/canon-engine/src/artifacts/contract.rs` and `crates/canon-engine/src/artifacts/markdown.rs` so `architecture-decisions.md` and `tradeoff-matrix.md` preserve ADR-like and option-analysis sections
 - [x] T016 [US1] Record story-specific decisions and evidence in `specs/018-architecture-adr-options/decision-log.md` and `specs/018-architecture-adr-options/validation-report.md`
 
@@ -91,7 +91,7 @@
 ### Implementation for User Story 2
 
 - [x] T019 [US2] Preserve existing C4 rendering behavior while integrating the stronger decision shape in `crates/canon-engine/src/artifacts/markdown.rs`
-- [x] T020 [US2] Update architecture mode guidance in `docs/guides/modes.md` so the decision-facing slice and unchanged C4 slice are both explicit
+- [x] T020 [US2] Update architecture mode guidance in `tech-docs/guides/modes.md` so the decision-facing slice and unchanged C4 slice are both explicit
 - [x] T021 [US2] Record C4 non-regression evidence in `specs/018-architecture-adr-options/validation-report.md`
 
 **Checkpoint**: Reviewers can inspect richer decision artifacts without any regression in the existing C4 packet.
@@ -112,7 +112,7 @@
 ### Implementation for User Story 3
 
 - [x] T024 [US3] Finalize explicit missing-body behavior for required decision sections in `crates/canon-engine/src/artifacts/markdown.rs` and `crates/canon-engine/src/artifacts/contract.rs`
-- [x] T025 [US3] Synchronize `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `docs/templates/canon-input/architecture.md`, `docs/examples/canon-input/architecture-state-management.md`, `docs/guides/modes.md`, `ROADMAP.md`, and confirm `AGENTS.md` remains current for this slice
+- [x] T025 [US3] Synchronize `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `defaults/templates/canon-input/architecture.md`, `tech-docs/examples/canon-input/architecture-state-management.md`, `tech-docs/guides/modes.md`, `ROADMAP.md`, and confirm `AGENTS.md` remains current for this slice
 - [x] T026 [US3] Record synchronization and missing-body evidence in `specs/018-architecture-adr-options/decision-log.md` and `specs/018-architecture-adr-options/validation-report.md`
 
 **Checkpoint**: The strengthened architecture contract is honest when authored context is missing and synchronized across runtime and docs surfaces.

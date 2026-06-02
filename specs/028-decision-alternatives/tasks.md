@@ -83,7 +83,7 @@ chat history.
 
 - [x] T015 [P] [US1] Update structural decision guidance in `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, and `defaults/embedded-skills/canon-change/skill-source.md`
 - [x] T016 [P] [US1] Mirror structural decision guidance in `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-architecture/SKILL.md`, and `.agents/skills/canon-change/SKILL.md`
-- [x] T017 [P] [US1] Update structural decision templates and examples in `docs/templates/canon-input/system-shaping.md`, `docs/templates/canon-input/architecture.md`, `docs/templates/canon-input/change.md`, `docs/examples/canon-input/system-shaping-billing.md`, `docs/examples/canon-input/architecture-state-management.md`, and `docs/examples/canon-input/change-add-caching.md`
+- [x] T017 [P] [US1] Update structural decision templates and examples in `defaults/templates/canon-input/system-shaping.md`, `defaults/templates/canon-input/architecture.md`, `defaults/templates/canon-input/change.md`, `tech-docs/examples/canon-input/system-shaping-billing.md`, `tech-docs/examples/canon-input/architecture-state-management.md`, and `tech-docs/examples/canon-input/change-add-caching.md`
 - [x] T018 [US1] Capture structural-decision validation evidence in `specs/028-decision-alternatives/validation-report.md`
 
 **Checkpoint**: `system-shaping` and `change` packets preserve reviewable alternatives while `architecture` stays aligned as the regression baseline
@@ -110,7 +110,7 @@ selected-direction rationale.
 
 - [x] T022 [P] [US2] Update framework-evaluation guidance in `defaults/embedded-skills/canon-implementation/skill-source.md` and `defaults/embedded-skills/canon-migration/skill-source.md`
 - [x] T023 [P] [US2] Mirror framework-evaluation guidance in `.agents/skills/canon-implementation/SKILL.md` and `.agents/skills/canon-migration/SKILL.md`
-- [x] T024 [P] [US2] Update framework-evaluation templates and examples in `docs/templates/canon-input/implementation.md`, `docs/templates/canon-input/migration.md`, `docs/examples/canon-input/implementation-auth-session-revocation.md`, and `docs/examples/canon-input/migration-platform-consolidation.md`
+- [x] T024 [P] [US2] Update framework-evaluation templates and examples in `defaults/templates/canon-input/implementation.md`, `defaults/templates/canon-input/migration.md`, `tech-docs/examples/canon-input/implementation-auth-session-revocation.md`, and `tech-docs/examples/canon-input/migration-platform-consolidation.md`
 - [x] T025 [US2] Capture framework-evaluation validation evidence in `specs/028-decision-alternatives/validation-report.md`
 
 **Checkpoint**: `implementation` and `migration` packets preserve concrete
@@ -146,7 +146,7 @@ same `0.28.0` slice without reading chat history.
 **Purpose**: Cross-cutting validation, independent review, and documentation closeout
 
 - [x] T030 [P] Run `/bin/bash scripts/validate-canon-skills.sh` to verify embedded skill sources and mirrored `.agents/skills/` files stay synchronized, then record results in `specs/028-decision-alternatives/validation-report.md`
-- [x] T031 Update impacted docs and changelog closeout in `README.md`, `AGENTS.md`, `docs/guides/modes.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/templates/canon-input/`, and `docs/examples/canon-input/`, and verify all release-facing `0.28.0` references are synchronized
+- [x] T031 Update impacted docs and changelog closeout in `README.md`, `AGENTS.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, `ROADMAP.md`, `defaults/templates/canon-input/`, and `tech-docs/examples/canon-input/`, and verify all release-facing `0.28.0` references are synchronized
 - [x] T032 [P] Run the targeted feature suite for `tests/system_shaping_contract.rs`, `tests/system_shaping_domain_modeling_docs.rs`, `tests/system_shaping_authoring_renderer.rs`, `tests/system_shaping_run.rs`, `tests/architecture_contract.rs`, `tests/architecture_c4_contract.rs`, `tests/architecture_c4_docs.rs`, `tests/architecture_decision_shape_docs.rs`, `tests/architecture_c4_renderer.rs`, `tests/architecture_c4_run.rs`, `tests/change_contract.rs`, `tests/change_authoring_docs.rs`, `tests/change_authoring_renderer.rs`, `tests/change_authoring_run.rs`, `tests/implementation_contract.rs`, `tests/implementation_authoring_docs.rs`, `tests/implementation_authoring_renderer.rs`, `tests/implementation_run.rs`, `tests/migration_contract.rs`, `tests/migration_authoring_docs.rs`, `tests/migration_authoring_renderer.rs`, `tests/migration_run.rs`, `tests/release_028_docs.rs`, and `tests/skills_bootstrap.rs`, then record results in `specs/028-decision-alternatives/validation-report.md`
 - [x] T033 [P] Run `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info` and document coverage for every modified or newly created Rust file in `specs/028-decision-alternatives/validation-report.md`
 - [x] T034 [P] Run `cargo fmt --check` and `cargo clippy --workspace --all-targets --all-features -- -D warnings`, then record results in `specs/028-decision-alternatives/validation-report.md`
@@ -184,7 +184,7 @@ same `0.28.0` slice without reading chat history.
 
 - Phase 0 tasks after T001 can run in parallel where they touch different planning artifacts.
 - T007 and T008 can run in parallel before T009 and T010.
-- Within each user story, skill, mirror, and docs/example tasks marked [P] can run in parallel.
+- Within each user story, skill, mirror, and tech-docs/example tasks marked [P] can run in parallel.
 - Final validation tasks T030, T032, T033, T034, and T035 can run in parallel once implementation is stable.
 
 ---
@@ -196,10 +196,10 @@ same `0.28.0` slice without reading chat history.
 Task: "Add failing structural-decision docs coverage in tests/system_shaping_domain_modeling_docs.rs, tests/architecture_decision_shape_docs.rs, and tests/change_authoring_docs.rs"
 Task: "Add failing structural-decision run coverage in tests/system_shaping_run.rs, tests/architecture_c4_run.rs, and tests/change_authoring_run.rs"
 
-# Launch skill, mirror, and docs/example work in parallel:
+# Launch skill, mirror, and tech-docs/example work in parallel:
 Task: "Update structural decision guidance in defaults/embedded-skills/canon-system-shaping/skill-source.md, defaults/embedded-skills/canon-architecture/skill-source.md, and defaults/embedded-skills/canon-change/skill-source.md"
 Task: "Mirror structural decision guidance in .agents/skills/canon-system-shaping/SKILL.md, .agents/skills/canon-architecture/SKILL.md, and .agents/skills/canon-change/SKILL.md"
-Task: "Update structural decision templates and examples in docs/templates/canon-input/system-shaping.md, docs/templates/canon-input/architecture.md, docs/templates/canon-input/change.md, docs/examples/canon-input/system-shaping-billing.md, docs/examples/canon-input/architecture-state-management.md, and docs/examples/canon-input/change-add-caching.md"
+Task: "Update structural decision templates and examples in defaults/templates/canon-input/system-shaping.md, defaults/templates/canon-input/architecture.md, defaults/templates/canon-input/change.md, tech-docs/examples/canon-input/system-shaping-billing.md, tech-docs/examples/canon-input/architecture-state-management.md, and tech-docs/examples/canon-input/change-add-caching.md"
 ```
 
 ---

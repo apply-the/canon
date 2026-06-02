@@ -29,11 +29,11 @@ Add host-specific assistant plugin package folders that let Claude Code, Codex, 
 
 **Language/Version**: Rust 1.96.0 workspace plus JSON, Markdown, Bash, and SVG repository assets.  
 **Primary Dependencies**: existing workspace crates and dev dependencies including `serde_json`; no new external crates are planned.  
-**Storage**: repository files only: hidden host package folders, shared assistant metadata under `assistant/`, docs under `docs/`, validation scripts under `scripts/`, and Spec Kit artifacts under `specs/044-assistant-plugin-packages/`.  
+**Storage**: repository files only: hidden host package folders, shared assistant metadata under `assistant/`, docs under `tech-docs/`, validation scripts under `scripts/`, and Spec Kit artifacts under `specs/044-assistant-plugin-packages/`.  
 **Testing**: `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo test`, `cargo test --test assistant_plugin_packages`, `bash scripts/validate-assistant-plugins.sh`, and touched-file coverage inspection with `cargo llvm-cov` if available.  
 **Target Platform**: local-first repository workflows on macOS, Linux, and Windows-friendly metadata; shell validation targets Unix-like local/CI environments.  
 **Project Type**: Rust CLI workspace with file-backed governed runtime artifacts and repository-local assistant skills.  
-**Existing System Touchpoints**: `Cargo.toml`, `Cargo.lock`, `README.md`, `.agents/skills/`, `.canon/methods/`, `defaults/embedded-skills/`, `docs/guides/`, `scripts/`, `tests/`, and `AGENTS.md` via Speckit context update.  
+**Existing System Touchpoints**: `Cargo.toml`, `Cargo.lock`, `README.md`, `.agents/skills/`, `.canon/methods/`, `defaults/embedded-skills/`, `tech-docs/guides/`, `scripts/`, `tests/`, and `AGENTS.md` via Speckit context update.  
 **Performance Goals**: package validation should complete in under one second excluding cargo compile time and must not run Canon runtime commands.  
 **Constraints**: version bump is the first implementation task; package folders must mostly contain manifests/metadata/glue; JSON files must remain valid; referenced paths must be repository-relative and existing; no host package may become the source of truth for Canon behavior; final validation must include 95% coverage for new or modified Rust source files.  
 **Scale/Scope**: one bounded feature slice with three host package folders, one documented Copilot command/prompt pack, one shared metadata source, one guide, one README section, one validation script, and focused Rust integration tests.
@@ -96,7 +96,7 @@ assistant/
 └── prompts/
     ├── starter-prompts.md
     └── copilot-command-pack.md
-docs/
+tech-docs/
 └── guides/
     └── assistant-plugin-packages.md
 scripts/

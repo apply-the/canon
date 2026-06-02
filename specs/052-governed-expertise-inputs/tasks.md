@@ -25,7 +25,7 @@ be implemented and validated independently.
 contract surface
 
 - [x] T001 Bump the Canon workspace version from `0.51.0` to `0.52.0` in `Cargo.toml` and update `CHANGELOG.md`
-- [x] T002 [P] Create the stable expertise-input contract scaffold and authority header in `docs/integration/governed-expertise-input-contract.md` and keep `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md` aligned with the same contract line
+- [x] T002 [P] Create the stable expertise-input contract scaffold and authority header in `tech-docs/integration/governed-expertise-input-contract.md` and keep `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md` aligned with the same contract line
 - [x] T003 [P] Refresh approval gates and evidence sections in `specs/052-governed-expertise-inputs/decision-log.md` and `specs/052-governed-expertise-inputs/validation-report.md`
 
 ---
@@ -59,7 +59,7 @@ contract surface
 
 - [x] T009 [P] [US1] Implement mode-to-expertise classification in `crates/canon-engine/src/domain/mode.rs`
 - [x] T010 [US1] Add `expertise_input` classification and compatibility helpers in `crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T011 [US1] Fill the supported expertise kinds, classification rules, and compatibility content in `docs/integration/governed-expertise-input-contract.md` and `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
+- [x] T011 [US1] Fill the supported expertise kinds, classification rules, and compatibility content in `tech-docs/integration/governed-expertise-input-contract.md` and `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
 - [x] T012 [US1] Capture MVP decisions in `specs/052-governed-expertise-inputs/decision-log.md`
 
 **Checkpoint**: User Story 1 is independently valid as the expertise-input contract MVP
@@ -80,7 +80,7 @@ contract surface
 ### Implementation for User Story 2
 
 - [x] T015 [P] [US2] Align publish-path and metadata projection helpers for `expertise_input.domain_families` and publication-state output in `crates/canon-engine/src/orchestrator/publish.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
-- [x] T016 [US2] Cross-reference publication semantics in `docs/integration/governed-expertise-input-contract.md` while keeping `docs/integration/project-memory-promotion-contract.md` as the companion publication contract
+- [x] T016 [US2] Cross-reference publication semantics in `tech-docs/integration/governed-expertise-input-contract.md` while keeping `tech-docs/integration/project-memory-promotion-contract.md` as the companion publication contract
 - [x] T017 [US2] Refresh the feature-local classification brief in `specs/052-governed-expertise-inputs/contracts/expertise-classification-contract.md` and capture evidence in `specs/052-governed-expertise-inputs/validation-report.md`
 
 **Checkpoint**: User Stories 1 and 2 both work independently and preserve the ownership boundary
@@ -101,7 +101,7 @@ contract surface
 ### Implementation for User Story 3
 
 - [x] T020 [P] [US3] Encode fail-closed compatibility helpers in `crates/canon-engine/src/domain/publish_profile.rs` and `crates/canon-engine/src/domain/mode.rs`
-- [x] T021 [US3] Document additive-versus-breaking expertise evolution rules in `docs/integration/governed-expertise-input-contract.md` and `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
+- [x] T021 [US3] Document additive-versus-breaking expertise evolution rules in `tech-docs/integration/governed-expertise-input-contract.md` and `specs/052-governed-expertise-inputs/contracts/governed-expertise-input-contract.md`
 - [x] T022 [US3] Capture compatibility decisions and validation evidence in `specs/052-governed-expertise-inputs/decision-log.md` and `specs/052-governed-expertise-inputs/validation-report.md`
 
 **Checkpoint**: All user stories are independently functional and compatibility-safe

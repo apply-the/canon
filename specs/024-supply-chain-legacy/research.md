@@ -26,17 +26,17 @@
   - Shorten to `canon-input/supply-chain.md`: rejected because it would diverge
     from the repository's file-backed mode convention.
 
-## Decision 3: Publish To `docs/supply-chain/<RUN_ID>/`
+## Decision 3: Publish To `tech-docs/supply-chain/<RUN_ID>/`
 
 - **Decision**: Publish completed or publishable packets to
-  `docs/supply-chain/<RUN_ID>/`.
+  `tech-docs/supply-chain/<RUN_ID>/`.
 - **Rationale**: The path is readable, avoids awkward pluralization, and keeps
   the documentation destination clearly tied to the domain without overloading
   the mode name.
 - **Alternatives considered**:
-  - `docs/supply-chain-analyses/<RUN_ID>/`: rejected because the path is noisy
+  - `tech-docs/supply-chain-analyses/<RUN_ID>/`: rejected because the path is noisy
     and harder to scan.
-  - `docs/supply-chain-analysis/<RUN_ID>/`: rejected because the singular noun
+  - `tech-docs/supply-chain-analysis/<RUN_ID>/`: rejected because the singular noun
     reads more like a source file bucket than a packet collection.
 
 ## Decision 4: Treat Missing Scanners As Coverage Gaps, Not Silent Success

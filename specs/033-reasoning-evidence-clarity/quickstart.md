@@ -23,7 +23,7 @@ skills, templates, docs, coverage, lint, and formatting closeout.
    mirrored skills remain synchronized.
 6. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, a focused coverage command for touched Rust files, and the final workspace regression command used for closeout.
 7. Review `Cargo.toml`, `Cargo.lock`, runtime-compatibility references,
-   `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, impacted templates or
+   `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, impacted templates or
    examples, and `CHANGELOG.md` to confirm the `0.33.0` release surface is
    explicit and internally consistent.
 

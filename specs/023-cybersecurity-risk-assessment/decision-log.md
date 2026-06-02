@@ -64,7 +64,7 @@
 
 ### D-009: Publish to a dedicated security-assessments directory
 
-- **Decision**: Publish readable packets under `docs/security-assessments/<RUN_ID>/`.
+- **Decision**: Publish readable packets under `tech-docs/security-assessments/<RUN_ID>/`.
 - **Rationale**: Security packets need a stable, mode-specific destination that
   does not collide with incidents, migrations, or reviews.
 

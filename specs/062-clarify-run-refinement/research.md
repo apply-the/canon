@@ -118,7 +118,7 @@ patterns while enabling stable typed contracts underneath.
 **Decision**: Seed targeted-mode working briefs from the existing current-mode
 authority rules (`brief.md` when folder-backed, or the single canonical input
 when file-backed) plus the existing templates under
-`docs/templates/canon-input/` and mode guidance under `defaults/`.
+`defaults/templates/canon-input/` and mode guidance under `defaults/`.
 
 **Rationale**: The repository already distinguishes authoritative briefs from
 supporting inputs in templates, docs, and skill-source guidance. Reusing that

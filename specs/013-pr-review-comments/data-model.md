@@ -75,5 +75,5 @@ mapping layer for Conventional Comments output.
 - The new artifact does not change `RunState` semantics.
 - Approval remains driven by unresolved must-fix findings in the existing
   summary/gate path.
-- Publish behavior extends the existing `docs/reviews/prs/<RUN_ID>/` packet
+- Publish behavior extends the existing `tech-docs/reviews/prs/<RUN_ID>/` packet
   with one more markdown artifact.

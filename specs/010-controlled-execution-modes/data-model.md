@@ -141,5 +141,5 @@ Folder-backed `canon-input/implementation/` and `canon-input/refactor/` packets 
 ## Compatibility Notes
 
 - No new run identity fields are added; canonical display id, UUID, short id, slug, and `@last` handling remain unchanged.
-- No new publish directory model is added; publish continues to use `docs/implementation/<RUN_ID>/` and `docs/refactors/<RUN_ID>/` by default.
+- No new publish directory model is added; publish continues to use `tech-docs/implementation/<RUN_ID>/` and `tech-docs/refactors/<RUN_ID>/` by default.
 - No authored-input file is ever rewritten; snapshots remain the durable runtime record.

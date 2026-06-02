@@ -37,7 +37,7 @@
 
 - [x] T005 Capture the focused baseline with `cargo test --test system_shaping_contract --test implementation_contract --test refactor_contract --test system_shaping_run --test implementation_run --test refactor_run` and record results in `specs/019-authoring-specialization-remaining/validation-report.md`
 - [x] T006 [P] Confirm the current authored guidance surfaces in `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-implementation/skill-source.md`, `defaults/embedded-skills/canon-refactor/skill-source.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-implementation/SKILL.md`, and `.agents/skills/canon-refactor/SKILL.md`
-- [x] T007 [P] Confirm the current runtime and example surfaces in `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_change.rs`, `crates/canon-engine/src/orchestrator/service/mode_shaping.rs`, `docs/templates/canon-input/system-shaping.md`, `docs/templates/canon-input/implementation.md`, `docs/templates/canon-input/refactor.md`, `docs/examples/canon-input/system-shaping-billing.md`, `docs/examples/canon-input/implementation-auth-session-revocation.md`, and `docs/examples/canon-input/refactor-auth-session-cleanup.md`
+- [x] T007 [P] Confirm the current runtime and example surfaces in `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/artifacts/markdown.rs`, `crates/canon-engine/src/orchestrator/service/mode_change.rs`, `crates/canon-engine/src/orchestrator/service/mode_shaping.rs`, `defaults/templates/canon-input/system-shaping.md`, `defaults/templates/canon-input/implementation.md`, `defaults/templates/canon-input/refactor.md`, `tech-docs/examples/canon-input/system-shaping-billing.md`, `tech-docs/examples/canon-input/implementation-auth-session-revocation.md`, and `tech-docs/examples/canon-input/refactor-auth-session-cleanup.md`
 
 ---
 
@@ -69,8 +69,8 @@
 ### Implementation for User Story 1
 
 - [x] T013 [US1] Update authored guidance in `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-implementation/skill-source.md`, `defaults/embedded-skills/canon-refactor/skill-source.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-implementation/SKILL.md`, and `.agents/skills/canon-refactor/SKILL.md`
-- [x] T014 [US1] Convert the starter inputs to the canonical H2 contract in `docs/templates/canon-input/system-shaping.md`, `docs/templates/canon-input/implementation.md`, and `docs/templates/canon-input/refactor.md`
-- [x] T015 [US1] Rewrite the worked examples to exercise the full authored packet contract in `docs/examples/canon-input/system-shaping-billing.md`, `docs/examples/canon-input/implementation-auth-session-revocation.md`, and `docs/examples/canon-input/refactor-auth-session-cleanup.md`
+- [x] T014 [US1] Convert the starter inputs to the canonical H2 contract in `defaults/templates/canon-input/system-shaping.md`, `defaults/templates/canon-input/implementation.md`, and `defaults/templates/canon-input/refactor.md`
+- [x] T015 [US1] Rewrite the worked examples to exercise the full authored packet contract in `tech-docs/examples/canon-input/system-shaping-billing.md`, `tech-docs/examples/canon-input/implementation-auth-session-revocation.md`, and `tech-docs/examples/canon-input/refactor-auth-session-cleanup.md`
 - [x] T016 [US1] Record authored-guidance and docs-sync evidence in `specs/019-authoring-specialization-remaining/decision-log.md` and `specs/019-authoring-specialization-remaining/validation-report.md`
 
 **Checkpoint**: A Canon user can author a compliant packet for the three targeted modes without reading the Rust implementation.
@@ -112,7 +112,7 @@
 
 ### Implementation for User Story 3
 
-- [x] T025 [US3] Update rollout guidance in `docs/guides/modes.md`, `ROADMAP.md`, and confirm `AGENTS.md` remains current for feature 019 plan context
+- [x] T025 [US3] Update rollout guidance in `tech-docs/guides/modes.md`, `ROADMAP.md`, and confirm `AGENTS.md` remains current for feature 019 plan context
 - [x] T026 [US3] Update shared execution and preservation fixtures in `tests/policy_and_traces.rs`, `tests/refactor_preservation_run.rs`, and `tests/direct_runtime_coverage.rs`
 - [x] T027 [US3] Record roadmap, guide, and non-regression evidence in `specs/019-authoring-specialization-remaining/decision-log.md` and `specs/019-authoring-specialization-remaining/validation-report.md`
 

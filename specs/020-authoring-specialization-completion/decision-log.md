@@ -16,9 +16,9 @@
   - Rationale: This feature is about packet honesty and discoverability, not governance redesign.
   - Consequence: Validation must prove that review disposition, verification blockers, and incident/migration recommendation-only posture are unchanged.
 
-- **D-005**: Land release/docs/version surfaces in the same slice as the runtime changes.
+- **D-005**: Land release/tech-docs/version surfaces in the same slice as the runtime changes.
   - Rationale: The repository uses versioned docs and compatibility references to describe shipped behavior.
-  - Consequence: `Cargo.toml`, `CHANGELOG.md`, `ROADMAP.md`, `docs/guides/modes.md`, and runtime-compatibility references are first-class implementation surfaces.
+  - Consequence: `Cargo.toml`, `CHANGELOG.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, and runtime-compatibility references are first-class implementation surfaces.
 
 - **D-006**: Use `incident` and `migration` as the first local runtime probe inside the shared foundation work, while keeping `review` and `verification` as the MVP story.
   - Rationale: The operational modes still offer the smallest falsifiable renderer/handoff slice, but the feature priority remains highest for `review` and `verification` because they deliver the strongest user-facing authoring value.

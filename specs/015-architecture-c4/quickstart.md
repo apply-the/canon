@@ -8,7 +8,7 @@ Use the example as the authored brief:
 
 ```bash
 mkdir -p canon-input/architecture
-cp docs/examples/canon-input/architecture/brief.md canon-input/architecture/brief.md
+cp tech-docs/examples/canon-input/architecture/brief.md canon-input/architecture/brief.md
 ```
 
 ## 2. Run architecture

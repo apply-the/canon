@@ -123,8 +123,8 @@ artifact, gating, or recommendation-only guarantees.
 - **Passed**: `migration` emits all required artifacts and summary surfaces
 - **Passed**: gate outcomes remain explicit for blocked, downgraded, and
   approval-gated runs
-- **Passed**: publish output remains readable under `docs/incidents/` and
-  `docs/migrations/`
+- **Passed**: publish output remains readable under `tech-docs/incidents/` and
+  `tech-docs/migrations/`
 - **Passed**: docs and skill surfaces describe runnable behavior honestly
 
 ## Closeout

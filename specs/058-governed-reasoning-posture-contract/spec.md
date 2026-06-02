@@ -19,7 +19,7 @@
 - The gatekeeper refactor in this branch MUST preserve gate evaluation behavior, approval semantics, and material blocker meaning.
 - This slice MUST NOT use the reasoning-posture contract as cover for introducing new Canon runtime ownership over downstream orchestration.
 
-**Decision Traceability**: Decisions for this feature are recorded in `specs/058-governed-reasoning-posture-contract/decision-log.md`, with Canon-owned stable semantics published from `docs/integration/governed-reasoning-posture-contract.md`.
+**Decision Traceability**: Decisions for this feature are recorded in `specs/058-governed-reasoning-posture-contract/decision-log.md`, with Canon-owned stable semantics published from `tech-docs/integration/governed-reasoning-posture-contract.md`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -116,7 +116,7 @@ As a Canon maintainer, I want the oversized gatekeeper surface in this branch de
 - **Structural validation**: Review the stable contract, feature-local brief, release metadata, and Boundline consumer brief for one coherent contract identity and release window.
 - **Logical validation**: Run the governed reasoning posture contract tests, release-surface alignment tests, and gatekeeper-focused behavior checks.
 - **Independent validation**: Perform a cross-repo review against Boundline `061-reasoning-profile-contracts` to confirm Canon remains the posture producer while Boundline remains the runtime owner.
-- **Evidence artifacts**: `specs/058-governed-reasoning-posture-contract/`, `docs/integration/governed-reasoning-posture-contract.md`, `tests/contract/governed_reasoning_posture_contract.rs`, and the touched Canon validation surfaces.
+- **Evidence artifacts**: `specs/058-governed-reasoning-posture-contract/`, `tech-docs/integration/governed-reasoning-posture-contract.md`, `tests/contract/governed_reasoning_posture_contract.rs`, and the touched Canon validation surfaces.
 
 ## Decision Log *(mandatory)*
 

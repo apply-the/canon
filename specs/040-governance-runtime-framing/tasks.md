@@ -40,7 +40,7 @@
 **⚠️ CRITICAL**: No user story work begins until the shared framing and version targets are bounded.
 
 - [x] T008 Audit existing `0.39.0` and delivered `039` references in `Cargo.toml`, `Cargo.lock`, runtime-compatibility references, `README.md`, `CHANGELOG.md`, `ROADMAP.md`, and the release publishing guides
-- [x] T009 Audit existing governance adapter wording in `README.md`, `docs/guides/modes.md`, `crates/canon-cli/src/commands/governance.rs`, and `tests/integration/governance_adapter_surface.rs` to preserve contract semantics while changing framing
+- [x] T009 Audit existing governance adapter wording in `README.md`, `tech-docs/guides/modes.md`, `crates/canon-cli/src/commands/governance.rs`, and `tests/integration/governance_adapter_surface.rs` to preserve contract semantics while changing framing
 
 **Checkpoint**: Shared release and adapter invariants are explicit.
 
@@ -50,7 +50,7 @@
 
 **Goal**: Make the opening docs state clearly that Canon is the governed packet runtime for AI-assisted engineering and show the simplest human-driven happy path.
 
-**Independent Test**: `tests/governance_runtime_framing_docs.rs` fails until `README.md` and `docs/guides/getting-started.md` expose the new runtime framing, explicit non-goals, and a happy path that includes `inspect clarity`.
+**Independent Test**: `tests/governance_runtime_framing_docs.rs` fails until `README.md` and `tech-docs/guides/getting-started.md` expose the new runtime framing, explicit non-goals, and a happy path that includes `inspect clarity`.
 
 ### Validation for User Story 1 (MANDATORY)
 
@@ -60,7 +60,7 @@
 ### Implementation for User Story 1
 
 - [x] T012 [P] [US1] Reframe Canon's opening identity, non-goals, and delivery line in `README.md`
-- [x] T013 [US1] Update the human-driven happy path and product description in `docs/guides/getting-started.md`
+- [x] T013 [US1] Update the human-driven happy path and product description in `tech-docs/guides/getting-started.md`
 - [x] T014 [US1] Record User Story 1 validation evidence in `specs/040-governance-runtime-framing/validation-report.md`
 
 **Checkpoint**: A first-time reader can identify Canon's role and shortest correct human path from the opening docs alone.
@@ -80,8 +80,8 @@
 
 ### Implementation for User Story 2
 
-- [x] T017 [P] [US2] Create the dedicated governance adapter guide in `docs/integration/governance-adapter.md`
-- [x] T018 [US2] Update machine-facing boundary guidance and cross-links in `docs/guides/modes.md`
+- [x] T017 [P] [US2] Create the dedicated governance adapter guide in `tech-docs/integration/governance-adapter.md`
+- [x] T018 [US2] Update machine-facing boundary guidance and cross-links in `tech-docs/guides/modes.md`
 - [x] T019 [US2] Add governance adapter cross-links and boundary wording in `README.md`
 - [x] T020 [US2] Record User Story 2 validation evidence in `specs/040-governance-runtime-framing/validation-report.md`
 
@@ -105,7 +105,7 @@
 - [x] T023 [P] [US3] Bump the workspace release line to `0.40.0` in `Cargo.toml`, `Cargo.lock`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, and `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`
 - [x] T024 [P] [US3] Update the delivered `040` changelog entry in `CHANGELOG.md`
 - [x] T025 [P] [US3] Clean the delivered-roadmap surface in `ROADMAP.md`
-- [x] T026 [US3] Align remaining release-facing references in `README.md`, `docs/integration/governance-adapter.md`, `docs/guides/publishing-to-winget.md`, and `docs/guides/publishing-to-scoop.md`
+- [x] T026 [US3] Align remaining release-facing references in `README.md`, `tech-docs/integration/governance-adapter.md`, `tech-docs/guides/publishing-to-winget.md`, and `tech-docs/guides/publishing-to-scoop.md`
 - [x] T027 [US3] Record User Story 3 validation evidence in `specs/040-governance-runtime-framing/validation-report.md`
 
 **Checkpoint**: The repo advertises one coherent delivered `0.40.0` feature state with no stale roadmap drift.
@@ -121,7 +121,7 @@
 - [x] T030 [P] Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` and record the result in `specs/040-governance-runtime-framing/validation-report.md`
 - [x] T031 [P] Run `cargo nextest run` and record the result in `specs/040-governance-runtime-framing/validation-report.md`
 - [x] T032 [P] Run `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, note the final `crates/canon-cli/src/commands/governance.rs` coverage, and record the `llvm-cov` export limitation for test crates in `specs/040-governance-runtime-framing/validation-report.md`
-- [x] T033 Perform an independent readback of `README.md`, `docs/guides/getting-started.md`, `docs/guides/modes.md`, `docs/integration/governance-adapter.md`, `CHANGELOG.md`, and `ROADMAP.md` against `specs/040-governance-runtime-framing/spec.md`
+- [x] T033 Perform an independent readback of `README.md`, `tech-docs/guides/getting-started.md`, `tech-docs/guides/modes.md`, `tech-docs/integration/governance-adapter.md`, `CHANGELOG.md`, and `ROADMAP.md` against `specs/040-governance-runtime-framing/spec.md`
 - [x] T034 Confirm invariants still hold and close the feature evidence in `specs/040-governance-runtime-framing/validation-report.md`
 - [x] T035 Prepare the final commit message for the delivered `040` feature and include it in the closeout handoff
 
@@ -167,8 +167,8 @@
 Task: "Write failing governance adapter documentation assertions in tests/governance_runtime_framing_docs.rs"
 
 # Then implement independent documentation surfaces in parallel:
-Task: "Create the dedicated governance adapter guide in docs/integration/governance-adapter.md"
-Task: "Update machine-facing boundary guidance and cross-links in docs/guides/modes.md"
+Task: "Create the dedicated governance adapter guide in tech-docs/integration/governance-adapter.md"
+Task: "Update machine-facing boundary guidance and cross-links in tech-docs/guides/modes.md"
 ```
 
 ---

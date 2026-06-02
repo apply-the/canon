@@ -54,7 +54,7 @@
 
 ## Publish and Inspect Expectations
 
-- Default publish destination remains `docs/implementation/<RUN_ID>/`
+- Default publish destination remains `tech-docs/implementation/<RUN_ID>/`
 - Published summaries and inspect/status outputs must label recommendation-only posture explicitly when present
 - `canon inspect evidence --run <RUN_ID>` should expose upstream lineage fields when the current packet provides `Feature Slice`, `Primary Upstream Mode`, `Upstream Sources`, carried-forward decisions, or excluded upstream scope
 - Run lookup by display id, UUID, short id, slug, and `@last` remains unchanged

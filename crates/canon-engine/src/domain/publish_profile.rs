@@ -196,7 +196,7 @@ mod authority_governance_tests {
             semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
             semantic_eligibility: SemanticEligibilityState::Excluded,
             semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
-            semantic_provenance_ref: Some("docs/project/open-risks.md".to_string()),
+            semantic_provenance_ref: Some("tech-docs/project/open-risks.md".to_string()),
             semantic_labels: vec!["visibility-only".to_string()],
             semantic_exclusion_reason: Some(
                 "index surfaces stay excluded from retrieval".to_string(),
@@ -212,7 +212,9 @@ mod authority_governance_tests {
             semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
             semantic_eligibility: SemanticEligibilityState::Eligible,
             semantic_provenance_boundary: Some(SemanticProvenanceBoundary::ManagedBlock),
-            semantic_provenance_ref: Some("docs/project/overview.md#managed-block-1".to_string()),
+            semantic_provenance_ref: Some(
+                "tech-docs/project/overview.md#managed-block-1".to_string(),
+            ),
             semantic_labels: vec!["project-memory".to_string(), "overview".to_string()],
             semantic_exclusion_reason: None,
         };
@@ -666,7 +668,7 @@ mod tests {
             semantic_contract_line: "   ".to_string(),
             semantic_eligibility: SemanticEligibilityState::Eligible,
             semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
-            semantic_provenance_ref: Some("docs/architecture.md".to_string()),
+            semantic_provenance_ref: Some("tech-docs/architecture.md".to_string()),
             semantic_labels: vec![],
             semantic_exclusion_reason: None,
         };
@@ -680,7 +682,7 @@ mod tests {
             semantic_contract_line: "architecture-v1".to_string(),
             semantic_eligibility: SemanticEligibilityState::Eligible,
             semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
-            semantic_provenance_ref: Some("docs/architecture.md".to_string()),
+            semantic_provenance_ref: Some("tech-docs/architecture.md".to_string()),
             semantic_labels: vec!["  ".to_string()], // empty after trim
             semantic_exclusion_reason: None,
         };
@@ -708,7 +710,7 @@ mod tests {
             semantic_contract_line: "architecture-v1".to_string(),
             semantic_eligibility: SemanticEligibilityState::Excluded,
             semantic_provenance_boundary: Some(SemanticProvenanceBoundary::Surface),
-            semantic_provenance_ref: Some("docs/architecture.md".to_string()),
+            semantic_provenance_ref: Some("tech-docs/architecture.md".to_string()),
             semantic_labels: vec![],
             semantic_exclusion_reason: Some("   ".to_string()), // provided but empty
         };

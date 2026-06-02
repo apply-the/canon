@@ -1,6 +1,6 @@
 # Canon
 
-![Canon banner](docs/images/canon-banner.jpg)
+![Canon banner](tech-docs/images/canon-banner.jpg)
 
 [![Version](https://img.shields.io/github/v/release/apply-the/canon?color=blue&label=version)](https://github.com/apply-the/canon/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -62,11 +62,11 @@ These are the commands you'll actually use every day:
 
 ## 📚 Deep Dive Documentation
 
-For advanced integrations, semantics, and architecture, explore the `docs/` folder:
-- [Getting Started Guide](docs/guides/getting-started.md)
-- [Governance Modes](docs/guides/modes.md)
-- [Risk and Authority Zones](docs/guides/risk-and-zone.md)
-- [Machine-Facing Governance Adapter](docs/integration/governance-adapter.md)
+For advanced integrations, semantics, and architecture, explore the `tech-docs/` folder:
+- [Getting Started Guide](tech-docs/guides/getting-started.md)
+- [Governance Modes](tech-docs/guides/modes.md)
+- [Risk and Authority Zones](tech-docs/guides/risk-and-zone.md)
+- [Machine-Facing Governance Adapter](tech-docs/integration/governance-adapter.md)
 
 ## 🤝 Contributing
 Want to build or develop Canon itself? See [CONTRIBUTING.md](CONTRIBUTING.md). Use the GitHub issue templates under `.github/ISSUE_TEMPLATE/` when reporting bugs or feature requests. For vulnerabilities, follow [SECURITY.md](SECURITY.md).

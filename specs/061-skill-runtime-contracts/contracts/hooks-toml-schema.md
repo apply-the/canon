@@ -59,7 +59,7 @@ For each detected hook, the skill emits a proposal block:
 
 **Event**: after_publish
 **Hook**: add-docs-to-git
-**Command**: `git add docs/`
+**Command**: `git add tech-docs/`
 **Working Directory**: <repo-root>
 **Description**: Stage published documentation for commit
 **Required**: No (optional)

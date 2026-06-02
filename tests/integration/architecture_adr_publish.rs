@@ -162,7 +162,7 @@ fn architecture_publish_emits_a_standard_adr_by_default() {
         .clone();
 
     let publish_text = String::from_utf8(publish_output).expect("utf8 publish output");
-    let adr_dir = workspace.path().join("docs").join("adr");
+    let adr_dir = workspace.path().join("tech-docs").join("adr");
     let adr_entry = fs::read_dir(&adr_dir)
         .expect("adr registry dir")
         .next()
@@ -173,7 +173,7 @@ fn architecture_publish_emits_a_standard_adr_by_default() {
     let adr_text = fs::read_to_string(&adr_path).expect("generated adr");
 
     assert!(adr_name.starts_with("ADR-0001-"));
-    assert!(publish_text.contains(&format!("docs/adr/{adr_name}")));
+    assert!(publish_text.contains(&format!("tech-docs/adr/{adr_name}")));
     assert!(adr_text.starts_with(
         "# ADR 0001: Use a dedicated context map to make architecture boundaries reviewable."
     ));

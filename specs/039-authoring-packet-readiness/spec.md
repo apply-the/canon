@@ -3,7 +3,7 @@
 **Feature Branch**: `039-authoring-packet-readiness`  
 **Created**: 2026-05-02  
 **Status**: Draft  
-**Input**: User description: "Deliver feature 039 as a full authoring experience and packet readiness slice: unify template, example, clarity inspection, run, critique, and publish guidance across file-backed modes, strengthen carry-forward of missing context, assumptions, unresolved questions, and readiness deltas for file and directory authored inputs, preserve explicit authored-body honesty and existing mode boundaries, include an explicit 0.39.0 version bump task, docs/changelog task, roadmap cleanup, coverage for touched Rust files, clean clippy and cargo fmt closeout, and implement end-to-end without splitting into slices."
+**Input**: User description: "Deliver feature 039 as a full authoring experience and packet readiness slice: unify template, example, clarity inspection, run, critique, and publish guidance across file-backed modes, strengthen carry-forward of missing context, assumptions, unresolved questions, and readiness deltas for file and directory authored inputs, preserve explicit authored-body honesty and existing mode boundaries, include an explicit 0.39.0 version bump task, tech-docs/changelog task, roadmap cleanup, coverage for touched Rust files, clean clippy and cargo fmt closeout, and implement end-to-end without splitting into slices."
 
 ## Governance Context *(mandatory)*
 

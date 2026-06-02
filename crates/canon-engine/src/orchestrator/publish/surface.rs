@@ -145,7 +145,7 @@ fn render_project_memory_index_entry(
 }
 
 fn resolve_profile_evidence_root(repo_root: &Path, manifest: &RunManifest) -> PathBuf {
-    repo_root.join("docs/evidence").join(manifest.mode.as_str()).join(&manifest.run_id)
+    repo_root.join("tech-docs/evidence").join(manifest.mode.as_str()).join(&manifest.run_id)
 }
 
 fn write_supporting_evidence_bundle(

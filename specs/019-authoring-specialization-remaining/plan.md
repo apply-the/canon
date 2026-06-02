@@ -10,7 +10,7 @@ Complete the second Mode Authoring Specialization slice by extending `system-sha
 ## Governance Context
 
 **Execution Mode**: change
-**Risk Classification**: bounded-impact. The slice deepens three existing modes and their repository-local docs/tests without introducing a new runtime domain, changing approval or publish semantics, or widening beyond authored-body contracts and their evidence surfaces.
+**Risk Classification**: bounded-impact. The slice deepens three existing modes and their repository-local tech-docs/tests without introducing a new runtime domain, changing approval or publish semantics, or widening beyond authored-body contracts and their evidence surfaces.
 **Scope In**:
 
 - Extend the authored-body contract for `system-shaping`, `implementation`, and `refactor` packet artifacts.
@@ -34,7 +34,7 @@ Complete the second Mode Authoring Specialization slice by extending `system-sha
 - Canonical H2 headings remain the contract; near-match headings count as missing unless explicitly documented as aliases.
 
 **Decision Log**: `specs/019-authoring-specialization-remaining/decision-log.md`  
-**Validation Ownership**: Generation work updates artifact contracts, renderer logic, orchestrator handoff, skills/docs/examples, and focused tests. Validation remains separate via structural checks, focused logical tests, skill synchronization validation, and independent artifact review recorded in `validation-report.md`.  
+**Validation Ownership**: Generation work updates artifact contracts, renderer logic, orchestrator handoff, skills/tech-docs/examples, and focused tests. Validation remains separate via structural checks, focused logical tests, skill synchronization validation, and independent artifact review recorded in `validation-report.md`.  
 **Approval Gates**: bounded-impact does not add special human approvals beyond standard review.
 
 ## Technical Context
@@ -56,13 +56,13 @@ Complete the second Mode Authoring Specialization slice by extending `system-sha
 - `.agents/skills/canon-system-shaping/SKILL.md`
 - `.agents/skills/canon-implementation/SKILL.md`
 - `.agents/skills/canon-refactor/SKILL.md`
-- `docs/templates/canon-input/system-shaping.md`
-- `docs/templates/canon-input/implementation.md`
-- `docs/templates/canon-input/refactor.md`
-- `docs/examples/canon-input/system-shaping-billing.md`
-- `docs/examples/canon-input/implementation-auth-session-revocation.md`
-- `docs/examples/canon-input/refactor-auth-session-cleanup.md`
-- `docs/guides/modes.md`
+- `defaults/templates/canon-input/system-shaping.md`
+- `defaults/templates/canon-input/implementation.md`
+- `defaults/templates/canon-input/refactor.md`
+- `tech-docs/examples/canon-input/system-shaping-billing.md`
+- `tech-docs/examples/canon-input/implementation-auth-session-revocation.md`
+- `tech-docs/examples/canon-input/refactor-auth-session-cleanup.md`
+- `tech-docs/guides/modes.md`
 - `ROADMAP.md`
 - `tests/contract/`
 - `tests/`
@@ -130,7 +130,7 @@ defaults/
     ├── canon-implementation/SKILL.md
     └── canon-refactor/SKILL.md
 
-docs/
+tech-docs/
 ├── templates/canon-input/
 │   ├── system-shaping.md
 │   ├── implementation.md

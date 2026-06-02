@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Status**: Draft, producer brief
-- **Planned Stable Path**: `docs/integration/semantic-artifact-contract.md`
+- **Planned Stable Path**: `tech-docs/integration/semantic-artifact-contract.md`
 - **Current Draft Contract Line**: V1
 
 ## Purpose
@@ -25,7 +25,7 @@ responsible for retrieval runtime behavior, ranking, or local index ownership.
 
 This semantic contract extends, and does not replace, these Canon surfaces:
 
-- `docs/integration/project-memory-promotion-contract.md`
+- `tech-docs/integration/project-memory-promotion-contract.md`
 - `specs/050-project-memory-control/contracts/project-memory-promotion-contract.md`
 - `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 
@@ -72,7 +72,7 @@ Example shape:
     "semantic_contract_line": "v1",
     "semantic_eligibility": "eligible",
     "semantic_provenance_boundary": "managed_block",
-    "semantic_provenance_ref": "docs/evidence/example.md#project-memory-managed:block-3",
+    "semantic_provenance_ref": "tech-docs/evidence/example.md#project-memory-managed:block-3",
     "semantic_labels": ["review", "architecture"]
   }
 }

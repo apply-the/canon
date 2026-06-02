@@ -10,13 +10,13 @@ Deliver the first bounded slice of Mode Authoring Specialization by extending `r
 ## Governance Context
 
 **Execution Mode**: change
-**Risk Classification**: bounded-impact. The slice changes authored-body behavior in three existing modes and their supporting docs/tests, but does not change mode count, persistence layout, approval gates, or publish destinations.
+**Risk Classification**: bounded-impact. The slice changes authored-body behavior in three existing modes and their supporting tech-docs/tests, but does not change mode count, persistence layout, approval gates, or publish destinations.
 **Scope In**:
 
 - Renderer and orchestrator changes for `requirements`, `discovery`, and `change` only.
 - Skill source and materialized skill updates for those three modes.
-- Updates to the existing templates `docs/templates/canon-input/requirements.md`, `docs/templates/canon-input/discovery.md`, and `docs/templates/canon-input/change.md`.
-- Updates to the existing worked examples `docs/examples/canon-input/requirements-api-v2.md`, `docs/examples/canon-input/discovery-legacy-migration.md`, and `docs/examples/canon-input/change-add-caching.md`.
+- Updates to the existing templates `defaults/templates/canon-input/requirements.md`, `defaults/templates/canon-input/discovery.md`, and `defaults/templates/canon-input/change.md`.
+- Updates to the existing worked examples `tech-docs/examples/canon-input/requirements-api-v2.md`, `tech-docs/examples/canon-input/discovery-legacy-migration.md`, and `tech-docs/examples/canon-input/change-add-caching.md`.
 - Mode guidance and roadmap updates that document the delivered first slice honestly.
 - Focused contract, renderer, run, and docs validation for the three updated modes.
 
@@ -60,13 +60,13 @@ Deliver the first bounded slice of Mode Authoring Specialization by extending `r
 - `.agents/skills/canon-requirements/SKILL.md`
 - `.agents/skills/canon-discovery/SKILL.md`
 - `.agents/skills/canon-change/SKILL.md`
-- `docs/templates/canon-input/requirements.md`
-- `docs/templates/canon-input/discovery.md`
-- `docs/templates/canon-input/change.md`
-- `docs/examples/canon-input/requirements-api-v2.md`
-- `docs/examples/canon-input/discovery-legacy-migration.md`
-- `docs/examples/canon-input/change-add-caching.md`
-- `docs/guides/modes.md`
+- `defaults/templates/canon-input/requirements.md`
+- `defaults/templates/canon-input/discovery.md`
+- `defaults/templates/canon-input/change.md`
+- `tech-docs/examples/canon-input/requirements-api-v2.md`
+- `tech-docs/examples/canon-input/discovery-legacy-migration.md`
+- `tech-docs/examples/canon-input/change-add-caching.md`
+- `tech-docs/guides/modes.md`
 - `ROADMAP.md`
 
 **Performance Goals**: N/A; this slice changes authored-body fidelity, not throughput.  
@@ -134,7 +134,7 @@ defaults/
   ├── canon-discovery/SKILL.md
   └── canon-change/SKILL.md
 
-docs/
+tech-docs/
 ├── templates/canon-input/
 │   ├── requirements.md
 │   ├── discovery.md

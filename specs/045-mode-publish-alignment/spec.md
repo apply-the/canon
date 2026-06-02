@@ -9,7 +9,7 @@
 
 **Mode**: change  
 **Risk Classification**: bounded-impact because the slice changes publish gating, assistant-facing command references, release/version surfaces, and validation expectations without changing Canon's artifact families or approval model  
-**Scope In**: security-assessment publish-state alignment, assistant publish command-surface alignment, version bump to `0.45.0`, validation/reporting closeout, and any directly affected tests/docs/release assertions  
+**Scope In**: security-assessment publish-state alignment, assistant publish command-surface alignment, version bump to `0.45.0`, validation/reporting closeout, and any directly affected tests/tech-docs/release assertions  
 **Scope Out**: new mode families, new publish destinations, new ADR/PRD/C4 artifact projections, new CLI syntax, and broad documentation rewrites beyond touched surfaces
 
 **Invariants**:
@@ -103,7 +103,7 @@ As a maintainer, I need the version line, validation artifacts, and release-faci
 ## Validation Plan *(mandatory)*
 
 - **Structural validation**: `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and any touched release-surface assertions.
-- **Logical validation**: Focused `cargo test` coverage for security-assessment publish behavior, assistant package validation, and any directly affected docs/release tests; finish with `cargo nextest run --workspace --all-features` if the environment remains stable enough.
+- **Logical validation**: Focused `cargo test` coverage for security-assessment publish behavior, assistant package validation, and any directly affected tech-docs/release tests; finish with `cargo nextest run --workspace --all-features` if the environment remains stable enough.
 - **Independent validation**: Readback comparison between documented publish semantics and runtime behavior after implementation, plus commit-closeout review of version surfaces.
 - **Evidence artifacts**: `specs/045-mode-publish-alignment/validation-report.md`, `specs/045-mode-publish-alignment/decision-log.md`, generated design artifacts, and coverage evidence from `lcov.info` or focused touched-file analysis.
 

@@ -21,12 +21,12 @@ Completed
   `canon-inspect-clarity` and output-shape updates landed.
 - Live release-facing version surfaces now report `0.33.0` consistently in
   `Cargo.toml`, `Cargo.lock`, both runtime-compatibility references,
-  `README.md`, `ROADMAP.md`, `docs/guides/modes.md`,
-  `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`,
+  `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`,
+  `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`,
   and `CHANGELOG.md`.
 - A final grep over live release-facing surfaces found no stale `0.32.0`
   references outside historical changelog content.
-- Review of `docs/templates/canon-input/` and `docs/examples/canon-input/`
+- Review of `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/`
   found the existing H2 contracts already require explicit evidence,
   tradeoffs, contradiction handling, or unresolved-findings posture for the
   impacted mode families, so no additional template churn was needed.

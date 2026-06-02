@@ -121,12 +121,12 @@ evolution cycles.
    `specs/057-s7-delight-provider/contracts/delight-provider-contract.md` and
    opening a cross-repo review request to Boundline.
 2. Once both teams acknowledge, the stable document at
-   `docs/integration/delight-provider-contract.md` is updated with the new
+   `tech-docs/integration/delight-provider-contract.md` is updated with the new
    contract line and the prior class remains documented under `deprecated_classes`
    until the agreed deprecation epoch passes.
 
 **Rationale**: Two-step process prevents unilateral Canon updates from silently
-breaking S7; the stable `docs/integration/` document is the normative source per
+breaking S7; the stable `tech-docs/integration/` document is the normative source per
 the authority rules established by `project-memory-promotion-contract.md`.
 
 ---

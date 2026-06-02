@@ -168,8 +168,8 @@ gate semantics.
   approval before progression.
 - `Generated Packet` -> `Completed`: all required gates pass with sufficient
   evidence.
-- `Completed` -> `Published`: packet is copied into `docs/incidents/<RUN_ID>/`
-  or `docs/migrations/<RUN_ID>/`.
+- `Completed` -> `Published`: packet is copied into `tech-docs/incidents/<RUN_ID>/`
+  or `tech-docs/migrations/<RUN_ID>/`.
 
 High-risk packets must never transition directly from `Draft Input` to
 `Completed` without generated artifacts and recorded gate outcomes.

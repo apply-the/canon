@@ -19,7 +19,7 @@ lands with synchronized docs, skills, and regression coverage.
 4. Run `/bin/bash scripts/validate-canon-skills.sh` to confirm the embedded and
    mirrored skill surfaces remain synchronized.
 5. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and a full `cargo nextest run`.
-6. Review `README.md`, `CHANGELOG.md`, `docs/guides/modes.md`, shared runtime
+6. Review `README.md`, `CHANGELOG.md`, `tech-docs/guides/modes.md`, shared runtime
    compatibility references, and the published packet path to confirm the
    `0.22.0` release surface is coherent.
 
@@ -30,6 +30,6 @@ lands with synchronized docs, skills, and regression coverage.
 - Run a negative-path example with one required authored section removed and
   verify the affected artifact surfaces `## Missing Authored Body`.
 - Publish a completed assessment and verify files land under
-  `docs/security-assessments/<RUN_ID>/`.
+  `tech-docs/security-assessments/<RUN_ID>/`.
 - Review the packet text to confirm findings remain recommendation-only and do
   not claim audit completion or autonomous remediation.

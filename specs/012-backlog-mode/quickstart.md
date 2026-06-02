@@ -33,8 +33,8 @@ Delivery Intent: turn the approved auth modernization architecture into bounded 
 Desired Granularity: epic-plus-slice
 Planning Horizon: next two delivery increments
 Source References:
-- docs/architecture/decisions/R-20260420-AUTHMOD/decision-summary.md
-- docs/architecture/decisions/R-20260420-AUTHMOD/capability-map.md
+- tech-docs/architecture/decisions/R-20260420-AUTHMOD/decision-summary.md
+- tech-docs/architecture/decisions/R-20260420-AUTHMOD/capability-map.md
 Constraints:
 - session rollout depends on shared identity adapter readiness
 Out of Scope:
@@ -56,9 +56,9 @@ Out of Scope:
    ```md
 # Context Links
 
-- docs/requirements/R-20260418-AUTHMOD/requirements.md
-- docs/architecture/decisions/R-20260420-AUTHMOD/decision-summary.md
-- docs/architecture/decisions/R-20260420-AUTHMOD/capability-map.md
+- tech-docs/requirements/R-20260418-AUTHMOD/requirements.md
+- tech-docs/architecture/decisions/R-20260420-AUTHMOD/decision-summary.md
+- tech-docs/architecture/decisions/R-20260420-AUTHMOD/capability-map.md
    ```
 
 2. Start the run:
@@ -90,7 +90,7 @@ canon inspect invocations --run <RUN_ID>
 canon publish <RUN_ID>
 ```
 
-6. Confirm the published output lands under `docs/planning/<RUN_ID>/` and remains understandable without reading internal run state.
+6. Confirm the published output lands under `tech-docs/planning/<RUN_ID>/` and remains understandable without reading internal run state.
 
 ## Closure-Blocked Flow
 
@@ -104,7 +104,7 @@ canon publish <RUN_ID>
 Delivery Intent: split the identity rework into executable delivery phases.
 Desired Granularity: epic-plus-slice
 Source References:
-- docs/architecture/decisions/R-20260420-AUTHMOD/decision-summary.md
+- tech-docs/architecture/decisions/R-20260420-AUTHMOD/decision-summary.md
 Constraints:
 - capability ownership and shared adapter boundaries are still unsettled
    ```

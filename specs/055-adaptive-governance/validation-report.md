@@ -33,10 +33,10 @@ and open follow-up required for Canon's S4 adaptive-governance semantic slice.
   `quickstart.md` exist in the feature package.
 - `decision-log.md` now exists and records the active contract decisions for
   this slice.
-- `docs/governance-semantics-and-authority-zones.md` now exists and defines the
+- `tech-docs/governance-semantics-and-authority-zones.md` now exists and defines the
   required baseline, optional companion, vocabulary, compatibility rules, and
   authority-zone boundary in prose.
-- `docs/integration/governance-adapter.md` now exposes the optional
+- `tech-docs/integration/governance-adapter.md` now exposes the optional
   `adaptive-governance-v1` companion beside the required
   `authority-governance-v1` baseline.
 - Canon still needs final README alignment, contract-doc closeout, and recorded
@@ -77,8 +77,8 @@ and open follow-up required for Canon's S4 adaptive-governance semantic slice.
 ### E-004 Documentation boundary recorded in Canon-owned docs
 
 - Date: 2026-05-16
-- Source: `docs/governance-semantics-and-authority-zones.md`,
-  `docs/integration/governance-adapter.md`
+- Source: `tech-docs/governance-semantics-and-authority-zones.md`,
+  `tech-docs/integration/governance-adapter.md`
 - Result: pass
 - Notes: the required baseline, optional companion, and semantic/runtime
   boundary are now documented in both the human-facing semantics guide and the

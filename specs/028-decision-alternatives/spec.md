@@ -158,10 +158,10 @@ feature description, release version, and runtime compatibility all line up at
 - **FR-007**: Embedded skill sources and materialized `.agents/skills/` copies for the targeted modes MUST document the same canonical headings and bounded persona guidance.
 - **FR-008**: Persona guidance for the targeted decision-heavy modes MUST be explicit about intended audience and critique posture, but MUST remain subordinate to Canon governance, risk controls, and evidence honesty.
 - **FR-009**: Decision-evidence surfaces for the targeted modes MUST preserve authored evidence references and MUST expose missing evidence when the brief cannot support a strong comparison claim.
-- **FR-010**: `docs/templates/canon-input/` and `docs/examples/canon-input/` for the targeted modes MUST demonstrate the same canonical decision or framework-evaluation sections documented in the skill guidance.
+- **FR-010**: `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/` for the targeted modes MUST demonstrate the same canonical decision or framework-evaluation sections documented in the skill guidance.
 - **FR-011**: Focused docs, contract, renderer, and run tests MUST exist for each runtime-targeted mode in this slice, covering both positive preservation and honest missing-section behavior.
 - **FR-012**: All modified or newly created Rust files in the targeted runtime paths MUST gain focused automated validation coverage that exercises the new behavior or guards against regressions.
-- **FR-013**: `ROADMAP.md`, `README.md`, `docs/guides/modes.md`, impacted skill or template guidance, and `CHANGELOG.md` MUST describe this slice accurately and consistently.
+- **FR-013**: `ROADMAP.md`, `README.md`, `tech-docs/guides/modes.md`, impacted skill or template guidance, and `CHANGELOG.md` MUST describe this slice accurately and consistently.
 - **FR-014**: Cargo manifests, lockfile surfaces, and shared runtime compatibility references MUST report Canon version `0.28.0` consistently for this delivery.
 - **FR-015**: The task plan for this slice MUST include an explicit version-bump task, an explicit impacted-docs-and-changelog task, and explicit validation tasks for coverage, `cargo clippy`, and `cargo fmt`.
 - **FR-016**: Existing `.canon/` persistence, publish destinations, approval gates, recommendation-only posture, and non-target mode runtime behavior MUST remain unchanged.

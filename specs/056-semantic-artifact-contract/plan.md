@@ -74,7 +74,7 @@ integration contracts
 `canon-cli`, and `canon-adapters`; `serde`, `serde_json`, `serde_yaml`,
 `toml`, `thiserror`, `tracing`, `uuid`, and `time` for typed metadata and
 published contract surfaces  
-**Storage**: repository-published Markdown contracts under `docs/integration/`
+**Storage**: repository-published Markdown contracts under `tech-docs/integration/`
 and `specs/056-semantic-artifact-contract/`, plus JSON sidecars carried through
 `packet-metadata.json` and adjacent published surface sidecars  
 **Testing**: `cargo test`, `cargo nextest run`, contract-structure review, and
@@ -83,7 +83,7 @@ logical scenario walkthroughs recorded in `validation-report.md`
 consumed by Canon maintainers and downstream tools on macOS/Linux CI  
 **Project Type**: Rust workspace CLI/engine/adapters project with published
 integration contracts  
-**Existing System Touchpoints**: `docs/integration/project-memory-promotion-contract.md`,
+**Existing System Touchpoints**: `tech-docs/integration/project-memory-promotion-contract.md`,
 `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`,
 `specs/056-semantic-artifact-contract/contracts/semantic-artifact-contract.md`,
 `crates/canon-engine/src/domain/artifact.rs`,
@@ -151,7 +151,7 @@ crates/
 │               └── projection.rs
 └── canon-adapters/
 
-docs/
+tech-docs/
 └── integration/
   ├── project-memory-promotion-contract.md
   └── semantic-artifact-contract.md

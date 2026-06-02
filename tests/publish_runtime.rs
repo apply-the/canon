@@ -401,8 +401,8 @@ fn publish_run_generates_and_reports_architecture_adr_in_process() {
     let summary =
         publish_run(workspace.path(), &run_id, None, false).expect("publish should succeed");
 
-    assert!(summary.published_files.iter().any(|path| path.starts_with("docs/adr/ADR-0001-")));
-    assert!(workspace.path().join("docs").join("adr").exists());
+    assert!(summary.published_files.iter().any(|path| path.starts_with("tech-docs/adr/ADR-0001-")));
+    assert!(workspace.path().join("tech-docs").join("adr").exists());
 }
 
 #[test]
@@ -441,13 +441,14 @@ fn publish_run_with_profile_promotes_completed_requirements() {
         publish_run_with_profile(workspace.path(), &run_id, PublishProfile::ProjectMemory, None)
             .expect("profile publish should succeed");
 
-    assert_eq!(summary.published_to, "docs/project/product-context.md");
-    assert!(summary.published_files.iter().any(|p| p == "docs/project/product-context.md"));
+    assert_eq!(summary.published_to, "tech-docs/project/product-context.md");
+    assert!(summary.published_files.iter().any(|p| p == "tech-docs/project/product-context.md"));
     assert!(
         summary.published_files.iter().any(|p| p.ends_with("product-context.packet-metadata.json"))
     );
 
-    let metadata_path = workspace.path().join("docs/project/product-context.packet-metadata.json");
+    let metadata_path =
+        workspace.path().join("tech-docs/project/product-context.packet-metadata.json");
     let metadata: serde_json::Value =
         serde_json::from_slice(&fs::read(&metadata_path).expect("read metadata"))
             .expect("parse metadata");
@@ -487,12 +488,12 @@ fn publish_run_with_profile_uses_append_only_index_for_review() {
     )
     .expect("profile publish for review");
 
-    assert_eq!(summary.published_to, "docs/project/audit-log.md");
-    assert!(summary.published_files.iter().any(|p| p == "docs/project/audit-log.md"));
+    assert_eq!(summary.published_to, "tech-docs/project/audit-log.md");
+    assert!(summary.published_files.iter().any(|p| p == "tech-docs/project/audit-log.md"));
     assert!(summary.published_files.iter().any(|p| p.ends_with("audit-log.packet-metadata.json")));
-    assert!(summary.published_files.iter().any(|p| p.starts_with("docs/evidence/review/")));
+    assert!(summary.published_files.iter().any(|p| p.starts_with("tech-docs/evidence/review/")));
 
-    let metadata_path = workspace.path().join("docs/project/audit-log.packet-metadata.json");
+    let metadata_path = workspace.path().join("tech-docs/project/audit-log.packet-metadata.json");
     let metadata: serde_json::Value =
         serde_json::from_slice(&fs::read(&metadata_path).expect("read")).expect("parse");
     assert_eq!(metadata["promotion_state"], "evidence-only");
@@ -522,8 +523,10 @@ fn publish_run_with_profile_uses_proposal_files_for_incident() {
     )
     .expect("profile publish for incident");
 
-    assert_eq!(summary.published_to, "docs/project/open-risks.proposal.md");
-    assert!(summary.published_files.iter().any(|p| p == "docs/project/open-risks.proposal.md"));
+    assert_eq!(summary.published_to, "tech-docs/project/open-risks.proposal.md");
+    assert!(
+        summary.published_files.iter().any(|p| p == "tech-docs/project/open-risks.proposal.md")
+    );
     assert!(
         summary
             .published_files
@@ -532,7 +535,7 @@ fn publish_run_with_profile_uses_proposal_files_for_incident() {
     );
 
     let metadata_path =
-        workspace.path().join("docs/project/open-risks.proposal.packet-metadata.json");
+        workspace.path().join("tech-docs/project/open-risks.proposal.packet-metadata.json");
     let metadata: serde_json::Value =
         serde_json::from_slice(&fs::read(&metadata_path).expect("read")).expect("parse");
     assert_eq!(metadata["promotion_state"], "pending-index");

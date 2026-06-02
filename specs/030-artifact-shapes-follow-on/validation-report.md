@@ -86,7 +86,7 @@ Completed
 - Final diff review confirmed the 030 slice changes authoring guidance, docs,
   mirrors, and test expectations only; it does not widen Canon runtime,
   approval, evidence, or publish behavior.
-- Final doc review confirmed `README.md`, `ROADMAP.md`, `docs/guides/modes.md`,
+- Final doc review confirmed `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`,
   and the in-scope templates/examples describe only the delivered follow-on
   modes and keep deferred rollout scope explicit.
 - Final validation review confirmed the surviving current-tree test surface is

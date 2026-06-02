@@ -7,7 +7,7 @@ creating a second authority surface.
 
 ## Steps
 
-1. Review `docs/integration/project-memory-promotion-contract.md` and confirm
+1. Review `tech-docs/integration/project-memory-promotion-contract.md` and confirm
    that it names the supported V1 artifact classes and their metadata carriers.
 2. Review the derived briefs under
    `specs/051-artifact-indexing-contract/contracts/` and confirm they are

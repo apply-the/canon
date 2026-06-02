@@ -54,9 +54,9 @@ independent diff and output review before merge.
 **Testing**: `cargo test`, `cargo nextest run --workspace --all-features`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, focused publish unit and integration tests, and release-surface checks  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows  
 **Project Type**: Rust CLI workspace with orchestration, persistence, publish logic, and repository documentation artifacts  
-**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/persistence/manifests.rs`, `crates/canon-cli/src/commands/publish.rs`, `tests/contract/runtime_filesystem.rs`, `tests/integration/*publish.rs`, `tests/integration/run_lookup.rs`, `ROADMAP.md`, `README.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, `docs/guides/modes.md`, and shared runtime compatibility references under `.agents/skills/` and `defaults/embedded-skills/`  
+**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/persistence/manifests.rs`, `crates/canon-cli/src/commands/publish.rs`, `tests/contract/runtime_filesystem.rs`, `tests/integration/*publish.rs`, `tests/integration/run_lookup.rs`, `ROADMAP.md`, `README.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, `tech-docs/guides/modes.md`, and shared runtime compatibility references under `.agents/skills/` and `defaults/embedded-skills/`  
 **Performance Goals**: Preserve current local publish responsiveness and add no mandatory network activity, no new approval round-trip, and no duplicate artifact rendering pass  
-**Constraints**: Keep `.canon/` layout unchanged; preserve the `publish` CLI contract and override semantics; keep default roots under current external families such as `specs/` and `docs/`; maintain approval-gated operational publish behavior; and provide focused coverage for every modified or newly added Rust file  
+**Constraints**: Keep `.canon/` layout unchanged; preserve the `publish` CLI contract and override semantics; keep default roots under current external families such as `specs/` and `tech-docs/`; maintain approval-gated operational publish behavior; and provide focused coverage for every modified or newly added Rust file  
 **Scale/Scope**: One cross-mode publish-layer slice spanning destination resolution, metadata materialization, release-surface docs, and focused regression coverage across the existing Rust workspace
 
 ## Constitution Check
@@ -105,7 +105,7 @@ crates/
             ├── manifests.rs
             └── slug.rs
 
-docs/
+tech-docs/
 ├── guides/
 └── architecture/
 

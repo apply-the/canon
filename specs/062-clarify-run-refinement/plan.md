@@ -73,7 +73,7 @@ lineage guidance pages after validation evidence is complete.
 
 **Language/Version**: Rust 1.96.0, Edition 2024; Markdown documentation and templates; existing Spec Kit shell helpers  
 **Primary Dependencies**: workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local methods, templates, and skill-source documents  
-**Storage**: existing `.canon/runs/<RUN_ID>/manifest.toml`, `context.toml`, `artifacts/`, and `inputs/`; published docs and templates under `docs/`, `defaults/`, and `.agents/skills/`  
+**Storage**: existing `.canon/runs/<RUN_ID>/manifest.toml`, `context.toml`, `artifacts/`, and `inputs/`; published docs and templates under `tech-docs/`, `defaults/`, and `.agents/skills/`  
 **Testing**: `cargo test`, targeted Rust unit or integration tests for run context, manifests, status, inspect, markdown rendering, and question-selection behavior; recorded operator walkthrough evidence for `status` and `inspect refinement`; explicit regression review for publish destinations, artifact families, and source-input honesty markers; `cargo fmt --check`; `cargo clippy --workspace --all-targets --all-features -- -D warnings`; doc or template validation where touched  
 **Target Platform**: local filesystem Canon CLI on macOS, Linux, and Windows; assistant hosts that consume Canon status, inspect, and skill guidance  
 **Project Type**: Rust CLI and engine workspace with markdown artifact rendering and repo-local governance templates  
@@ -84,7 +84,7 @@ lineage guidance pages after validation evidence is complete.
   - `crates/canon-engine/src/orchestrator/service/run_summary.rs` and `inspect.rs` for run-scoped refinement visibility.
   - `crates/canon-engine/src/artifacts/markdown.rs` and mode-specific markdown renderers for working-brief materialization.
   - `crates/canon-cli/src/commands/status.rs`, `resume.rs`, `inspect.rs`, and `crates/canon-cli/src/output/inspect.rs` for explicit continuation and operator-facing output.
-  - `defaults/methods/*.toml`, `defaults/embedded-skills/canon-*/skill-source.md`, and `docs/templates/canon-input/*.md` for mode-specific clarification guidance and authoritative brief expectations.
+  - `defaults/methods/*.toml`, `defaults/embedded-skills/canon-*/skill-source.md`, and `defaults/templates/canon-input/*.md` for mode-specific clarification guidance and authoritative brief expectations.
 **Performance Goals**: Preserve current local file-backed status and inspect responsiveness while surfacing refinement state; no extra persistence family scans; recorded walkthrough evidence shows a reviewer can identify the authoritative brief, clarification history, and readiness delta in under 2 minutes.  
 **Constraints**: Reuse the existing run identity and `Draft` lifecycle; keep `canon-input/` immutable; preserve approval and recommendation-only semantics; keep `inspect clarity` focused on authored-input analysis; bound clarification questions to decision-changing gaps only; use typed serde models for any new stable persisted shapes; explicitly prove that publish destinations, artifact families, and source-input honesty markers stay unchanged unless an additive refinement surface requires otherwise.  
 **Scale/Scope**: 5 targeted modes with first-class working-brief refinement, a representative non-targeted validation matrix spanning `review`, `verification`, `implementation`, `refactor`, `incident`, and `migration`, all modes with explicit continuation identity continuity, 1 additive refinement context model, 1 lineage extension on run manifests, additive CLI/runtime output changes, and mirrored guidance updates across templates and skill sources.
@@ -155,7 +155,7 @@ defaults/
 ├── methods/
 └── embedded-skills/
 
-docs/
+tech-docs/
 ├── templates/canon-input/
 └── guides/
 

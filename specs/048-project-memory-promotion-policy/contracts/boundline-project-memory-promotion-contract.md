@@ -7,7 +7,7 @@
 - `known_consumers`:
   - `boundline`
 - `authoritative_source`: `specs/048-project-memory-promotion-policy/contracts/boundline-project-memory-promotion-contract.md`
-- `intended_stable_doc`: `docs/integration/project-memory-promotion-contract.md`
+- `intended_stable_doc`: `tech-docs/integration/project-memory-promotion-contract.md`
 
 ## Purpose
 
@@ -67,21 +67,21 @@ This contract does not define:
 
 ### Stable Project Memory Surfaces
 
-- `docs/project/overview.md`
-- `docs/project/product-context.md`
-- `docs/project/domain-language.md`
-- `docs/project/domain-model.md`
-- `docs/project/architecture-map.md`
-- `docs/project/decision-index.md`
-- `docs/project/delivery-map.md`
-- `docs/project/operational-context.md`
+- `tech-docs/project/overview.md`
+- `tech-docs/project/product-context.md`
+- `tech-docs/project/domain-language.md`
+- `tech-docs/project/domain-model.md`
+- `tech-docs/project/architecture-map.md`
+- `tech-docs/project/decision-index.md`
+- `tech-docs/project/delivery-map.md`
+- `tech-docs/project/operational-context.md`
 
 ### Evidence And Index Surfaces
 
-- `docs/evidence/`
-- `docs/project/pending-decisions.md`
-- `docs/project/open-risks.md`
-- `docs/project/audit-log.md`
+- `tech-docs/evidence/`
+- `tech-docs/project/pending-decisions.md`
+- `tech-docs/project/open-risks.md`
+- `tech-docs/project/audit-log.md`
 
 ## Publish Profile Contract
 
@@ -219,7 +219,7 @@ The Canon owner-side spec and the Boundline integration-side spec must stay
 aligned on:
 
 - stage taxonomy and mode-to-stage mapping
-- target surface categories (`docs/project`, `docs/evidence`, pending/index)
+- target surface categories (`tech-docs/project`, `tech-docs/evidence`, pending/index)
 - promotion-state vocabulary and semantics
 - lineage metadata field names and meanings
 - update-strategy vocabulary and meanings

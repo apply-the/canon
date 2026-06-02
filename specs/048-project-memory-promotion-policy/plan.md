@@ -25,7 +25,7 @@ Canon or changing existing runtime storage semantics.
 - Profile-aware publish path in `publish.rs` and `service.rs`
 - `--profile` CLI argument for `canon publish`
 - Managed-block, proposal-file, and append-only-index update helpers
-- Stable contract document at `docs/integration/project-memory-promotion-contract.md`
+- Stable contract document at `tech-docs/integration/project-memory-promotion-contract.md`
 - Default promotion policy TOML
 - Tests for each promotion state and update strategy
 - Version bump to 0.48.0
@@ -117,7 +117,7 @@ crates/
 defaults/
 └── policies/
     └── publish-profiles.toml     (NEW: default promotion policy per mode)
-docs/
+tech-docs/
 └── integration/
     └── project-memory-promotion-contract.md (NEW: stable consumer contract)
 ```

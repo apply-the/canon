@@ -36,5 +36,5 @@
 ## Notes
 
 - The spec keeps 038 bounded to the existing run/status/operator-summary control surface rather than opening a new workflow subsystem.
-- The explicit `0.37.0` version-alignment, docs/changelog, roadmap-cleanup, coverage, `cargo clippy`, and `cargo fmt` closeout requirements are first-class so planning and implementation cannot omit them.
+- The explicit `0.37.0` version-alignment, tech-docs/changelog, roadmap-cleanup, coverage, `cargo clippy`, and `cargo fmt` closeout requirements are first-class so planning and implementation cannot omit them.
 - This spec is ready for `/speckit.plan`.

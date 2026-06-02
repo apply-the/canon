@@ -55,7 +55,7 @@ pub enum IndexableArtifactClass {
     /// Proposal files emitted instead of mutating a stable project-memory
     /// target.
     ProposalArtifact,
-    /// Evidence bundles emitted under `docs/evidence/` or another readable
+    /// Evidence bundles emitted under `tech-docs/evidence/` or another readable
     /// evidence-facing destination.
     EvidenceBundle,
     /// Append-only index or summary surfaces used for visibility without stable

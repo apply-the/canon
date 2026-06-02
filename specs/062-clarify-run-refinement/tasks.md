@@ -30,7 +30,7 @@ implementation, validation, and auditability for each increment.
 - **Engine runtime**: `crates/canon-engine/src/`
 - **CLI surfaces**: `crates/canon-cli/src/`
 - **Contracts and evidence**: `specs/062-clarify-run-refinement/`
-- **Templates and methods**: `docs/templates/canon-input/`, `defaults/methods/`
+- **Templates and methods**: `defaults/templates/canon-input/`, `defaults/methods/`
 - **Skill guidance**: `.agents/skills/`, `defaults/embedded-skills/`
 - **Fixtures and integration checks**: `tests/fixtures/`, `tests/contract/`, `tests/integration/`
 - **Wiki closeout**: `../canon.wiki/`
@@ -139,7 +139,7 @@ be implemented
 ### Implementation for User Story 3
 
 - [X] T033 [P] [US3] Update targeted method definitions in `defaults/methods/requirements.toml`, `defaults/methods/discovery.toml`, `defaults/methods/system-shaping.toml`, `defaults/methods/architecture.toml`, and `defaults/methods/change.toml`
-- [X] T034 [P] [US3] Update targeted brief templates in `docs/templates/canon-input/requirements.md`, `docs/templates/canon-input/discovery.md`, `docs/templates/canon-input/system-shaping.md`, `docs/templates/canon-input/architecture.md`, and `docs/templates/canon-input/change.md`
+- [X] T034 [P] [US3] Update targeted brief templates in `defaults/templates/canon-input/requirements.md`, `defaults/templates/canon-input/discovery.md`, `defaults/templates/canon-input/system-shaping.md`, `defaults/templates/canon-input/architecture.md`, and `defaults/templates/canon-input/change.md`
 - [X] T035 [P] [US3] Update targeted embedded skill guidance in `defaults/embedded-skills/canon-requirements/skill-source.md`, `defaults/embedded-skills/canon-discovery/skill-source.md`, `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, and `defaults/embedded-skills/canon-change/skill-source.md`
 - [X] T036 [US3] Update non-targeted continuity guidance in `defaults/embedded-skills/canon-review/skill-source.md`, `defaults/embedded-skills/canon-verification/skill-source.md`, `defaults/embedded-skills/canon-implementation/skill-source.md`, `defaults/embedded-skills/canon-refactor/skill-source.md`, `defaults/embedded-skills/canon-incident/skill-source.md`, `defaults/embedded-skills/canon-migration/skill-source.md`, `defaults/embedded-skills/canon-resume/skill-source.md`, and `defaults/embedded-skills/canon-status/skill-source.md`
 - [X] T037 [US3] Align repo-local skill fronts in `.agents/skills/canon-requirements/SKILL.md`, `.agents/skills/canon-discovery/SKILL.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-architecture/SKILL.md`, `.agents/skills/canon-change/SKILL.md`, `.agents/skills/canon-review/SKILL.md`, `.agents/skills/canon-verification/SKILL.md`, `.agents/skills/canon-implementation/SKILL.md`, `.agents/skills/canon-refactor/SKILL.md`, `.agents/skills/canon-incident/SKILL.md`, `.agents/skills/canon-migration/SKILL.md`, `.agents/skills/canon-resume/SKILL.md`, and `.agents/skills/canon-status/SKILL.md`
@@ -157,7 +157,7 @@ be implemented
 - [X] T040 [P] Run focused and workspace test suites, fix regressions in `crates/canon-engine/src/**`, `crates/canon-cli/src/**`, `tests/contract/refinement_contracts.rs`, and `tests/integration/refinement_flow.rs`, and record repaired failures in `specs/062-clarify-run-refinement/validation-report.md`
 - [X] T041 [P] Generate changed-file coverage evidence above 95% using `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info` plus package-scoped overlays for `canon-cli` or `canon-engine`, add tests until touched files clear the threshold, and record the result in `lcov.info` and `specs/062-clarify-run-refinement/validation-report.md`
 - [ ] T042 Perform the systemic-impact independent review of persistence, lineage, explicit-intent semantics, approval-gate preservation, recorded under-2-minute operator walkthrough results, and publish-destination or artifact-family or honesty-marker preservation in `specs/062-clarify-run-refinement/validation-report.md`
-- [ ] T043 Update `CHANGELOG.md`, `README.md`, `docs/guides/modes.md`, `docs/templates/canon-input/README.md`, `../canon.wiki/Home.md`, `../canon.wiki/Canon-Modes.md`, and `../canon.wiki/Lineage-And-Provenance.md` with the `0.62.0` refinement lifecycle release notes and operator guidance
+- [ ] T043 Update `CHANGELOG.md`, `README.md`, `tech-docs/guides/modes.md`, `defaults/templates/canon-input/README.md`, `../canon.wiki/Home.md`, `../canon.wiki/Canon-Modes.md`, and `../canon.wiki/Lineage-And-Provenance.md` with the `0.62.0` refinement lifecycle release notes and operator guidance
 
 ---
 
@@ -228,7 +228,7 @@ Task: "Implement inspect refinement output in crates/canon-engine/src/orchestrat
 ```bash
 # Update lifecycle guidance in parallel across distinct surfaces:
 Task: "Update targeted methods in defaults/methods/*.toml"
-Task: "Update targeted templates in docs/templates/canon-input/*.md"
+Task: "Update targeted templates in defaults/templates/canon-input/*.md"
 Task: "Update targeted embedded skill guidance in defaults/embedded-skills/canon-*/skill-source.md"
 ```
 

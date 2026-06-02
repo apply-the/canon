@@ -206,7 +206,7 @@ Preserve behavior and stop immediately if the surface expands or the packet star
 }
 
 fn complete_backlog_brief() -> &'static str {
-    "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n- Keep dependency blockers explicit.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n"
+    "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n- Keep dependency blockers explicit.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n"
 }
 
 fn complete_incident_brief() -> &'static str {
@@ -1113,7 +1113,7 @@ fn implementation_folder_packet_evidence_surfaces_upstream_context() {
     fs::write(packet_root.join("brief.md"), complete_implementation_brief()).expect("brief");
     fs::write(
         packet_root.join("source-map.md"),
-        "# Source Map\n\n## Upstream Sources\n\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
+        "# Source Map\n\n## Upstream Sources\n\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
     )
     .expect("source map");
 
@@ -1146,8 +1146,8 @@ fn implementation_folder_packet_evidence_surfaces_upstream_context() {
     assert_eq!(
         evidence_entry.upstream_source_refs,
         vec![
-            "docs/changes/auth-session.md".to_string(),
-            "docs/architecture/auth-boundary.md".to_string(),
+            "tech-docs/changes/auth-session.md".to_string(),
+            "tech-docs/architecture/auth-boundary.md".to_string(),
         ]
     );
     assert_eq!(

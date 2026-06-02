@@ -2,7 +2,7 @@
 
 ## 2026-05-14
 
-- **D-001**: `docs/integration/project-memory-promotion-contract.md` remains
+- **D-001**: `tech-docs/integration/project-memory-promotion-contract.md` remains
   the single normative stable contract surface.
   **Rationale**: 051 must extend the Canon-owned contract, not introduce a
   competing authority document.

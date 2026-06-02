@@ -80,7 +80,7 @@
   assistant package manifests and metadata stayed aligned after the `0.60.0`
   release-line bump.
 - Reasoning-posture release drift inspection: passed after aligning
-  `docs/integration/governed-reasoning-posture-contract.md`, the feature-local
+  `tech-docs/integration/governed-reasoning-posture-contract.md`, the feature-local
   contract brief, and `tests/contract/governed_reasoning_posture_contract.rs`
   to Canon `0.60.x` while preserving the repo's Boundline `0.62.x` window.
 - `cargo test -p canon-engine derive_anchor --lib`: passed with the focused

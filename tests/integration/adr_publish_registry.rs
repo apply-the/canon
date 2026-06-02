@@ -155,18 +155,19 @@ fn persist_completed_architecture_run(workspace: &TempDir) -> String {
 #[test]
 fn architecture_publish_uses_next_non_conflicting_adr_number_and_keeps_registry_fixed() {
     let workspace = TempDir::new().expect("temp dir");
-    let adr_dir = workspace.path().join("docs").join("adr");
+    let adr_dir = workspace.path().join("tech-docs").join("adr");
     fs::create_dir_all(&adr_dir).expect("adr dir");
     fs::write(adr_dir.join("ADR-0001-existing-decision.md"), "# ADR 0001: Existing\n")
         .expect("existing adr 1");
     fs::write(adr_dir.join("ADR-0003-existing-gap.md"), "# ADR 0003: Existing gap\n")
         .expect("existing adr 3");
     let run_id = persist_completed_architecture_run(&workspace);
-    let override_dir = workspace.path().join("docs").join("published").join("architecture-packet");
+    let override_dir =
+        workspace.path().join("tech-docs").join("published").join("architecture-packet");
 
     let publish_output = cli_command()
         .current_dir(workspace.path())
-        .args(["publish", &run_id, "--to", "docs/published/architecture-packet"])
+        .args(["publish", &run_id, "--to", "tech-docs/published/architecture-packet"])
         .assert()
         .success()
         .get_output()
@@ -187,6 +188,6 @@ fn architecture_publish_uses_next_non_conflicting_adr_number_and_keeps_registry_
         adr_names.iter().find(|name| name.starts_with("ADR-0004-")).expect("generated adr number");
 
     assert!(override_dir.join("architecture-overview.md").exists());
-    assert!(publish_text.contains(&format!("docs/adr/{generated}")));
+    assert!(publish_text.contains(&format!("tech-docs/adr/{generated}")));
     assert!(!override_dir.join(generated).exists());
 }

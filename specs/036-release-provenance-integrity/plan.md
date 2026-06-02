@@ -58,7 +58,7 @@ mandatory before completion.
 **Testing**: `cargo test`, focused Rust release-surface tests, direct shell validation of release scripts, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, and `cargo clippy --workspace --all-targets --all-features -- -D warnings`  
 **Target Platform**: repository-owned release automation for macOS, Linux, and Windows package-channel outputs derived from GitHub Releases  
 **Project Type**: Rust CLI workspace with repository-owned release packaging, validation scripts, and documentation surfaces  
-**Existing System Touchpoints**: `scripts/release/write-distribution-metadata.sh`, `scripts/release/verify-release-surface.sh`, `scripts/release/render-homebrew-formula.sh`, `scripts/release/render-winget-manifests.sh`, `scripts/release/render-scoop-manifest.sh`, `packaging/homebrew/canon.rb.tpl`, `packaging/winget/*.tpl`, `packaging/scoop/canon.json.tpl`, `README.md`, `docs/guides/modes.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, runtime compatibility references, and focused tests under `tests/`  
+**Existing System Touchpoints**: `scripts/release/write-distribution-metadata.sh`, `scripts/release/verify-release-surface.sh`, `scripts/release/render-homebrew-formula.sh`, `scripts/release/render-winget-manifests.sh`, `scripts/release/render-scoop-manifest.sh`, `packaging/homebrew/canon.rb.tpl`, `packaging/winget/*.tpl`, `packaging/scoop/canon.json.tpl`, `README.md`, `tech-docs/guides/modes.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, runtime compatibility references, and focused tests under `tests/`  
 **Performance Goals**: keep metadata generation and verification deterministic, fail fast on mismatches, and avoid any second build path or manual checksum reconciliation  
 **Constraints**: preserve existing release archive set and filenames; keep GitHub Releases canonical; keep Homebrew, Winget, and Scoop as derived channels only; deliver >95% automated coverage for touched Rust files; finish with clean `cargo fmt` and `cargo clippy`  
 **Scale/Scope**: one metadata contract expansion, bounded updates to existing release scripts and docs, one focused release test slice, one version bump, and one roadmap cleanup
@@ -127,9 +127,9 @@ ROADMAP.md
 CHANGELOG.md
 Cargo.toml
 Cargo.lock
-docs/guides/modes.md
-docs/guides/publishing-to-winget.md
-docs/guides/publishing-to-scoop.md
+tech-docs/guides/modes.md
+tech-docs/guides/publishing-to-winget.md
+tech-docs/guides/publishing-to-scoop.md
 defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml
 .agents/skills/canon-shared/references/runtime-compatibility.toml
 ```

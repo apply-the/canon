@@ -55,14 +55,14 @@ declared for `incident` (`Risk`, `IncidentContainment`, `Architecture`,
 
 **Language/Version**: Rust 1.96.0, Edition 2024  
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, `time`  
-**Storage**: Local filesystem under `.canon/` for runtime artifacts and evidence, plus published markdown under `docs/incidents/` and `docs/migrations/`  
+**Storage**: Local filesystem under `.canon/` for runtime artifacts and evidence, plus published markdown under `tech-docs/incidents/` and `tech-docs/migrations/`  
 **Testing**: `cargo test`, `cargo nextest run`, targeted contract/integration/runtime coverage suites under `tests/`  
 **Target Platform**: Cross-platform local CLI workflows on macOS, Linux, and Windows  
 **Project Type**: Rust CLI + engine workspace  
 **Existing System Touchpoints**: `crates/canon-engine/src/domain/{mode,gate}.rs`, `crates/canon-engine/src/modes/{incident,migration}.rs`, `crates/canon-engine/src/artifacts/{contract,markdown}.rs`, `crates/canon-engine/src/orchestrator/{classifier,publish}.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/summarizers.rs`, `crates/canon-engine/src/persistence/store.rs`, `defaults/methods/{incident,migration}.toml`, `defaults/embedded-skills/canon-{incident,migration}/skill-source.md`, `.agents/skills/canon-{incident,migration}/SKILL.md`, `tests/direct_runtime_coverage.rs`, `tests/integration/mode_profiles.rs`, `tests/contract/{inspect_modes,runtime_filesystem,runtime_evidence_contract}.rs`, `README.md`, and `MODE_GUIDE.md`  
 **Performance Goals**: Keep packet generation, status summarization, and publish rendering effectively linear in artifact count and bounded input surfaces, with no material slowdown for already delivered modes  
 **Constraints**: Preserve recommendation-only posture, preserve existing runtime/publish contracts, expose missing evidence honestly, and avoid regressions to current modes while strengthening high-risk operational gating  
-**Scale/Scope**: Two modeled modes, twelve packet artifacts across both modes, one shared runtime plumbing pass, and focused docs/skill/test updates across the existing workspace
+**Scale/Scope**: Two modeled modes, twelve packet artifacts across both modes, one shared runtime plumbing pass, and focused tech-docs/skill/test updates across the existing workspace
 
 ## Constitution Check
 
@@ -189,7 +189,7 @@ introducing new crates or a new execution architecture.
 ### Phase 2: Implementation Preparation
 
 - Leave a task-ready design that sequences runtime dispatch/gating first,
-  artifact rendering and summaries second, and docs/skills/non-regression
+  artifact rendering and summaries second, and tech-docs/skills/non-regression
   validation last.
 
 ## Complexity Tracking

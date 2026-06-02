@@ -9,12 +9,12 @@ Verify the domain-modeling first slice for `system-shaping`, `architecture`, and
 - `defaults/embedded-skills/canon-system-shaping/skill-source.md`
 - `defaults/embedded-skills/canon-architecture/skill-source.md`
 - `defaults/embedded-skills/canon-change/skill-source.md`
-- `docs/templates/canon-input/system-shaping.md`
-- `docs/templates/canon-input/architecture.md`
-- `docs/templates/canon-input/change.md`
-- `docs/examples/canon-input/system-shaping-billing.md`
-- `docs/examples/canon-input/architecture-state-management.md`
-- `docs/examples/canon-input/change-add-caching.md`
+- `defaults/templates/canon-input/system-shaping.md`
+- `defaults/templates/canon-input/architecture.md`
+- `defaults/templates/canon-input/change.md`
+- `tech-docs/examples/canon-input/system-shaping-billing.md`
+- `tech-docs/examples/canon-input/architecture-state-management.md`
+- `tech-docs/examples/canon-input/change-add-caching.md`
 
 Confirm the skills, templates, and examples agree on the domain-modeling sections for each target mode.
 

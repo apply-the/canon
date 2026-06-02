@@ -47,6 +47,6 @@ canon run \
 canon publish <RUN_ID>
 ```
 
-2. Confirm the published packet under `docs/reviews/prs/<RUN_ID>/` includes
+2. Confirm the published packet under `tech-docs/reviews/prs/<RUN_ID>/` includes
    `conventional-comments.md` and that the artifact remains readable without
    internal runtime manifests.

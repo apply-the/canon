@@ -26,7 +26,7 @@ fn feature_contract_root() -> PathBuf {
 }
 
 fn template_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("docs").join("templates").join("canon-input")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("defaults").join("templates").join("canon-input")
 }
 
 const REQUIREMENTS_TEMPLATE_HEADINGS: &[&str] =
@@ -60,7 +60,7 @@ fn sample_refinement_context(run_id: &str) -> ClarificationRefinementContext {
         workflow_family: RefinementWorkflowFamily::Planning,
         current_mode: Mode::Requirements,
         working_brief_path: format!(".canon/runs/{run_id}/artifacts/requirements/working-brief.md"),
-        template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+        template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
         status: ClarificationRefinementStatus::Active,
         explicit_continuation_required: true,
         authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],

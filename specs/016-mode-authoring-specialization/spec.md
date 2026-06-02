@@ -74,12 +74,12 @@ A maintainer wants roadmap, docs, examples, and tests to reflect the delivered f
 
 **Why this priority**: This feature changes authoring expectations across three modes; without docs, roadmap updates, and test evidence, later slices will drift or duplicate work.
 
-**Independent Test**: Read the updated roadmap and mode guidance, then run the targeted test suites and confirm the repository documents the first-slice scope, the tests cover skills/docs/runtime behavior, and the remaining roadmap scope is still explicit.
+**Independent Test**: Read the updated roadmap and mode guidance, then run the targeted test suites and confirm the repository documents the first-slice scope, the tests cover skills/tech-docs/runtime behavior, and the remaining roadmap scope is still explicit.
 
 **Acceptance Scenarios**:
 
 1. **Given** a maintainer reads the roadmap after the first slice lands, **When** they inspect the relevant entry, **Then** they can see what was delivered now and what remains deferred to later slices.
-2. **Given** a maintainer runs the targeted validation for the first slice, **When** the tests pass, **Then** they have evidence covering skill guidance, docs/templates/examples, renderer behavior, and end-to-end runs for the updated modes.
+2. **Given** a maintainer runs the targeted validation for the first slice, **When** the tests pass, **Then** they have evidence covering skill guidance, defaults/templates/examples, renderer behavior, and end-to-end runs for the updated modes.
 
 ### Edge Cases
 
@@ -99,9 +99,9 @@ A maintainer wants roadmap, docs, examples, and tests to reflect the delivered f
 - **FR-004**: The markdown renderer MUST preserve authored body sections verbatim for the updated modes whenever the canonical authored heading is present and non-empty.
 - **FR-005**: When a required authored body section is absent or empty, the renderer MUST emit an explicit `## Missing Authored Body` block that names the missing canonical heading rather than generating generic filler.
 - **FR-006**: The relevant mode orchestrator paths MUST pass authored brief content through to the renderer so the renderer can operate on the real authored body.
-- **FR-007**: Each updated mode MUST ship a starter template under `docs/templates/canon-input/` that lists the required authored H2 sections for that mode's packet.
-- **FR-008**: Each updated mode MUST ship a realistic example under `docs/examples/canon-input/` that exercises the required authored sections and can act as a credible starting packet.
-- **FR-009**: `docs/guides/modes.md` MUST be updated so the new authored-body contract is discoverable without reading code.
+- **FR-007**: Each updated mode MUST ship a starter template under `defaults/templates/canon-input/` that lists the required authored H2 sections for that mode's packet.
+- **FR-008**: Each updated mode MUST ship a realistic example under `tech-docs/examples/canon-input/` that exercises the required authored sections and can act as a credible starting packet.
+- **FR-009**: `tech-docs/guides/modes.md` MUST be updated so the new authored-body contract is discoverable without reading code.
 - **FR-010**: The roadmap MUST be updated to record the delivered first slice honestly and preserve the remaining scope for later slices.
 - **FR-011**: Focused contract, renderer, run, and docs tests MUST exist for the updated modes, and existing non-target modes MUST continue to pass unchanged.
 - **FR-012**: The first slice MUST NOT modify the runtime behavior of `architecture`, `backlog`, or `pr-review` beyond necessary non-functional non-behavioral references in docs or roadmap text.

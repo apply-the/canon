@@ -55,7 +55,7 @@ and a separate final diff and artifact review before merge.
 **Testing**: `cargo test`, `cargo nextest run --workspace --all-features`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, focused mode-specific integration and renderer tests, release-surface checks, and `scripts/validate-canon-skills.sh`  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows with repo-local AI skill materialization  
 **Project Type**: Rust CLI workspace with embedded skill sources, mirrored AI-facing skills, contract-based markdown rendering, and repository documentation artifacts  
-**Existing System Touchpoints**: `defaults/embedded-skills/canon-discovery/skill-source.md`, `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-review/skill-source.md`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `.agents/skills/canon-discovery/SKILL.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-review/SKILL.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `crates/canon-engine/src/artifacts/markdown.rs`, `tests/discovery_authoring_docs.rs`, `tests/discovery_authoring_renderer.rs`, `tests/discovery_authoring_run.rs`, `tests/system_shaping_domain_modeling_docs.rs`, `tests/system_shaping_authoring_renderer.rs`, `tests/system_shaping_run.rs`, `tests/review_authoring_docs.rs`, `tests/review_authoring_renderer.rs`, `tests/review_run.rs`, `tests/skills_bootstrap.rs`, `ROADMAP.md`, `README.md`, `docs/guides/modes.md`, `CHANGELOG.md`, `Cargo.toml`, and `Cargo.lock`  
+**Existing System Touchpoints**: `defaults/embedded-skills/canon-discovery/skill-source.md`, `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `defaults/embedded-skills/canon-review/skill-source.md`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `.agents/skills/canon-discovery/SKILL.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `.agents/skills/canon-review/SKILL.md`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `crates/canon-engine/src/artifacts/markdown.rs`, `tests/discovery_authoring_docs.rs`, `tests/discovery_authoring_renderer.rs`, `tests/discovery_authoring_run.rs`, `tests/system_shaping_domain_modeling_docs.rs`, `tests/system_shaping_authoring_renderer.rs`, `tests/system_shaping_run.rs`, `tests/review_authoring_docs.rs`, `tests/review_authoring_renderer.rs`, `tests/review_run.rs`, `tests/skills_bootstrap.rs`, `ROADMAP.md`, `README.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, `Cargo.toml`, and `Cargo.lock`  
 **Performance Goals**: Preserve current authoring and packet-emission responsiveness with no extra runtime round-trip, no new persistence surface, and no manual synchronization step beyond the existing skill-source mirror workflow  
 **Constraints**: Keep `.canon/` layout unchanged; preserve exact canonical H2 section contracts and missing-body honesty; keep non-targeted modes behaviorally stable; keep version surfaces aligned to `0.30.0`; and provide focused coverage for every modified or new Rust file  
 **Scale/Scope**: One follow-on slice spanning three mode-specific skill pairs, shared artifact rendering rules, release-facing docs, mirrored runtime compatibility references, and focused regression coverage across the existing workspace
@@ -110,7 +110,7 @@ crates/canon-engine/src/
 └── artifacts/
     └── markdown.rs
 
-docs/
+tech-docs/
 └── guides/
     └── modes.md
 

@@ -21,7 +21,7 @@ Completed
 - Confirmed release-facing version anchors report `0.34.0` consistently in
   manifests, `Cargo.lock`, runtime-compatibility references, docs, roadmap,
   and changelog.
-- Reviewed `docs/templates/canon-input/` and `docs/examples/canon-input/` for
+- Reviewed `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/` for
   impacted wording or version anchors; no output-quality posture or `0.34.0`
   references were present, so those authoring surfaces remain valid unchanged.
 - Confirmed `.canon/` layout, approval semantics, publish destinations, and
@@ -87,9 +87,9 @@ Completed
 - `specs/034-output-quality-gates/tasks.md`
 - `AGENTS.md`
 - `README.md`
-- `docs/guides/modes.md`
-- `docs/guides/publishing-to-winget.md`
-- `docs/guides/publishing-to-scoop.md`
+- `tech-docs/guides/modes.md`
+- `tech-docs/guides/publishing-to-winget.md`
+- `tech-docs/guides/publishing-to-scoop.md`
 - `ROADMAP.md`
 - `CHANGELOG.md`
 - focused test outputs for inspect, summaries, artifacts, and release-alignment checks

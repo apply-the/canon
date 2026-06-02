@@ -163,7 +163,7 @@ fn run_system_assessment_emits_an_as_is_packet_and_publishes_after_risk_approval
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("architecture")
             .join("assessments")
             .join(default_publish_leaf(run_id, "system-assessment"))

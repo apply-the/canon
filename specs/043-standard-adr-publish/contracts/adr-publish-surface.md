@@ -18,9 +18,9 @@ canon publish <RUN_ID> [--to <PATH>] [--adr]
 
 | Mode | Default ADR behavior | `--adr` behavior | Result |
 |------|----------------------|------------------|--------|
-| `architecture` | default-on | allowed but redundant | publish packet and create one ADR in `docs/adr/` |
-| `change` | off | enable ADR export | publish packet and create one ADR in `docs/adr/` |
-| `migration` | off | enable ADR export | publish packet and create one ADR in `docs/adr/` |
+| `architecture` | default-on | allowed but redundant | publish packet and create one ADR in `tech-docs/adr/` |
+| `change` | off | enable ADR export | publish packet and create one ADR in `tech-docs/adr/` |
+| `migration` | off | enable ADR export | publish packet and create one ADR in `tech-docs/adr/` |
 | unsupported modes | off | invalid | return validation error; do not create ADR |
 
 ## ADR Output Contract
@@ -28,7 +28,7 @@ canon publish <RUN_ID> [--to <PATH>] [--adr]
 When ADR export occurs, Canon writes one Markdown file to:
 
 ```text
-docs/adr/ADR-XXXX-<slug>.md
+tech-docs/adr/ADR-XXXX-<slug>.md
 ```
 
 The ADR body MUST contain:
@@ -47,7 +47,7 @@ Optional sections MAY be included when supported by the packet evidence:
 
 ## Numbering Rules
 
-- Parse existing `docs/adr/ADR-XXXX-*.md` files.
+- Parse existing `tech-docs/adr/ADR-XXXX-*.md` files.
 - Use the next non-conflicting numeric identifier.
 - Do not rename, rewrite, or compress gaps in existing ADR numbering.
 
@@ -61,7 +61,7 @@ Optional sections MAY be included when supported by the packet evidence:
 
 - If source packet sections contain explicit missing-body, missing-context, or downgraded-evidence markers, the generated ADR MUST preserve those signals instead of fabricating canonical prose.
 - Unsupported modes MUST not silently ignore `--adr`; they must reject the request clearly.
-- `--to` changes the packet publish location only; ADR registry output remains under `docs/adr/`.
+- `--to` changes the packet publish location only; ADR registry output remains under `tech-docs/adr/`.
 
 ## Summary Surface
 

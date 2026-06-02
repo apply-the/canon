@@ -153,7 +153,7 @@ If your change touches packaging, install guidance, or release automation,
 update the full release surface together:
 
 - `README.md`
-- `docs/release-checklist.md`
+- `tech-docs/release-checklist.md`
 - `.github/release-notes-template.md`
 - `.github/workflows/ci.yml`
 - `.github/workflows/release.yml`
@@ -188,7 +188,7 @@ bumps should remain intentional and consistent with the user-visible scope of
 the change.
 
 When advancing the version, follow the checklist in
-`docs/release-checklist.md`, which lists every file that must change and the
+`tech-docs/release-checklist.md`, which lists every file that must change and the
 focused validation to run afterward.
 
 ## Code of Conduct

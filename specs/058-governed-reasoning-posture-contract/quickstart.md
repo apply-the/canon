@@ -9,7 +9,7 @@ bounded sibling modules.
 
 ## Steps
 
-1. Review `docs/integration/governed-reasoning-posture-contract.md` and confirm the contract line, required fields, supported vocabulary, and supported Boundline and Canon window are explicit.
+1. Review `tech-docs/integration/governed-reasoning-posture-contract.md` and confirm the contract line, required fields, supported vocabulary, and supported Boundline and Canon window are explicit.
 2. Review `specs/058-governed-reasoning-posture-contract/contracts/governed-reasoning-posture-contract.md` and confirm it mirrors the stable Canon document rather than redefining it.
 3. Review `specs/058-governed-reasoning-posture-contract/spec.md` and `specs/058-governed-reasoning-posture-contract/plan.md` to confirm the gatekeeper split is treated as behavior-preserving maintainability follow-through, not as a new policy feature.
 4. Run `cargo test --test governed_reasoning_posture_contract` and confirm the contract identity, vocabulary, and release-window assertions pass.

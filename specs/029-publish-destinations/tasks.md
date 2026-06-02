@@ -106,7 +106,7 @@ implementation, validation, and auditability for each increment.
 
 **Goal**: Make the `0.29.0` version, release docs, changelog, and final quality gates explicit and testable
 
-**Independent Test**: A maintainer can inspect the release surfaces, task list, and validation report and confirm `0.29.0` alignment plus explicit tasks and evidence for version bump, docs/changelog, coverage, `cargo clippy`, and `cargo fmt`.
+**Independent Test**: A maintainer can inspect the release surfaces, task list, and validation report and confirm `0.29.0` alignment plus explicit tasks and evidence for version bump, tech-docs/changelog, coverage, `cargo clippy`, and `cargo fmt`.
 
 ### Validation for User Story 3 (MANDATORY)
 
@@ -116,7 +116,7 @@ implementation, validation, and auditability for each increment.
 ### Implementation for User Story 3
 
 - [x] T023 [US3] Update version surfaces in `Cargo.toml`, `Cargo.lock`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, and `.agents/skills/canon-shared/references/runtime-compatibility.toml`
-- [x] T024 [US3] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, `CHANGELOG.md`, and any publish-facing guidance touched by the feature
+- [x] T024 [US3] Update impacted docs and changelog closeout in `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, and any publish-facing guidance touched by the feature
 - [x] T025 [US3] Capture release-alignment validation evidence and touched-Rust-file coverage expectations in `specs/029-publish-destinations/validation-report.md`
 
 **Checkpoint**: Runtime behavior and release-facing `0.29.0` surfaces align cleanly

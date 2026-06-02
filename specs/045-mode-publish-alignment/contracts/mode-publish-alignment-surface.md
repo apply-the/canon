@@ -20,7 +20,7 @@ Define the bounded operator and assistant-facing behavior that this feature must
 
 - Default publish destination roots remain:
   - `specs/` for `requirements`
-  - `docs/architecture/decisions/` for `architecture`
+  - `tech-docs/architecture/decisions/` for `architecture`
   - existing family roots for all other modes
 - `requirements` still publishes sectional packet files plus `prd.md`.
 - `architecture` still publishes its existing C4 packet set and default ADR projection.
@@ -34,7 +34,7 @@ Define the bounded operator and assistant-facing behavior that this feature must
 ```text
 canon publish <RUN_ID>
 canon publish <RUN_ID> --adr
-canon publish <RUN_ID> --to docs/custom/path
+canon publish <RUN_ID> --to tech-docs/custom/path
 ```
 
 - Assistant-facing publish guidance must not use `canon publish --run <RUN_ID>`.

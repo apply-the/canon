@@ -115,7 +115,7 @@
 
 ### Implementation for User Story 3
 
-- [x] T028 [US3] Update impacted docs and changelog for the `0.36.0` provenance release in `README.md`, `docs/guides/publishing-to-winget.md`, `docs/guides/publishing-to-scoop.md`, and `CHANGELOG.md`
+- [x] T028 [US3] Update impacted docs and changelog for the `0.36.0` provenance release in `README.md`, `tech-docs/guides/publishing-to-winget.md`, `tech-docs/guides/publishing-to-scoop.md`, and `CHANGELOG.md`
 - [x] T029 [US3] Clean roadmap continuity after the delivered provenance slice in `ROADMAP.md`
 - [x] T030 [US3] Align release-facing version and compatibility references in `Cargo.toml`, `Cargo.lock`, `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, and `tests/integration/skills_bootstrap.rs`
 - [x] T031 [US3] Capture docs, roadmap, and release-alignment evidence in `specs/036-release-provenance-integrity/validation-report.md`

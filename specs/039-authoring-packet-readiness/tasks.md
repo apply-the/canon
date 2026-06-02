@@ -78,9 +78,9 @@ separate slices.
 
 ### Implementation for User Story 2
 
-- [x] T017 [US2] Update `docs/guides/modes.md` to explain the shared file-backed lifecycle and the runtime authority rules for packet readiness
-- [x] T018 [US2] Add or update shared template-facing guidance in `docs/templates/canon-input/README.md` so authors see the same lifecycle before choosing a mode-specific template
-- [x] T019 [US2] Update `docs/examples/canon-input/carry-forward-packets.md` so `brief.md`, `source-map.md`, optional narrowed context, critique, and publish guidance match the delivered runtime contract
+- [x] T017 [US2] Update `tech-docs/guides/modes.md` to explain the shared file-backed lifecycle and the runtime authority rules for packet readiness
+- [x] T018 [US2] Add or update shared template-facing guidance in `defaults/templates/canon-input/README.md` so authors see the same lifecycle before choosing a mode-specific template
+- [x] T019 [US2] Update `tech-docs/examples/canon-input/carry-forward-packets.md` so `brief.md`, `source-map.md`, optional narrowed context, critique, and publish guidance match the delivered runtime contract
 - [x] T020 [US2] Update `defaults/embedded-skills/canon-inspect-clarity/skill-source.md` and `.agents/skills/canon-inspect-clarity/SKILL.md` to match the lifecycle and authority guidance shipped by the runtime
 - [x] T021 [US2] Capture US2 validation evidence in `specs/039-authoring-packet-readiness/validation-report.md`
 
@@ -102,7 +102,7 @@ separate slices.
 ### Implementation for User Story 3
 
 - [x] T024 [US3] Bump the workspace release line to `0.39.0` in `Cargo.toml`, `Cargo.lock`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, and `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`
-- [x] T025 [US3] Update `README.md`, `docs/guides/publishing-to-winget.md`, and `docs/guides/publishing-to-scoop.md` for the delivered `0.39.0` authoring-lifecycle release line where version surfaces are shown
+- [x] T025 [US3] Update `README.md`, `tech-docs/guides/publishing-to-winget.md`, and `tech-docs/guides/publishing-to-scoop.md` for the delivered `0.39.0` authoring-lifecycle release line where version surfaces are shown
 - [x] T026 [US3] Update `CHANGELOG.md` with the delivered authoring experience and packet readiness behavior
 - [x] T027 [US3] Clean `ROADMAP.md` so the delivered `039` slice is removed from future-work listings after completion
 - [x] T028 [US3] Capture US3 validation evidence in `specs/039-authoring-packet-readiness/validation-report.md`

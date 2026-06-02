@@ -598,7 +598,7 @@ mod tests {
             working_brief_path:
                 ".canon/runs/run-context-roundtrip/artifacts/requirements/working-brief.md"
                     .to_string(),
-            template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+            template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
             status: ClarificationRefinementStatus::Active,
             explicit_continuation_required: true,
             authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],
@@ -673,7 +673,7 @@ mod tests {
                 feature_slice: Some("auth session revocation".to_string()),
                 primary_upstream_mode: Some("change".to_string()),
                 source_refs: vec![
-                    "docs/changes/R-20260422-AUTHREVOC/change-surface.md".to_string(),
+                    "tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md".to_string(),
                 ],
                 carried_forward_items: vec![
                     "Revocation output formatting remains stable.".to_string(),

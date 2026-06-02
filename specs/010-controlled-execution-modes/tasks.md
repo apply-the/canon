@@ -222,7 +222,7 @@ T037 Preserve publish and run-lookup compatibility
 1. One engineer handles shared execution metadata, context persistence, and invocation constraints in `domain/`, `persistence/`, and `orchestrator/invocation.rs`.
 2. One engineer handles `implementation` contracts, gates, and integration tests.
 3. One engineer handles `refactor` contracts, gates, and integration tests.
-4. A docs/skills engineer updates runtime hints, skill wrappers, validators, and public docs once the runtime paths are stable.
+4. A tech-docs/skills engineer updates runtime hints, skill wrappers, validators, and public docs once the runtime paths are stable.
 
 ---
 

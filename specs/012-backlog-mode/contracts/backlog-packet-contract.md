@@ -41,7 +41,7 @@ The overview and planning-risks outputs must make the closure weakness explicit 
 
 ## Publish and Inspect Expectations
 
-- Default publish destination is `docs/planning/<RUN_ID>/`
+- Default publish destination is `tech-docs/planning/<RUN_ID>/`
 - Published packets must remain understandable without access to internal runtime state
 - `canon inspect artifacts --run <RUN_ID>` and `canon inspect evidence --run <RUN_ID>` must expose enough information to distinguish a successful full packet from a closure-limited risk-only packet
 - Run lookup by display id, UUID, short id, slug, and `@last` remains unchanged

@@ -49,11 +49,11 @@ validation at 95% or higher.
 
 **Language/Version**: Rust 1.96.0, edition 2024  
 **Primary Dependencies**: Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice  
-**Storage**: Canon packet metadata and governed artifacts under `.canon/`, integration docs under `docs/integration/`, repo-facing guides under `docs/`, and feature-local artifacts under `specs/054-authority-zone-contract/`  
+**Storage**: Canon packet metadata and governed artifacts under `.canon/`, integration docs under `tech-docs/integration/`, repo-facing guides under `tech-docs/`, and feature-local artifacts under `specs/054-authority-zone-contract/`  
 **Testing**: `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, targeted unit and integration tests for policy, mode, metadata, and governance adapter surfaces, `cargo test --no-run --all-targets`, `cargo nextest run --workspace --all-features` when feasible, and modified-file coverage validation at 95% or higher  
 **Target Platform**: macOS, Linux, and Windows developer workstations and CI  
 **Project Type**: Rust CLI and library workspace  
-**Existing System Touchpoints**: `crates/canon-engine/src/domain/policy.rs`, `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/domain/approval.rs`, `docs/integration/governance-adapter.md`, related governance docs under `docs/`, and the release-facing `CHANGELOG.md`, `README.md`, and `Cargo.toml` surfaces  
+**Existing System Touchpoints**: `crates/canon-engine/src/domain/policy.rs`, `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/domain/approval.rs`, `tech-docs/integration/governance-adapter.md`, related governance docs under `tech-docs/`, and the release-facing `CHANGELOG.md`, `README.md`, and `Cargo.toml` surfaces  
 **Performance Goals**: Downstream maintainers should be able to recover the required `authority-governance-v1` fields from docs and packet metadata in under 10 minutes, and the added contract metadata must not materially regress governed packet publication or adapter projection performance  
 **Constraints**: Preserve the existing Canon/local-first governed runtime identity, keep required versus optional fields explicit, avoid a second publication channel, keep downstream runtime behavior out of Canon, and avoid panic-prone runtime logic outside tests  
 **Scale/Scope**: One stable contract line, four authority zones, four change classes, one required-field subset plus bounded optional provenance fields, and a small set of touched domain, doc, and release files
@@ -108,7 +108,7 @@ crates/
 ├── canon-adapters/
 └── canon-cli/
 
-docs/
+tech-docs/
 ├── guides/
 ├── integration/
 │   └── governance-adapter.md

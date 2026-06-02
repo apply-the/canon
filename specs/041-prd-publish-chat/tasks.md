@@ -40,7 +40,7 @@
 **⚠️ CRITICAL**: No user story work begins until artifact and publish invariants are explicit.
 
 - [x] T008 Audit the current requirements artifact set and publish metadata expectations in `crates/canon-engine/src/artifacts/contract.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, and `crates/canon-cli/src/commands/publish.rs`
-- [x] T009 Audit version and release-surface anchors in `Cargo.toml`, `CHANGELOG.md`, `README.md`, and `docs/guides/modes.md`
+- [x] T009 Audit version and release-surface anchors in `Cargo.toml`, `CHANGELOG.md`, `README.md`, and `tech-docs/guides/modes.md`
 
 **Checkpoint**: Compatibility, release, and skill-validation constraints are explicit.
 
@@ -107,7 +107,7 @@
 
 - [x] T026 [P] [US3] Update the release line in `Cargo.toml` and any lockfile or shared compatibility surfaces that inherit the workspace version
 - [x] T027 [P] [US3] Update `README.md` with the clearer publish UX and consolidated PRD guidance
-- [x] T028 [P] [US3] Update `docs/guides/modes.md` with requirements publish expectations and artifact visibility
+- [x] T028 [P] [US3] Update `tech-docs/guides/modes.md` with requirements publish expectations and artifact visibility
 - [x] T029 [P] [US3] Update `CHANGELOG.md` and `ROADMAP.md` for the delivered feature and follow-on positioning
 - [x] T030 [US3] Record User Story 3 validation evidence in `specs/041-prd-publish-chat/validation-report.md`
 

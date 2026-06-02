@@ -32,7 +32,7 @@ Expected result:
 Read:
 
 ```text
-docs/guides/assistant-plugin-packages.md
+tech-docs/guides/assistant-plugin-packages.md
 ```
 
 The guide identifies how to install or copy Canon support for Claude Code, Codex, and Cursor, and explains why Copilot support is a documented command/prompt pack instead of a claimed plugin manifest.

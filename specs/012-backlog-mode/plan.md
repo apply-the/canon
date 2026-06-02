@@ -13,7 +13,7 @@ Add `backlog` by extending the existing Canon runtime surfaces rather than inven
 
 **Execution Mode**: `change`
 **Risk Classification**: `bounded-impact`. The work changes Canon runtime behavior across CLI, engine, defaults, embedded skills, and tests, but stays inside the existing product boundary, storage layout, publish flow, and mode-driven workflow system.
-**Scope In**: Add `backlog` as a first-class mode; define authored-input binding, closure gating, traceability rules, backlog artifact contracts, publish/list/status/inspect compatibility, and supporting docs/defaults/skills/test coverage.
+**Scope In**: Add `backlog` as a first-class mode; define authored-input binding, closure gating, traceability rules, backlog artifact contracts, publish/list/status/inspect compatibility, and supporting tech-docs/defaults/skills/test coverage.
 **Scope Out**: Implementation task generation, story points, sprint planning, team-capacity heuristics, tool-specific ticket output, new persistence or identity models, and unrelated mode promotion such as `incident` or `migration`.
 
 **Invariants**:

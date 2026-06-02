@@ -4,8 +4,8 @@ const CONTRACT_PATH: &str =
     "specs/018-architecture-adr-options/contracts/architecture-decision-shape.md";
 const SKILL_SOURCE: &str = "defaults/embedded-skills/canon-architecture/skill-source.md";
 const SKILL_MIRROR: &str = ".agents/skills/canon-architecture/SKILL.md";
-const TEMPLATE_PATH: &str = "docs/templates/canon-input/architecture.md";
-const EXAMPLE_PATH: &str = "docs/examples/canon-input/architecture-state-management.md";
+const TEMPLATE_PATH: &str = "defaults/templates/canon-input/architecture.md";
+const EXAMPLE_PATH: &str = "tech-docs/examples/canon-input/architecture-state-management.md";
 
 const DECISION_SECTIONS: &[&str] = &[
     "Decision Drivers",

@@ -36,9 +36,9 @@
 **Purpose**: Verify the current workspace and the existing mode surfaces before feature work begins.
 
 - [x] T005 Verify `cargo test --workspace` passes before implementation begins and record the baseline in `specs/017-domain-boundary-design/validation-report.md`
-- [x] T006 [P] Confirm the current system-shaping guidance in `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `docs/templates/canon-input/system-shaping.md`, and `docs/examples/canon-input/system-shaping-billing.md`
-- [x] T007 [P] Confirm the current architecture guidance in `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `docs/templates/canon-input/architecture.md`, and `docs/examples/canon-input/architecture-state-management.md`
-- [x] T008 [P] Confirm the current change guidance in `defaults/embedded-skills/canon-change/skill-source.md`, `.agents/skills/canon-change/SKILL.md`, `docs/templates/canon-input/change.md`, and `docs/examples/canon-input/change-add-caching.md`
+- [x] T006 [P] Confirm the current system-shaping guidance in `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `defaults/templates/canon-input/system-shaping.md`, and `tech-docs/examples/canon-input/system-shaping-billing.md`
+- [x] T007 [P] Confirm the current architecture guidance in `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `defaults/templates/canon-input/architecture.md`, and `tech-docs/examples/canon-input/architecture-state-management.md`
+- [x] T008 [P] Confirm the current change guidance in `defaults/embedded-skills/canon-change/skill-source.md`, `.agents/skills/canon-change/SKILL.md`, `defaults/templates/canon-input/change.md`, and `tech-docs/examples/canon-input/change-add-caching.md`
 
 ---
 
@@ -70,7 +70,7 @@
 
 ### Implementation for User Story 1
 
-- [x] T015 [US1] Update `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `docs/templates/canon-input/system-shaping.md`, and `docs/examples/canon-input/system-shaping-billing.md` with the domain-model authored sections
+- [x] T015 [US1] Update `defaults/embedded-skills/canon-system-shaping/skill-source.md`, `.agents/skills/canon-system-shaping/SKILL.md`, `defaults/templates/canon-input/system-shaping.md`, and `tech-docs/examples/canon-input/system-shaping-billing.md` with the domain-model authored sections
 - [x] T016 [US1] Add `domain-model.md` to the runtime contract and method metadata in `crates/canon-engine/src/artifacts/contract.rs` and `defaults/methods/system-shaping.toml`
 - [x] T017 [US1] Extend `crates/canon-engine/src/artifacts/markdown.rs` and `crates/canon-engine/src/orchestrator/service/mode_shaping.rs` so `system-shaping` renders and persists `domain-model.md`
 - [x] T018 [US1] Record system-shaping design and validation evidence in `specs/017-domain-boundary-design/decision-log.md` and `specs/017-domain-boundary-design/validation-report.md`
@@ -93,7 +93,7 @@
 
 ### Implementation for User Story 2
 
-- [x] T022 [US2] Update `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `docs/templates/canon-input/architecture.md`, and `docs/examples/canon-input/architecture-state-management.md` with the context-map authored sections
+- [x] T022 [US2] Update `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, `defaults/templates/canon-input/architecture.md`, and `tech-docs/examples/canon-input/architecture-state-management.md` with the context-map authored sections
 - [x] T023 [US2] Add `context-map.md` to the runtime contract and method metadata in `crates/canon-engine/src/artifacts/contract.rs` and `defaults/methods/architecture.toml`
 - [x] T024 [US2] Extend `crates/canon-engine/src/artifacts/markdown.rs` and `crates/canon-engine/src/orchestrator/service/mode_shaping.rs` so `architecture` renders and persists `context-map.md`
 - [x] T025 [US2] Record architecture context-map decisions and validation evidence in `specs/017-domain-boundary-design/decision-log.md` and `specs/017-domain-boundary-design/validation-report.md`
@@ -116,7 +116,7 @@
 
 ### Implementation for User Story 3
 
-- [x] T029 [US3] Update `defaults/embedded-skills/canon-change/skill-source.md`, `.agents/skills/canon-change/SKILL.md`, `docs/templates/canon-input/change.md`, and `docs/examples/canon-input/change-add-caching.md` with the domain-slice authored sections
+- [x] T029 [US3] Update `defaults/embedded-skills/canon-change/skill-source.md`, `.agents/skills/canon-change/SKILL.md`, `defaults/templates/canon-input/change.md`, and `tech-docs/examples/canon-input/change-add-caching.md` with the domain-slice authored sections
 - [x] T030 [US3] Extend `crates/canon-engine/src/artifacts/markdown.rs` and `crates/canon-engine/src/orchestrator/service/mode_change.rs` so `change` renders domain slice, domain invariants, ownership boundaries, and cross-context risks in the existing packet
 - [x] T031 [US3] Strengthen `change` contract and summary surfaces in `crates/canon-engine/src/artifacts/contract.rs`, `defaults/methods/change.toml`, and `crates/canon-engine/src/orchestrator/service/summarizers.rs`
 - [x] T032 [US3] Record change-specific boundary decisions and validation evidence in `specs/017-domain-boundary-design/decision-log.md` and `specs/017-domain-boundary-design/validation-report.md`
@@ -132,7 +132,7 @@
 - [x] T033 [P] Run structural validation: `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `/bin/bash scripts/validate-canon-skills.sh`; record results in `specs/017-domain-boundary-design/validation-report.md`
 - [x] T034 [P] Run logical validation: the targeted system-shaping, architecture, and change tests plus relevant non-regression suites; record results in `specs/017-domain-boundary-design/validation-report.md`
 - [x] T035 Perform independent review of `specs/017-domain-boundary-design/spec.md`, `specs/017-domain-boundary-design/plan.md`, and `specs/017-domain-boundary-design/tasks.md`, then record findings in `specs/017-domain-boundary-design/validation-report.md`
-- [x] T036 Update `docs/guides/modes.md` and `ROADMAP.md` to document the delivered domain-modeling slice and capture the documentation evidence in `specs/017-domain-boundary-design/validation-report.md`
+- [x] T036 Update `tech-docs/guides/modes.md` and `ROADMAP.md` to document the delivered domain-modeling slice and capture the documentation evidence in `specs/017-domain-boundary-design/validation-report.md`
 - [x] T037 Confirm invariants still hold, confirm non-target modes remain unchanged, and close `specs/017-domain-boundary-design/validation-report.md`
 
 ---

@@ -65,8 +65,8 @@ Optional:
 
 ## ADR Publish Contract
 
-- After Canon emits a readable architecture packet, `canon publish <RUN_ID>` writes the normal packet under `docs/architecture/decisions/...` and one durable ADR under `docs/adr/ADR-XXXX-<slug>.md` by default.
-- `--to` can relocate the visible packet copy, but the ADR registry stays fixed under `docs/adr/`.
+- After Canon emits a readable architecture packet, `canon publish <RUN_ID>` writes the normal packet under `tech-docs/architecture/decisions/...` and one durable ADR under `tech-docs/adr/ADR-XXXX-<slug>.md` by default.
+- `--to` can relocate the visible packet copy, but the ADR registry stays fixed under `tech-docs/adr/`.
 - Treat the ADR as a publish-time projection of the governed packet, not as a second authored source. If the packet carries `## Missing Authored Body` or other honesty markers, preserve those signals instead of glossing over them in chat.
 
 ## Refinement Lifecycle
@@ -113,9 +113,9 @@ Optional:
   `## C4 - System Context`, `## Container View`, `## Component View`,
   `## Context Map`, or `## Contexts` are NOT recognized. The H2 must match the
   canonical heading exactly; otherwise the missing-body block is emitted.
-- The architecture template at `docs/templates/canon-input/architecture.md`
+- The architecture template at `defaults/templates/canon-input/architecture.md`
   shows the expected shape; the worked example at
-  `docs/examples/canon-input/architecture-state-management.md` shows a
+  `tech-docs/examples/canon-input/architecture-state-management.md` shows a
   bounded-but-realistic packet.
 
 ### Packet Shape And Persona

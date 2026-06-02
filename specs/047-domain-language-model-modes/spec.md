@@ -64,8 +64,8 @@ After a successful domain-language or domain-model run, the user publishes the p
 
 **Acceptance Scenarios**:
 
-1. **Given** a completed domain-language run, **When** `canon publish <RUN_ID>` is executed, **Then** artifacts are published to `docs/domain/language/<YYYY-MM-DD>-<descriptor>/`.
-2. **Given** a completed domain-model run, **When** `canon publish <RUN_ID>` is executed, **Then** artifacts are published to `docs/domain/model/<YYYY-MM-DD>-<descriptor>/`.
+1. **Given** a completed domain-language run, **When** `canon publish <RUN_ID>` is executed, **Then** artifacts are published to `tech-docs/domain/language/<YYYY-MM-DD>-<descriptor>/`.
+2. **Given** a completed domain-model run, **When** `canon publish <RUN_ID>` is executed, **Then** artifacts are published to `tech-docs/domain/model/<YYYY-MM-DD>-<descriptor>/`.
 
 ---
 
@@ -113,7 +113,7 @@ An external orchestrator queries Canon's governance adapter for available capabi
 - **FR-003**: Both modes MUST accept input from `canon-input/<mode>.md` or `canon-input/<mode>/` with folder-backed packet support.
 - **FR-004**: Both modes MUST preserve missing authored sections as explicit `## Missing Authored Body` blocks.
 - **FR-005**: `domain-model` MUST emit `domain-model.json` as a stable machine-readable concept model.
-- **FR-006**: Both modes MUST publish to their specified default targets (`docs/domain/language/` and `docs/domain/model/`).
+- **FR-006**: Both modes MUST publish to their specified default targets (`tech-docs/domain/language/` and `tech-docs/domain/model/`).
 - **FR-007**: Both modes MUST be included in `canon inspect clarity` for file-backed inputs.
 - **FR-008**: Both modes MUST appear in `canon governance capabilities --json`.
 - **FR-009**: Both modes MUST support `--system-context new|existing`, `--risk`, `--zone`, and `--owner` metadata.
@@ -165,4 +165,4 @@ An external orchestrator queries Canon's governance adapter for available capabi
 - The existing Canon mode infrastructure (Mode enum, contract_for_mode, renderers, gatekeepers, summarizers, publish) supports adding new modes by following established patterns.
 - Both modes follow the same recommendation-only persona boundary as other governed modes.
 - The ordinal-prefix convention from 046 applies to all new artifact filenames.
-- Templates and examples will follow established patterns in `docs/templates/` and `docs/examples/`.
+- Templates and examples will follow established patterns in `defaults/templates/` and `tech-docs/examples/`.

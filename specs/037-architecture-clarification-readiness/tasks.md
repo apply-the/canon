@@ -114,7 +114,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Update impacted docs and changelog for the `0.37.0` architecture clarification release in `README.md`, `docs/guides/modes.md`, `docs/templates/canon-input/architecture.md`, `docs/examples/canon-input/architecture-state-management.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, and `CHANGELOG.md`
+- [ ] T027 [US3] Update impacted docs and changelog for the `0.37.0` architecture clarification release in `README.md`, `tech-docs/guides/modes.md`, `defaults/templates/canon-input/architecture.md`, `tech-docs/examples/canon-input/architecture-state-management.md`, `defaults/embedded-skills/canon-architecture/skill-source.md`, `.agents/skills/canon-architecture/SKILL.md`, and `CHANGELOG.md`
 - [ ] T028 [US3] Clean roadmap continuity after the delivered architecture clarification slice in `ROADMAP.md`
 - [ ] T029 [US3] Capture docs, roadmap, and release-alignment evidence in `specs/037-architecture-clarification-readiness/validation-report.md`
 
@@ -172,7 +172,7 @@
 
 ```bash
 # After the shipped readiness and clarity contract is stable:
-Task: "Update docs/guides/modes.md, docs/templates/canon-input/architecture.md, and docs/examples/canon-input/architecture-state-management.md"
+Task: "Update tech-docs/guides/modes.md, defaults/templates/canon-input/architecture.md, and tech-docs/examples/canon-input/architecture-state-management.md"
 Task: "Update defaults/embedded-skills/canon-architecture/skill-source.md and .agents/skills/canon-architecture/SKILL.md"
 Task: "Update README.md, CHANGELOG.md, and ROADMAP.md"
 ```

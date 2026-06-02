@@ -316,7 +316,7 @@ mod tests {
                 current_mode: "requirements".to_string(),
                 working_brief_path: "artifacts/R-20260529-status/requirements/working-brief.md"
                     .to_string(),
-                template_ref: "docs/templates/canon-input/requirements.md".to_string(),
+                template_ref: "defaults/templates/canon-input/requirements.md".to_string(),
                 status: "active".to_string(),
                 explicit_continuation_required: true,
                 authoritative_input_refs: vec!["canon-input/requirements/brief.md".to_string()],

@@ -2,7 +2,7 @@
 
 ## D-001 Publish Surface
 
-- **Decision**: Publish supply-chain packets to `docs/supply-chain/<RUN_ID>/`.
+- **Decision**: Publish supply-chain packets to `tech-docs/supply-chain/<RUN_ID>/`.
 - **Status**: Accepted
 - **Date**: 2026-04-29
 - **Rationale**: The path is readable, domain-focused, and avoids awkward
@@ -38,7 +38,7 @@
 ## D-005 Closeout Contract
 
 - **Decision**: Make `0.24.0` version synchronization the first task and the
-  high-coverage plus docs/examples/roadmap/formatting/lint remediation the last
+  high-coverage plus tech-docs/examples/roadmap/formatting/lint remediation the last
   task.
 - **Status**: Accepted
 - **Date**: 2026-04-29
@@ -55,7 +55,7 @@
   consolidated into a single gate-kind result to avoid duplicate `Risk` gate
   records with conflicting statuses.
 - **US1-D3 Publish behavior**: `supply-chain-analysis` packets remain publishable
-  to `docs/supply-chain/<RUN_ID>/` even when recommendation-only posture or
+  to `tech-docs/supply-chain/<RUN_ID>/` even when recommendation-only posture or
   approvals keep execution blocked.
 
 ## User Story 2 Decisions
@@ -73,7 +73,7 @@
 
 ## User Story 3 Decisions
 
-- **US3-D1 Release surface inclusion**: `README.md`, `docs/guides/modes.md`, and
+- **US3-D1 Release surface inclusion**: `README.md`, `tech-docs/guides/modes.md`, and
   `ROADMAP.md` explicitly include `supply-chain-analysis` in the public mode and
   publishability surface.
 - **US3-D2 Validator parity**: Canon skill validators now treat

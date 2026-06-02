@@ -15,7 +15,7 @@ follow-through attached to this branch.
 - Decision: Canon remains the producer and semantic owner of `governed_reasoning_posture_v1`, while Boundline remains the runtime owner of reasoning activation, participant routing, confidence handling, and trace emission.
 - Rationale: This keeps the producer-consumer boundary explicit and prevents the Canon contract from drifting into Boundline orchestration.
 - Consequences: Canon must publish stable contract identity, vocabulary, and compatibility windows, but it must not choose downstream runtime behavior.
-- Related artifacts: `spec.md`, `research.md`, `contracts/governed-reasoning-posture-contract.md`, `docs/integration/governed-reasoning-posture-contract.md`
+- Related artifacts: `spec.md`, `research.md`, `contracts/governed-reasoning-posture-contract.md`, `tech-docs/integration/governed-reasoning-posture-contract.md`
 
 ### D-002 Unsupported contract lines and incompatible release windows fail closed
 
@@ -30,10 +30,10 @@ follow-through attached to this branch.
 
 - Status: accepted
 - Date: 2026-05-18
-- Decision: `docs/integration/governed-reasoning-posture-contract.md` is the normative Canon-owned contract, while the feature-local contract brief exists to capture branch-local reasoning and review context.
+- Decision: `tech-docs/integration/governed-reasoning-posture-contract.md` is the normative Canon-owned contract, while the feature-local contract brief exists to capture branch-local reasoning and review context.
 - Rationale: Consumers need one stable contract path, but the feature branch still needs a local artifact for planning and review.
 - Consequences: Any divergence between the two documents must be treated as drift and validated explicitly.
-- Related artifacts: `contracts/governed-reasoning-posture-contract.md`, `docs/integration/governed-reasoning-posture-contract.md`, `validation-report.md`
+- Related artifacts: `contracts/governed-reasoning-posture-contract.md`, `tech-docs/integration/governed-reasoning-posture-contract.md`, `validation-report.md`
 
 ### D-004 Release metadata belongs inside this feature boundary when it affects the contract
 

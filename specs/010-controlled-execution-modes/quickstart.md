@@ -52,8 +52,8 @@ Rollback Steps: revert the bounded auth-session patch.
 
    ## Upstream Sources
 
-   - docs/changes/R-20260422-AUTHREVOC/change-surface.md
-   - docs/changes/R-20260422-AUTHREVOC/implementation-plan.md
+   - tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md
+   - tech-docs/changes/R-20260422-AUTHREVOC/implementation-plan.md
 
    ## Carried-Forward Decisions
 
@@ -94,7 +94,7 @@ canon inspect evidence --run <RUN_ID>
 canon publish <RUN_ID>
 ```
 
-7. Confirm the published output lands under `docs/implementation/<RUN_ID>/` and that recommendation-only posture is explicitly labeled if the run was not allowed to mutate.
+7. Confirm the published output lands under `tech-docs/implementation/<RUN_ID>/` and that recommendation-only posture is explicitly labeled if the run was not allowed to mutate.
 
 ## Refactor Flow
 
@@ -140,8 +140,8 @@ Decision: preserve behavior and stop if the surface expands.
 
    ## Upstream Sources
 
-   - docs/implementation/R-20260422-AUTHREVOC/implementation-notes.md
-   - docs/implementation/R-20260422-AUTHREVOC/task-mapping.md
+   - tech-docs/implementation/R-20260422-AUTHREVOC/implementation-notes.md
+   - tech-docs/implementation/R-20260422-AUTHREVOC/task-mapping.md
 
    ## Carried-Forward Invariants
 
@@ -182,7 +182,7 @@ canon inspect evidence --run <RUN_ID>
 canon publish <RUN_ID>
 ```
 
-7. Confirm the published output lands under `docs/refactors/<RUN_ID>/` and that any recommendation-only posture or blocking drift reason is visible in summaries.
+7. Confirm the published output lands under `tech-docs/refactors/<RUN_ID>/` and that any recommendation-only posture or blocking drift reason is visible in summaries.
 
 ## Recommendation-Only Checks
 
@@ -201,4 +201,4 @@ canon publish <RUN_ID>
 
 - Validated with real folder-backed `implementation` and `refactor` packets against the CLI on 2026-04-23.
 - `canon inspect evidence --output json` surfaced `upstream_feature_slice`, `primary_upstream_mode`, and `excluded_upstream_scope` for both flows when the packet authored those markers.
-- `canon publish <RUN_ID>` wrote the existing destinations under `docs/implementation/<RUN_ID>/` and `docs/refactors/<RUN_ID>/` without requiring a parallel publish surface.
+- `canon publish <RUN_ID>` wrote the existing destinations under `tech-docs/implementation/<RUN_ID>/` and `tech-docs/refactors/<RUN_ID>/` without requiring a parallel publish surface.

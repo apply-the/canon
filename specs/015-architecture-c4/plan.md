@@ -5,7 +5,7 @@
 
 ## Summary
 
-Extend the existing `architecture` mode with three textual C4 model artifacts (`system-context.md`, `container-view.md`, `component-view.md`), driven by authored H2 sections in the supplied brief. The renderer preserves authored content verbatim and emits explicit `## Missing Authored Body` markers when sections are absent. The existing critique-first artifact set (`architecture-decisions.md`, `invariants.md`, `tradeoff-matrix.md`, `boundary-map.md`, `readiness-assessment.md`) remains intact and unchanged in shape. The `canon-architecture` skill is updated to require authored C4 sections, and starter templates plus realistic examples ship under `docs/templates/canon-input/architecture/` and `docs/examples/canon-input/architecture/`.
+Extend the existing `architecture` mode with three textual C4 model artifacts (`system-context.md`, `container-view.md`, `component-view.md`), driven by authored H2 sections in the supplied brief. The renderer preserves authored content verbatim and emits explicit `## Missing Authored Body` markers when sections are absent. The existing critique-first artifact set (`architecture-decisions.md`, `invariants.md`, `tradeoff-matrix.md`, `boundary-map.md`, `readiness-assessment.md`) remains intact and unchanged in shape. The `canon-architecture` skill is updated to require authored C4 sections, and starter templates plus realistic examples ship under `defaults/templates/canon-input/architecture/` and `tech-docs/examples/canon-input/architecture/`.
 
 ## Governance Context
 
@@ -53,7 +53,7 @@ Extend the existing `architecture` mode with three textual C4 model artifacts (`
 - `crates/canon-engine/src/artifacts/contract.rs` (architecture artifact contract list and gate associations).
 - `crates/canon-engine/src/artifacts/markdown.rs` (architecture renderer).
 - `defaults/embedded-skills/canon-architecture/skill-source.md` and `.agents/skills/canon-architecture/SKILL.md` (skill content).
-- `docs/templates/canon-input/` and `docs/examples/canon-input/` (template + example surface).
+- `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/` (template + example surface).
 - existing architecture-related tests under `tests/` and `tests/contract/`.
 
 **Performance Goals**: N/A; this is a documentation and renderer surface change.
@@ -110,7 +110,7 @@ defaults/
     └── canon-architecture/
         └── SKILL.md          # mirror of skill-source.md
 
-docs/
+tech-docs/
 ├── templates/
 │   └── canon-input/
 │       └── architecture/

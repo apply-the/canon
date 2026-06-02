@@ -9,7 +9,7 @@ Deliver a new first-class governed mode named `supply-chain-analysis` as part
 of the `0.24.0` release by extending Canon's mode model, scanner-backed
 orchestration flow, artifact contracts, markdown rendering, publishing,
 clarification guidance, skill surfaces, examples, and tests. The mode will be
-authored-input driven, recommendation-only, publishable to `docs/supply-chain/`,
+authored-input driven, recommendation-only, publishable to `tech-docs/supply-chain/`,
 and validated through focused direct-runtime coverage plus workspace-level
 formatting, linting, and release-surface synchronization.
 
@@ -64,7 +64,7 @@ adding a separate release-only approval path
 **Testing**: focused `cargo test --test ...` coverage for the new mode, direct `EngineService` tests for orchestration coverage, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `/bin/bash scripts/validate-canon-skills.sh`, and final workspace regression checks  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows  
 **Project Type**: Rust CLI workspace with governed mode orchestration, markdown artifact rendering, embedded skill sources, mirrored AI-facing skills, and integration-heavy regression tests  
-**Existing System Touchpoints**: `Cargo.toml`; `AGENTS.md`; `CHANGELOG.md`; `README.md`; `docs/guides/modes.md`; `defaults/methods/`; `defaults/embedded-skills/canon-shared/`; `defaults/embedded-skills/canon-supply-chain-analysis/`; `.agents/skills/canon-shared/`; `.agents/skills/canon-supply-chain-analysis/`; `crates/canon-adapters/src/shell.rs`; `crates/canon-adapters/src/filesystem.rs`; `crates/canon-engine/src/domain/mode.rs`; `crates/canon-engine/src/artifacts/contract.rs`; `crates/canon-engine/src/artifacts/markdown.rs`; `crates/canon-engine/src/orchestrator/classifier.rs`; `crates/canon-engine/src/orchestrator/gatekeeper.rs`; `crates/canon-engine/src/orchestrator/publish.rs`; `crates/canon-engine/src/orchestrator/service.rs`; `crates/canon-engine/src/orchestrator/service/`; `crates/canon-engine/src/persistence/store.rs`; `docs/templates/canon-input/`; `docs/examples/canon-input/`; and `tests/`  
+**Existing System Touchpoints**: `Cargo.toml`; `AGENTS.md`; `CHANGELOG.md`; `README.md`; `tech-docs/guides/modes.md`; `defaults/methods/`; `defaults/embedded-skills/canon-shared/`; `defaults/embedded-skills/canon-supply-chain-analysis/`; `.agents/skills/canon-shared/`; `.agents/skills/canon-supply-chain-analysis/`; `crates/canon-adapters/src/shell.rs`; `crates/canon-adapters/src/filesystem.rs`; `crates/canon-engine/src/domain/mode.rs`; `crates/canon-engine/src/artifacts/contract.rs`; `crates/canon-engine/src/artifacts/markdown.rs`; `crates/canon-engine/src/orchestrator/classifier.rs`; `crates/canon-engine/src/orchestrator/gatekeeper.rs`; `crates/canon-engine/src/orchestrator/publish.rs`; `crates/canon-engine/src/orchestrator/service.rs`; `crates/canon-engine/src/orchestrator/service/`; `crates/canon-engine/src/persistence/store.rs`; `defaults/templates/canon-input/`; `tech-docs/examples/canon-input/`; and `tests/`  
 **Performance Goals**: Preserve current CLI responsiveness, keep analysis bounded to declared repository surfaces and detected ecosystems, and avoid introducing mandatory network dependency beyond user-invoked local scanners  
 **Constraints**: Stay offline-capable at the Canon layer; do not auto-install tools; keep skill-source and mirrored-skill surfaces synchronized; keep recommendation-only posture explicit; make the first task the `0.24.0` version bump; and make the last task the high-coverage plus docs, examples, roadmap, formatting, and lint closeout  
 **Scale/Scope**: One new runtime mode, one new skill family, one new publish destination, one new clarification and missing-scanner decision surface, several shared runtime edits, and a focused but repo-wide validation closeout
@@ -140,7 +140,7 @@ crates/canon-engine/src/
 └── persistence/
     └── store.rs
 
-docs/
+tech-docs/
 ├── guides/modes.md
 ├── templates/canon-input/
 └── examples/canon-input/

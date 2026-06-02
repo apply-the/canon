@@ -37,7 +37,7 @@ Typed run-scoped refinement state persisted on `RunContext`.
 workflow_family = "planning"
 current_mode = "requirements"
 working_brief_path = ".canon/runs/R-20260529-ab12cd34/artifacts/requirements/working-brief.md"
-template_ref = "docs/templates/canon-input/requirements.md"
+template_ref = "defaults/templates/canon-input/requirements.md"
 status = "active"
 explicit_continuation_required = true
 authoritative_input_refs = ["canon-input/requirements/brief.md"]

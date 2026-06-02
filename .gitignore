@@ -45,5 +45,5 @@ Thumbs.db
 
 # VitePress and Node.js
 node_modules
-site/.vitepress/dist
-site/.vitepress/cache
+docs/.vitepress/dist
+docs/.vitepress/cache

@@ -5,7 +5,7 @@
 - `owner`: `canon`
 - `current_contract_line`: `governed_reasoning_posture_v1`
 - `schema_version`: `v1`
-- `stable_doc`: `docs/integration/governed-reasoning-posture-contract.md`
+- `stable_doc`: `tech-docs/integration/governed-reasoning-posture-contract.md`
 - `primary_consumer`: `boundline`
 - `supported_boundline_window`: `0.62.x`
 - `supported_canon_window`: `0.63.x`

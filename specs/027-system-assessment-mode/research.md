@@ -48,12 +48,12 @@
 ## Decision 5: Publish under the architecture docs family
 
 - **Decision**: Publish completed packets under
-  `docs/architecture/assessments/<RUN_ID>/`.
+  `tech-docs/architecture/assessments/<RUN_ID>/`.
 - **Rationale**: The mode is about architecture understanding, but it is not a
   decision packet. Keeping it under the architecture family makes the
-  relationship visible without conflating it with `docs/architecture/decisions/`.
+  relationship visible without conflating it with `tech-docs/architecture/decisions/`.
 - **Alternatives considered**:
-  - Publish under `docs/system-assessments/<RUN_ID>/`.
+  - Publish under `tech-docs/system-assessments/<RUN_ID>/`.
   - Defer publishing until the separate structured-destination roadmap slice.
 
 ## Decision 6: Reuse the operational analysis mode pattern

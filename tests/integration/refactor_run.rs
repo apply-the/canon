@@ -276,7 +276,7 @@ fn run_refactor_completes_with_recommendation_only_execution_posture() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("refactors")
             .join(default_publish_leaf(run_id, "refactor"))
             .join("01-preserved-behavior.md")
@@ -417,7 +417,7 @@ fn red_zone_refactor_run_remains_recommendation_only_and_publishable() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("refactors")
             .join(default_publish_leaf(run_id, "refactor"))
             .join("01-preserved-behavior.md")

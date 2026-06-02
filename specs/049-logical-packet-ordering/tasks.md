@@ -119,8 +119,8 @@
 
 ### Implementation for User Story 4
 
-- [x] T030 [P] [US4] Update ordered artifact listings and domain-mode descriptions in `docs/guides/modes.md`.
-- [x] T031 [P] [US4] Update domain-language and domain-model templates or examples in `docs/templates/canon-input/domain-language.md`, `docs/templates/canon-input/domain-model.md`, `docs/examples/canon-input/domain-language-order-fulfillment.md`, and `docs/examples/canon-input/domain-model-order-fulfillment.md`.
+- [x] T030 [P] [US4] Update ordered artifact listings and domain-mode descriptions in `tech-docs/guides/modes.md`.
+- [x] T031 [P] [US4] Update domain-language and domain-model templates or examples in `defaults/templates/canon-input/domain-language.md`, `defaults/templates/canon-input/domain-model.md`, `tech-docs/examples/canon-input/domain-language-order-fulfillment.md`, and `tech-docs/examples/canon-input/domain-model-order-fulfillment.md`.
 - [x] T032 [US4] Update release-facing docs in `CHANGELOG.md` and `ROADMAP.md`.
 - [x] T033 [US4] Capture documentation validation evidence in `specs/049-logical-packet-ordering/validation-report.md`.
 

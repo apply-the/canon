@@ -43,7 +43,7 @@ implementation to start
 
 - [x] T005 Update agent context from `specs/023-cybersecurity-risk-assessment/plan.md` into `AGENTS.md`
 - [x] T006 [P] Create the mode scaffolds in `defaults/methods/security-assessment.toml`, `defaults/embedded-skills/canon-security-assessment/skill-source.md`, and `.agents/skills/canon-security-assessment/SKILL.md`
-- [x] T007 [P] Create authored-input scaffolds in `docs/templates/canon-input/security-assessment.md` and `docs/examples/canon-input/security-assessment-webhook-platform.md`
+- [x] T007 [P] Create authored-input scaffolds in `defaults/templates/canon-input/security-assessment.md` and `tech-docs/examples/canon-input/security-assessment-webhook-platform.md`
 
 ---
 
@@ -106,7 +106,7 @@ docs location.
 
 - [x] T022 [P] [US2] Add shared compatibility and runtime helper updates in `defaults/embedded-skills/canon-shared/references/runtime-compatibility.toml`, `.agents/skills/canon-shared/references/runtime-compatibility.toml`, `defaults/embedded-skills/canon-shared/scripts/check-runtime.sh`, and `.agents/skills/canon-shared/scripts/check-runtime.sh`
 - [x] T023 [P] [US2] Author the security skill surfaces in `defaults/embedded-skills/canon-security-assessment/skill-source.md` and `.agents/skills/canon-security-assessment/SKILL.md`
-- [x] T024 [P] [US2] Add mode guidance and examples in `docs/guides/modes.md`, `docs/templates/canon-input/security-assessment.md`, and `docs/examples/canon-input/security-assessment-webhook-platform.md`
+- [x] T024 [P] [US2] Add mode guidance and examples in `tech-docs/guides/modes.md`, `defaults/templates/canon-input/security-assessment.md`, and `tech-docs/examples/canon-input/security-assessment-webhook-platform.md`
 - [x] T025 [US2] Capture authoring and publish validation evidence in `specs/023-cybersecurity-risk-assessment/validation-report.md`
 
 **Checkpoint**: The new mode is discoverable, authorable, and publishable through the documented surfaces

@@ -64,7 +64,7 @@ impact slice; independent validation evidence remains mandatory.
 **Testing**: focused `cargo test` targets for `inspect_clarity`, engine service helpers, CLI clarity rendering, authoring-doc sync, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `cargo nextest run`  
 **Target Platform**: local CLI-driven Canon workflows and compatible Copilot or Codex skill hosts  
 **Project Type**: Rust CLI workspace with shared Markdown skills, templates, examples, and release guardrails  
-**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-cli/src/output.rs`, `tests/contract/inspect_clarity.rs`, `crates/canon-engine/src/orchestrator/service/tests.rs`, `docs/guides/modes.md`, `docs/examples/canon-input/carry-forward-packets.md`, `docs/templates/canon-input/`, `defaults/embedded-skills/canon-inspect-clarity/skill-source.md`, `.agents/skills/canon-inspect-clarity/SKILL.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, `tests/release_036_release_provenance_integrity.rs`, and `tests/integration/skills_bootstrap.rs`  
+**Existing System Touchpoints**: `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/inspect.rs`, `crates/canon-engine/src/orchestrator/service/clarity.rs`, `crates/canon-cli/src/output.rs`, `tests/contract/inspect_clarity.rs`, `crates/canon-engine/src/orchestrator/service/tests.rs`, `tech-docs/guides/modes.md`, `tech-docs/examples/canon-input/carry-forward-packets.md`, `defaults/templates/canon-input/`, `defaults/embedded-skills/canon-inspect-clarity/skill-source.md`, `.agents/skills/canon-inspect-clarity/SKILL.md`, `README.md`, `ROADMAP.md`, `CHANGELOG.md`, `Cargo.toml`, `Cargo.lock`, `tests/release_036_release_provenance_integrity.rs`, and `tests/integration/skills_bootstrap.rs`  
 **Performance Goals**: deterministic packet-role classification, no hidden authored-input inference, and clarity output that exposes the next authoring step without extra inspection passes  
 **Constraints**: keep the change additive to the current clarity contract; preserve `brief.md` authority when present; keep docs and skills honest about non-ready packets; bump and validate the workspace at `0.39.0`; cover touched Rust files before full-suite closeout  
 **Scale/Scope**: one additive clarity-summary extension, one renderer update, one shared authoring-lifecycle doc pass, one inspect-clarity skill sync, and one release-alignment pass
@@ -125,7 +125,7 @@ tests/
 │   └── skills_bootstrap.rs
 └── release_036_release_provenance_integrity.rs
 
-docs/
+tech-docs/
 ├── examples/canon-input/carry-forward-packets.md
 ├── guides/modes.md
 └── templates/canon-input/

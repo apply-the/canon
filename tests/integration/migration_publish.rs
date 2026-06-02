@@ -98,7 +98,7 @@ fn blocked_migration_packet_is_publishable_with_honest_fallback_gaps() {
 
     let published = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("migrations")
         .join(default_publish_leaf(run_id, "migration"))
         .join("04-fallback-plan.md");
@@ -106,7 +106,7 @@ fn blocked_migration_packet_is_publishable_with_honest_fallback_gaps() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("migrations")
             .join(default_publish_leaf(run_id, "migration"))
             .join("packet-metadata.json")

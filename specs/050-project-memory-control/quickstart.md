@@ -7,7 +7,7 @@ docs updates are considered complete.
 
 ## Scenario 1: Stable contract discovery
 
-1. Open `docs/integration/project-memory-promotion-contract.md`.
+1. Open `tech-docs/integration/project-memory-promotion-contract.md`.
 2. Confirm the document names Canon as the owner, identifies the current major
    contract line, and points to the feature-local contract set for detailed
    examples.
@@ -26,7 +26,7 @@ docs updates are considered complete.
 
 ## Scenario 3: Promotion policy walkthrough
 
-1. Review the documented target mapping for `docs/project/` and `docs/evidence/`.
+1. Review the documented target mapping for `tech-docs/project/` and `tech-docs/evidence/`.
 2. Verify that stable managed-block updates are separated from pending,
    proposal, index-only, blocked, conflicting, and evidence-only outcomes.
 3. Confirm mixed-producer evidence blocks stay attributable to their producer.

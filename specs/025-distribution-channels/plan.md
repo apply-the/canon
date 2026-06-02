@@ -145,7 +145,7 @@ packaging/
 └── homebrew/
     └── canon.rb.tpl
 
-docs/
+tech-docs/
 └── examples/
 
 README.md

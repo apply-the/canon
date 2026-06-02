@@ -68,7 +68,7 @@
 - **Status**: Accepted for implementation
 - **Context**: `refactor` needs a real runtime path, but the first safe slice must prove preserved behavior, bounded structural scope, and no-feature-addition intent before Canon can treat the packet as complete.
 - **Decision**: Make `refactor` a governed execution mode that emits its distinct preservation bundle, records `recommendation-only` posture in run context and summaries, and treats preserved behavior, bounded refactor scope, structural rationale, drift review, and no-feature-addition evidence as blocking prerequisites.
-- **Consequences**: Users can run `refactor` end to end now, publish the preservation packet through the existing `docs/refactors/<RUN_ID>/` surface, and get explicit blocking output instead of silent structural drift when authored evidence is incomplete.
+- **Consequences**: Users can run `refactor` end to end now, publish the preservation packet through the existing `tech-docs/refactors/<RUN_ID>/` surface, and get explicit blocking output instead of silent structural drift when authored evidence is incomplete.
 
 ## D-011: Keep high-risk implementation/refactor runs on recommendation-only completion, not risk-gate approval
 

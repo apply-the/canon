@@ -105,7 +105,7 @@ implemented, validated, and audited independently.
 ### Implementation for User Story 3
 
 - [x] T027 [P] [US3] Update roadmap mapping in `ROADMAP.md`
-- [x] T028 [P] [US3] Update operator mode guidance in `docs/guides/modes.md`
+- [x] T028 [P] [US3] Update operator mode guidance in `tech-docs/guides/modes.md`
 - [x] T029 [US3] Capture US3 validation evidence in `specs/021-artifact-shapes-personas/validation-report.md`
 
 **Checkpoint**: The first-slice persona and shape mapping is discoverable outside chat history.

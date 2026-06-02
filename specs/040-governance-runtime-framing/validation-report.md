@@ -33,9 +33,9 @@
 
 ## File Diff Summary
 
-- Public framing: `README.md`, `docs/guides/getting-started.md`, and `docs/guides/modes.md`
-- New integration surface: `docs/integration/governance-adapter.md`
-- Release alignment: `Cargo.toml`, `Cargo.lock`, runtime compatibility references, `CHANGELOG.md`, `ROADMAP.md`, `docs/guides/publishing-to-winget.md`, and `docs/guides/publishing-to-scoop.md`
+- Public framing: `README.md`, `tech-docs/guides/getting-started.md`, and `tech-docs/guides/modes.md`
+- New integration surface: `tech-docs/integration/governance-adapter.md`
+- Release alignment: `Cargo.toml`, `Cargo.lock`, runtime compatibility references, `CHANGELOG.md`, `ROADMAP.md`, `tech-docs/guides/publishing-to-winget.md`, and `tech-docs/guides/publishing-to-scoop.md`
 - Rust guardrails: `tests/governance_runtime_framing_docs.rs`, `tests/release_040_governance_runtime_framing.rs`, `tests/release_036_release_provenance_integrity.rs`, `tests/integration/skills_bootstrap.rs`, `tests/contract/governance_cli.rs`, and `crates/canon-cli/src/commands/governance.rs`
 
 ## Final Closeout

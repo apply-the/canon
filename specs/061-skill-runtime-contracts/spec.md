@@ -98,7 +98,7 @@ processing the full prose preflight section.
 ### User Story 3 - Lifecycle Hooks with Detect/Propose (Priority: P3)
 
 A repository maintainer authors `.canon/hooks.toml` to declare lifecycle
-actions (e.g., `git add docs/` after publish). When a Canon skill reaches the
+actions (e.g., `git add tech-docs/` after publish). When a Canon skill reaches the
 matching lifecycle point, it detects the hook, explains it to the user, and
 proposes execution. The user or AI decides whether to run it. Every execution
 is recorded.

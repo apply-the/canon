@@ -382,7 +382,9 @@ fn publish_metadata_round_trips_semantic_descriptor() {
             semantic_contract_line: SEMANTIC_ARTIFACT_CONTRACT_LINE_V1.to_string(),
             semantic_eligibility: SemanticEligibilityState::Eligible,
             semantic_provenance_boundary: Some(SemanticProvenanceBoundary::ManagedBlock),
-            semantic_provenance_ref: Some("docs/project/overview.md#managed-block-1".to_string()),
+            semantic_provenance_ref: Some(
+                "tech-docs/project/overview.md#managed-block-1".to_string(),
+            ),
             semantic_labels: vec!["project-memory".to_string()],
             semantic_exclusion_reason: None,
         }),
@@ -404,33 +406,39 @@ fn publish_metadata_round_trips_semantic_descriptor() {
 #[test]
 fn profile_metadata_path_uses_directory_and_file_conventions() {
     assert_eq!(
-        super::profile_metadata_path(Path::new("docs/project/custom-dest")),
-        Path::new("docs/project/custom-dest/packet-metadata.json")
+        super::profile_metadata_path(Path::new("tech-docs/project/custom-dest")),
+        Path::new("tech-docs/project/custom-dest/packet-metadata.json")
     );
     assert_eq!(
-        super::profile_metadata_path(Path::new("docs/project/open-risks.proposal.md")),
-        Path::new("docs/project/open-risks.proposal.packet-metadata.json")
+        super::profile_metadata_path(Path::new("tech-docs/project/open-risks.proposal.md")),
+        Path::new("tech-docs/project/open-risks.proposal.packet-metadata.json")
     );
 }
 
 #[test]
 fn default_publish_directory_maps_supported_modes() {
     assert_eq!(default_publish_directory(Mode::Requirements), "specs");
-    assert_eq!(default_publish_directory(Mode::Discovery), "docs/discovery");
-    assert_eq!(default_publish_directory(Mode::SystemShaping), "docs/architecture/shaping");
-    assert_eq!(default_publish_directory(Mode::Change), "docs/changes");
-    assert_eq!(default_publish_directory(Mode::Backlog), "docs/planning");
-    assert_eq!(default_publish_directory(Mode::Architecture), "docs/architecture/decisions");
-    assert_eq!(default_publish_directory(Mode::Implementation), "docs/implementation");
-    assert_eq!(default_publish_directory(Mode::Refactor), "docs/refactors");
-    assert_eq!(default_publish_directory(Mode::Verification), "docs/verification");
-    assert_eq!(default_publish_directory(Mode::Review), "docs/reviews");
-    assert_eq!(default_publish_directory(Mode::PrReview), "docs/reviews/prs");
-    assert_eq!(default_publish_directory(Mode::Incident), "docs/incidents");
-    assert_eq!(default_publish_directory(Mode::SystemAssessment), "docs/architecture/assessments");
-    assert_eq!(default_publish_directory(Mode::SecurityAssessment), "docs/security-assessments");
-    assert_eq!(default_publish_directory(Mode::Migration), "docs/migrations");
-    assert_eq!(default_publish_directory(Mode::SupplyChainAnalysis), "docs/supply-chain");
+    assert_eq!(default_publish_directory(Mode::Discovery), "tech-docs/discovery");
+    assert_eq!(default_publish_directory(Mode::SystemShaping), "tech-docs/architecture/shaping");
+    assert_eq!(default_publish_directory(Mode::Change), "tech-docs/changes");
+    assert_eq!(default_publish_directory(Mode::Backlog), "tech-docs/planning");
+    assert_eq!(default_publish_directory(Mode::Architecture), "tech-docs/architecture/decisions");
+    assert_eq!(default_publish_directory(Mode::Implementation), "tech-docs/implementation");
+    assert_eq!(default_publish_directory(Mode::Refactor), "tech-docs/refactors");
+    assert_eq!(default_publish_directory(Mode::Verification), "tech-docs/verification");
+    assert_eq!(default_publish_directory(Mode::Review), "tech-docs/reviews");
+    assert_eq!(default_publish_directory(Mode::PrReview), "tech-docs/reviews/prs");
+    assert_eq!(default_publish_directory(Mode::Incident), "tech-docs/incidents");
+    assert_eq!(
+        default_publish_directory(Mode::SystemAssessment),
+        "tech-docs/architecture/assessments"
+    );
+    assert_eq!(
+        default_publish_directory(Mode::SecurityAssessment),
+        "tech-docs/security-assessments"
+    );
+    assert_eq!(default_publish_directory(Mode::Migration), "tech-docs/migrations");
+    assert_eq!(default_publish_directory(Mode::SupplyChainAnalysis), "tech-docs/supply-chain");
 }
 
 #[test]
@@ -443,8 +451,8 @@ fn resolve_destination_uses_structured_default_or_override() {
         Path::new("/repo/specs/2026-04-22-publish-scope")
     );
     assert_eq!(
-        resolve_destination(repo_root, &manifest, Some(Path::new("docs/public/prd"))),
-        Path::new("/repo/docs/public/prd")
+        resolve_destination(repo_root, &manifest, Some(Path::new("tech-docs/public/prd"))),
+        Path::new("/repo/tech-docs/public/prd")
     );
 }
 
@@ -530,8 +538,8 @@ fn publish_run_allows_operational_packets_awaiting_approval_and_exports_adr() {
     let summary =
         super::publish_run(workspace.path(), &manifest.run_id, None, true).expect("publish run");
 
-    assert!(summary.published_to.contains("docs/migrations"));
-    assert!(summary.published_files.iter().any(|file| file.starts_with("docs/adr/ADR-")));
+    assert!(summary.published_to.contains("tech-docs/migrations"));
+    assert!(summary.published_files.iter().any(|file| file.starts_with("tech-docs/adr/ADR-")));
 }
 
 #[test]
@@ -637,11 +645,11 @@ fn publish_run_with_profile_writes_metadata_for_directory_override() {
         workspace.path(),
         &manifest.run_id,
         PublishProfile::ProjectMemory,
-        Some(Path::new("docs/project/custom-dest")),
+        Some(Path::new("tech-docs/project/custom-dest")),
     )
     .expect("profile publish");
 
-    assert!(summary.published_to.contains("docs/project/custom-dest"));
+    assert!(summary.published_to.contains("tech-docs/project/custom-dest"));
     assert!(summary.published_files.iter().any(|file| file.ends_with("packet-metadata.json")));
 }
 
@@ -696,7 +704,7 @@ fn build_change_adr_maps_change_packet_sections() {
         ),
     ];
 
-    let adr = super::build_change_adr(&manifest, &artifacts, "docs/changes/2026-04-22-change")
+    let adr = super::build_change_adr(&manifest, &artifacts, "tech-docs/changes/2026-04-22-change")
         .expect("change adr");
 
     assert_eq!(
@@ -738,9 +746,12 @@ fn build_change_adr_reports_missing_decision_section() {
         ),
     ];
 
-    let error =
-        super::build_change_adr(&manifest, &artifacts, "docs/changes/2026-04-22-change-missing")
-            .expect_err("missing decision section should fail");
+    let error = super::build_change_adr(
+        &manifest,
+        &artifacts,
+        "tech-docs/changes/2026-04-22-change-missing",
+    )
+    .expect_err("missing decision section should fail");
 
     assert!(error.to_string().contains("missing a decision section"));
 }
@@ -769,9 +780,12 @@ fn build_migration_adr_maps_migration_packet_sections() {
         ),
     ];
 
-    let adr =
-        super::build_migration_adr(&manifest, &artifacts, "docs/migrations/2026-04-22-migration")
-            .expect("migration adr");
+    let adr = super::build_migration_adr(
+        &manifest,
+        &artifacts,
+        "tech-docs/migrations/2026-04-22-migration",
+    )
+    .expect("migration adr");
 
     assert_eq!(adr.title, "retain dual-write during the bounded cutover");
     assert!(adr.context.contains("### Current State"));
@@ -810,7 +824,7 @@ fn build_migration_adr_reports_missing_decision_section() {
     let error = super::build_migration_adr(
         &manifest,
         &artifacts,
-        "docs/migrations/2026-04-22-migration-missing",
+        "tech-docs/migrations/2026-04-22-migration-missing",
     )
     .expect_err("missing migration decision section should fail");
 
@@ -845,7 +859,7 @@ fn build_architecture_adr_reports_missing_required_sections() {
     let missing_summary_error = super::build_architecture_adr(
         &manifest,
         &missing_summary,
-        "docs/architecture/decisions/2026-04-22-architecture",
+        "tech-docs/architecture/decisions/2026-04-22-architecture",
     )
     .expect_err("missing summary should fail");
     assert!(missing_summary_error.to_string().contains("`## Summary`"));
@@ -868,7 +882,7 @@ fn build_architecture_adr_reports_missing_required_sections() {
     let missing_decision_error = super::build_architecture_adr(
         &manifest,
         &missing_decision,
-        "docs/architecture/decisions/2026-04-22-architecture",
+        "tech-docs/architecture/decisions/2026-04-22-architecture",
     )
     .expect_err("missing decision should fail");
     assert!(missing_decision_error.to_string().contains("`## Decision`"));
@@ -913,7 +927,7 @@ fn helper_functions_cover_section_selection_title_fallback_and_registry_numberin
 #[test]
 fn build_adr_export_assigns_numbered_paths_for_supported_opt_in_modes() {
     let workspace = tempdir().expect("temp workspace");
-    let registry_root = workspace.path().join("docs").join("adr");
+    let registry_root = workspace.path().join("tech-docs").join("adr");
     fs::create_dir_all(&registry_root).expect("registry root");
     fs::write(registry_root.join("ADR-0002-existing.md"), "# ADR 0002\n")
         .expect("write existing adr");
@@ -943,10 +957,10 @@ fn build_adr_export_assigns_numbered_paths_for_supported_opt_in_modes() {
         workspace.path(),
         &change_manifest,
         &change_artifacts,
-        Path::new("docs/changes/2026-04-22-change"),
+        Path::new("tech-docs/changes/2026-04-22-change"),
     )
     .expect("change adr export");
-    assert!(change_adr.display_path.starts_with("docs/adr/ADR-0003-"));
+    assert!(change_adr.display_path.starts_with("tech-docs/adr/ADR-0003-"));
 
     fs::write(&change_adr.destination, &change_adr.contents).expect("persist change adr");
 
@@ -975,10 +989,10 @@ fn build_adr_export_assigns_numbered_paths_for_supported_opt_in_modes() {
         workspace.path(),
         &migration_manifest,
         &migration_artifacts,
-        Path::new("docs/migrations/2026-04-22-migration"),
+        Path::new("tech-docs/migrations/2026-04-22-migration"),
     )
     .expect("migration adr export");
-    assert!(migration_adr.display_path.starts_with("docs/adr/ADR-0004-"));
+    assert!(migration_adr.display_path.starts_with("tech-docs/adr/ADR-0004-"));
 }
 
 #[test]
@@ -1277,21 +1291,21 @@ fn resolve_profile_destination_routes_by_promotion_state() {
 
     let stable =
         super::resolve_profile_destination(repo_root, &stable_manifest, &PromotionState::Auto);
-    assert_eq!(stable, Path::new("/repo/docs/project/product-context.md"));
+    assert_eq!(stable, Path::new("/repo/tech-docs/project/product-context.md"));
 
     let pending = super::resolve_profile_destination(
         repo_root,
         &pending_manifest,
         &PromotionState::PendingIndex,
     );
-    assert_eq!(pending, Path::new("/repo/docs/project/pending-decisions.md"));
+    assert_eq!(pending, Path::new("/repo/tech-docs/project/pending-decisions.md"));
 
     let evidence = super::resolve_profile_destination(
         repo_root,
         &evidence_manifest,
         &PromotionState::EvidenceOnly,
     );
-    assert_eq!(evidence, Path::new("/repo/docs/project/audit-log.md"));
+    assert_eq!(evidence, Path::new("/repo/tech-docs/project/audit-log.md"));
 }
 
 #[test]
@@ -1299,111 +1313,111 @@ fn canonical_project_memory_surface_map_covers_all_modes() {
     let expected = [
         (
             Mode::Discovery,
-            "docs/project/overview.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/overview.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Requirements,
-            "docs/project/product-context.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/product-context.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::SystemShaping,
-            "docs/project/architecture-map.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/architecture-map.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Architecture,
-            "docs/project/architecture-map.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/architecture-map.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::SystemAssessment,
-            "docs/project/operational-context.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/open-risks.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/open-risks.md",
         ),
         (
             Mode::Change,
-            "docs/project/decision-index.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/decision-index.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Backlog,
-            "docs/project/delivery-map.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/delivery-map.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::PrReview,
-            "docs/project/operational-context.md",
-            "docs/project/audit-log.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/audit-log.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Implementation,
-            "docs/project/delivery-map.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/delivery-map.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Refactor,
-            "docs/project/delivery-map.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/delivery-map.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Verification,
-            "docs/project/operational-context.md",
-            "docs/project/audit-log.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/audit-log.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Review,
-            "docs/project/operational-context.md",
-            "docs/project/audit-log.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/audit-log.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::Incident,
-            "docs/project/operational-context.md",
-            "docs/project/open-risks.md",
-            "docs/project/open-risks.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/open-risks.md",
+            "tech-docs/project/open-risks.md",
         ),
         (
             Mode::SecurityAssessment,
-            "docs/project/operational-context.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/open-risks.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/open-risks.md",
         ),
         (
             Mode::Migration,
-            "docs/project/decision-index.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/decision-index.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::SupplyChainAnalysis,
-            "docs/project/operational-context.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/open-risks.md",
+            "tech-docs/project/operational-context.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/open-risks.md",
         ),
         (
             Mode::DomainLanguage,
-            "docs/project/domain-language.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/domain-language.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
         (
             Mode::DomainModel,
-            "docs/project/domain-model.md",
-            "docs/project/pending-decisions.md",
-            "docs/project/audit-log.md",
+            "tech-docs/project/domain-model.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
         ),
     ];
 

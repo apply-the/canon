@@ -20,7 +20,7 @@ docs, roadmap cleanup, coverage, lint, and formatting closeout.
 5. Run `/bin/bash scripts/validate-canon-skills.sh`.
 6. Run `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and the focused coverage command for touched Rust files.
 7. Review `Cargo.toml`, `Cargo.lock`, runtime-compatibility references,
-   `README.md`, `ROADMAP.md`, `docs/guides/modes.md`, impacted publication
+   `README.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, impacted publication
    guides, and `CHANGELOG.md` to confirm a coherent `0.34.0` release story.
 
 ## Representative Walkthroughs

@@ -137,8 +137,8 @@ Expected result:
 After runtime validation passes, release closeout must also record:
 
 - repo-facing release notes and operator guidance updates in `CHANGELOG.md`,
-  `README.md`, `docs/guides/modes.md`, and
-  `docs/templates/canon-input/README.md`
+  `README.md`, `tech-docs/guides/modes.md`, and
+  `defaults/templates/canon-input/README.md`
 - wiki alignment updates in `../canon.wiki/Home.md`,
   `../canon.wiki/Canon-Modes.md`, and
   `../canon.wiki/Lineage-And-Provenance.md`

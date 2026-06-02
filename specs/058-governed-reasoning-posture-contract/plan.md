@@ -23,7 +23,7 @@ scope.
 - Canon-owned `governed_reasoning_posture_v1` contract identity, required fields, supported vocabulary, and compatibility rules
 - the active Boundline and Canon release window used by the first downstream consumer
 - executable contract validation and release-surface alignment checks for workspace metadata, plugin manifests, and runtime-compatibility references
-- the stable integration doc under `docs/integration/` and the feature-local Canon contract brief under `specs/058-governed-reasoning-posture-contract/contracts/`
+- the stable integration doc under `tech-docs/integration/` and the feature-local Canon contract brief under `specs/058-governed-reasoning-posture-contract/contracts/`
 - bounded gatekeeper code organization follow-through for the already touched runtime surface, provided behavior stays stable
 
 **Scope Out**:
@@ -48,12 +48,12 @@ scope.
 
 **Language/Version**: Rust 1.96.0, edition 2024; Markdown for contract and planning artifacts  
 **Primary Dependencies**: Existing workspace dependencies only (`serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs); no new runtime dependencies are planned for this slice  
-**Storage**: Repository files only; stable docs under `docs/integration/`, release surfaces at repo root and under `assistant/` and `defaults/`, tests under `tests/`, and feature-local planning artifacts under `specs/058-governed-reasoning-posture-contract/`  
+**Storage**: Repository files only; stable docs under `tech-docs/integration/`, release surfaces at repo root and under `assistant/` and `defaults/`, tests under `tests/`, and feature-local planning artifacts under `specs/058-governed-reasoning-posture-contract/`  
 **Testing**: `cargo test --test governed_reasoning_posture_contract`, targeted release-surface tests such as `cargo test --test assistant_plugin_packages metadata_paths_and_versions_are_aligned -- --exact`, targeted gatekeeper tests under `crates/canon-engine/src/orchestrator/gatekeeper/tests.rs`, `cargo test --no-run --all-targets`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info`, and `cargo fmt`  
 **Target Platform**: macOS, Linux, and Windows developer workstations and CI  
 **Project Type**: Rust CLI and library workspace plus integration documentation  
 **Existing System Touchpoints**:
-- `docs/integration/governed-reasoning-posture-contract.md`
+- `tech-docs/integration/governed-reasoning-posture-contract.md`
 - `tests/contract/governed_reasoning_posture_contract.rs`
 - `tests/governed_reasoning_posture_contract.rs`
 - `assistant/plugin-metadata.json`
@@ -122,7 +122,7 @@ crates/
                 ├── rules.rs
                 └── tests.rs
 
-docs/
+tech-docs/
 └── integration/
     └── governed-reasoning-posture-contract.md
 
@@ -152,7 +152,7 @@ Cargo.lock
 
 **Structure Decision**: Keep the feature inside the existing Canon documentation,
 validation, release-metadata, and gatekeeper surfaces. The contract is already
-published from `docs/integration/`, the release alignment story already touches
+published from `tech-docs/integration/`, the release alignment story already touches
 assistant and runtime-compatibility metadata, and the gatekeeper branch work is
 best handled as a bounded sibling-module split rather than as a new subsystem.
 

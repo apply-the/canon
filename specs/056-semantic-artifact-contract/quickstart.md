@@ -11,7 +11,7 @@ published artifacts without turning Canon into a retrieval runtime.
 - `/specs/056-semantic-artifact-contract/spec.md`
 - `/specs/056-semantic-artifact-contract/research.md`
 - `/specs/056-semantic-artifact-contract/data-model.md`
-- `/docs/integration/project-memory-promotion-contract.md`
+- `/tech-docs/integration/project-memory-promotion-contract.md`
 - `/specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 
 ## Implementation Steps
@@ -22,7 +22,7 @@ published artifacts without turning Canon into a retrieval runtime.
    provenance boundaries, metadata carrier expectations, and explicit rejection
    conditions.
 2. Promote or prepare the stable consumer-facing contract path under
-   `/docs/integration/semantic-artifact-contract.md`, keeping the promotion and
+   `/tech-docs/integration/semantic-artifact-contract.md`, keeping the promotion and
    artifact-indexing contracts authoritative for publication routing and
    metadata carrier semantics.
 3. If the runtime metadata shape needs implementation support, add a typed

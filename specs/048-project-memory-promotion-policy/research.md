@@ -69,16 +69,16 @@ human-authored content. They also survive common reformatting tools.
 ## Decision 5: Contract Stable Path
 
 **Decision**: Promote the accepted contract to
-`docs/integration/project-memory-promotion-contract.md` rather than
-`docs/contracts/`.
+`tech-docs/integration/project-memory-promotion-contract.md` rather than
+`tech-docs/contracts/`.
 
-**Rationale**: `docs/integration/` signals that the document defines a
+**Rationale**: `tech-docs/integration/` signals that the document defines a
 cross-repo integration boundary, which is more discoverable for consumers than
-a generic `docs/contracts/` path. Existing Canon docs use `docs/` subdirectories
+a generic `tech-docs/contracts/` path. Existing Canon docs use `tech-docs/` subdirectories
 organized by topic.
 
 **Alternatives considered**:
-- `docs/contracts/`: less descriptive; does not communicate the cross-repo
+- `tech-docs/contracts/`: less descriptive; does not communicate the cross-repo
   integration purpose.
 - Root-level `CONTRACT.md`: too prominent for a single integration contract
   when Canon may have multiple in the future.

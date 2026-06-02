@@ -42,7 +42,7 @@ without changing Canon orchestration or delegating runtime behavior to Canon
 
 **Decision Traceability**: Decisions for this slice are recorded in
 `specs/051-artifact-indexing-contract/` and promoted Canon integration
-documentation under `docs/integration/project-memory-promotion-contract.md`,
+documentation under `tech-docs/integration/project-memory-promotion-contract.md`,
 which remains the single normative stable contract surface for this slice.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -64,7 +64,7 @@ artifact class without reading Canon source code.
 **Acceptance Scenarios**:
 
 1. **Given** the Canon integration documentation path
-  `docs/integration/project-memory-promotion-contract.md`, **When** a maintainer
+  `tech-docs/integration/project-memory-promotion-contract.md`, **When** a maintainer
   inspects the artifact indexing contract, **Then** they can identify the
   indexable artifact classes and the minimum required metadata for each.
 2. **Given** an artifact published under an indexable Canon surface, **When** a
@@ -241,6 +241,6 @@ for the current contract line.
   runtime behavior.
 - Boundline will remain able to function without Canon, and this contract is
   optional enrichment rather than a hard runtime dependency.
-- `docs/integration/project-memory-promotion-contract.md` remains the stable
+- `tech-docs/integration/project-memory-promotion-contract.md` remains the stable
   consumer-facing contract path for this slice, with 051 extending that
   contract rather than creating a second normative document.

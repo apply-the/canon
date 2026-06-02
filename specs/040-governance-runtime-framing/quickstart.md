@@ -3,12 +3,12 @@
 ## Human Reader Walkthrough
 
 1. Open `README.md` and confirm the opening framing describes Canon as a governed packet runtime, not a generic agent framework.
-2. Read `docs/guides/getting-started.md` and verify the human-driven happy path is explicit: `init`, `inspect clarity`, `run`, `status`, `publish`.
+2. Read `tech-docs/guides/getting-started.md` and verify the human-driven happy path is explicit: `init`, `inspect clarity`, `run`, `status`, `publish`.
 3. Confirm the docs do not imply that Canon itself is the higher-level orchestrator.
 
 ## Orchestrator Maintainer Walkthrough
 
-1. Open `docs/integration/governance-adapter.md`.
+1. Open `tech-docs/integration/governance-adapter.md`.
 2. Verify that the guide documents `canon governance capabilities --json`, `canon governance start --json`, and `canon governance refresh --json`.
 3. Verify that the guide explains `status`, `approval_state`, `packet_readiness`, `reason_code`, and canonical workspace-relative refs.
 4. Verify that the guide explains when to use `canon governance` instead of the human CLI.

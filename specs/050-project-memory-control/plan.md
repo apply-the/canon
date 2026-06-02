@@ -9,7 +9,7 @@ Clarify and publish the Canon-owned contract bundle for repo-visible project
 memory and delivery-control integration. This slice keeps Canon as the sole
 owner of producer semantics while adding a stable consumer path,
 producer-neutral managed blocks, a lighter V1 lineage contract, explicit target
-mapping for `docs/project/` and `docs/evidence/`, and stronger compatibility
+mapping for `tech-docs/project/` and `tech-docs/evidence/`, and stronger compatibility
 rules that Boundline can consume without redefining Canon behavior. The stable
 contract path remains normative; feature-local contracts only elaborate that
 source with examples and supporting shapes.
@@ -27,7 +27,7 @@ moving orchestration into Canon or changing `.canon/` runtime ownership.
 - producer-neutral managed-block markers for repo-visible docs
 - minimum required V1 lineage fields and optional metadata split
 - compatibility policy for additive versus breaking contract evolution
-- default target mapping for `docs/project/` and `docs/evidence/`
+- default target mapping for `tech-docs/project/` and `tech-docs/evidence/`
 
 **Scope Out**:
 - Boundline workflow registry and planner behavior
@@ -57,7 +57,7 @@ producer-side policy behavior before merge.
 **Primary Dependencies**: `clap`, `serde`, `serde_json`, `thiserror`,
 `tracing`, `uuid`, `toml`  
 **Storage**: local filesystem under `.canon/` plus repo-visible docs under
-`docs/project/`, `docs/evidence/`, and `docs/integration/`  
+`tech-docs/project/`, `tech-docs/evidence/`, and `tech-docs/integration/`  
 **Testing**: `cargo test`, `cargo nextest run`, `cargo llvm-cov`, `cargo fmt
 --check`, `cargo clippy --workspace --all-targets --all-features -- -D
 warnings`  
@@ -65,7 +65,7 @@ warnings`
 **Project Type**: Rust CLI plus workspace libraries  
 **Existing System Touchpoints**: `crates/canon-engine/src/domain/publish_profile.rs`,
 `crates/canon-engine/src/orchestrator/publish.rs`,
-`docs/integration/project-memory-promotion-contract.md`,
+`tech-docs/integration/project-memory-promotion-contract.md`,
 `specs/048-project-memory-promotion-policy/contracts/` as prior design context only,
 and any docs or tests that assert current promotion semantics  
 **Performance Goals**: no measurable runtime-latency target; changes must not
@@ -80,7 +80,7 @@ Canon 0.48.0+
 `specs/048-project-memory-promotion-policy/contracts/` is treated as prior design
 context. The canonical contract for this slice is owned by
 `specs/050-project-memory-control/` and the stable published path under
-`docs/integration/`.
+`tech-docs/integration/`.
 
 ## Constitution Check
 
@@ -126,7 +126,7 @@ crates/
 │       │   └── publish_profile.rs
 │       └── orchestrator/
 │           └── publish.rs
-docs/
+tech-docs/
 └── integration/
     └── project-memory-promotion-contract.md
 specs/

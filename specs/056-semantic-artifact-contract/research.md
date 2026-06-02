@@ -12,8 +12,8 @@ eligible or rejected.
 ## Decision 1: Promote semantic semantics through a dedicated integration contract
 
 - Decision: Use a dedicated semantic contract surface that can eventually
-  promote to `docs/integration/semantic-artifact-contract.md`, while treating
-  `docs/integration/project-memory-promotion-contract.md` as the stable source
+  promote to `tech-docs/integration/semantic-artifact-contract.md`, while treating
+  `tech-docs/integration/project-memory-promotion-contract.md` as the stable source
   for publication routing, promotion state, and metadata-carrier rules.
 - Rationale: semantic eligibility and provenance are consumer-facing semantics,
   but overloading the promotion contract with retrieval-focused concerns would

@@ -10,7 +10,7 @@
 
 | Item | Owner | Status | Evidence Placeholder |
 |---|---|---|---|
-| Stable integration contract authoring | Canon maintainer | Pass | `docs/integration/delight-provider-contract.md` |
+| Stable integration contract authoring | Canon maintainer | Pass | `tech-docs/integration/delight-provider-contract.md` |
 | Feature-brief and data-model sync | Canon maintainer | Pass | `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`, `specs/057-s7-delight-provider/data-model.md` |
 | Contract-test validation harness | Canon maintainer | Pass | `tests/contract/delight_provider_contract.rs`, `tests/delight_provider_contract.rs` |
 | Cross-team Canon ↔ Boundline review | Canon + Boundline reviewers | Pass | Integrated workspace review against Boundline 060 plus Boundline consumer contract test `canon_runtime_contract::s7_delight_contract_alignment_matches_canon_provider_contract_when_available` |
@@ -37,8 +37,8 @@ Boundline review, and the required human Systemic-Impact approval evidence.
 | All six classes carry a schema-version rule | Pass | Each class declares the governing schema version or packet family version |
 | All six classes carry `degradation_conditions` | Pass | Listed per class in contracts/delight-provider-contract.md |
 | All six classes carry `required_metadata` with `degradation_state` | Pass | Shared fields table + per-class fields in data-model.md |
-| `stable_doc` path in contract identity matches planned publish target | Pass | `docs/integration/delight-provider-contract.md` |
-| Feature-local brief does not supersede stable doc per authority rules | Pass | Brief in `specs/057-s7-delight-provider/contracts/`; stable in `docs/integration/` |
+| `stable_doc` path in contract identity matches planned publish target | Pass | `tech-docs/integration/delight-provider-contract.md` |
+| Feature-local brief does not supersede stable doc per authority rules | Pass | Brief in `specs/057-s7-delight-provider/contracts/`; stable in `tech-docs/integration/` |
 | Existing integration contracts referenced and not duplicated | Pass | `governed-expertise-input-contract.md`, `project-memory-promotion-contract.md` referenced, not re-declared |
 | `Out Of Scope` section explicitly excludes Boundline UX concerns | Pass | Section present in contracts/ brief |
 | Amendment procedure requires cross-team acknowledgment | Pass | Two-step procedure in contracts/ brief and research.md Q6 |
@@ -88,7 +88,7 @@ Boundline review, and the required human Systemic-Impact approval evidence.
 
 | Evidence | Status | Notes |
 |---|---|---|
-| Stable doc created at `docs/integration/delight-provider-contract.md` | Pass | T005 complete |
+| Stable doc created at `tech-docs/integration/delight-provider-contract.md` | Pass | T005 complete |
 | Contract-test scaffold created at `tests/contract/delight_provider_contract.rs` | Pass | T006 complete |
 | Baseline identity sync assertions | Pass | `cargo test --test delight_provider_contract` passes with stable-doc and feature-brief identity checks |
 
@@ -104,7 +104,7 @@ hold the shared delight-provider helpers.
 
 | Evidence | Status | Notes |
 |---|---|---|
-| Six-class inventory published in the stable integration doc | Pass | `docs/integration/delight-provider-contract.md` lists `packets`, `approval-states`, `readiness-signals`, `security-findings`, `audit-findings`, and `promotion-references` |
+| Six-class inventory published in the stable integration doc | Pass | `tech-docs/integration/delight-provider-contract.md` lists `packets`, `approval-states`, `readiness-signals`, `security-findings`, `audit-findings`, and `promotion-references` |
 | Six-class inventory synced into the feature-local brief | Pass | `specs/057-s7-delight-provider/contracts/delight-provider-contract.md` is aligned with the stable doc |
 | US1 contract inventory decision recorded | Pass | D-013 in `specs/057-s7-delight-provider/decision-log.md` |
 | US1 contract tests passed | Pass | `cargo test --test delight_provider_contract` passed with class-inventory and metadata assertions |
@@ -115,7 +115,7 @@ hold the shared delight-provider helpers.
 
 | Evidence | Status | Notes |
 |---|---|---|
-| Compatibility signaling section finalized in the stable integration doc | Pass | `docs/integration/delight-provider-contract.md` defines all five compatibility states |
+| Compatibility signaling section finalized in the stable integration doc | Pass | `tech-docs/integration/delight-provider-contract.md` defines all five compatibility states |
 | Compatibility signaling synced into the feature-local brief | Pass | `specs/057-s7-delight-provider/contracts/delight-provider-contract.md` carries the same five-state table |
 | Degradation and versioning decision recorded | Pass | D-014 in `specs/057-s7-delight-provider/decision-log.md` |
 | US2 contract tests passed | Pass | `cargo test --test delight_provider_contract` passed with compatibility and schema-versioning assertions |
@@ -126,7 +126,7 @@ hold the shared delight-provider helpers.
 
 | Evidence | Status | Notes |
 |---|---|---|
-| Amendment procedure remains explicit in the stable integration doc | Pass | `docs/integration/delight-provider-contract.md` defines the four-step amendment flow |
+| Amendment procedure remains explicit in the stable integration doc | Pass | `tech-docs/integration/delight-provider-contract.md` defines the four-step amendment flow |
 | Deprecated-class handling remains explicit even with no current deprecated entries | Pass | `Deprecated Classes` section and `removal_epoch` handling remain present in both contract docs |
 | Stable doc and feature brief stay synchronized | Pass | `cargo test --test delight_provider_contract` compares the two documents directly |
 | US3 contract tests passed | Pass | `cargo test --test delight_provider_contract` passed with amendment, deprecation, and drift assertions |

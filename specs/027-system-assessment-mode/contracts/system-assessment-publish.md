@@ -10,13 +10,13 @@ Define the repository-visible publish destination for completed
 Completed or publishable `system-assessment` runs MUST publish under:
 
 ```text
-docs/architecture/assessments/<RUN_ID>/
+tech-docs/architecture/assessments/<RUN_ID>/
 ```
 
 ## Publish Rules
 
 - The publish destination MUST remain separate from
-  `docs/architecture/decisions/<RUN_ID>/` so as-is assessment is not confused
+  `tech-docs/architecture/decisions/<RUN_ID>/` so as-is assessment is not confused
   with decision packets.
 - Publishing MUST reuse the existing Canon publish flow and MUST NOT require a
   new persistence schema.

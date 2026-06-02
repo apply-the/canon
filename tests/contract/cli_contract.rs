@@ -231,7 +231,7 @@ fn run_backlog_auto_binds_canonical_input_and_emits_a_planning_packet() {
     std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
     std::fs::write(
         workspace.path().join("canon-input").join("backlog.md"),
-        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- docs/changes/auth-session.md\n- docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+        "# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Priorities\n- Ship the rollback-safe slice first.\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
     )
     .expect("backlog brief");
 

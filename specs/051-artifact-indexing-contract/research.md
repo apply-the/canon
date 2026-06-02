@@ -2,7 +2,7 @@
 
 ## Current Stable Contract Surface
 
-- `docs/integration/project-memory-promotion-contract.md` is already the
+- `tech-docs/integration/project-memory-promotion-contract.md` is already the
   normative Canon-owned stable contract for project-memory publication.
 - The stable contract already defines ownership, compatibility, target classes,
   managed-block markers, and required versus optional lineage fields.

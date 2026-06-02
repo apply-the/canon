@@ -2,7 +2,7 @@
 
 ## Decision: Keep the stable Canon reasoning-posture doc as the normative source
 
-- **Decision**: `docs/integration/governed-reasoning-posture-contract.md` remains the normative Canon-owned contract, and the new feature-local contract brief mirrors it for planning and review.
+- **Decision**: `tech-docs/integration/governed-reasoning-posture-contract.md` remains the normative Canon-owned contract, and the new feature-local contract brief mirrors it for planning and review.
 - **Rationale**: Downstream consumers need one durable contract path. A feature-local brief is useful for branch reasoning, but it should never become a second competing truth source.
 - **Alternatives considered**:
   - Use the feature-local brief as the only contract source: rejected because downstream consumers should not depend on a feature directory.
@@ -49,7 +49,7 @@
 
 ## Likely Touchpoints
 
-- `docs/integration/governed-reasoning-posture-contract.md`
+- `tech-docs/integration/governed-reasoning-posture-contract.md`
 - `tests/contract/governed_reasoning_posture_contract.rs`
 - `tests/governed_reasoning_posture_contract.rs`
 - `assistant/plugin-metadata.json`

@@ -97,14 +97,14 @@ fn incident_publish_rejects_adr_flag_without_creating_registry_files() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("incidents")
             .join(default_publish_leaf(run_id, "incident"))
             .join("packet-metadata.json")
             .exists()
     );
     assert!(
-        !workspace.path().join("docs").join("adr").exists(),
+        !workspace.path().join("tech-docs").join("adr").exists(),
         "unsupported incident publish should not create ADR files without --adr"
     );
 
@@ -116,7 +116,7 @@ fn incident_publish_rejects_adr_flag_without_creating_registry_files() {
         .stderr(predicates::str::contains("ADR export is not supported for mode `incident`"));
 
     assert!(
-        !workspace.path().join("docs").join("adr").exists(),
+        !workspace.path().join("tech-docs").join("adr").exists(),
         "unsupported incident publish should not leave ADR registry files behind"
     );
 }

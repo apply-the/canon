@@ -45,12 +45,12 @@ Completed
 
 - Reviewed `spec.md`, `plan.md`, and `tasks.md` against the implemented runtime and doc surfaces to confirm scope, risk, artifact family, and publish path stayed aligned.
 - Reviewed the final changed-file set to confirm the new mode remains recommendation-only, uses `--system-context existing`, and does not introduce non-target publish or mutation behavior.
-- Reviewed release-facing surfaces across `README.md`, `CHANGELOG.md`, `ROADMAP.md`, `docs/guides/modes.md`, `AGENTS.md`, and shared runtime-compatibility references for consistent `0.22.0` messaging.
+- Reviewed release-facing surfaces across `README.md`, `CHANGELOG.md`, `ROADMAP.md`, `tech-docs/guides/modes.md`, `AGENTS.md`, and shared runtime-compatibility references for consistent `0.22.0` messaging.
 
 ### Completed Independent Evidence
 
 - Read-only diff inspection found no claims of autonomous remediation, compliance certification, or hidden runtime authority expansion.
-- Release-surface review confirmed `docs/security-assessments/<RUN_ID>/`, canonical input binding, and `gate:risk` approval posture are described consistently.
+- Release-surface review confirmed `tech-docs/security-assessments/<RUN_ID>/`, canonical input binding, and `gate:risk` approval posture are described consistently.
 
 ## Evidence Paths
 
@@ -62,7 +62,7 @@ Completed
 - `CHANGELOG.md`
 - `ROADMAP.md`
 - `AGENTS.md`
-- `docs/guides/modes.md`
+- `tech-docs/guides/modes.md`
 - `defaults/methods/security-assessment.toml`
 - `defaults/embedded-skills/canon-security-assessment/skill-source.md`
 - `.agents/skills/canon-security-assessment/SKILL.md`

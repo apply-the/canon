@@ -3,7 +3,7 @@
 **Feature Branch**: `015-architecture-c4`
 **Created**: 2026-04-25
 **Status**: Draft
-**Input**: User description: "Strengthen the existing architecture mode by adding C4 model artifacts (system context, container, component) alongside the existing decision, invariants, boundary, and tradeoff artifacts. The mode must remain critique-first and must not collapse into diagram-only output. Authored input must drive C4 content; renderer must preserve authored sections verbatim and emit explicit Missing Authored Body markers when sections are absent. Templates and examples for the new C4 sections must ship under docs/templates/canon-input/architecture/ and docs/examples/canon-input/architecture/. Existing architecture runs that do not author C4 sections must keep working with explicit honest blockers."
+**Input**: User description: "Strengthen the existing architecture mode by adding C4 model artifacts (system context, container, component) alongside the existing decision, invariants, boundary, and tradeoff artifacts. The mode must remain critique-first and must not collapse into diagram-only output. Authored input must drive C4 content; renderer must preserve authored sections verbatim and emit explicit Missing Authored Body markers when sections are absent. Templates and examples for the new C4 sections must ship under defaults/templates/canon-input/architecture/ and tech-docs/examples/canon-input/architecture/. Existing architecture runs that do not author C4 sections must keep working with explicit honest blockers."
 
 ## Governance Context *(mandatory)*
 
@@ -16,8 +16,8 @@
 - Extend the `architecture` mode artifact contract to include C4 model artifacts: system context, container, and component views.
 - Update the renderer for architecture artifacts to extract and preserve authored C4 H2 sections verbatim, and to emit explicit `## Missing Authored Body` markers when authored content is absent.
 - Update the `canon-architecture` skill (both `defaults/embedded-skills/` and the materialized `.agents/skills/`) to require authored C4 body sections before invoking Canon.
-- Add starter templates under `docs/templates/canon-input/architecture/` that describe the required H2 sections for each C4 view.
-- Add realistic examples under `docs/examples/canon-input/architecture/` that demonstrate a credible C4 packet.
+- Add starter templates under `defaults/templates/canon-input/architecture/` that describe the required H2 sections for each C4 view.
+- Add realistic examples under `tech-docs/examples/canon-input/architecture/` that demonstrate a credible C4 packet.
 - Keep the existing decision, invariants, boundary, tradeoff, and readiness artifacts intact and emitted alongside the new C4 artifacts.
 
 **Scope Out**:
@@ -79,12 +79,12 @@ A new user wants to be able to start a credible C4-shaped architecture brief wit
 
 **Why this priority**: Without templates and examples, the new authored-body contract is hidden behind the renderer and the skill text. Templates make the contract self-evident.
 
-**Independent Test**: Confirm that `docs/templates/canon-input/architecture/brief.md` documents all required H2 sections (legacy + C4) and that `docs/examples/canon-input/architecture/brief.md` contains a complete and plausible authored brief that, if used as `--input`, would produce a fully authored C4 packet.
+**Independent Test**: Confirm that `defaults/templates/canon-input/architecture/brief.md` documents all required H2 sections (legacy + C4) and that `tech-docs/examples/canon-input/architecture/brief.md` contains a complete and plausible authored brief that, if used as `--input`, would produce a fully authored C4 packet.
 
 **Acceptance Scenarios**:
 
-1. **Given** the new template at `docs/templates/canon-input/architecture/brief.md`, **When** the user reads it, **Then** every required H2 section for the legacy artifacts and the new C4 artifacts is present with explanatory placeholders.
-2. **Given** the new example at `docs/examples/canon-input/architecture/brief.md`, **When** the user runs an `architecture` run with that file as `--input`, **Then** the packet completes with authored C4 content preserved verbatim and no missing-body markers.
+1. **Given** the new template at `defaults/templates/canon-input/architecture/brief.md`, **When** the user reads it, **Then** every required H2 section for the legacy artifacts and the new C4 artifacts is present with explanatory placeholders.
+2. **Given** the new example at `tech-docs/examples/canon-input/architecture/brief.md`, **When** the user runs an `architecture` run with that file as `--input`, **Then** the packet completes with authored C4 content preserved verbatim and no missing-body markers.
 
 ### Edge Cases
 
@@ -105,8 +105,8 @@ A new user wants to be able to start a credible C4-shaped architecture brief wit
 - **FR-004**: When an authored C4 H2 section is absent or empty, the renderer MUST emit a `## Missing Authored Body` marker section in the corresponding artifact instead of fabricating content.
 - **FR-005**: The `canon-architecture` skill MUST require the assistant to author the C4 H2 sections in the supplied brief before invoking Canon, and MUST list those required sections explicitly.
 - **FR-006**: The materialized `.agents/skills/canon-architecture/SKILL.md` MUST stay synchronized with the embedded skill source.
-- **FR-007**: A starter template MUST exist at `docs/templates/canon-input/architecture/brief.md` that documents the full required H2 section list for both legacy and C4 artifacts.
-- **FR-008**: A realistic example MUST exist at `docs/examples/canon-input/architecture/brief.md` that, when supplied as `--input`, yields a fully authored C4 packet without missing-body markers.
+- **FR-007**: A starter template MUST exist at `defaults/templates/canon-input/architecture/brief.md` that documents the full required H2 section list for both legacy and C4 artifacts.
+- **FR-008**: A realistic example MUST exist at `tech-docs/examples/canon-input/architecture/brief.md` that, when supplied as `--input`, yields a fully authored C4 packet without missing-body markers.
 - **FR-009**: The architecture mode MUST remain critique-first; the run MUST NOT skip emission of the existing decision, invariants, tradeoff, boundary, or readiness artifacts in favor of the new C4 artifacts.
 - **FR-010**: The C4 artifacts MUST be inspectable through `canon inspect artifacts` and publishable through `canon publish` using the existing architecture publish destination, without changes to run identity or publish layout.
 - **FR-011**: Existing architecture tests MUST continue to pass; the C4 expansion MUST NOT regress decisions, invariants, tradeoffs, boundary, or readiness artifact rendering.
@@ -126,7 +126,7 @@ A new user wants to be able to start a credible C4-shaped architecture brief wit
 - **SC-002**: An architecture run with a brief that omits any C4 section produces a C4 artifact for that section with an explicit `## Missing Authored Body` marker.
 - **SC-003**: All existing architecture runtime, contract, and renderer tests continue to pass after the C4 expansion.
 - **SC-004**: The `canon inspect artifacts` output for an architecture run with the example brief lists eight artifacts (five legacy + three C4) under the architecture artifact set.
-- **SC-005**: The starter template at `docs/templates/canon-input/architecture/brief.md` enumerates every required H2 section for both legacy and C4 artifacts.
+- **SC-005**: The starter template at `defaults/templates/canon-input/architecture/brief.md` enumerates every required H2 section for both legacy and C4 artifacts.
 
 ## Validation Plan *(mandatory)*
 

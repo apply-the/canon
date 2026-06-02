@@ -5,7 +5,7 @@
 - `crates/canon-engine/src/domain/mode.rs` already defines `DomainLanguage` and `DomainModel` plus their current mode profiles and artifact families.
 - `crates/canon-engine/src/domain/publish_profile.rs` already defines lineage fields, metadata carriers, and indexable artifact classes for Canon publication.
 - `crates/canon-engine/src/orchestrator/publish.rs` already emits packet metadata and repo-visible sidecars for governed output.
-- `docs/integration/project-memory-promotion-contract.md` already governs Canon publication and lineage semantics for repo-visible promotion.
+- `tech-docs/integration/project-memory-promotion-contract.md` already governs Canon publication and lineage semantics for repo-visible promotion.
 
 ## Boundaries Confirmed During Planning
 
@@ -26,5 +26,5 @@
 - `crates/canon-engine/src/domain/mode.rs`
 - `crates/canon-engine/src/domain/publish_profile.rs`
 - `crates/canon-engine/src/orchestrator/publish.rs`
-- `docs/integration/project-memory-promotion-contract.md`
-- `docs/integration/governed-expertise-input-contract.md`
+- `tech-docs/integration/project-memory-promotion-contract.md`
+- `tech-docs/integration/governed-expertise-input-contract.md`

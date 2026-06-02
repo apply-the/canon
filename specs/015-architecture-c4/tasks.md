@@ -30,7 +30,7 @@
 
 - [x] T005 Verify `cargo +1.96.0 build --workspace` builds clean before starting
 - [x] T006 Verify `cargo test --workspace` passes before starting (baseline)
-- [x] T007 [P] Confirm directories `docs/templates/canon-input/architecture/` and `docs/examples/canon-input/architecture/` exist (create if missing)
+- [x] T007 [P] Confirm directories `defaults/templates/canon-input/architecture/` and `tech-docs/examples/canon-input/architecture/` exist (create if missing)
 
 ---
 
@@ -49,7 +49,7 @@
 
 **Goal**: emit `system-context.md`, `container-view.md`, and `component-view.md` alongside the existing five legacy artifacts when the brief authors the C4 sections.
 
-**Independent Test**: run `architecture` with `docs/examples/canon-input/architecture/brief.md` (after T020) as `--input` and confirm 8 artifacts are produced, with the three C4 artifact bodies matching the brief sections verbatim.
+**Independent Test**: run `architecture` with `tech-docs/examples/canon-input/architecture/brief.md` (after T020) as `--input` and confirm 8 artifacts are produced, with the three C4 artifact bodies matching the brief sections verbatim.
 
 ### Validation for User Story 1 (MANDATORY)
 
@@ -91,17 +91,17 @@
 
 **Goal**: ship a starter template and a realistic example for the architecture brief, including the new C4 sections, so users can author a credible packet without already knowing the contract.
 
-**Independent Test**: read `docs/templates/canon-input/architecture/brief.md` and confirm every required H2 section is present; run `architecture` with `docs/examples/canon-input/architecture/brief.md` and confirm a fully authored 8-artifact packet with no missing-body markers.
+**Independent Test**: read `defaults/templates/canon-input/architecture/brief.md` and confirm every required H2 section is present; run `architecture` with `tech-docs/examples/canon-input/architecture/brief.md` and confirm a fully authored 8-artifact packet with no missing-body markers.
 
 ### Validation for User Story 3 (MANDATORY)
 
-- [x] T020 [P] [US3] Add `tests/architecture_c4_docs.rs` that opens `docs/templates/canon-input/architecture/brief.md` and asserts it contains every required H2 section (`## Decisions`, `## Invariants`, `## Tradeoffs`, `## Boundaries`, `## Readiness`, `## System Context`, `## Containers`, `## Components`).
-- [x] T021 [P] [US3] Extend the same test or add a sibling test that reads `docs/examples/canon-input/architecture/brief.md` and asserts it contains the same required H2 sections plus authored bodies (non-empty after trimming).
+- [x] T020 [P] [US3] Add `tests/architecture_c4_docs.rs` that opens `defaults/templates/canon-input/architecture/brief.md` and asserts it contains every required H2 section (`## Decisions`, `## Invariants`, `## Tradeoffs`, `## Boundaries`, `## Readiness`, `## System Context`, `## Containers`, `## Components`).
+- [x] T021 [P] [US3] Extend the same test or add a sibling test that reads `tech-docs/examples/canon-input/architecture/brief.md` and asserts it contains the same required H2 sections plus authored bodies (non-empty after trimming).
 
 ### Implementation for User Story 3
 
-- [x] T022 [US3] Create `docs/templates/canon-input/architecture/brief.md` with all required H2 sections and explanatory placeholders for each.
-- [x] T023 [US3] Create `docs/examples/canon-input/architecture/brief.md` with a realistic, non-trivial authored brief that exercises all eight required H2 sections.
+- [x] T022 [US3] Create `defaults/templates/canon-input/architecture/brief.md` with all required H2 sections and explanatory placeholders for each.
+- [x] T023 [US3] Create `tech-docs/examples/canon-input/architecture/brief.md` with a realistic, non-trivial authored brief that exercises all eight required H2 sections.
 - [x] T024 [US3] Update `defaults/embedded-skills/canon-architecture/skill-source.md` to add an `Author Architecture Body Before Invoking Canon` section requiring authored C4 H2 sections, mirroring the structure used in `canon-backlog`.
 - [x] T025 [US3] Mirror the embedded skill update into `.agents/skills/canon-architecture/SKILL.md` so the materialized skill stays in sync.
 - [x] T026 [US3] Update `scripts/validate-canon-skills.sh` and `scripts/validate-canon-skills.ps1` only if a new validator-required phrase is introduced. If no new validator phrase is needed, leave validators untouched (and capture that decision in the validation report).
@@ -118,7 +118,7 @@
 - [x] T028 [P] Run structural validation: `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, `/bin/bash scripts/validate-canon-skills.sh`. Record results in `specs/015-architecture-c4/validation-report.md`.
 - [x] T029 [P] Run logical validation: `cargo test --test architecture_c4_contract --test architecture_c4_renderer --test architecture_c4_run --test architecture_c4_docs` plus the existing architecture-related test suites for non-regression. Record results in `specs/015-architecture-c4/validation-report.md`.
 - [x] T030 Perform independent review by generating an architecture packet in a temp repo using the example brief, publishing it, and reading only the published markdown to confirm the artifact set, verbatim authored bodies, and unchanged legacy critique artifacts. Record findings in `specs/015-architecture-c4/validation-report.md`.
-- [x] T031 Update `ROADMAP.md` to mark `Stronger Architecture Outputs` as delivered and remove it from the candidate list. Update `docs/guides/modes.md` only if architecture-mode-facing guidance changes.
+- [x] T031 Update `ROADMAP.md` to mark `Stronger Architecture Outputs` as delivered and remove it from the candidate list. Update `tech-docs/guides/modes.md` only if architecture-mode-facing guidance changes.
 - [x] T032 Confirm invariants still hold and close the validation report (`Closeout: Passed`).
 
 ---

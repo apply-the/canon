@@ -51,11 +51,11 @@ owned surfaces.
 
 **Language/Version**: Rust 1.96.0, edition 2024  
 **Primary Dependencies**: Existing workspace dependencies `serde`, `serde_json`, `serde_yaml`, `strum`, `strum_macros`, `thiserror`, `time`, `toml`, `tracing`, `uuid`, and Rust standard-library filesystem and path APIs; no new runtime dependencies planned for this slice  
-**Storage**: Canon packet metadata and governed artifacts under `.canon/`, integration docs under `docs/integration/`, repo-facing guides under `docs/`, and feature-local planning artifacts under `specs/055-adaptive-governance/`  
+**Storage**: Canon packet metadata and governed artifacts under `.canon/`, integration docs under `tech-docs/integration/`, repo-facing guides under `tech-docs/`, and feature-local planning artifacts under `specs/055-adaptive-governance/`  
 **Testing**: `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, targeted tests for policy, mode, metadata, publish, and governance adapter surfaces, `cargo test --no-run --all-targets`, `cargo nextest run --workspace --all-features` when feasible, and modified-file coverage validation at 95% or higher  
 **Target Platform**: macOS, Linux, and Windows developer workstations and CI  
 **Project Type**: Rust CLI and library workspace  
-**Existing System Touchpoints**: `crates/canon-engine/src/domain/policy.rs`, `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/`, `docs/integration/governance-adapter.md`, related governance docs under `docs/`, and root release-facing surfaces such as `README.md`, `CHANGELOG.md`, and `Cargo.toml`  
+**Existing System Touchpoints**: `crates/canon-engine/src/domain/policy.rs`, `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/artifact.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `crates/canon-engine/src/orchestrator/service.rs`, `crates/canon-engine/src/orchestrator/service/`, `tech-docs/integration/governance-adapter.md`, related governance docs under `tech-docs/`, and root release-facing surfaces such as `README.md`, `CHANGELOG.md`, and `Cargo.toml`  
 **Performance Goals**: Downstream maintainers should be able to determine the required baseline and optional companion semantics from docs and packet metadata in under 10 minutes, and the additional semantic metadata must not materially regress governed packet publication or adapter projection performance  
 **Constraints**: Preserve Canon's semantic-authority role, keep required versus optional contract layers explicit, avoid creating a second publication channel, keep downstream runtime behavior out of Canon, and avoid panic-prone runtime logic outside tests  
 **Scale/Scope**: One required posture baseline, one optional adaptive companion contract, four governance-state terms, four rollout-profile terms, and a bounded set of touched domain, adapter, doc, and test files
@@ -112,7 +112,7 @@ crates/
 ├── canon-adapters/
 └── canon-cli/
 
-docs/
+tech-docs/
 ├── governance-semantics-and-authority-zones.md
 └── integration/
     └── governance-adapter.md

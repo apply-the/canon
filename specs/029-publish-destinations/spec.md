@@ -256,7 +256,7 @@ changelog updates, coverage for touched Rust files, `cargo clippy`, and
 - Existing run manifests already contain enough descriptive metadata to derive
   a readable publish descriptor for many packets, with a stable fallback for
   the rest.
-- The current publish family roots under `specs/` and `docs/` remain the right
+- The current publish family roots under `specs/` and `tech-docs/` remain the right
   external homes for the first slice.
 - Reviewers benefit more from a readable path plus recoverable metadata than
   from keeping the run id as the only visible path anchor.

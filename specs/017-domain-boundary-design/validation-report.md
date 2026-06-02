@@ -71,7 +71,7 @@ Each recorded validation step should capture:
 ## Documentation Evidence
 
 - **Status**: Passed
-- `docs/guides/modes.md` now documents the delivered domain-modeling authored-input contract and artifact surfaces for `system-shaping`, `architecture`, and `change`.
+- `tech-docs/guides/modes.md` now documents the delivered domain-modeling authored-input contract and artifact surfaces for `system-shaping`, `architecture`, and `change`.
 - `ROADMAP.md` now records Domain Modeling And Boundary Design as a delivered feature slice and points remaining follow-on work to the broader artifact-shape and authoring-specialization roadmap items.
 
 ## Exit Criteria

@@ -12,7 +12,7 @@ Completed
 
 - Confirmed `spec.md`, `plan.md`, `tasks.md`, `research.md`, `data-model.md`, `contracts/packet-ordering-metadata.md`, and `decision-log.md` agree on required `primary_artifact` and `artifact_order` fields, optional `publish_order` and `legacy_aliases`, and the sidecar boundary.
 - Confirmed `0.49.0` alignment across `Cargo.toml`, `Cargo.lock`, `README.md`, assistant plugin manifests, runtime-compatibility references, `CHANGELOG.md`, and `ROADMAP.md`.
-- Confirmed `docs/guides/modes.md`, `docs/templates/canon-input/domain-language.md`, `docs/templates/canon-input/domain-model.md`, and the domain examples now use ordered packet paths and explicitly distinguish `domain-language` from `domain-model`.
+- Confirmed `tech-docs/guides/modes.md`, `defaults/templates/canon-input/domain-language.md`, `defaults/templates/canon-input/domain-model.md`, and the domain examples now use ordered packet paths and explicitly distinguish `domain-language` from `domain-model`.
 - `cargo fmt`: passed.
 - `cargo fmt --check`: passed.
 - `cargo clippy --workspace --all-targets --all-features -- -D warnings`: passed.

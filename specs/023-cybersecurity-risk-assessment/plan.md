@@ -58,7 +58,7 @@ new release-only approval path
 **Testing**: focused `cargo test --test ...` coverage for the new mode, `cargo nextest run`, `cargo fmt --check`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, and `/bin/bash scripts/validate-canon-skills.sh`  
 **Target Platform**: Cross-platform local CLI workflow on macOS, Linux, and Windows  
 **Project Type**: Rust CLI workspace with governed mode orchestration, markdown artifact rendering, embedded skill sources, mirrored AI-facing skills, and integration-heavy regression tests  
-**Existing System Touchpoints**: `Cargo.toml`; `AGENTS.md`; `CHANGELOG.md`; `README.md`; `docs/guides/modes.md`; `defaults/methods/`; `defaults/embedded-skills/canon-shared/`; `crates/canon-engine/src/domain/mode.rs`; `crates/canon-engine/src/domain/gate.rs`; `crates/canon-engine/src/artifacts/contract.rs`; `crates/canon-engine/src/artifacts/markdown.rs`; `crates/canon-engine/src/orchestrator/classifier.rs`; `crates/canon-engine/src/orchestrator/gatekeeper.rs`; `crates/canon-engine/src/orchestrator/publish.rs`; `crates/canon-engine/src/orchestrator/service.rs`; `crates/canon-engine/src/orchestrator/service/`; `crates/canon-cli/src/output.rs`; `docs/templates/canon-input/`; `docs/examples/canon-input/`; `tests/`; and mirrored `.agents/skills/` surfaces  
+**Existing System Touchpoints**: `Cargo.toml`; `AGENTS.md`; `CHANGELOG.md`; `README.md`; `tech-docs/guides/modes.md`; `defaults/methods/`; `defaults/embedded-skills/canon-shared/`; `crates/canon-engine/src/domain/mode.rs`; `crates/canon-engine/src/domain/gate.rs`; `crates/canon-engine/src/artifacts/contract.rs`; `crates/canon-engine/src/artifacts/markdown.rs`; `crates/canon-engine/src/orchestrator/classifier.rs`; `crates/canon-engine/src/orchestrator/gatekeeper.rs`; `crates/canon-engine/src/orchestrator/publish.rs`; `crates/canon-engine/src/orchestrator/service.rs`; `crates/canon-engine/src/orchestrator/service/`; `crates/canon-cli/src/output.rs`; `defaults/templates/canon-input/`; `tech-docs/examples/canon-input/`; `tests/`; and mirrored `.agents/skills/` surfaces  
 **Performance Goals**: preserve current CLI responsiveness and add no mandatory external I/O beyond repository and `.canon/` filesystem access  
 **Constraints**: stay offline-capable; keep skill-source and mirrored-skill surfaces synchronized; keep recommendation-only posture explicit; keep existing mode behavior stable; finish with clean formatting, lint, and workspace test results  
 **Scale/Scope**: one new runtime mode, one new skill family, one new publish destination, several shared runtime edits, and a focused but repo-wide validation closeout
@@ -132,7 +132,7 @@ crates/canon-engine/src/
 crates/canon-cli/src/
 └── output.rs
 
-docs/
+tech-docs/
 ├── guides/modes.md
 ├── templates/canon-input/
 └── examples/canon-input/

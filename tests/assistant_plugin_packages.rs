@@ -27,7 +27,7 @@ const PACKAGE_FILES: &[&str] = &[
     "assistant/prompts/copilot-command-pack.md",
     "assistant/assets/canon-plugin-icon.svg",
     "assistant/assets/canon-plugin-logo.svg",
-    "docs/guides/assistant-plugin-packages.md",
+    "tech-docs/guides/assistant-plugin-packages.md",
 ];
 
 fn repo_root() -> PathBuf {
@@ -60,7 +60,7 @@ fn package_folders_and_docs_are_present() {
         assert!(root.join(file).is_file(), "missing package file {file}");
     }
 
-    let guide = read_text("docs/guides/assistant-plugin-packages.md");
+    let guide = read_text("tech-docs/guides/assistant-plugin-packages.md");
     for expected in [
         ".antigravity-plugin/",
         ".claude-plugin/",

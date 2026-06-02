@@ -116,7 +116,7 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
 
     let published = workspace
         .path()
-        .join("docs")
+        .join("tech-docs")
         .join("reviews")
         .join("prs")
         .join(default_publish_leaf(run_id, "pr-review"))
@@ -125,7 +125,7 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("reviews")
             .join("prs")
             .join(default_publish_leaf(run_id, "pr-review"))

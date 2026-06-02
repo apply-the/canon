@@ -2,7 +2,7 @@
 
 - **Owner**: Canon
 - **Status**: Derived, non-normative brief
-- **Normative Stable Paths**: `docs/integration/governance-adapter.md` and the delivered Canon personas or authority-zones guide
+- **Normative Stable Paths**: `tech-docs/integration/governance-adapter.md` and the delivered Canon personas or authority-zones guide
 - **Current Contract Line**: `authority-governance-v1`
 
 ## Purpose

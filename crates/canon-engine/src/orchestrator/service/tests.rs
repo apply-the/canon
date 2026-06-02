@@ -761,7 +761,7 @@ fn service_helper_branches_cover_inline_inputs_authority_and_process_failures() 
         system_context: None,
         classification: ClassificationProvenance::explicit(),
         owner: "maintainer".to_string(),
-        inputs: vec!["docs/brief.md".to_string()],
+        inputs: vec!["tech-docs/brief.md".to_string()],
         inline_inputs: vec!["inline summary".to_string(), "more detail".to_string()],
         excluded_paths: Vec::new(),
         policy_root: None,
@@ -771,7 +771,7 @@ fn service_helper_branches_cover_inline_inputs_authority_and_process_failures() 
     assert_eq!(
         request.merged_input_sources(),
         vec![
-            "docs/brief.md".to_string(),
+            "tech-docs/brief.md".to_string(),
             "inline-input-01.md".to_string(),
             "inline-input-02.md".to_string(),
         ]
@@ -1102,8 +1102,11 @@ fn build_authoring_lifecycle_summary_prefers_brief_for_directory_packets() {
         "# Implementation Brief\n\n## Task Mapping\n\n- wire auth session revocation\n",
     )
     .expect("brief");
-    std::fs::write(packet_root.join("source-map.md"), "# Source Map\n\n- docs/changes/auth.md\n")
-        .expect("source map");
+    std::fs::write(
+        packet_root.join("source-map.md"),
+        "# Source Map\n\n- tech-docs/changes/auth.md\n",
+    )
+    .expect("source map");
     std::fs::write(
         packet_root.join("selected-context.md"),
         "# Selected Context\n\n- auth/session.rs\n",
@@ -1149,8 +1152,11 @@ fn build_authoring_lifecycle_summary_keeps_ambiguous_directory_packets_explicit(
     let workspace = TempDir::new().expect("temp dir");
     let packet_root = workspace.path().join("canon-input").join("implementation");
     std::fs::create_dir_all(&packet_root).expect("packet root");
-    std::fs::write(packet_root.join("source-map.md"), "# Source Map\n\n- docs/changes/auth.md\n")
-        .expect("source map");
+    std::fs::write(
+        packet_root.join("source-map.md"),
+        "# Source Map\n\n- tech-docs/changes/auth.md\n",
+    )
+    .expect("source map");
     std::fs::write(packet_root.join("notes.md"), "# Notes\n\n- auth/session.rs\n").expect("notes");
 
     let service = EngineService::new(workspace.path());
@@ -1280,7 +1286,7 @@ fn build_run_context_extracts_upstream_context_from_folder_packet() {
     .expect("brief");
     std::fs::write(
         packet_root.join("source-map.md"),
-        "# Source Map\n\n## Upstream Sources\n\n- docs/changes/R-20260422-AUTHREVOC/change-surface.md\n- docs/changes/R-20260422-AUTHREVOC/implementation-plan.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
+        "# Source Map\n\n## Upstream Sources\n\n- tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md\n- tech-docs/changes/R-20260422-AUTHREVOC/implementation-plan.md\n\n## Carried-Forward Decisions\n\n- Revocation output formatting stays stable.\n- Contract coverage must pass before and after mutation.\n\n## Excluded Upstream Scope\n\nLogin UI flow and token issuance remain out of scope.\n",
     )
     .expect("source map");
 
@@ -1307,8 +1313,8 @@ fn build_run_context_extracts_upstream_context_from_folder_packet() {
     assert_eq!(
         upstream.source_refs,
         vec![
-            "docs/changes/R-20260422-AUTHREVOC/change-surface.md".to_string(),
-            "docs/changes/R-20260422-AUTHREVOC/implementation-plan.md".to_string(),
+            "tech-docs/changes/R-20260422-AUTHREVOC/change-surface.md".to_string(),
+            "tech-docs/changes/R-20260422-AUTHREVOC/implementation-plan.md".to_string(),
         ]
     );
     assert_eq!(
@@ -2636,7 +2642,7 @@ fn sample_refinement_context(run_id: &str, mode: Mode) -> ClarificationRefinemen
             ".canon/runs/{run_id}/artifacts/{}/working-brief.md",
             mode.as_str()
         ),
-        template_ref: format!("docs/templates/canon-input/{}.md", mode.as_str()),
+        template_ref: format!("defaults/templates/canon-input/{}.md", mode.as_str()),
         status: ClarificationRefinementStatus::Active,
         explicit_continuation_required: true,
         authoritative_input_refs: vec![format!("canon-input/{}/brief.md", mode.as_str())],
@@ -2777,7 +2783,7 @@ fn refinement_lifecycle_targeted_run_persists_structured_clarification_state() {
     .expect("requirements brief");
     std::fs::write(
         packet_root.join("context-links.md"),
-        "# Context Links\n\n- docs/decisions/run-refinement.md\n",
+        "# Context Links\n\n- tech-docs/decisions/run-refinement.md\n",
     )
     .expect("context links");
 

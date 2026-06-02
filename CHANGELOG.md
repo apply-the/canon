@@ -104,7 +104,7 @@ Delivered specs:
 
 Highlights:
 
-- Updated the stable `docs/integration/governed-reasoning-posture-contract.md`
+- Updated the stable `tech-docs/integration/governed-reasoning-posture-contract.md`
   publication to keep Canon as the owner of `governed_reasoning_posture_v1`
   while advertising the supported Boundline `0.62.x` / Canon `0.58.x`
   compatibility window.
@@ -125,7 +125,7 @@ Delivered specs:
 
 Highlights:
 
-- Added the stable `docs/integration/delight-provider-contract.md` contract so
+- Added the stable `tech-docs/integration/delight-provider-contract.md` contract so
   Boundline S7 can consume Canon-owned packets, approval states, readiness
   signals, security findings, audit findings, and promotion references without
   depending on ambient Canon semantics.
@@ -224,10 +224,10 @@ Delivered specs:
 Highlights:
 
 - Published the stable owner-side project-memory and delivery-control contract
-  under `docs/integration/project-memory-promotion-contract.md`, with aligned
+  under `tech-docs/integration/project-memory-promotion-contract.md`, with aligned
   feature-local supporting shapes for governed stage refs, promotion events,
   and evidence refs.
-- Clarified Canon-owned target mapping for `docs/project/` and `docs/evidence/`,
+- Clarified Canon-owned target mapping for `tech-docs/project/` and `tech-docs/evidence/`,
   preserved producer-neutral managed blocks, and kept Canon as the producer of
   promotion policy while Boundline remains the consumer and orchestrator.
 - Froze the lean V1 lineage set, documented additive-versus-breaking
@@ -274,9 +274,9 @@ Highlights:
 
 - Added `project-memory` publish profile for promoting governed output into
   project-visible knowledge surfaces with policy-aware routing onto named
-  Canon-owned surfaces such as `docs/project/product-context.md`,
-  `docs/project/architecture-map.md`, `docs/project/delivery-map.md`,
-  `docs/project/audit-log.md`, and `docs/project/open-risks.md`.
+  Canon-owned surfaces such as `tech-docs/project/product-context.md`,
+  `tech-docs/project/architecture-map.md`, `tech-docs/project/delivery-map.md`,
+  `tech-docs/project/audit-log.md`, and `tech-docs/project/open-risks.md`.
 - Introduced six Canon-owned promotion states (`auto`, `auto-if-approved`,
   `pending-index`, `index-only`, `evidence-only`, `manual`) that determine
   whether a packet updates stable memory, pending surfaces, evidence-only
@@ -289,7 +289,7 @@ Highlights:
   preserve human-authored content, proposal-file emission for unsafe targets,
   and append-only index updates.
 - Published versioned shared contract brief for cross-repo consumer consumption
-  at `docs/integration/project-memory-promotion-contract.md`.
+  at `tech-docs/integration/project-memory-promotion-contract.md`.
 - Added `--profile project-memory` argument to `canon publish` CLI command.
 - Bumped workspace version to `0.48.0` across all crates and assistant plugin
   manifests.
@@ -314,7 +314,7 @@ Highlights:
   model-gaps-and-risks, downstream-model-guidance, domain-model.json, and ai-provenance.
 - Both modes support `canon inspect clarity`, `canon governance capabilities --json`,
   canonical input binding (`canon-input/domain-language.md`, `canon-input/domain-model.md`),
-  and publish to `docs/domain/language/` and `docs/domain/model/` respectively.
+  and publish to `tech-docs/domain/language/` and `tech-docs/domain/model/` respectively.
 - `domain-model.json` provides a machine-readable concept model with schema_version,
   concepts, relationships, invariants, and feature_impact_rules.
 - Both modes default to `recommendation-only` execution posture.
@@ -373,7 +373,7 @@ Highlights:
 
 - Publish a standard ADR entry from `architecture` packets by default while keeping existing packet outputs authoritative.
 - Allow `change` and `migration` packets to opt into the same ADR registry during publish.
-- Keep ADR registry numbering fixed under `docs/adr/` and leave unsupported modes outside ADR publication.
+- Keep ADR registry numbering fixed under `tech-docs/adr/` and leave unsupported modes outside ADR publication.
 
 ## [0.42.0] - 2026-05-08
 
@@ -606,7 +606,7 @@ Delivered specs:
 Highlights:
 
 - Replace run-id-only default publish destinations with readable
-  date-prefixed descriptor folders under the existing `specs/` and `docs/`
+  date-prefixed descriptor folders under the existing `specs/` and `tech-docs/`
   family roots.
 - Emit `packet-metadata.json` with each published packet so run id, mode,
   risk, zone, publish timestamp, destination, and source artifact lineage stay
@@ -645,7 +645,7 @@ Highlights:
   assessment with explicit coverage, dependencies, risks, and evidence gaps.
 - Keep `system-assessment` recommendation-only, require
   `--system-context existing`, publish to
-  `docs/architecture/assessments/<RUN_ID>/`, and distinguish direct evidence
+  `tech-docs/architecture/assessments/<RUN_ID>/`, and distinguish direct evidence
   from inferred coverage and assessment gaps with explicit observed and
   inferred findings.
 - Add the new method, skill, templates, examples, compatibility references,
@@ -709,7 +709,7 @@ Highlights:
   packet covering scope, threats, risks, mitigations, assumptions, compliance
   anchors, and evidence.
 - Keep `security-assessment` recommendation-only, require
-  `--system-context existing`, publish to `docs/security-assessments/<RUN_ID>/`,
+  `--system-context existing`, publish to `tech-docs/security-assessments/<RUN_ID>/`,
   and gate systemic or red-zone packets through explicit `gate:risk` approval.
 - Add the new skill, method, templates, examples, runtime compatibility
   references, and focused contract, renderer, run, bootstrap, and

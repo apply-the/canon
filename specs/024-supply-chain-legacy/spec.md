@@ -129,7 +129,7 @@ coverage plus clean formatting and lint status for the touched surfaces.
    **Then** they all report `0.24.0` consistently for this delivery.
 3. **Given** the final closeout task list, **When** a maintainer reviews the
    last task, **Then** it explicitly requires high coverage on every Rust file
-   added or modified by this feature, updates docs/examples/roadmap surfaces,
+   added or modified by this feature, updates tech-docs/examples/roadmap surfaces,
    runs `cargo fmt`, and resolves `cargo clippy` warnings or errors.
 
 ### Edge Cases
@@ -198,7 +198,7 @@ coverage plus clean formatting and lint status for the touched surfaces.
 - **FR-013**: The new mode MUST participate in risk and readiness gating with a
   gate profile appropriate for a governed operational analysis packet.
 - **FR-014**: `canon publish` MUST publish completed or publishable
-  supply-chain-analysis packets under `docs/supply-chain/<RUN_ID>/`.
+  supply-chain-analysis packets under `tech-docs/supply-chain/<RUN_ID>/`.
 - **FR-015**: Embedded skill sources and mirrored `.agents/skills/` copies MUST
   define the same canonical authored sections, clarification rules, tool-policy
   posture, and failure guidance for `supply-chain-analysis`.
@@ -214,7 +214,7 @@ coverage plus clean formatting and lint status for the touched surfaces.
 - **FR-019**: The generated task plan MUST make the first task the explicit
   version bump to `0.24.0` across Canon release-facing surfaces.
 - **FR-020**: The generated task plan MUST make the final closeout task the
-  explicit high-coverage, docs/examples/roadmap update, `cargo fmt`, and
+  explicit high-coverage, tech-docs/examples/roadmap update, `cargo fmt`, and
   `cargo clippy` remediation step.
 - **FR-021**: Cargo manifests and release-facing repository references MUST
   report Canon version `0.24.0` consistently for this delivery.

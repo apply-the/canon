@@ -139,7 +139,7 @@ fn run_supply_chain_analysis_emits_a_reviewable_packet_and_publishes_while_appro
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("supply-chain")
             .join(default_publish_leaf(run_id, "supply-chain-analysis"))
             .join("01-analysis-overview.md")

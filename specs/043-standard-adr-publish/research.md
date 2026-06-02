@@ -8,12 +8,12 @@
   - Add ADR artifacts to the persisted runtime contract for all supported modes: rejected because it would enlarge the runtime model, gating, and storage surface for a repository publication concern.
   - Create a dedicated `adr` mode: rejected because it would duplicate already-governed decision work instead of projecting durable records from existing packets.
 
-## Decision 2: Use a fixed `docs/adr/` registry with numbered filenames
+## Decision 2: Use a fixed `tech-docs/adr/` registry with numbered filenames
 
-- **Decision**: Publish ADRs into `docs/adr/` using `ADR-XXXX-<slug>.md`, where `XXXX` is the next non-conflicting identifier derived from the existing registry.
+- **Decision**: Publish ADRs into `tech-docs/adr/` using `ADR-XXXX-<slug>.md`, where `XXXX` is the next non-conflicting identifier derived from the existing registry.
 - **Rationale**: A fixed repository-local registry matches common ADR practice, gives stable review references, and keeps durable decisions discoverable without coupling filenames to ephemeral run identifiers.
 - **Alternatives considered**:
-  - Reuse mode-specific publish folders such as `docs/architecture/decisions/`: rejected because architecture packet folders are run-scoped publish destinations, not a durable cross-run ADR register.
+  - Reuse mode-specific publish folders such as `tech-docs/architecture/decisions/`: rejected because architecture packet folders are run-scoped publish destinations, not a durable cross-run ADR register.
   - Name ADRs from run IDs or timestamps only: rejected because that weakens stable human referenceability and diverges from standard ADR numbering conventions.
 
 ## Decision 3: Make ADR export default for `architecture` and opt-in for `change` and `migration`
@@ -42,7 +42,7 @@
 
 ## Decision 6: Keep the ADR registry path fixed even when packet publish uses `--to`
 
-- **Decision**: `--to` continues to override the packet publish destination, but ADR registry output still lands in `docs/adr/`.
+- **Decision**: `--to` continues to override the packet publish destination, but ADR registry output still lands in `tech-docs/adr/`.
 - **Rationale**: The ADR register is a durable repository index, not a per-run packet destination. A fixed path keeps ADR discovery and numbering coherent even when packet consumers want custom publish folders.
 - **Alternatives considered**:
   - Mirror ADR files into the override directory: rejected because it fragments the register and weakens global numbering semantics.

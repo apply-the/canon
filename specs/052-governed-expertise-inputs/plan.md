@@ -56,11 +56,11 @@ source-level classification changes before merge.
 
 **Language/Version**: Rust 1.96.0, edition 2024  
 **Primary Dependencies**: Existing workspace dependencies including `serde`, `serde_json`, `thiserror`, `toml`, `tracing`, `uuid`, and standard-library types; no new runtime dependencies planned for this slice  
-**Storage**: `.canon/` packet metadata, repo-visible docs under `docs/integration/`, existing project-memory and evidence-facing publication surfaces, and feature-local spec artifacts under `specs/052-governed-expertise-inputs/`  
+**Storage**: `.canon/` packet metadata, repo-visible docs under `tech-docs/integration/`, existing project-memory and evidence-facing publication surfaces, and feature-local spec artifacts under `specs/052-governed-expertise-inputs/`  
 **Testing**: `cargo fmt --all`, `cargo clippy --workspace --all-targets --all-features -- -D warnings`, targeted unit tests for expertise classification and publish-profile helpers, `cargo test --no-run --all-targets`, `cargo nextest run --workspace --all-features` when feasible, and modified-file coverage validation at 95% or higher  
 **Target Platform**: macOS, Linux, and Windows developer workstations and CI  
 **Project Type**: Rust CLI and library workspace  
-**Existing System Touchpoints**: `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `docs/integration/project-memory-promotion-contract.md`, new expertise-input integration docs under `docs/integration/`, and feature-local contracts under `specs/052-governed-expertise-inputs/contracts/`  
+**Existing System Touchpoints**: `crates/canon-engine/src/domain/mode.rs`, `crates/canon-engine/src/domain/publish_profile.rs`, `crates/canon-engine/src/orchestrator/publish.rs`, `tech-docs/integration/project-memory-promotion-contract.md`, new expertise-input integration docs under `tech-docs/integration/`, and feature-local contracts under `specs/052-governed-expertise-inputs/contracts/`  
 **Performance Goals**: No material regression in publish-path responsiveness and no increase in ambiguity for downstream consumers classifying supported expertise inputs  
 **Constraints**: Preserve Canon's artifact-first boundary, avoid a second packet or runtime channel, keep Boundline behavior out of Canon, keep unsupported expertise kinds fail-closed, and avoid panic-based runtime error handling outside tests  
 **Scale/Scope**: Two initial expertise kinds, a small set of touched source files, one stable contract line, and one focused source-level classification surface for downstream consumers
@@ -110,7 +110,7 @@ crates/
 │       └── orchestrator/
 │           └── publish.rs
 
-docs/
+tech-docs/
 └── integration/
     ├── governed-expertise-input-contract.md
     └── project-memory-promotion-contract.md

@@ -580,22 +580,23 @@ mod tests {
         let verify_cli = Cli::parse_from(["canon", "verify", "--run", "run-123"]);
         assert_command!(verify_cli.command, Command::Verify { run } if run == "run-123");
 
-        let publish_cli = Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public"]);
+        let publish_cli =
+            Cli::parse_from(["canon", "publish", "run-123", "--to", "tech-docs/public"]);
         assert_command!(
             publish_cli.command,
             Command::Publish(PublishCommand { run_id, to, adr, .. })
                 if run_id == "run-123"
-                    && to == Some(std::path::PathBuf::from("docs/public"))
+                    && to == Some(std::path::PathBuf::from("tech-docs/public"))
                     && !adr
         );
 
         let publish_adr_cli =
-            Cli::parse_from(["canon", "publish", "run-123", "--to", "docs/public", "--adr"]);
+            Cli::parse_from(["canon", "publish", "run-123", "--to", "tech-docs/public", "--adr"]);
         assert_command!(
             publish_adr_cli.command,
             Command::Publish(PublishCommand { run_id, to, adr, .. })
                 if run_id == "run-123"
-                    && to == Some(std::path::PathBuf::from("docs/public"))
+                    && to == Some(std::path::PathBuf::from("tech-docs/public"))
                     && adr
         );
 

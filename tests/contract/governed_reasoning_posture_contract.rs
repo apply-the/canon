@@ -2,8 +2,10 @@ use std::error::Error;
 use std::fs;
 
 const CANON_MANIFEST_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml");
-const STABLE_CONTRACT_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/docs/integration/governed-reasoning-posture-contract.md");
+const STABLE_CONTRACT_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tech-docs/integration/governed-reasoning-posture-contract.md"
+);
 const FEATURE_LOCAL_CONTRACT_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/specs/058-governed-reasoning-posture-contract/contracts/governed-reasoning-posture-contract.md"

@@ -43,7 +43,7 @@
 ## Implementation Direction
 
 - Add typed adaptive-governance vocabulary close to existing policy and artifact metadata surfaces.
-- Project the optional companion semantics consistently through packet metadata and `docs/integration/governance-adapter.md` when emitted.
+- Project the optional companion semantics consistently through packet metadata and `tech-docs/integration/governance-adapter.md` when emitted.
 - Document the semantic boundary explicitly in Canon-owned governance docs so downstream maintainers do not need source-code inference.
 - Preserve current governed publication and lineage behavior by attaching the companion semantics to existing governed metadata surfaces instead of creating a second publication workflow.
 
@@ -55,8 +55,8 @@
 - `crates/canon-engine/src/domain/publish_profile.rs`
 - `crates/canon-engine/src/orchestrator/publish.rs`
 - `crates/canon-engine/src/orchestrator/service/`
-- `docs/integration/governance-adapter.md`
-- `docs/governance-semantics-and-authority-zones.md`
+- `tech-docs/integration/governance-adapter.md`
+- `tech-docs/governance-semantics-and-authority-zones.md`
 - `tests/governance_adapter_surface.rs`
 - `tests/mode_profiles.rs`
 - `tests/policy_and_traces.rs`

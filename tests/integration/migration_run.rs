@@ -174,7 +174,7 @@ fn run_migration_emits_a_compatibility_packet_and_publishes_after_risk_approval(
     assert!(
         workspace
             .path()
-            .join("docs")
+            .join("tech-docs")
             .join("migrations")
             .join(default_publish_leaf(run_id, "migration"))
             .join("01-source-target-map.md")

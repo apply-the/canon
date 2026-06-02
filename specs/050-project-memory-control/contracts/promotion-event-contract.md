@@ -15,10 +15,10 @@ consumer-readable shape.
   "event_type": "project_memory_promoted",
   "run_ref": "RUN-123",
   "mode": "requirements",
-  "target": "docs/project/product-context.md",
+  "target": "tech-docs/project/product-context.md",
   "strategy": "managed-blocks",
   "promotion_state": "auto-if-approved",
-  "lineage_ref": "docs/project/product-context.md#lineage",
+  "lineage_ref": "tech-docs/project/product-context.md#lineage",
   "content_digest": "sha256:..."
 }
 ```

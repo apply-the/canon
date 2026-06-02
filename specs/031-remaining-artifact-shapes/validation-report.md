@@ -31,7 +31,7 @@ Completed
 - `cargo test --test implementation_authoring_docs --test refactor_authoring_docs --test verification_authoring_docs --test persona_coverage_docs --test skills_bootstrap`
   Result: passed.
 - Repository review confirmed `Cargo.toml`, `Cargo.lock`, `README.md`,
-  `ROADMAP.md`, `docs/guides/modes.md`, `CHANGELOG.md`, and both runtime
+  `ROADMAP.md`, `tech-docs/guides/modes.md`, `CHANGELOG.md`, and both runtime
   compatibility references all report `0.31.0`.
 
 ## Logical Validation

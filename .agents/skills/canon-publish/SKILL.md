@@ -25,7 +25,7 @@ Publish a completed Canon run from chat without making the user remember the raw
 ## When To Trigger
 
 - The user explicitly wants to publish a completed Canon run.
-- The user wants the durable packet copied from `.canon/artifacts/` into `docs/`, `specs/`, or another visible destination.
+- The user wants the durable packet copied from `.canon/artifacts/` into `tech-docs/`, `specs/`, or another visible destination.
 
 ## When It Must Not Trigger
 

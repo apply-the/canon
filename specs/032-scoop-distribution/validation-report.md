@@ -20,14 +20,14 @@
   `canon-<VERSION>-scoop-manifest.json`, verifies it against the canonical
   release bundle, and uploads it with the GitHub Release assets.
 - `.github/release-notes-template.md` and
-  `docs/guides/publishing-to-scoop.md` now describe the Scoop install path,
+  `tech-docs/guides/publishing-to-scoop.md` now describe the Scoop install path,
   generated artifact, and manual bucket-submission flow.
 
 ## User Story 2 Validation Evidence
 
 - `README.md` now presents Scoop as a supported Windows install and upgrade path
   while keeping `winget` and the direct archive fallback visible.
-- `docs/guides/publishing-to-winget.md` now cross-links the parallel Scoop
+- `tech-docs/guides/publishing-to-winget.md` now cross-links the parallel Scoop
   maintainer flow and uses the current `0.32.0` version examples.
 
 ## User Story 3 Validation Evidence

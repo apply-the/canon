@@ -49,7 +49,7 @@ In the first slice, one persisted finding yields one comment entry.
 - `review-summary.md` remains present and remains the primary artifact for
   status and next-step surfaces in the first slice.
 - The new artifact publishes alongside the existing packet under
-  `docs/reviews/prs/<RUN_ID>/`.
+  `tech-docs/reviews/prs/<RUN_ID>/`.
 - Existing approval semantics for unresolved must-fix findings remain
   unchanged.
 - The artifact does not become the primary status summary in the first slice.

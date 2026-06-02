@@ -50,8 +50,8 @@
 - Completed T011 by extending `tests/system_shaping_domain_modeling_docs.rs` to treat the feature 019 contract as the source of truth for the full `system-shaping` authored packet.
 - Completed T012 by adding `tests/implementation_authoring_docs.rs` and `tests/refactor_authoring_docs.rs` to enforce canonical heading parity across contract docs, skill sources, mirrored skills, starter templates, and worked examples.
 - Completed T013 by updating the embedded skills and mirrored `.agents` skills for `system-shaping`, `implementation`, and `refactor` so they enumerate the canonical authored H2 sections and document the `## Missing Authored Body` fallback.
-- Completed T014 by converting the starter inputs under `docs/templates/canon-input/` to the canonical H2 contract for all three targeted modes.
-- Completed T015 by rewriting the worked examples under `docs/examples/canon-input/` to exercise the full authored packet contract for the targeted modes.
+- Completed T014 by converting the starter inputs under `defaults/templates/canon-input/` to the canonical H2 contract for all three targeted modes.
+- Completed T015 by rewriting the worked examples under `tech-docs/examples/canon-input/` to exercise the full authored packet contract for the targeted modes.
 - Completed T016 by recording the docs-sync decisions and focused evidence in this report and `decision-log.md`.
 
 ### Focused Docs-Sync Evidence
@@ -81,7 +81,7 @@
 
 - Completed T023 by adding `tests/mode_authoring_follow_on_docs.rs` so roadmap and mode-guide wording stay synchronized with the delivered follow-on slice and the explicit remaining scope.
 - Completed T024 by extending non-regression coverage in `tests/policy_and_traces.rs`, `tests/integration/refactor_preservation_run.rs`, and `tests/direct_runtime_coverage.rs` so canonical authored fixtures and recommendation-only posture remain explicit across trace, blocked-run, and engine-direct surfaces.
-- Completed T025 by updating `docs/guides/modes.md`, `ROADMAP.md`, and confirming `AGENTS.md` already reflected the feature 019 plan context without further edits.
+- Completed T025 by updating `tech-docs/guides/modes.md`, `ROADMAP.md`, and confirming `AGENTS.md` already reflected the feature 019 plan context without further edits.
 - Completed T026 by updating the shared execution and preservation fixtures in `tests/policy_and_traces.rs`, `tests/integration/refactor_preservation_run.rs`, and `tests/direct_runtime_coverage.rs` to use canonical H2 authored briefs.
 - Completed T027 by recording rollout, roadmap, and non-regression evidence here and in `decision-log.md`.
 - Synchronized the release surfaces by bumping the workspace version to `0.19.0`, updating `CHANGELOG.md`, and updating the shared runtime-compatibility references used by the embedded and mirrored skills.
@@ -89,7 +89,7 @@
 ### Focused Rollout Evidence
 
 - `CARGO_TARGET_DIR=target-agent cargo test --test mode_authoring_follow_on_docs`
-	- Result: 2 passed, 0 failed after synchronizing `ROADMAP.md` and `docs/guides/modes.md` with the delivered follow-on slice.
+	- Result: 2 passed, 0 failed after synchronizing `ROADMAP.md` and `tech-docs/guides/modes.md` with the delivered follow-on slice.
 - `CARGO_TARGET_DIR=target-agent cargo test --test policy_and_traces --test refactor_preservation_run --test direct_runtime_coverage`
 	- Result: 25 passed, 0 failed after converting the shared execution and preservation fixtures to canonical H2 authored briefs and reaffirming recommendation-only posture.
 

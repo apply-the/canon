@@ -3,7 +3,7 @@
 ## Decision 1: Keep existing family roots and change only the default leaf layout
 
 - **Decision**: Preserve the current external family roots such as `specs/`,
-  `docs/changes/`, `docs/reviews/prs/`, and `docs/incidents/`, and change only
+  `tech-docs/changes/`, `tech-docs/reviews/prs/`, and `tech-docs/incidents/`, and change only
   the default published leaf from `<RUN_ID>/` to
   `<YYYY-MM-DD>-<descriptor>/`.
 - **Rationale**: This delivers readable browsing paths without forcing a wider

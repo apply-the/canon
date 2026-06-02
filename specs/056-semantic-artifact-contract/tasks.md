@@ -34,7 +34,7 @@ implementation.
 
 **Purpose**: Prepare the stable and feature-local semantic contract surfaces plus reusable fixtures.
 
-- [ ] T005 Create the stable integration contract draft in `docs/integration/semantic-artifact-contract.md`
+- [ ] T005 Create the stable integration contract draft in `tech-docs/integration/semantic-artifact-contract.md`
 - [ ] T006 [P] Create semantic contract validation scaffolding in `tests/contract/semantic_artifact_contract.rs`, `tests/integration/semantic_artifact_projection.rs`, and `tests/integration/semantic_artifact_compatibility.rs`
 - [ ] T007 [P] Create semantic descriptor fixture payloads in `tests/fixtures/semantic_artifact_descriptor_v1.json` and `tests/fixtures/semantic_artifact_descriptor_excluded_v1.json`
 
@@ -50,7 +50,7 @@ implementation.
 - [x] T009 [P] Thread semantic descriptor serialization through the publish pipeline in `crates/canon-engine/src/orchestrator/publish.rs` and `crates/canon-engine/src/domain/publish_profile.rs`
 - [x] T010 [P] Extend governance projection support for semantic descriptor visibility in `crates/canon-cli/src/commands/governance/projection.rs`
 - [ ] T011 [P] Add shared contract-validation helpers for semantic descriptor fixtures in `tests/contract/semantic_artifact_contract.rs` and `tests/publish_runtime.rs`
-- [ ] T012 Align carrier terminology between existing integration contracts in `docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [ ] T012 Align carrier terminology between existing integration contracts in `tech-docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 
 **Checkpoint**: Foundation ready. Canon has typed semantic metadata primitives,
 carrier alignment, and shared validation helpers.
@@ -75,8 +75,8 @@ of scope without reading implementation code.
 ### Implementation for User Story 1
 
 - [ ] T016 [US1] Update eligible and excluded artifact-class rules in `specs/056-semantic-artifact-contract/contracts/semantic-artifact-contract.md`
-- [ ] T017 [US1] Promote the stable consumer-facing semantic contract draft in `docs/integration/semantic-artifact-contract.md`
-- [ ] T018 [US1] Align artifact-class and carrier references across Canon integration docs in `docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
+- [ ] T017 [US1] Promote the stable consumer-facing semantic contract draft in `tech-docs/integration/semantic-artifact-contract.md`
+- [ ] T018 [US1] Align artifact-class and carrier references across Canon integration docs in `tech-docs/integration/project-memory-promotion-contract.md` and `specs/051-artifact-indexing-contract/contracts/artifact-indexing-contract.md`
 - [ ] T019 [US1] Capture validation evidence for eligible versus excluded semantic surfaces in `specs/056-semantic-artifact-contract/validation-report.md`
 
 **Checkpoint**: User Story 1 should deliver a clear, producer-owned semantic
@@ -128,7 +128,7 @@ which rejection reasons downstream consumers should surface.
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Encode compatibility and rejection rules in `specs/056-semantic-artifact-contract/contracts/semantic-artifact-contract.md` and `docs/integration/semantic-artifact-contract.md`
+- [ ] T030 [US3] Encode compatibility and rejection rules in `specs/056-semantic-artifact-contract/contracts/semantic-artifact-contract.md` and `tech-docs/integration/semantic-artifact-contract.md`
 - [x] T031 [US3] Align runtime packet metadata validation with semantic contract-line checks in `crates/canon-engine/src/domain/artifact.rs` and `crates/canon-engine/src/orchestrator/publish.rs`
 - [ ] T032 [US3] Surface unsupported-contract and missing-field rejection reasons in `crates/canon-cli/src/commands/governance/projection.rs` and `specs/056-semantic-artifact-contract/validation-report.md`
 
@@ -140,7 +140,7 @@ which rejection reasons downstream consumers should surface.
 
 **Purpose**: Complete validation, documentation, and independent review.
 
-- [ ] T033 [P] Run structural contract validation and record diffs in `specs/056-semantic-artifact-contract/validation-report.md` and `docs/integration/semantic-artifact-contract.md`
+- [ ] T033 [P] Run structural contract validation and record diffs in `specs/056-semantic-artifact-contract/validation-report.md` and `tech-docs/integration/semantic-artifact-contract.md`
 - [ ] T034 [P] Run compile and targeted test validation for semantic metadata surfaces in `Cargo.toml`, `tests/contract/semantic_artifact_contract.rs`, and `tests/integration/semantic_artifact_projection.rs`
 - [ ] T035 Perform independent maintainer review and close the evidence trail in `specs/056-semantic-artifact-contract/validation-report.md`
 - [ ] T036 Update contributor guidance for the semantic contract in `README.md`, `DEVELOPER.md`, and `AGENTS.md`

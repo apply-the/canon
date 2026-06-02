@@ -50,10 +50,10 @@
 
 ## R-007: Existing publish routing is sufficient and should remain unchanged
 
-- **Decision**: Keep `crates/canon-engine/src/orchestrator/publish.rs` default destinations unchanged: `docs/implementation` for `implementation` and `docs/refactors` for `refactor`.
+- **Decision**: Keep `crates/canon-engine/src/orchestrator/publish.rs` default destinations unchanged: `tech-docs/implementation` for `implementation` and `tech-docs/refactors` for `refactor`.
 - **Rationale**: Publish already routes these modes to stable visible destinations. The missing piece is meaningful artifact content and posture-aware summaries, not destination routing.
 - **Alternatives considered**:
-  - Publish both modes under `docs/changes`. Rejected because it would collapse distinct runtime modes into one visible output channel.
+  - Publish both modes under `tech-docs/changes`. Rejected because it would collapse distinct runtime modes into one visible output channel.
   - Create a new publish command surface or alternate destination logic. Rejected because the spec forbids a parallel publish model.
 
 ## R-008: Skill promotion must follow runtime delivery, not lead it

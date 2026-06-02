@@ -1,15 +1,15 @@
 # Research: Project Memory And Delivery Control Contracts
 
-## Decision 1: Keep the canonical owner-side contract in `docs/integration/`
+## Decision 1: Keep the canonical owner-side contract in `tech-docs/integration/`
 
-- **Decision**: Keep `docs/integration/project-memory-promotion-contract.md` as
+- **Decision**: Keep `tech-docs/integration/project-memory-promotion-contract.md` as
   the stable Canon consumer-discovery path and mirror the same semantics in the
   feature-local `contracts/` directory.
 - **Rationale**: Canon already exposes integration contracts under
-  `docs/integration/`; keeping that path avoids forcing Boundline or future
+  `tech-docs/integration/`; keeping that path avoids forcing Boundline or future
   consumers to discover the current contract by searching numbered specs.
 - **Alternatives considered**:
-  - Move the stable contract to `docs/contracts/`: rejected because it creates
+  - Move the stable contract to `tech-docs/contracts/`: rejected because it creates
     a second stable convention without enough value in V1.
   - Keep the contract only under the feature-local spec: rejected because
     consumers need a stable path outside numbered feature folders.
@@ -19,7 +19,7 @@
 - **Decision**: Standardize repo-visible generated sections on a
   `project-memory:managed` marker family that includes `producer`, `source_ref`,
   and `contract_version`.
-- **Rationale**: `docs/evidence/` can legitimately contain Canon-produced and
+- **Rationale**: `tech-docs/evidence/` can legitimately contain Canon-produced and
   Boundline-produced blocks. Canon-specific markers would make mixed authorship
   look like Canon-only ownership even where that is false.
 - **Alternatives considered**:
@@ -56,9 +56,9 @@
   - Freeze the contract entirely in V1: rejected because additive evolution must
     remain possible.
 
-## Decision 5: Default to `docs/project/` and `docs/evidence/`
+## Decision 5: Default to `tech-docs/project/` and `tech-docs/evidence/`
 
-- **Decision**: Use `docs/project/` and `docs/evidence/` as the default
+- **Decision**: Use `tech-docs/project/` and `tech-docs/evidence/` as the default
   repo-visible targets for V1, with managed blocks for stable promoted content
   and proposal or pending surfaces when stable promotion is not allowed.
 - **Rationale**: The umbrella spec's main value is readable, visible project
@@ -67,5 +67,5 @@
 - **Alternatives considered**:
   - Make target paths fully configurable in V1: rejected because it expands the
     surface before the contract semantics are even stable.
-  - Co-locate all evidence inside `docs/project/`: rejected because project
+  - Co-locate all evidence inside `tech-docs/project/`: rejected because project
     memory and evidence have different credibility semantics.

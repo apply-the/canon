@@ -48,7 +48,7 @@ immediately before the penultimate complexity task.
 
 **Purpose**: Create the stable-doc and validation harness surfaces used by all stories.
 
-- [X] T005 Create `docs/integration/delight-provider-contract.md` from `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
+- [X] T005 Create `tech-docs/integration/delight-provider-contract.md` from `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
 - [X] T006 [P] Create the contract validation scaffold in `tests/contract/delight_provider_contract.rs`
 
 ---
@@ -59,7 +59,7 @@ immediately before the penultimate complexity task.
 
 **⚠️ CRITICAL**: No user story work starts until this phase is complete.
 
-- [X] T007 Align the contract identity block and publish-target references in `docs/integration/delight-provider-contract.md` and `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
+- [X] T007 Align the contract identity block and publish-target references in `tech-docs/integration/delight-provider-contract.md` and `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
 - [X] T008 [P] Normalize authorized artifact-class names, Rust anchors, and metadata vocabulary in `specs/057-s7-delight-provider/data-model.md`
 - [X] T009 [P] Normalize amendment, approval, and validation vocabulary in `specs/057-s7-delight-provider/decision-log.md` and `specs/057-s7-delight-provider/validation-report.md`
 - [X] T010 Implement baseline sync assertions for owner, contract line, primary consumer, and stable-doc path in `tests/contract/delight_provider_contract.rs`
@@ -82,7 +82,7 @@ immediately before the penultimate complexity task.
 
 ### Implementation for User Story 1
 
-- [X] T014 [US1] Finalize the authorized artifact-class inventory and metadata sections in `docs/integration/delight-provider-contract.md`
+- [X] T014 [US1] Finalize the authorized artifact-class inventory and metadata sections in `tech-docs/integration/delight-provider-contract.md`
 - [X] T015 [P] [US1] Sync the same artifact inventory and metadata field definitions in `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
 - [X] T016 [P] [US1] Sync `DelightProviderContractLine`, `DelightArtifactClass`, and `RequiredMetadataField` details in `specs/057-s7-delight-provider/data-model.md`
 - [X] T017 [US1] Capture US1 contract-evidence results in `specs/057-s7-delight-provider/validation-report.md`
@@ -104,7 +104,7 @@ immediately before the penultimate complexity task.
 
 ### Implementation for User Story 2
 
-- [X] T020 [US2] Finalize compatibility signaling and schema-versioning sections in `docs/integration/delight-provider-contract.md`
+- [X] T020 [US2] Finalize compatibility signaling and schema-versioning sections in `tech-docs/integration/delight-provider-contract.md`
 - [X] T021 [P] [US2] Sync degradation conditions and eligibility rules in `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
 - [X] T022 [P] [US2] Sync `CompatibilitySignal`, `DeprecatedArtifactClass`, and removal-epoch rules in `specs/057-s7-delight-provider/data-model.md`
 - [X] T023 [US2] Capture US2 degraded-state evidence in `specs/057-s7-delight-provider/validation-report.md`
@@ -126,7 +126,7 @@ immediately before the penultimate complexity task.
 
 ### Implementation for User Story 3
 
-- [X] T026 [US3] Finalize amendment procedure, deprecated classes, and out-of-scope boundary rules in `docs/integration/delight-provider-contract.md`
+- [X] T026 [US3] Finalize amendment procedure, deprecated classes, and out-of-scope boundary rules in `tech-docs/integration/delight-provider-contract.md`
 - [X] T027 [P] [US3] Sync `ContractAmendment` and boundary-maintenance rules in `specs/057-s7-delight-provider/data-model.md`
 - [X] T028 [P] [US3] Sync amendment and cross-repo acknowledgment rules in `specs/057-s7-delight-provider/contracts/delight-provider-contract.md`
 - [X] T029 [US3] Capture US3 validation evidence and approval-owner notes in `specs/057-s7-delight-provider/validation-report.md`
@@ -141,7 +141,7 @@ immediately before the penultimate complexity task.
 
 - [X] T030 Run the contract test suite for `tests/contract/delight_provider_contract.rs` and record structural and logical validation results in `specs/057-s7-delight-provider/validation-report.md`
 - [X] T031 Perform the independent Canon↔Boundline review and capture the Systemic-Impact human approval evidence in `specs/057-s7-delight-provider/validation-report.md`
-- [X] T032 Update `README.md`, `CHANGELOG.md`, `ROADMAP.md`, and any affected `docs/integration/*.md` references to reflect the delivered S7 delight-provider contract and remove roadmap items completed by this feature
+- [X] T032 Update `README.md`, `CHANGELOG.md`, `ROADMAP.md`, and any affected `tech-docs/integration/*.md` references to reflect the delivered S7 delight-provider contract and remove roadmap items completed by this feature
 - [X] T033 Review cyclomatic complexity and file length for modified Rust files, including `tests/contract/delight_provider_contract.rs` and any touched files under `crates/canon-engine/src/`, and refactor long functions or oversized files while preserving behavior
 - [X] T034 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings`, raise touched Rust files to at least 95% line coverage, run `cargo fmt`, and append two candidate commit messages to `specs/057-s7-delight-provider/validation-report.md`
 
@@ -226,6 +226,6 @@ Task: "Sync amendment and cross-repo acknowledgment rules in specs/057-s7-deligh
 
 ### Parallel Team Strategy
 
-1. One engineer owns the stable integration document in `docs/integration/delight-provider-contract.md`.
+1. One engineer owns the stable integration document in `tech-docs/integration/delight-provider-contract.md`.
 2. A second engineer owns sync artifacts under `specs/057-s7-delight-provider/`.
 3. A validator owns `tests/contract/delight_provider_contract.rs` and the evidence trail in `specs/057-s7-delight-provider/validation-report.md`.

@@ -121,8 +121,8 @@ reviewers, and approvers.
 ## ADR Publish Contract
 
 - `canon publish <RUN_ID>` keeps publishing only the visible migration packet by default, even when the packet is recommendation-only.
-- Use `canon publish <RUN_ID> --adr` when the operator wants one durable ADR at `docs/adr/ADR-XXXX-<slug>.md` derived from the governed migration packet.
-- `--to` changes the packet destination only; the ADR registry remains fixed under `docs/adr/`.
+- Use `canon publish <RUN_ID> --adr` when the operator wants one durable ADR at `tech-docs/adr/ADR-XXXX-<slug>.md` derived from the governed migration packet.
+- `--to` changes the packet destination only; the ADR registry remains fixed under `tech-docs/adr/`.
 - If the emitted migration packet contains `## Missing Authored Body`, missing-context markers, or downgrade language, preserve those honesty signals when describing the ADR output.
 
 ## Same-Work Continuity

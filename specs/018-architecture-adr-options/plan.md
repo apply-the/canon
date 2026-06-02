@@ -54,9 +54,9 @@ Upgrade the `architecture` mode with a tighter authored decision contract that c
 - `defaults/methods/architecture.toml`
 - `defaults/embedded-skills/canon-architecture/skill-source.md`
 - `.agents/skills/canon-architecture/SKILL.md`
-- `docs/templates/canon-input/architecture.md`
-- `docs/examples/canon-input/architecture-state-management.md`
-- `docs/guides/modes.md`
+- `defaults/templates/canon-input/architecture.md`
+- `tech-docs/examples/canon-input/architecture-state-management.md`
+- `tech-docs/guides/modes.md`
 - `ROADMAP.md`
 - `tests/contract/architecture_contract.rs`
 - `tests/contract/architecture_c4_contract.rs`
@@ -124,7 +124,7 @@ defaults/
 └── skills/
   └── canon-architecture/SKILL.md
 
-docs/
+tech-docs/
 ├── templates/canon-input/architecture.md
 ├── examples/canon-input/architecture-state-management.md
 └── guides/modes.md

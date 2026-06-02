@@ -61,7 +61,7 @@ verify the publish path, metadata sidecar, and destination surface match policy.
 
 - [x] T009 [US1] Add promotion policy evaluation function in `crates/canon-engine/src/orchestrator/publish.rs`: `evaluate_promotion_policy(mode, manifest, state, profile_config) -> PromotionState`
 - [x] T010 [US1] Extend `PublishMetadata` sidecar struct with `profile`, `promotion_state`, and `update_strategy` fields (use serde defaults where tolerant parsing is still required within the current `0.1.x` line)
-- [x] T011 [US1] Add profile-aware publish path in `publish_run`: when profile is `Some(ProjectMemory)`, evaluate promotion policy and route to appropriate destination (`docs/project/`, `docs/evidence/`, or proposal file)
+- [x] T011 [US1] Add profile-aware publish path in `publish_run`: when profile is `Some(ProjectMemory)`, evaluate promotion policy and route to appropriate destination (`tech-docs/project/`, `tech-docs/evidence/`, or proposal file)
 - [x] T012 [US1] Extend `EngineService::publish()` in `crates/canon-engine/src/orchestrator/service.rs` to accept `Option<PublishProfile>`
 - [x] T013 [US1] Add `--profile project-memory` argument to publish subcommand in `crates/canon-cli/src/main.rs`
 - [x] T014 [US1] Capture validation evidence in `specs/048-project-memory-promotion-policy/decision-log.md`
@@ -98,12 +98,12 @@ preservation.
 documentation path.
 
 **Independent Test**: Verify the stable contract document at
-`docs/integration/project-memory-promotion-contract.md` matches the accepted
+`tech-docs/integration/project-memory-promotion-contract.md` matches the accepted
 feature-local contract.
 
 ### Implementation for User Story 3
 
-- [x] T022 [US3] Copy accepted contract from `specs/048-project-memory-promotion-policy/contracts/boundline-project-memory-promotion-contract.md` to `docs/integration/project-memory-promotion-contract.md`
+- [x] T022 [US3] Copy accepted contract from `specs/048-project-memory-promotion-policy/contracts/boundline-project-memory-promotion-contract.md` to `tech-docs/integration/project-memory-promotion-contract.md`
 - [x] T023 [US3] Add a header note to the stable contract pointing back to the authoritative feature-local source
 
 ---
@@ -116,7 +116,7 @@ feature-local contract.
 - [x] T025 Run `cargo clippy --workspace --all-targets --all-features -- -D warnings` and fix any issues
 - [x] T026 Run `cargo nextest run` and verify all tests pass
 - [x] T027 Increase coverage of modified files to ≥95% using `cargo llvm-cov`
-- [x] T028 Update `docs/guides/modes.md` with project-memory publish profile documentation
+- [x] T028 Update `tech-docs/guides/modes.md` with project-memory publish profile documentation
 - [x] T029 Update `CHANGELOG.md` with 0.48.0 entry
 - [x] T030 Update `ROADMAP.md` if applicable
 
