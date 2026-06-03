@@ -103,6 +103,24 @@ pub struct ImplementationGateContext<'a> {
     pub evidence_complete: bool,
 }
 
+/// Evaluation context for Debugging mode gate checks.
+pub struct DebuggingGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
+    pub owner: &'a str,
+    /// Assigned risk class for the run.
+    pub risk: RiskClass,
+    /// Assigned usage zone for the run.
+    pub zone: UsageZone,
+    /// Approval records recorded against this run.
+    pub approvals: &'a [ApprovalRecord],
+    /// Whether the run targets a new or existing system.
+    pub system_context: Option<SystemContext>,
+    /// Whether validation and generation are performed by independent actors.
+    pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
+    pub evidence_complete: bool,
+}
+
 /// Evaluation context for Incident mode gate checks.
 pub struct IncidentGateContext<'a> {
     /// Named human owner required for high-risk/red-zone work.

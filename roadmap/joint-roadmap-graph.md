@@ -67,6 +67,7 @@ flowchart TD
     B07 -.-> B17
     
     C06 -.->|Design for| B08
+    C02 -.->|Inherits rules| C01
     B18 -.->|Enhances| C01
     C05 -.->|Pairs well| C06
 ```
@@ -86,4 +87,5 @@ flowchart TD
 6. **Canon 07 (After provider setup)**
    - Arrives at the end to close the loop on the CLI side (Canon init) by gathering local routing choices, delegating execution back to Boundline.
 7. **Independent Features (Canon 01, 04, 05, 06 & Boundline 08-12, 16)**
-   - These features cover autonomous workflows, policy, observability, and advanced orchestrator additions. They do not block the core engine loop and can be parallelized based on priority.
+   - These features cover autonomous workflows, policy, observability, and advanced orchestrator additions. They do not block the core engine loop and can be parallelized based on priority. 
+   - *(Note on Canon 01: It has a soft dependency on Canon 02. While it can start immediately without hard blockers, once Canon 02 lands, Canon 01 will automatically inherit its rigid verification gates).*

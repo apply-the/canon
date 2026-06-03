@@ -132,6 +132,7 @@ explicitly reroute the packet to `discovery`, `requirements`, or
 - [`verification`](#mode-verification): challenge claims, evidence, contracts, or quality signals directly.
 - [`pr-review`](#mode-pr-review): review a real diff or worktree instead of a file-backed authored packet.
 - [`incident`](#mode-incident): capture incident framing, blast radius, containment, and follow-up actions.
+- [`debugging`](#mode-debugging): systematic troubleshooting and root cause isolation with red-to-green verification.
 - [`security-assessment`](#mode-security-assessment): assess threats, risks, mitigations, and security gaps for an existing system.
 - [`system-assessment`](#mode-system-assessment): evaluate the current system state, architecture views, and observed or inferred findings.
 - [`migration`](#mode-migration): plan a bounded move from source to target with sequencing, compatibility, and fallback.

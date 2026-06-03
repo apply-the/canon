@@ -4,6 +4,8 @@ pub mod architecture;
 pub mod backlog;
 /// Change mode execution logic.
 pub mod change;
+/// Debugging mode execution logic.
+pub mod debugging;
 /// Discovery mode execution logic.
 pub mod discovery;
 /// Implementation mode execution logic.

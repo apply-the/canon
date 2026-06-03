@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-06-01
+Auto-generated from all feature plans. Last updated: 2026-06-03
 
 ## Governing Constitution
 
@@ -13,6 +13,7 @@ Auto-generated from all feature plans. Last updated: 2026-06-01
 ## Active Technologies
 - Rust 1.96.0, Edition 2024; Markdown planning artifacts + workspace crates `canon-cli` and `canon-engine`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, and `tracing`; planned `ratatui` plus `crossterm` for the full-screen init UI; existing `assert_cmd` and `tempfile` for CLI validation (063-interactive-init-ui)
 - `.canon/` runtime scaffolding in the target workspace; planning and contract artifacts under `specs/063-interactive-init-ui/` (063-interactive-init-ui)
+- Rust 1.96.0, Edition 2024 + clap, serde, serde_json, serde_yaml, tracing, thiserror (067-systematic-debugging)
 
 - Rust 1.96.0, Edition 2024
 - `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`
@@ -74,9 +75,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 067-systematic-debugging: Added Rust 1.96.0, Edition 2024 + clap, serde, serde_json, serde_yaml, tracing, thiserror
 - 063-interactive-init-ui: Added Rust 1.96.0, Edition 2024; Markdown planning artifacts + workspace crates `canon-cli` and `canon-engine`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, and `tracing`; planned `ratatui` plus `crossterm` for the full-screen init UI; existing `assert_cmd` and `tempfile` for CLI validation
 - 062-clarify-run-refinement: Added Rust 1.96.0, Edition 2024; Markdown documentation and templates; existing Spec Kit shell helpers + workspace crates `canon-engine`, `canon-cli`, `canon-adapters`; existing `clap`, `serde`, `serde_json`, `serde_yaml`, `toml`, `thiserror`, `tracing`, `uuid`, and `time`; repo-local methods, templates, and skill-source documents
-- 061-skill-runtime-contracts: Added Bash 5.x (macOS/Linux), PowerShell 7.x (cross-platform) + `jq` (JSON validation), `canon` CLI (version
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend

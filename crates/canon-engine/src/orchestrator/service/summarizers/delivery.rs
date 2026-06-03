@@ -502,3 +502,71 @@ pub(super) fn summarize_migration_mode_result(
         action_chips: Vec::new(),
     })
 }
+
+pub(super) fn summarize_debugging_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary = artifacts.iter().find(|artifact| artifact.record.slug() == "context-map.md")?;
+
+    let defect_description = extract_context_section(&primary.contents, "Defect Description")
+        .unwrap_or_else(|| "NOT CAPTURED - Defect description is missing.".to_string());
+
+    let missing_context_markers = count_missing_context_markers([&defect_description]);
+
+    let headline = packet_output_quality_headline(
+        "Debugging",
+        missing_context_markers,
+        0,
+        "",
+        "bounded debugging execution",
+    );
+    let artifact_packet_summary = if missing_context_markers == 0 {
+        format!(
+            "{} Packet captures defect: {}.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
+            truncate_context_excerpt(&defect_description, 120)
+        )
+    } else {
+        format!(
+            "{} Defect description is missing.",
+            packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
+        )
+    };
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: None,
+        primary_artifact_title: "Context Map".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&defect_description, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+#[cfg(test)]
+mod debugging_summarizer_tests {
+    use super::*;
+    use crate::domain::artifact::ArtifactRecord;
+    use crate::persistence::store::PersistedArtifact;
+
+    #[test]
+    fn test_summarize_debugging_mode_result_missing_description() {
+        let artifact = PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "01-context-map.md".to_string(),
+                relative_path: "debugging/01-context-map.md".to_string(),
+                format: crate::domain::artifact::ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Context Map\nNo description here.".to_string(),
+        };
+        let summary = summarize_debugging_mode_result(&[artifact]).unwrap();
+        assert!(summary.result_excerpt.contains("NOT CAPTURED"));
+        assert!(summary.artifact_packet_summary.contains("Defect description is missing"));
+    }
+}

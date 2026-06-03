@@ -253,7 +253,7 @@ impl EngineService {
             | Mode::Backlog
             | Mode::DomainLanguage
             | Mode::DomainModel => RefinementWorkflowFamily::Planning,
-            Mode::Implementation | Mode::Refactor | Mode::Migration => {
+            Mode::Implementation | Mode::Refactor | Mode::Migration | Mode::Debugging => {
                 RefinementWorkflowFamily::Execution
             }
             Mode::Incident
@@ -314,6 +314,7 @@ impl EngineService {
             | Mode::Implementation
             | Mode::Refactor
             | Mode::Migration
+            | Mode::Debugging
             | Mode::Incident
             | Mode::Review
             | Mode::Verification

@@ -60,6 +60,7 @@ impl EngineService {
                 self.run_supply_chain_analysis(&store, request, policy_set)
             }
             Mode::Implementation => self.run_implementation(&store, request, policy_set),
+            Mode::Debugging => self.run_debugging(&store, request, policy_set),
             Mode::Migration => self.run_migration(&store, request, policy_set),
             Mode::Refactor => self.run_refactor(&store, request, policy_set),
             Mode::Architecture => self.run_architecture(&store, request, policy_set),
@@ -597,7 +598,7 @@ impl EngineService {
     ) -> bool {
         match mode {
             Mode::Change => artifacts_empty,
-            Mode::Implementation | Mode::Refactor => {
+            Mode::Implementation | Mode::Refactor | Mode::Debugging => {
                 execution_continuation_pending(context, approvals)
             }
             _ => false,

@@ -704,3 +704,49 @@ pub fn evaluate_domain_model_gates(
 ) -> Vec<GateEvaluation> {
     analysis_mode_gate_set(contract, artifacts, DOMAIN_MODEL_ANALYSIS_SPEC, context)
 }
+
+/// Evaluates the gate set for a Debugging mode run.
+pub fn evaluate_debugging_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: DebuggingGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    vec![
+        rules::named_artifact_gate(
+            GateKind::Exploration,
+            contract,
+            artifacts,
+            &["context-map.md"],
+            "debugging exploration requires a bounded context map",
+        ),
+        rules::named_artifact_gate(
+            GateKind::Reproduction,
+            contract,
+            artifacts,
+            &["reproduction-harness.md"],
+            "debugging requires an explicit reproduction harness",
+        ),
+        rules::named_artifact_gate(
+            GateKind::RootCause,
+            contract,
+            artifacts,
+            &["root-cause-isolation.md", "fix-application.md"],
+            "debugging requires root cause isolation and fix application evidence",
+        ),
+        rules::approval_aware_risk_gate(
+            context.owner,
+            context.risk,
+            context.zone,
+            context.approvals,
+            "systemic-impact or red-zone debugging work requires explicit approval before it can proceed",
+        ),
+        rules::analysis_release_readiness_gate(
+            GateKind::ReleaseReadiness,
+            contract,
+            artifacts,
+            context.validation_independence_satisfied,
+            context.evidence_complete,
+            "debugging readiness requires persisted context, critique, and verification evidence",
+        ),
+    ]
+}

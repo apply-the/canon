@@ -209,8 +209,9 @@ pub use authoring::{
     render_requirements_artifact_from_evidence, render_system_shaping_artifact,
 };
 pub use delivery::{
-    render_backlog_artifact, render_change_artifact, render_implementation_artifact,
-    render_incident_artifact, render_migration_artifact, render_refactor_artifact,
+    render_backlog_artifact, render_change_artifact, render_debugging_artifact,
+    render_implementation_artifact, render_incident_artifact, render_migration_artifact,
+    render_refactor_artifact,
 };
 pub use domain::{render_domain_language_artifact, render_domain_model_artifact};
 pub use governance::{
