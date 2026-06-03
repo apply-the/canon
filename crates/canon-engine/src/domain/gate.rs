@@ -26,6 +26,12 @@ pub enum GateKind {
     IncidentContainment,
     /// Safety of data or system migration.
     MigrationSafety,
+    /// Verification that a bug has been reproduced.
+    Reproduction,
+    /// Verification that a failing test was written before the fix.
+    TestDrivenDevelopment,
+    /// Verification that the fix addresses the true root cause.
+    RootCause,
 }
 
 impl GateKind {
@@ -52,6 +58,9 @@ impl std::str::FromStr for GateKind {
             }
             "incident-containment" | "IncidentContainment" => Ok(Self::IncidentContainment),
             "migration-safety" | "MigrationSafety" => Ok(Self::MigrationSafety),
+            "reproduction" | "Reproduction" => Ok(Self::Reproduction),
+            "test-driven-development" | "TestDrivenDevelopment" => Ok(Self::TestDrivenDevelopment),
+            "root-cause" | "RootCause" => Ok(Self::RootCause),
             other => Err(format!("unsupported gate kind: {other}")),
         }
     }
@@ -108,6 +117,9 @@ mod tests {
             ),
             (GateKind::IncidentContainment, "incident-containment", "IncidentContainment"),
             (GateKind::MigrationSafety, "migration-safety", "MigrationSafety"),
+            (GateKind::Reproduction, "reproduction", "Reproduction"),
+            (GateKind::TestDrivenDevelopment, "test-driven-development", "TestDrivenDevelopment"),
+            (GateKind::RootCause, "root-cause", "RootCause"),
         ];
 
         for (gate, kebab, pascal) in cases {

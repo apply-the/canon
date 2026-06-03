@@ -55,6 +55,7 @@ pub(super) fn default_update_strategy_for(mode: Mode) -> UpdateStrategy {
         | Mode::Change
         | Mode::Implementation
         | Mode::Refactor
+        | Mode::Debugging
         | Mode::DomainLanguage
         | Mode::DomainModel => UpdateStrategy::ManagedBlocks,
         Mode::Incident | Mode::Migration => UpdateStrategy::ProposalFiles,
@@ -95,7 +96,7 @@ pub(super) fn stable_project_memory_surface(mode: Mode) -> &'static str {
         Mode::Requirements => "tech-docs/project/product-context.md",
         Mode::SystemShaping | Mode::Architecture => "tech-docs/project/architecture-map.md",
         Mode::Change | Mode::Migration => "tech-docs/project/decision-index.md",
-        Mode::Backlog | Mode::Implementation | Mode::Refactor => {
+        Mode::Backlog | Mode::Implementation | Mode::Refactor | Mode::Debugging => {
             "tech-docs/project/delivery-map.md"
         }
         Mode::DomainLanguage => "tech-docs/project/domain-language.md",

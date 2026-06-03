@@ -60,7 +60,7 @@ These are the commands you'll actually use every day:
 
 | Command | What it does |
 |---|---|
-| `canon run` | Start a new governed session with explicit boundaries. |
+| `canon run` | Start a new governed session with explicit boundaries. Available modes include `requirements`, `architecture`, `debugging`, `change`, `incident`, and more. |
 | `canon status` | See exactly what the agent is doing right now. |
 | `canon inspect` | Review generated evidence and artifacts. |
 | `canon approve` | Unblock a session that hit a governance gate. |

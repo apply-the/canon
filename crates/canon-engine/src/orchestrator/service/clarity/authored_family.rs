@@ -22,7 +22,9 @@ pub(super) fn authored_clarity_family(mode: Mode) -> AuthoredClarityFamily {
         Mode::SystemShaping | Mode::Architecture | Mode::Change | Mode::Backlog => {
             AuthoredClarityFamily::Planning
         }
-        Mode::Implementation | Mode::Refactor | Mode::Migration => AuthoredClarityFamily::Execution,
+        Mode::Implementation | Mode::Refactor | Mode::Migration | Mode::Debugging => {
+            AuthoredClarityFamily::Execution
+        }
         Mode::Review
         | Mode::Verification
         | Mode::Incident

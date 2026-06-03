@@ -41,6 +41,13 @@ const REGRESSION_EVIDENCE_MD: &str = "regression-evidence.md";
 const CONTRACT_DRIFT_CHECK_MD: &str = "contract-drift-check.md";
 const NO_FEATURE_ADDITION_MD: &str = "no-feature-addition.md";
 
+// Debugging
+const CONTEXT_MAP_MD: &str = "context-map.md";
+const REPRODUCTION_HARNESS_MD: &str = "reproduction-harness.md";
+const ROOT_CAUSE_ISOLATION_MD: &str = "root-cause-isolation.md";
+const FIX_APPLICATION_MD: &str = "fix-application.md";
+const VERIFICATION_SUMMARY_MD: &str = "verification-summary.md";
+
 // ── Mode contracts ────────────────────────────────────────────────────────────
 
 /// Returns the artifact requirements for the [`Backlog`](crate::domain::mode::Mode::Backlog) mode.
@@ -219,6 +226,37 @@ pub(super) fn refactor() -> Vec<ArtifactRequirement> {
             NO_FEATURE_ADDITION_MD,
             &[SUMMARY, "Feature Audit", DECISION],
             &[GateKind::ChangePreservation, GateKind::ReleaseReadiness],
+        ),
+    ]
+}
+
+/// Returns the artifact requirements for the [`Debugging`](crate::domain::mode::Mode::Debugging) mode.
+pub(super) fn debugging() -> Vec<ArtifactRequirement> {
+    vec![
+        requirement(
+            CONTEXT_MAP_MD,
+            &[SUMMARY, "Context Map", "Defect Description", "Stakeholder Impact"],
+            &[GateKind::Exploration, GateKind::Risk],
+        ),
+        requirement(
+            REPRODUCTION_HARNESS_MD,
+            &[SUMMARY, "Reproduction Harness", "Red State Verification"],
+            &[GateKind::Reproduction, GateKind::TestDrivenDevelopment],
+        ),
+        requirement(
+            ROOT_CAUSE_ISOLATION_MD,
+            &[SUMMARY, "Root Cause Isolation", "Fault Chain", "Isolation Proof"],
+            &[GateKind::RootCause, GateKind::Architecture],
+        ),
+        requirement(
+            FIX_APPLICATION_MD,
+            &[SUMMARY, "Fix Application", "Bounded Changes", "Invariant Preservation"],
+            &[GateKind::RootCause, GateKind::ReleaseReadiness],
+        ),
+        requirement(
+            VERIFICATION_SUMMARY_MD,
+            &[SUMMARY, "Verification Summary", "Green State", "No Regression Evidence"],
+            &[GateKind::ReleaseReadiness, GateKind::TestDrivenDevelopment],
         ),
     ]
 }

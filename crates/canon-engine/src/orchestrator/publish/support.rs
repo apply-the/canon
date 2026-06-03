@@ -133,5 +133,16 @@ pub(super) fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::SupplyChainAnalysis => "tech-docs/supply-chain",
         Mode::DomainLanguage => "tech-docs/domain/language",
         Mode::DomainModel => "tech-docs/domain/model",
+        Mode::Debugging => "tech-docs/debugging",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_publish_directory_covers_debugging() {
+        assert_eq!(default_publish_directory(Mode::Debugging), "tech-docs/debugging");
     }
 }

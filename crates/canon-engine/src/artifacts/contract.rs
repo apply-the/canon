@@ -57,6 +57,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         Mode::Migration => operations::migration(),
         Mode::DomainLanguage => domain::domain_language(),
         Mode::DomainModel => domain::domain_model(),
+        Mode::Debugging => delivery::debugging(),
     };
 
     build_contract(files)

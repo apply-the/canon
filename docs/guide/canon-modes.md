@@ -32,6 +32,7 @@ Below is a list of the primary modes available in Canon, based on the default te
 
 ### Operations
 - **`incident`**: Capture incident reports, root cause analyses, and remediation actions.
+- **`debugging`**: Systematic troubleshooting and root cause isolation with red-to-green verification.
 - **`system-shaping`**: Govern broad, cross-cutting structural adjustments or organizational engineering alignments.
 
 ## Choosing a Mode

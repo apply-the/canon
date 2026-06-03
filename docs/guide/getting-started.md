@@ -4,7 +4,7 @@ For a 5-minute technical setup with commands, use the [[Quick Start|Quick-Start]
 
 This path is for a user who wants to understand Canon by running one governed packet from authored input to inspection and publication.
 
-This page is maintained against `0.63.1`.
+This page is maintained against `0.65.0`.
 
 ## What Canon Is
 

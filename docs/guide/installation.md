@@ -5,7 +5,7 @@ This page explains what needs to exist before Canon can produce governed packets
 ## CLI Installation
 
 Canon ships as a single binary named `canon`. This site content is aligned with
-**0.63.1**.
+**0.65.0**.
 
 Use the repository README as the canonical source for current installation channels:
 

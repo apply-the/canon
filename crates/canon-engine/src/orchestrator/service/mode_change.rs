@@ -28,6 +28,11 @@ fn render_change_like_artifact(
             Ok(render_implementation_artifact(file_name, brief_summary, default_owner))
         }
         Mode::Refactor => Ok(render_refactor_artifact(file_name, brief_summary, default_owner)),
+        Mode::Debugging => Ok(crate::artifacts::markdown::render_debugging_artifact(
+            file_name,
+            brief_summary,
+            default_owner,
+        )),
         other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
     }
 }
@@ -111,6 +116,15 @@ fn change_mode_request_summaries(
                 mutation_summary,
             })
         }
+        Mode::Debugging => Ok(ChangeModeRequestSummary {
+            context_request_summary: "capture debugging brief and bounded repository context",
+            context_attempt_summary: "Captured debugging brief and bounded repository context.",
+            generation_request_summary: "generate bounded debugging packet",
+            validation_request_summary: "validate debugging defect against repository context",
+            declared_execution_scope: Vec::new(),
+            mutation_summary: "propose bounded debugging guidance without mutating the workspace"
+                .to_string(),
+        }),
         other => Err(EngineError::UnsupportedMode(other.as_str().to_string())),
     }
 }
@@ -137,6 +151,16 @@ impl EngineService {
     }
 
     pub(super) fn run_refactor(
+        &self,
+        store: &WorkspaceStore,
+        request: RunRequest,
+        policy_set: crate::domain::policy::PolicySet,
+    ) -> Result<RunSummary, EngineError> {
+        let identity = self.next_unique_run_identity(store)?;
+        self.execute_change(store, request, policy_set, identity, Vec::new())
+    }
+
+    pub(super) fn run_debugging(
         &self,
         store: &WorkspaceStore,
         request: RunRequest,
@@ -240,14 +264,15 @@ impl EngineService {
                 && matches!(approval.decision, ApprovalDecision::Approve)
         });
         let execution_gate_approved = execution_gate_is_approved(&approvals);
-        let mutation_patch = if matches!(request.mode, Mode::Implementation | Mode::Refactor) {
-            self.locate_authored_mutation_patch(
-                &request.inputs,
-                &request_summaries.declared_execution_scope,
-            )?
-        } else {
-            None
-        };
+        let mutation_patch =
+            if matches!(request.mode, Mode::Implementation | Mode::Refactor | Mode::Debugging) {
+                self.locate_authored_mutation_patch(
+                    &request.inputs,
+                    &request_summaries.declared_execution_scope,
+                )?
+            } else {
+                None
+            };
 
         Self::update_mutation_decision_for_approved_execution(
             request.mode,
@@ -727,6 +752,19 @@ impl EngineService {
                     evidence_complete: true,
                 },
             ),
+            Mode::Debugging => gatekeeper::evaluate_debugging_gates(
+                artifact_contract,
+                gate_inputs,
+                gatekeeper::DebuggingGateContext {
+                    owner: &request.owner,
+                    risk: request.risk,
+                    zone: request.zone,
+                    approvals,
+                    system_context: request.system_context,
+                    validation_independence_satisfied,
+                    evidence_complete: true,
+                },
+            ),
             other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
         };
 
@@ -1085,5 +1123,30 @@ mod tests {
                 .execution_posture,
             ExecutionPosture::Mutating
         );
+    }
+}
+
+#[cfg(test)]
+mod debugging_tests {
+    use super::*;
+
+    #[test]
+    fn test_debugging_summaries() {
+        let summary = change_mode_request_summaries(Mode::Debugging, "brief").unwrap();
+        assert_eq!(
+            summary.context_request_summary,
+            "capture debugging brief and bounded repository context"
+        );
+
+        let artifact = render_change_like_artifact(
+            Mode::Debugging,
+            "context-map.md",
+            "metadata",
+            "evidence",
+            "brief",
+            "owner",
+        )
+        .unwrap();
+        assert!(artifact.contains("Context Map"));
     }
 }

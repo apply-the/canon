@@ -51,6 +51,7 @@ defines typed selector, `minimum_independence`, `confidence_handoff`,
 | `architecture` | Capture bounded structural decisions. |
 | `backlog` | Decompose approved upstream knowledge into delivery slices. |
 | `change` | Frame bounded modification in an existing system. |
+| `debugging` | Systematic troubleshooting and root cause isolation with red-to-green verification. |
 | `implementation` | Guide execution for an approved delivery slice. |
 | `refactor` | Improve structure without expanding feature scope. |
 | `review` | Assess non-PR artifacts with findings-first posture. |

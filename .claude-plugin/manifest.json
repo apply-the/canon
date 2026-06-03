@@ -1,7 +1,7 @@
 {
   "name": "canon",
   "displayName": "Canon Assistant Support for Claude Code",
-  "version": "0.64.0",
+  "version": "0.65.0",
   "description": "Canon provides semantic governance for AI-assisted engineering work: structured packets, governed evidence, approvals, lineage, project memory, and reusable delivery knowledge.",
   "author": {
     "name": "Apply The",

@@ -42,8 +42,8 @@ publication_status = "active"
 
 [compatibility_window]
 boundline_min = "0.63.0"
-boundline_max_exclusive = "0.64.0"
-canon_min = "0.64.0"
+boundline_max_exclusive = "0.65.0"
+canon_min = "0.65.0"
 canon_max_exclusive = "0.65.0"
 contract_line = "governed_reasoning_posture_v2"
 

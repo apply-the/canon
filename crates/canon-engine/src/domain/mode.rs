@@ -48,6 +48,8 @@ pub enum Mode {
     DomainLanguage,
     /// Formalize domain concepts, relationships, and invariants.
     DomainModel,
+    /// Systematically isolate and resolve defects using TDD and explicit root cause verification.
+    Debugging,
 }
 
 /// The class of governed expertise packet produced by an authoring-specialization mode.
@@ -141,6 +143,7 @@ impl Mode {
             Self::SupplyChainAnalysis => "supply-chain-analysis",
             Self::DomainLanguage => "domain-language",
             Self::DomainModel => "domain-model",
+            Self::Debugging => "debugging",
         }
     }
 
@@ -174,6 +177,7 @@ impl Mode {
             Self::SupplyChainAnalysis,
             Self::DomainLanguage,
             Self::DomainModel,
+            Self::Debugging,
         ]
     }
 }
@@ -213,6 +217,7 @@ impl std::str::FromStr for Mode {
             "supply-chain-analysis" => Ok(Self::SupplyChainAnalysis),
             "domain-language" => Ok(Self::DomainLanguage),
             "domain-model" => Ok(Self::DomainModel),
+            "debugging" => Ok(Self::Debugging),
             other => Err(format!("unsupported mode: {other}")),
         }
     }
@@ -310,6 +315,14 @@ impl Mode {
                     "single-path validation".to_string(),
                 ],
             },
+            Self::Debugging => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::DeliveryEngineer,
+                persona_anti_behaviors: vec![
+                    "symptom treating".to_string(),
+                    "unverified claims".to_string(),
+                    "change without tests".to_string(),
+                ],
+            },
             Self::Incident
             | Self::SecurityAssessment
             | Self::Migration
@@ -395,8 +408,8 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     };
     use ImplementationDepth::Full;
     use Mode::{
-        Architecture as ArchitectureMode, Backlog, Change, Discovery, DomainLanguage, DomainModel,
-        Implementation, Incident, Migration, PrReview, Refactor, Requirements, Review,
+        Architecture as ArchitectureMode, Backlog, Change, Debugging, Discovery, DomainLanguage,
+        DomainModel, Implementation, Incident, Migration, PrReview, Refactor, Requirements, Review,
         SecurityAssessment, SupplyChainAnalysis, SystemAssessment, SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
@@ -710,6 +723,26 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
+        ModeProfile {
+            mode: Debugging,
+            purpose: "Systematically identify, isolate, and verify fixes for defects.",
+            emphasis: ExecutionHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![
+                GateKind::Reproduction,
+                GateKind::TestDrivenDevelopment,
+                GateKind::RootCause,
+                ReleaseReadiness,
+            ],
+            artifact_families: vec![
+                "context map",
+                "reproduction harness",
+                "root cause isolation",
+                "fix application",
+                "verification summary",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli],
+        },
     ]
 }
 
@@ -738,6 +771,7 @@ mod tests {
             (Mode::SupplyChainAnalysis, "supply-chain-analysis", None),
             (Mode::DomainLanguage, "domain-language", Some(GovernedExpertiseKind::DomainLanguage)),
             (Mode::DomainModel, "domain-model", Some(GovernedExpertiseKind::DomainModel)),
+            (Mode::Debugging, "debugging", None),
         ];
 
         assert_eq!(
@@ -761,6 +795,7 @@ mod tests {
                 Mode::SupplyChainAnalysis,
                 Mode::DomainLanguage,
                 Mode::DomainModel,
+                Mode::Debugging,
             ]
         );
 
