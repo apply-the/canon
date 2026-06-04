@@ -1318,6 +1318,12 @@ fn canonical_project_memory_surface_map_covers_all_modes() {
             "tech-docs/project/audit-log.md",
         ),
         (
+            Mode::Brainstorming,
+            "tech-docs/project/overview.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
+        ),
+        (
             Mode::Requirements,
             "tech-docs/project/product-context.md",
             "tech-docs/project/pending-decisions.md",

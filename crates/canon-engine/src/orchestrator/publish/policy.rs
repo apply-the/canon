@@ -9,6 +9,7 @@ pub(super) fn evaluate_promotion_policy(
         (
             Mode::SystemShaping
             | Mode::Discovery
+            | Mode::Brainstorming
             | Mode::Requirements
             | Mode::DomainLanguage
             | Mode::DomainModel
@@ -52,6 +53,7 @@ pub(super) fn default_update_strategy_for(mode: Mode) -> UpdateStrategy {
         | Mode::Architecture
         | Mode::Requirements
         | Mode::Discovery
+        | Mode::Brainstorming
         | Mode::Change
         | Mode::Implementation
         | Mode::Refactor
@@ -92,7 +94,7 @@ pub(super) fn canonical_project_memory_surface(
 
 pub(super) fn stable_project_memory_surface(mode: Mode) -> &'static str {
     match mode {
-        Mode::Discovery => "tech-docs/project/overview.md",
+        Mode::Discovery | Mode::Brainstorming => "tech-docs/project/overview.md",
         Mode::Requirements => "tech-docs/project/product-context.md",
         Mode::SystemShaping | Mode::Architecture => "tech-docs/project/architecture-map.md",
         Mode::Change | Mode::Migration => "tech-docs/project/decision-index.md",

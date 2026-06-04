@@ -7,6 +7,7 @@ Modes dictate the structural requirements, required metadata, and expected evide
 Below is a list of the primary modes available in Canon, based on the default templates:
 
 ### Architecture & Domain
+- **`brainstorming`**: Explore lateral thinking, evaluate multiple conceptual approaches, and map trade-offs.
 - **`architecture`**: Capture structural decisions, architectural boundaries, and system-level trade-offs.
 - **`domain-language`**: Define the ubiquitous language and terms used across the project to maintain semantic consistency.
 - **`domain-model`**: Document entities, relationships, invariants, and boundaries for a specific bounded context.

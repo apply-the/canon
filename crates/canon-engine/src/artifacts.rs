@@ -6,6 +6,8 @@ pub mod json;
 pub mod manifest;
 /// Markdown artifact rendering functions, one per governed mode.
 pub mod markdown;
+/// OptionMap typed models for Brainstorming mode.
+pub mod option_map;
 /// YAML artifact serialization helpers.
 pub mod yaml;
 

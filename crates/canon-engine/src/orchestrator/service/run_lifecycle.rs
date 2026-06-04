@@ -310,6 +310,18 @@ impl EngineService {
                     evidence_complete,
                 },
             ),
+            Mode::Brainstorming => gatekeeper::evaluate_brainstorming_gates(
+                contract,
+                &artifact_inputs,
+                gatekeeper::BrainstormingGateContext {
+                    owner: &manifest.owner,
+                    risk: manifest.risk,
+                    zone: manifest.zone,
+                    approvals,
+                    validation_independence_satisfied,
+                    evidence_complete,
+                },
+            ),
             other => return Err(EngineError::UnsupportedMode(other.as_str().to_string())),
         };
         let mut state = run_state_from_gates(&gates);

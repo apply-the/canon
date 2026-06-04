@@ -213,3 +213,395 @@ pub(super) fn summarize_system_shaping_mode_result(
         action_chips: Vec::new(),
     })
 }
+
+pub(super) fn summarize_brainstorming_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary = artifacts.iter().find(|artifact| {
+        artifact.record.slug() == crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG
+    })?;
+    let options_artifact = artifacts.iter().find(|artifact| {
+        artifact.record.slug() == crate::modes::brainstorming::ARTIFACT_OPTIONS_SLUG
+    });
+    let tradeoffs_artifact = artifacts.iter().find(|artifact| {
+        artifact.record.slug() == crate::modes::brainstorming::ARTIFACT_TRADEOFFS_SLUG
+    });
+    let spikes_artifact = artifacts.iter().find(|artifact| {
+        artifact.record.slug() == crate::modes::brainstorming::ARTIFACT_SPIKES_SLUG
+    });
+
+    let context_summary =
+        extract_context_section(&primary.contents, crate::modes::brainstorming::HEADING_CONTEXT)
+            .or_else(|| {
+                extract_context_section(
+                    &primary.contents,
+                    crate::modes::brainstorming::HEADING_SUMMARY,
+                )
+            })
+            .unwrap_or_else(|| "NOT CAPTURED - Context summary is missing.".to_string());
+    let options = options_artifact
+        .and_then(|artifact| {
+            extract_context_section(
+                &artifact.contents,
+                crate::modes::brainstorming::HEADING_OPTIONS,
+            )
+        })
+        .unwrap_or_else(|| "NOT CAPTURED - Options section is missing.".to_string());
+    let tradeoffs = tradeoffs_artifact
+        .and_then(|artifact| {
+            extract_context_section(
+                &artifact.contents,
+                crate::modes::brainstorming::HEADING_TRADEOFFS,
+            )
+        })
+        .unwrap_or_else(|| "NOT CAPTURED - Tradeoffs section is missing.".to_string());
+    let spikes = spikes_artifact
+        .and_then(|artifact| {
+            extract_context_section(&artifact.contents, crate::modes::brainstorming::HEADING_SPIKES)
+        })
+        .unwrap_or_else(|| "NOT CAPTURED - Spikes section is missing.".to_string());
+
+    let missing_context_markers =
+        count_missing_context_markers([&context_summary, &options, &tradeoffs, &spikes]);
+    let option_count = count_markdown_entries(&options);
+    let tradeoff_count = count_markdown_entries(&tradeoffs);
+    let spike_count = count_markdown_entries(&spikes);
+
+    let headline = packet_output_quality_headline(
+        "Brainstorming",
+        missing_context_markers,
+        0,
+        "",
+        "downstream decision making or planning",
+    );
+    let artifact_packet_summary = format!(
+        "{} Packet surfaces {option_count} option(s), {tradeoff_count} tradeoff(s), and {spike_count} spike(s).",
+        packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
+    );
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: None,
+        primary_artifact_title: crate::modes::brainstorming::HEADING_CONTEXT.to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&context_summary, 320),
+        action_chips: Vec::new(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::artifact::ArtifactRecord;
+    use crate::persistence::store::PersistedArtifact;
+
+    #[test]
+    fn summarize_brainstorming_mode_result_extracts_all_sections() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG.to_string(),
+                    relative_path: format!(
+                        "artifacts/abc/brainstorming/{}",
+                        crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG
+                    ),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: format!(
+                    "# {}\n\nThis is the context.\n",
+                    crate::modes::brainstorming::HEADING_CONTEXT
+                ),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: crate::modes::brainstorming::ARTIFACT_OPTIONS_SLUG.to_string(),
+                    relative_path: format!(
+                        "artifacts/abc/brainstorming/{}",
+                        crate::modes::brainstorming::ARTIFACT_OPTIONS_SLUG
+                    ),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: format!(
+                    "# {}\n\n- Option A\n- Option B\n",
+                    crate::modes::brainstorming::HEADING_OPTIONS
+                ),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: crate::modes::brainstorming::ARTIFACT_TRADEOFFS_SLUG.to_string(),
+                    relative_path: format!(
+                        "artifacts/abc/brainstorming/{}",
+                        crate::modes::brainstorming::ARTIFACT_TRADEOFFS_SLUG
+                    ),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: format!(
+                    "# {}\n\n- Tradeoff 1\n",
+                    crate::modes::brainstorming::HEADING_TRADEOFFS
+                ),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: crate::modes::brainstorming::ARTIFACT_SPIKES_SLUG.to_string(),
+                    relative_path: format!(
+                        "artifacts/abc/brainstorming/{}",
+                        crate::modes::brainstorming::ARTIFACT_SPIKES_SLUG
+                    ),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: format!(
+                    "# {}\n\n- Spike Alpha\n",
+                    crate::modes::brainstorming::HEADING_SPIKES
+                ),
+            },
+        ];
+
+        let summary = summarize_brainstorming_mode_result(&artifacts).expect("summary");
+        assert_eq!(summary.primary_artifact_title, crate::modes::brainstorming::HEADING_CONTEXT);
+        assert!(
+            summary
+                .artifact_packet_summary
+                .contains("surfaces 2 option(s), 1 tradeoff(s), and 1 spike(s)")
+        );
+    }
+
+    #[test]
+    fn summarize_requirements_mode_result_extracts_all_sections() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "problem-statement.md".to_string(),
+                    relative_path: "artifacts/req/problem-statement.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Problem\n\nReq problem.\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "constraints.md".to_string(),
+                    relative_path: "artifacts/req/constraints.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Constraints\n\n- Const 1\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "scope-cuts.md".to_string(),
+                    relative_path: "artifacts/req/scope-cuts.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Scope Cuts\n\n- Cut 1\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "decision-checklist.md".to_string(),
+                    relative_path: "artifacts/req/decision-checklist.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Open Questions\n\n- Q1\n".to_string(),
+            },
+        ];
+
+        let summary = summarize_requirements_mode_result(&artifacts).expect("summary");
+        assert_eq!(summary.primary_artifact_title, "Problem Statement");
+        assert!(
+            summary
+                .artifact_packet_summary
+                .contains("1 constraint point(s), 1 scope cut(s), and 1 open question(s)")
+        );
+    }
+
+    #[test]
+    fn summarize_discovery_mode_result_extracts_all_sections() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "problem-map.md".to_string(),
+                    relative_path: "artifacts/disc/problem-map.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Problem Domain\n\nDomain stuff.\n# Repo Surface\n\n- Sig 1\n# Downstream Handoff\n\nHandoff.\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "unknowns-and-assumptions.md".to_string(),
+                    relative_path: "artifacts/disc/unknowns-and-assumptions.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Unknowns\n\n- U1\n".to_string(),
+            },
+        ];
+
+        let summary = summarize_discovery_mode_result(&artifacts).expect("summary");
+        assert_eq!(summary.primary_artifact_title, "Problem Map");
+        assert!(
+            summary
+                .artifact_packet_summary
+                .contains("1 repository signal(s) and 1 unknown or assumption set(s)")
+        );
+    }
+
+    #[test]
+    fn summarize_system_shaping_mode_result_extracts_all_sections() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "system-shape.md".to_string(),
+                    relative_path: "artifacts/shape/system-shape.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# System Shape\n\nShape.\n# Boundary Decisions\n\n- B1\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "domain-model.md".to_string(),
+                    relative_path: "artifacts/shape/domain-model.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Candidate Bounded Contexts\n\n- C1\n# Domain Invariants\n\n- I1\n"
+                    .to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "capability-map.md".to_string(),
+                    relative_path: "artifacts/shape/capability-map.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Capabilities\n\n- Cap1\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "delivery-options.md".to_string(),
+                    relative_path: "artifacts/shape/delivery-options.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Delivery Phases\n\n- Ph1\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "risk-hotspots.md".to_string(),
+                    relative_path: "artifacts/shape/risk-hotspots.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Hotspots\n\n- H1\n".to_string(),
+            },
+        ];
+
+        let summary = summarize_system_shaping_mode_result(&artifacts).expect("summary");
+        assert_eq!(summary.primary_artifact_title, "System Shape");
+        assert!(summary.artifact_packet_summary.contains("1 capability slice(s), 1 bounded context candidate(s), 1 domain invariant set(s), 1 delivery phase set(s), and 1 risk hotspot set(s)"));
+    }
+
+    #[test]
+    fn summarize_brainstorming_mode_result_handles_missing_sections() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG.to_string(),
+                    relative_path: format!(
+                        "artifacts/abc/brainstorming/{}",
+                        crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG
+                    ),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Other Heading\n\nNo context here.\n".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: crate::modes::brainstorming::ARTIFACT_OPTIONS_SLUG.to_string(),
+                    relative_path: format!(
+                        "artifacts/abc/brainstorming/{}",
+                        crate::modes::brainstorming::ARTIFACT_OPTIONS_SLUG
+                    ),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Other Heading\n\nNo options here.\n".to_string(),
+            },
+        ];
+
+        let summary = summarize_brainstorming_mode_result(&artifacts).expect("summary");
+        assert!(summary.result_excerpt.contains("NOT CAPTURED - Context summary is missing."));
+        assert!(
+            summary
+                .artifact_packet_summary
+                .contains("surfaces 0 option(s), 0 tradeoff(s), and 0 spike(s)")
+        );
+    }
+
+    #[test]
+    fn summarize_requirements_mode_result_handles_missing_sections() {
+        let artifacts = vec![PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "problem-statement.md".to_string(),
+                relative_path: "artifacts/req/problem-statement.md".to_string(),
+                format: crate::domain::artifact::ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Other Heading\n\nNo prob.\n".to_string(),
+        }];
+
+        let summary = summarize_requirements_mode_result(&artifacts).expect("summary");
+        assert!(
+            summary.result_excerpt.contains("NOT CAPTURED - Problem statement summary is missing.")
+        );
+        assert!(summary.artifact_packet_summary.contains("0 constraint point(s)"));
+    }
+
+    #[test]
+    fn summarize_discovery_mode_result_handles_missing_sections() {
+        let artifacts = vec![PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "problem-map.md".to_string(),
+                relative_path: "artifacts/disc/problem-map.md".to_string(),
+                format: crate::domain::artifact::ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Other Heading\n\nNo prob.\n".to_string(),
+        }];
+
+        let summary = summarize_discovery_mode_result(&artifacts).expect("summary");
+        assert!(
+            summary.result_excerpt.contains("NOT CAPTURED - Problem domain summary is missing.")
+        );
+        assert!(summary.artifact_packet_summary.contains("0 repository signal(s)"));
+    }
+
+    #[test]
+    fn summarize_system_shaping_mode_result_handles_missing_sections() {
+        let artifacts = vec![PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "system-shape.md".to_string(),
+                relative_path: "artifacts/shape/system-shape.md".to_string(),
+                format: crate::domain::artifact::ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Other Heading\n\nNo shape.\n".to_string(),
+        }];
+
+        let summary = summarize_system_shaping_mode_result(&artifacts).expect("summary");
+        assert!(summary.result_excerpt.contains("NOT CAPTURED - System shape summary is missing."));
+        assert!(summary.artifact_packet_summary.contains("0 capability slice(s)"));
+    }
+}

@@ -3,7 +3,7 @@
 **Feature Branch**: `034-output-quality-gates`  
 **Created**: 2026-05-01  
 **Status**: Draft  
-**Input**: User description: "Procedi con speckit per fare speckit-spec, poi speckit-plan, poi speckit-tasks e infine speckit-implements. Lavora su tutta la feature 034, non splittarla in slices. Voglio top output quality. Al solito, un task per fare bump della versione e uno per aggiornare tutte le docs impattate e il changelog. Infine coverage dei file rust modificati o creati e soluzione di problemi su clippy e esecuzione di cargo fmt. Poi pulisci la roadmap. Infine dammi il commit message."
+**Input**: User description: "Proceed with speckit to do speckit-spec, then speckit-plan, then speckit-tasks, and finally speckit-implement. Work on the entire feature 034, do not split it into slices. I want top output quality. As usual, a task to bump the version and one to update all impacted docs and the changelog. Finally, coverage of modified or created rust files, resolution of clippy issues, and running cargo fmt. Then clean up the roadmap. Finally, give me the commit message."
 
 ## Governance Context *(mandatory)*
 

@@ -51,6 +51,7 @@ impl EngineService {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
+            Mode::Brainstorming => self.run_brainstorming(&store, request, policy_set),
             Mode::Change => self.run_change(&store, request, policy_set),
             Mode::Backlog => self.run_backlog(&store, request, policy_set),
             Mode::Incident => self.run_incident(&store, request, policy_set),
@@ -764,6 +765,23 @@ mod tests {
             summary.refinement_state.expect("refinement state").current_mode,
             "requirements"
         );
+    }
+
+    #[test]
+    fn run_dispatches_brainstorming_mode_correctly() {
+        let workspace = tempdir().expect("tempdir");
+        std::fs::write(
+            workspace.path().join("brainstorm.md"),
+            "# Ideation\n\n## Problem\nThink about it.\n\n## Outcome\nDecide it.\n",
+        )
+        .expect("write brief");
+        let service = EngineService::new(workspace.path());
+
+        let mut request = requirements_file_request("brainstorm.md", "Owner <owner@example.com>");
+        request.mode = Mode::Brainstorming;
+
+        let summary = service.run(request).expect("brainstorming run");
+        assert_eq!(summary.state, "Draft");
     }
 
     #[test]

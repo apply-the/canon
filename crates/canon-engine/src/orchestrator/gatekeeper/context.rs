@@ -296,3 +296,19 @@ pub struct PrReviewGateContext<'a> {
     /// Whether all required evidence has been captured.
     pub evidence_complete: bool,
 }
+
+/// Evaluation context for Brainstorming mode gate checks.
+pub struct BrainstormingGateContext<'a> {
+    /// Named human owner required for high-risk/red-zone work.
+    pub owner: &'a str,
+    /// Assigned risk class for the run.
+    pub risk: RiskClass,
+    /// Assigned usage zone for the run.
+    pub zone: UsageZone,
+    /// Approval records recorded against this run.
+    pub approvals: &'a [ApprovalRecord],
+    /// Whether validation and generation are performed by independent actors.
+    pub validation_independence_satisfied: bool,
+    /// Whether all required evidence has been captured.
+    pub evidence_complete: bool,
+}

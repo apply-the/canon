@@ -46,7 +46,6 @@ that completion, readiness, and verification claims are provably true.
 
 | # | Feature | Type | Unlocks |
 |---|---------|------|---------|
-| 01 | [Systematic Debugging](features/01-systematic-debugging.md) | New mode | Reproducible fixes instead of guess-and-check |
 | 02 | [Completion Verification Gates](features/02-completion-verification-gates.md) | Cross-mode runtime rule | Fresh proof before any success claim |
 
 ### Tier 2: Missing Lifecycle Phases (capabilities Canon lacks)
@@ -57,7 +56,6 @@ the current mode surface cannot express without workarounds.
 | # | Feature | Type | Unlocks |
 |---|---------|------|---------|
 | 03 | [Plan Progress and Handoff Schemas](features/03-plan-execution-orchestration.md) | Governed metadata contract | Standard progress and handoff packets for external orchestrators |
-| 04 | [Brainstorming and Ideation](features/04-brainstorming-ideation.md) | New mode | Structured divergence before convergent shaping |
 | 05 | [Policy Shaping](features/05-policy-shaping.md) | New mode | Retroactive impact analysis for rule changes |
 | 06 | [Observability Design](features/06-observability-design.md) | New mode | Proactive telemetry contracts before deployment |
 
@@ -78,9 +76,7 @@ change governance semantics.
   ┌─────────────────────────────────────────────────────────────────────┐
   │ Tier 1: Runtime Integrity                                           │
   │                                                                     │
-  │  01 Systematic Debugging ───┐                                       │
-  │                             ├──▶ 02 Completion Verification Gates   │
-  │  (independent start)  ──────┘                                       │
+  │  02 Completion Verification Gates                                   │
   └─────────────────────────────────────────────────────────────────────┘
             │
             ▼
@@ -88,7 +84,6 @@ change governance semantics.
   │ Tier 2: Missing Lifecycle Phases                                    │
   │                                                                     │
   │  03 Progress/Handoff ──── requires 02 (evidence_ref contract)       │
-  │  04 Brainstorming ──────── independent, can start in parallel       │
   │  05 Policy Shaping ─────── independent, can start in parallel       │
   │  06 Observability Design ─ independent, pairs well with 05          │
   └─────────────────────────────────────────────────────────────────────┘
@@ -105,9 +100,7 @@ Key sequencing rules:
 
 - **02 before 03**: progress and handoff packets need a stable
   `claim -> proof -> evidence_ref` contract rather than vague completion text.
-- **01 can start immediately**: debugging is self-contained and does not depend
-  on other roadmap items.
-- **04, 05, 06 are parallel**: they address different lifecycle gaps and do not
+- **05, 06 are parallel**: they address different lifecycle gaps and do not
   share internal dependencies.
 - **07 stays low priority**: it improves local setup and routing intent, not core packet semantics.
 

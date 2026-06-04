@@ -1,3 +1,4 @@
+mod authoring_workflow;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -67,6 +68,7 @@ mod identity;
 mod input_handling;
 mod inspect;
 mod mode_backlog;
+mod mode_brainstorming;
 mod mode_change;
 mod mode_discovery;
 mod mode_domain_language;

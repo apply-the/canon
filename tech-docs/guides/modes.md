@@ -80,6 +80,7 @@ orchestrators.
 
 ## Quick Decision Rule
 
+- use `brainstorming` when you need structured divergence to evaluate multiple conceptual approaches, trade-offs, and open questions before formal shaping
 - use `domain-language` when the ambiguity is still linguistic: terms differ
   across stakeholders, docs, APIs, or code and the team needs one shared
   vocabulary before downstream work
@@ -120,6 +121,7 @@ explicitly reroute the packet to `discovery`, `requirements`, or
 
 ## Supported Today
 
+- [`brainstorming`](#mode-brainstorming): evaluate high-level ideas, explore lateral thinking, and generate option maps before formal shaping.
 - [`discovery`](#mode-discovery): explore an ambiguous problem space before you lock requirements or solution direction.
 - [`requirements`](#mode-requirements): define bounded requirements, scope cuts, tradeoffs, and expected outcomes.
 - [`system-shaping`](#mode-system-shaping): shape capability boundaries and structural options before detailed architecture or change work.
@@ -272,6 +274,7 @@ the goal is packet review outside the runtime.
 
 Default publish targets by mode:
 
+- `brainstorming` -> `tech-docs/discovery/<YYYY-MM-DD>-<descriptor>/`
 - `requirements` -> `specs/<YYYY-MM-DD>-<descriptor>/`
 - `discovery` -> `tech-docs/discovery/<YYYY-MM-DD>-<descriptor>/`
 - `system-shaping` -> `tech-docs/architecture/shaping/<YYYY-MM-DD>-<descriptor>/`
@@ -364,7 +367,9 @@ directly when the authored input is already ready for that mode.
 ```mermaid
 flowchart TD
   A[What is the next governed need?] --> B{Primary question}
-  B -->|Problem still ambiguous| D[discovery]
+  B -->|Problem still ambiguous| B2{Divergence or exploration?}
+  B2 -->|Need structured divergence and options| BRS[brainstorming]
+  B2 -->|Need to map problem unknowns| D[discovery]
   B -->|Need bounded scope and outcomes| R[requirements]
   B -->|Need shared vocabulary or concept framing| DF[domain-language or domain-model]
   B -->|Need structural design or boundaries| SD[system-shaping or architecture]
@@ -2342,4 +2347,58 @@ canon run \
   --zone yellow \
   --owner architect \
   --input canon-input/domain-model.md
+```
+
+## Mode: brainstorming
+
+### Use It For
+
+Structured divergence and lateral thinking. Generate multiple conceptual approaches, evaluate trade-offs, and identify unknowns or spikes before converging on formal shaping or requirements.
+
+### Input Shape
+
+A brainstorming brief defining the problem statement or context to explore.
+
+### Good Input Should Include
+
+- `## Problem Statement` or `## Context` to anchor the exploration.
+- `## Known Constraints` to bound the divergence.
+
+### Questions This Mode Answers
+
+- what are the distinct ways to approach this problem
+- what are the trade-offs (pros, cons, unknowns) for each approach
+- what experiments (spikes) are needed to resolve critical unknowns
+
+### Questions This Mode Does Not Answer Well
+
+- what the final architecture should be
+- what code needs to change
+- detailed delivery plans
+
+### What Canon Emits
+
+The `brainstorming` mode produces:
+
+- `01-context.md`
+- `02-options.md`
+- `03-tradeoffs.md`
+- `04-open-questions.md`
+- `05-spikes.md`
+
+### Typical Handoff After This Mode
+
+- publish the approved packet with `canon publish <RUN_ID>`
+- move to `discovery` or `requirements` if more problem framing is needed.
+- move to `system-shaping` or `architecture` to formalize one of the approaches.
+
+### Minimal Usage
+
+```bash
+canon run \
+  --mode brainstorming \
+  --risk green \
+  --zone green \
+  --owner architect \
+  --input canon-input/brainstorming.md
 ```

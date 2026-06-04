@@ -3,7 +3,7 @@
 **Feature Branch**: `054-authority-zone-contract`  
 **Created**: 2026-05-15  
 **Status**: Draft  
-**Input**: User description: "crea le specs in canon e boundline e i branch. Definisci i contract tra i due repository"
+**Input**: User description: "create specs in canon and boundline and the branches. Define the contracts between the two repositories"
 
 ## Governance Context *(mandatory)*
 

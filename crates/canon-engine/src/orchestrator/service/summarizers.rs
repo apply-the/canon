@@ -54,6 +54,7 @@ pub(crate) fn summarize_mode_result(
         Mode::Requirements => authoring::summarize_requirements_mode_result(artifacts),
         Mode::Discovery => authoring::summarize_discovery_mode_result(artifacts),
         Mode::SystemShaping => authoring::summarize_system_shaping_mode_result(artifacts),
+        Mode::Brainstorming => authoring::summarize_brainstorming_mode_result(artifacts),
         Mode::Architecture => governance::summarize_architecture_mode_result(artifacts),
         Mode::SystemAssessment => analysis::summarize_system_assessment_mode_result(artifacts),
         Mode::Change => delivery::summarize_change_mode_result(artifacts),
@@ -731,5 +732,16 @@ mod tests {
     fn summarize_architecture_mode_result_returns_none_when_both_primary_artifacts_absent() {
         let artifacts = vec![make_artifact("invariants.md", "## Invariants\n- keep stable\n")];
         assert!(summarize_mode_result(Mode::Architecture, &artifacts).is_none());
+    }
+
+    #[test]
+    fn summarize_mode_result_delegates_to_brainstorming_for_brainstorming_mode() {
+        let artifacts = vec![make_artifact(
+            crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG,
+            &format!("## {}\n- context here\n", crate::modes::brainstorming::HEADING_CONTEXT),
+        )];
+
+        let summary = summarize_mode_result(Mode::Brainstorming, &artifacts).unwrap();
+        assert_eq!(summary.primary_artifact_title, crate::modes::brainstorming::HEADING_CONTEXT);
     }
 }

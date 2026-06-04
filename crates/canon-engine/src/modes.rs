@@ -2,6 +2,8 @@
 pub mod architecture;
 /// Backlog mode execution logic.
 pub mod backlog;
+/// Brainstorming mode execution logic.
+pub mod brainstorming;
 /// Change mode execution logic.
 pub mod change;
 /// Debugging mode execution logic.
