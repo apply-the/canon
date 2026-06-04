@@ -67,6 +67,7 @@ mod identity;
 mod input_handling;
 mod inspect;
 mod mode_backlog;
+mod mode_brainstorming;
 mod mode_change;
 mod mode_discovery;
 mod mode_domain_language;

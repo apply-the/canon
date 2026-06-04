@@ -3,7 +3,7 @@
 **Feature Branch**: `060-pr-review-anchors`  
 **Created**: 2026-05-19  
 **Status**: Draft  
-**Input**: User description: "lavora a enhancement di pr-review con scope esplicito per i Conventional Comments". Repository context shows explicit `pr`/`file`/`surface` scope is already delivered, so this feature captures the remaining follow-on: optional line or span anchors when durable review evidence exists.
+**Input**: User description: "work on enhancement of pr-review with explicit scope for Conventional Comments". Repository context shows explicit `pr`/`file`/`surface` scope is already delivered, so this feature captures the remaining follow-on: optional line or span anchors when durable review evidence exists.
 
 ## Governance Context
 

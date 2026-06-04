@@ -3,7 +3,7 @@
 **Feature Branch**: `055-adaptive-governance`  
 **Created**: 2026-05-16  
 **Status**: Draft  
-**Input**: User description: "su canon e boundline con due nuovi feature branch per implementare ../boundline/roadmap/S4 - control-graduation-and-adaptive-governance-spec.md. Definisci contratti tra i due se necessario"
+**Input**: User description: "on canon and boundline with two new feature branches to implement ../boundline/roadmap/S4 - control-graduation-and-adaptive-governance-spec.md. Define contracts between the two if necessary"
 
 ## Governance Context *(mandatory)*
 

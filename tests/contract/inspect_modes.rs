@@ -50,6 +50,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "domain-language",
             "domain-model",
             "debugging",
+            "brainstorming",
         ])
     );
 }
@@ -70,10 +71,12 @@ fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
     assert!(text.contains("security-assessment"));
     assert!(text.contains("supply-chain-analysis"));
     assert!(text.contains("debugging"));
+    assert!(text.contains("brainstorming"));
     assert_eq!(text.matches("incident").count(), 1);
     assert_eq!(text.matches("system-assessment").count(), 1);
     assert_eq!(text.matches("security-assessment").count(), 1);
     assert_eq!(text.matches("migration").count(), 1);
     assert_eq!(text.matches("supply-chain-analysis").count(), 1);
     assert_eq!(text.matches("debugging").count(), 1);
+    assert_eq!(text.matches("brainstorming").count(), 1);
 }

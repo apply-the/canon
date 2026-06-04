@@ -205,7 +205,7 @@ pub use architecture::{
     render_architecture_artifact,
 };
 pub use authoring::{
-    render_discovery_artifact, render_requirements_artifact,
+    render_brainstorming_artifact, render_discovery_artifact, render_requirements_artifact,
     render_requirements_artifact_from_evidence, render_system_shaping_artifact,
 };
 pub use delivery::{

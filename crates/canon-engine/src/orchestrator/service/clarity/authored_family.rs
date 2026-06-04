@@ -32,9 +32,11 @@ pub(super) fn authored_clarity_family(mode: Mode) -> AuthoredClarityFamily {
         | Mode::SystemAssessment
         | Mode::DomainLanguage
         | Mode::DomainModel => AuthoredClarityFamily::Assessment,
-        Mode::Requirements | Mode::Discovery | Mode::PrReview | Mode::SupplyChainAnalysis => {
-            AuthoredClarityFamily::Planning
-        }
+        Mode::Requirements
+        | Mode::Discovery
+        | Mode::Brainstorming
+        | Mode::PrReview
+        | Mode::SupplyChainAnalysis => AuthoredClarityFamily::Planning,
     }
 }
 

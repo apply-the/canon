@@ -51,6 +51,7 @@ impl EngineService {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
+            Mode::Brainstorming => self.run_brainstorming(&store, request, policy_set),
             Mode::Change => self.run_change(&store, request, policy_set),
             Mode::Backlog => self.run_backlog(&store, request, policy_set),
             Mode::Incident => self.run_incident(&store, request, policy_set),

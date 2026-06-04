@@ -64,6 +64,7 @@ impl_analysis_mode_gate_context_view!(
     SystemAssessmentGateContext<'a>,
     DomainLanguageGateContext<'a>,
     DomainModelGateContext<'a>,
+    BrainstormingGateContext<'a>,
 );
 
 const DISCOVERY_ANALYSIS_SPEC: AnalysisModeSpec<'static> = AnalysisModeSpec::new(
@@ -72,6 +73,14 @@ const DISCOVERY_ANALYSIS_SPEC: AnalysisModeSpec<'static> = AnalysisModeSpec::new
     "discovery requires a bounded problem domain and explicit context boundary",
     "systemic-impact or red-zone discovery work requires explicit approval before it can proceed",
     "discovery readiness requires persisted context, critique, and repository validation evidence",
+);
+
+const BRAINSTORMING_ANALYSIS_SPEC: AnalysisModeSpec<'static> = AnalysisModeSpec::new(
+    GateKind::Exploration,
+    &["context.md", "options.md", "tradeoffs.md", "spikes.md", "open-questions.md"],
+    "brainstorming requires context, options, tradeoffs, spikes, and open questions",
+    "systemic-impact or red-zone brainstorming work requires explicit approval before it can proceed",
+    "brainstorming readiness requires persisted context, critique, and verification evidence",
 );
 
 const SECURITY_ASSESSMENT_ANALYSIS_SPEC: AnalysisModeSpec<'static> = AnalysisModeSpec::new(
@@ -165,6 +174,15 @@ pub fn evaluate_discovery_gates(
     context: DiscoveryGateContext<'_>,
 ) -> Vec<GateEvaluation> {
     analysis_mode_gate_set(contract, artifacts, DISCOVERY_ANALYSIS_SPEC, context)
+}
+
+/// Evaluates the gate set for a Brainstorming mode run.
+pub fn evaluate_brainstorming_gates(
+    contract: &ArtifactContract,
+    artifacts: &[(String, String)],
+    context: BrainstormingGateContext<'_>,
+) -> Vec<GateEvaluation> {
+    analysis_mode_gate_set(contract, artifacts, BRAINSTORMING_ANALYSIS_SPEC, context)
 }
 
 /// Evaluates the gate set for a System Shaping mode run.

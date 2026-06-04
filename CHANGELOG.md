@@ -19,14 +19,18 @@ recorded workspace version.
 
 Delivered specs:
 
+- `specs/068-ideation-mode/`
 - `specs/067-systematic-debugging/`
 
 Highlights:
 
+- Added a new `brainstorming` (or `ideation`) mode to evaluate high-level ideas, explore lateral thinking, and generate option maps before formal shaping.
+- Included structured outputs for `brainstorming`: option maps with multiple conceptual approaches, trade-off matrices, open questions, and spike proposals.
+- Integrated `brainstorming` mode into the governance surface and CLI contracts as a read-only, green-zone exploration workflow.
 - Added a first-class `debugging` mode for systematic defect resolution, emphasizing root-cause isolation and red-to-green test transitions.
 - Enforced required artifacts for the `debugging` mode: `01-context`, `02-reproduction`, `03-root-cause`, `04-fix-decision`, and `05-verification`.
 - Integrated `debugging` mode into the governance surface and CLI contracts as a recommendation-only, green-zone workflow.
-- Updated docs, README, and CLI references to include `debugging`.
+- Updated docs, README, and CLI references to include `brainstorming` and `debugging`.
 - Bumped workspace version to `0.65.0`.
 
 ## [0.64.0] - 2026-06-02

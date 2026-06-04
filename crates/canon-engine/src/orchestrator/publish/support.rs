@@ -116,7 +116,7 @@ pub(super) fn display_path(repo_root: &Path, path: &Path) -> String {
 pub(super) fn default_publish_directory(mode: Mode) -> &'static str {
     match mode {
         Mode::Requirements => "specs",
-        Mode::Discovery => "tech-docs/discovery",
+        Mode::Discovery | Mode::Brainstorming => "tech-docs/discovery",
         Mode::SystemShaping => "tech-docs/architecture/shaping",
         Mode::Change => "tech-docs/changes",
         Mode::Backlog => "tech-docs/planning",

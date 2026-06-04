@@ -50,6 +50,8 @@ pub enum Mode {
     DomainModel,
     /// Systematically isolate and resolve defects using TDD and explicit root cause verification.
     Debugging,
+    /// Ideation mode for structured divergence and lateral thinking.
+    Brainstorming,
 }
 
 /// The class of governed expertise packet produced by an authoring-specialization mode.
@@ -144,6 +146,7 @@ impl Mode {
             Self::DomainLanguage => "domain-language",
             Self::DomainModel => "domain-model",
             Self::Debugging => "debugging",
+            Self::Brainstorming => "brainstorming",
         }
     }
 
@@ -178,6 +181,7 @@ impl Mode {
             Self::DomainLanguage,
             Self::DomainModel,
             Self::Debugging,
+            Self::Brainstorming,
         ]
     }
 }
@@ -218,6 +222,7 @@ impl std::str::FromStr for Mode {
             "domain-language" => Ok(Self::DomainLanguage),
             "domain-model" => Ok(Self::DomainModel),
             "debugging" => Ok(Self::Debugging),
+            "brainstorming" => Ok(Self::Brainstorming),
             other => Err(format!("unsupported mode: {other}")),
         }
     }
@@ -285,13 +290,15 @@ impl Mode {
     /// Returns the Canon-owned intended persona profile for this mode.
     pub fn intended_persona_profile(self) -> IntendedPersonaProfile {
         match self {
-            Self::Requirements | Self::Discovery | Self::Backlog => IntendedPersonaProfile {
-                intended_persona: IntendedPersona::ProductStrategist,
-                persona_anti_behaviors: vec![
-                    "premature implementation".to_string(),
-                    "unbounded platform expansion".to_string(),
-                ],
-            },
+            Self::Requirements | Self::Discovery | Self::Backlog | Self::Brainstorming => {
+                IntendedPersonaProfile {
+                    intended_persona: IntendedPersona::ProductStrategist,
+                    persona_anti_behaviors: vec![
+                        "premature implementation".to_string(),
+                        "unbounded platform expansion".to_string(),
+                    ],
+                }
+            }
             Self::SystemShaping | Self::Architecture | Self::SystemAssessment => {
                 IntendedPersonaProfile {
                     intended_persona: IntendedPersona::SystemArchitect,
@@ -408,9 +415,10 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     };
     use ImplementationDepth::Full;
     use Mode::{
-        Architecture as ArchitectureMode, Backlog, Change, Debugging, Discovery, DomainLanguage,
-        DomainModel, Implementation, Incident, Migration, PrReview, Refactor, Requirements, Review,
-        SecurityAssessment, SupplyChainAnalysis, SystemAssessment, SystemShaping, Verification,
+        Architecture as ArchitectureMode, Backlog, Brainstorming, Change, Debugging, Discovery,
+        DomainLanguage, DomainModel, Implementation, Incident, Migration, PrReview, Refactor,
+        Requirements, Review, SecurityAssessment, SupplyChainAnalysis, SystemAssessment,
+        SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
@@ -743,6 +751,15 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli],
         },
+        ModeProfile {
+            mode: Brainstorming,
+            purpose: "Ideation mode for structured divergence and lateral thinking.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Exploration, Risk, ReleaseReadiness],
+            artifact_families: vec!["context", "options", "tradeoffs", "open questions", "spikes"],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
+        },
     ]
 }
 
@@ -772,6 +789,7 @@ mod tests {
             (Mode::DomainLanguage, "domain-language", Some(GovernedExpertiseKind::DomainLanguage)),
             (Mode::DomainModel, "domain-model", Some(GovernedExpertiseKind::DomainModel)),
             (Mode::Debugging, "debugging", None),
+            (Mode::Brainstorming, "brainstorming", None),
         ];
 
         assert_eq!(
@@ -796,6 +814,7 @@ mod tests {
                 Mode::DomainLanguage,
                 Mode::DomainModel,
                 Mode::Debugging,
+                Mode::Brainstorming,
             ]
         );
 

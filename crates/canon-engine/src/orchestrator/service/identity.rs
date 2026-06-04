@@ -98,6 +98,7 @@ impl EngineService {
             mode,
             Mode::Requirements
                 | Mode::Discovery
+                | Mode::Brainstorming
                 | Mode::SystemShaping
                 | Mode::Architecture
                 | Mode::Change
@@ -247,6 +248,7 @@ impl EngineService {
         match mode {
             Mode::Requirements
             | Mode::Discovery
+            | Mode::Brainstorming
             | Mode::SystemShaping
             | Mode::Architecture
             | Mode::Change
@@ -298,7 +300,7 @@ impl EngineService {
                     clarification_questions: prioritized_discovery_clarification_questions(&brief),
                 })
             }
-            Mode::SystemShaping | Mode::Architecture | Mode::Change => {
+            Mode::SystemShaping | Mode::Brainstorming | Mode::Architecture | Mode::Change => {
                 let brief = AuthoredModeBrief::from_context(mode, context_summary, &source_inputs);
                 Ok(RefinementSeedState {
                     source_inputs,

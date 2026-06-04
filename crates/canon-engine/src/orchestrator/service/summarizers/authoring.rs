@@ -213,3 +213,58 @@ pub(super) fn summarize_system_shaping_mode_result(
         action_chips: Vec::new(),
     })
 }
+
+pub(super) fn summarize_brainstorming_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary = artifacts.iter().find(|artifact| artifact.record.slug() == "context.md")?;
+    let options_artifact = artifacts.iter().find(|artifact| artifact.record.slug() == "options.md");
+    let tradeoffs_artifact =
+        artifacts.iter().find(|artifact| artifact.record.slug() == "tradeoffs.md");
+    let spikes_artifact = artifacts.iter().find(|artifact| artifact.record.slug() == "spikes.md");
+
+    let context_summary = extract_context_section(&primary.contents, "Context")
+        .or_else(|| extract_context_section(&primary.contents, "Summary"))
+        .unwrap_or_else(|| "NOT CAPTURED - Context summary is missing.".to_string());
+    let options = options_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Options"))
+        .unwrap_or_else(|| "NOT CAPTURED - Options section is missing.".to_string());
+    let tradeoffs = tradeoffs_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Tradeoffs"))
+        .unwrap_or_else(|| "NOT CAPTURED - Tradeoffs section is missing.".to_string());
+    let spikes = spikes_artifact
+        .and_then(|artifact| extract_context_section(&artifact.contents, "Spikes"))
+        .unwrap_or_else(|| "NOT CAPTURED - Spikes section is missing.".to_string());
+
+    let missing_context_markers =
+        count_missing_context_markers([&context_summary, &options, &tradeoffs, &spikes]);
+    let option_count = count_markdown_entries(&options);
+    let tradeoff_count = count_markdown_entries(&tradeoffs);
+    let spike_count = count_markdown_entries(&spikes);
+
+    let headline = packet_output_quality_headline(
+        "Brainstorming",
+        missing_context_markers,
+        0,
+        "",
+        "downstream decision making or planning",
+    );
+    let artifact_packet_summary = format!(
+        "{} Packet surfaces {option_count} option(s), {tradeoff_count} tradeoff(s), and {spike_count} spike(s).",
+        packet_output_quality_artifact_prefix(missing_context_markers, 0, "")
+    );
+
+    Some(ModeResultSummary {
+        headline,
+        artifact_packet_summary,
+        execution_posture: None,
+        primary_artifact_title: "Context".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: truncate_context_excerpt(&context_summary, 320),
+        action_chips: Vec::new(),
+    })
+}

@@ -54,6 +54,7 @@ pub(crate) fn summarize_mode_result(
         Mode::Requirements => authoring::summarize_requirements_mode_result(artifacts),
         Mode::Discovery => authoring::summarize_discovery_mode_result(artifacts),
         Mode::SystemShaping => authoring::summarize_system_shaping_mode_result(artifacts),
+        Mode::Brainstorming => authoring::summarize_brainstorming_mode_result(artifacts),
         Mode::Architecture => governance::summarize_architecture_mode_result(artifacts),
         Mode::SystemAssessment => analysis::summarize_system_assessment_mode_result(artifacts),
         Mode::Change => delivery::summarize_change_mode_result(artifacts),

@@ -12,6 +12,9 @@ const CONSTRAINTS_MD: &str = "constraints.md";
 const OPTIONS_MD: &str = "options.md";
 const TRADEOFFS_MD: &str = "tradeoffs.md";
 const SCOPE_CUTS_MD: &str = "scope-cuts.md";
+const CONTEXT_MD: &str = "context.md";
+const OPEN_QUESTIONS_MD: &str = "open-questions.md";
+const SPIKES_MD: &str = "spikes.md";
 const DECISION_CHECKLIST_MD: &str = "decision-checklist.md";
 const PRD_MD: &str = "prd.md";
 
@@ -172,6 +175,17 @@ pub(super) fn system_shaping() -> Vec<ArtifactRequirement> {
     ]
 }
 
+/// Returns the artifact requirements for the [`Brainstorming`](crate::domain::mode::Mode::Brainstorming) mode.
+pub(super) fn brainstorming() -> Vec<ArtifactRequirement> {
+    vec![
+        requirement(CONTEXT_MD, &[SUMMARY, "Context"], &[GateKind::Exploration]),
+        requirement(OPTIONS_MD, &[SUMMARY, OPTIONS], &[GateKind::Exploration]),
+        requirement(TRADEOFFS_MD, &[SUMMARY, TRADEOFFS], &[GateKind::Exploration, GateKind::Risk]),
+        requirement(OPEN_QUESTIONS_MD, &[SUMMARY, OPEN_QUESTIONS], &[GateKind::Risk]),
+        requirement(SPIKES_MD, &[SUMMARY, "Spikes"], &[GateKind::Risk, GateKind::ReleaseReadiness]),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,5 +241,10 @@ mod tests {
     #[test]
     fn system_shaping_all_artifacts_are_required() {
         assert!(system_shaping().iter().all(|r| r.required));
+    }
+
+    #[test]
+    fn brainstorming_has_expected_artifact_count() {
+        assert_eq!(brainstorming().len(), 5);
     }
 }

@@ -303,3 +303,54 @@ pub fn render_system_shaping_artifact(
         other => render_markdown(other, context_summary),
     }
 }
+
+/// Renders a brainstorming mode artifact for the given filename slug.
+pub fn render_brainstorming_artifact(
+    file_name: &str,
+    context_summary: &str,
+    _generation_summary: &str,
+    _critique_summary: &str,
+) -> String {
+    let file_name = artifact_slug(file_name);
+    let authored_summary = "Brainstorming context capture.";
+
+    match file_name {
+        "context.md" => render_authored_artifact(
+            "Context",
+            authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Context", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Goals", aliases: &[] },
+            ],
+        ),
+        "options.md" => render_authored_artifact(
+            "Options",
+            authored_summary,
+            context_summary,
+            &[
+                AuthoredSectionSpec { canonical_heading: "Options", aliases: &[] },
+                AuthoredSectionSpec { canonical_heading: "Recommended Option", aliases: &[] },
+            ],
+        ),
+        "tradeoffs.md" => render_authored_artifact(
+            "Tradeoffs",
+            authored_summary,
+            context_summary,
+            &[AuthoredSectionSpec { canonical_heading: "Tradeoffs", aliases: &[] }],
+        ),
+        "spikes.md" => render_authored_artifact(
+            "Spikes",
+            authored_summary,
+            context_summary,
+            &[AuthoredSectionSpec { canonical_heading: "Spikes", aliases: &[] }],
+        ),
+        "open-questions.md" => render_authored_artifact(
+            "Open Questions",
+            authored_summary,
+            context_summary,
+            &[AuthoredSectionSpec { canonical_heading: "Open Questions", aliases: &[] }],
+        ),
+        other => render_markdown(other, context_summary),
+    }
+}
