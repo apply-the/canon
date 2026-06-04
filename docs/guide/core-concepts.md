@@ -44,7 +44,7 @@ Examples:
 - `verification` challenges claims
 - `incident` captures operational response knowledge
 
-Use [[Canon Modes|Canon-Modes]] to choose the correct mode.
+Use [Canon Modes](./canon-modes) to choose the correct mode.
 
 ## Ordered Documents
 
@@ -136,7 +136,7 @@ Promotion should preserve:
 - compatibility expectations
 - update strategy
 
-Use [[Publishing And Promotion|Publishing-And-Promotion]] before promoting content.
+Use [Publishing And Promotion](../architecture/publishing-and-promotion) before promoting content.
 
 ## Semantic Authority
 

@@ -31,7 +31,10 @@ fn git_env(global_config: &Path) -> [(&'static str, String); 2] {
 
 fn git(workspace: &TempDir, global_config: &Path, args: &[&str]) {
     let mut command = ProcessCommand::new("git");
-    command.args(args).current_dir(workspace.path());
+    command
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
+        .args(args)
+        .current_dir(workspace.path());
     for (key, value) in git_env(global_config) {
         command.env(key, value);
     }

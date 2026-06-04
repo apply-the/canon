@@ -30,7 +30,7 @@ fn valid_artifacts(contract: &ArtifactContract) -> Vec<(String, String)> {
 fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
     let contract = contract_for_mode(Mode::Backlog);
 
-    assert_eq!(contract.artifact_requirements.len(), 9);
+    assert_eq!(contract.artifact_requirements.len(), 10);
 
     let names = contract
         .artifact_requirements
@@ -48,6 +48,7 @@ fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
             "sequencing-plan.md",
             "acceptance-anchors.md",
             "planning-risks.md",
+            "execution-handoff.md",
             "packet-metadata.json",
         ]
     );
@@ -66,9 +67,28 @@ fn backlog_contract_matches_spec_artifact_names_sections_and_gates() {
             "Source Inputs",
             "Delivery Intent",
             "Decomposition Posture",
+            "Execution Handoff",
         ]
     );
     assert_eq!(overview.gates, vec![GateKind::Exploration, GateKind::Risk]);
+
+    let handoff = contract
+        .artifact_requirements
+        .iter()
+        .find(|requirement| requirement.slug() == "execution-handoff.md")
+        .expect("execution handoff requirement");
+    assert_eq!(
+        handoff.required_sections,
+        vec![
+            "Summary",
+            "Selected Slice",
+            "Implementation Artifact References",
+            "Dependency Prerequisites",
+            "Independent Verification Anchors",
+            "Execution Boundary",
+        ]
+    );
+    assert_eq!(handoff.gates, vec![GateKind::Architecture, GateKind::ReleaseReadiness]);
 }
 
 #[test]

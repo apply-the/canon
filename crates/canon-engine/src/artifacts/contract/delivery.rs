@@ -2,8 +2,8 @@
 use crate::domain::artifact::ArtifactRequirement;
 use crate::domain::gate::GateKind;
 
-use super::requirement;
 use super::sections::*;
+use super::{optional_requirement, requirement};
 
 // ── Artifact file-name constants ──────────────────────────────────────────────
 
@@ -16,6 +16,7 @@ const DELIVERY_SLICES_MD: &str = "delivery-slices.md";
 const SEQUENCING_PLAN_MD: &str = "sequencing-plan.md";
 const ACCEPTANCE_ANCHORS_MD: &str = "acceptance-anchors.md";
 const PLANNING_RISKS_MD: &str = "planning-risks.md";
+const EXECUTION_HANDOFF_MD: &str = "execution-handoff.md";
 
 // Change
 const SYSTEM_SLICE_MD: &str = "system-slice.md";
@@ -62,6 +63,7 @@ pub(super) fn backlog() -> Vec<ArtifactRequirement> {
                 SOURCE_INPUTS,
                 "Delivery Intent",
                 "Decomposition Posture",
+                "Execution Handoff",
             ],
             &[GateKind::Exploration, GateKind::Risk],
         ),
@@ -77,28 +79,40 @@ pub(super) fn backlog() -> Vec<ArtifactRequirement> {
         ),
         requirement(
             DEPENDENCY_MAP_MD,
-            &[SUMMARY, DEPENDENCIES, "Blocking Edges", "External Dependencies"],
+            &[SUMMARY, DEPENDENCIES, "Slice IDs", "Blocking Edges", "External Dependencies"],
             &[GateKind::Architecture, GateKind::Risk],
         ),
         requirement(
             DELIVERY_SLICES_MD,
-            &[SUMMARY, "Delivery Slices", "Slice Boundaries", "Dependency Links"],
+            &[SUMMARY, "Delivery Slices", "Slice IDs", "Slice Boundaries", "Dependency Links"],
             &[GateKind::Architecture, GateKind::ReleaseReadiness],
         ),
         requirement(
             SEQUENCING_PLAN_MD,
-            &[SUMMARY, SEQUENCING, "Ordering Rationale", "Readiness Signals"],
+            &[SUMMARY, SEQUENCING, "Slice IDs", "Ordering Rationale", "Readiness Signals"],
             &[GateKind::Architecture, GateKind::ReleaseReadiness],
         ),
         requirement(
             ACCEPTANCE_ANCHORS_MD,
-            &[SUMMARY, "Acceptance Anchors", "Source Trace Links", "Deferred Detail"],
+            &[SUMMARY, "Acceptance Anchors", "Slice IDs", "Source Trace Links", "Deferred Detail"],
             &[GateKind::Architecture, GateKind::ReleaseReadiness],
         ),
         requirement(
             PLANNING_RISKS_MD,
             &[SUMMARY, "Closure Findings", "Planning Risks", "Follow-Up Triggers"],
             &[GateKind::Risk, GateKind::ReleaseReadiness],
+        ),
+        optional_requirement(
+            EXECUTION_HANDOFF_MD,
+            &[
+                SUMMARY,
+                "Selected Slice",
+                "Implementation Artifact References",
+                "Dependency Prerequisites",
+                "Independent Verification Anchors",
+                "Execution Boundary",
+            ],
+            &[GateKind::Architecture, GateKind::ReleaseReadiness],
         ),
     ]
 }
@@ -267,7 +281,7 @@ mod tests {
 
     #[test]
     fn backlog_has_expected_artifact_count() {
-        assert_eq!(backlog().len(), 8);
+        assert_eq!(backlog().len(), 9);
     }
 
     #[test]
@@ -276,8 +290,10 @@ mod tests {
     }
 
     #[test]
-    fn backlog_all_artifacts_are_required() {
-        assert!(backlog().iter().all(|r| r.required));
+    fn backlog_handoff_artifact_is_optional() {
+        let handoff =
+            backlog().into_iter().find(|requirement| requirement.file_name == EXECUTION_HANDOFF_MD);
+        assert!(handoff.is_some_and(|requirement| !requirement.required));
     }
 
     #[test]

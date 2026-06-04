@@ -42,7 +42,7 @@
 
 ## R-006: Successful and closure-blocked runs need different packet expectations
 
-- **Decision**: Successful backlog runs emit the full eight-artifact packet. Closure-blocked or downgraded runs emit a bounded packet centered on `backlog-overview.md` and `planning-risks.md`, with explicit closure findings surfaced in summaries and context, and must not emit a misleading full decomposition.
+- **Decision**: Successful backlog runs emit the full planning packet. They add `execution-handoff.md` only when one slice is credibly ready for downstream implementation. Closure-blocked or downgraded runs emit a bounded packet centered on `backlog-overview.md` and `planning-risks.md`, with explicit closure findings surfaced in summaries and context, and must not emit a misleading full decomposition or fake execution readiness.
 - **Rationale**: The feature requires honest degradation when source architecture is not sufficiently closed. Reusing the full packet shape for a blocked run would imply unjustified precision.
 - **Alternatives considered**:
   - Always emit all eight artifacts and mark them partial. Rejected because it would still suggest a fuller decomposition than the evidence supports.

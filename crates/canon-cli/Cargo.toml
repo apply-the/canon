@@ -9,6 +9,18 @@ version.workspace = true
 name = "canon"
 path = "src/main.rs"
 
+[package.metadata.deb]
+name = "canon"
+maintainer = "Apply The"
+copyright = "2026 Apply The"
+license-file = ["../../LICENSE", "4"]
+depends = "$auto"
+extended-description = """\
+Semantic governance runtime for AI-assisted engineering work."""
+assets = [
+    ["target/release/canon", "usr/bin/", "755"],
+]
+
 [dependencies]
 canon-engine = { path = "../canon-engine" }
 clap.workspace = true

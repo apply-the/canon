@@ -74,7 +74,7 @@ Do this every time, even when the user only handed you a one-line delivery inten
    - `## Planning Risks` — bullets naming sequencing, dependency, and granularity risks tied to this body.
 3. Each section MUST be specific to the source you read. Generic boilerplate ("Establish a bounded foundation", "Deliver visible slices") is a failure and the user will reject it.
 4. Stop at slice level. Do NOT invent task-level breakdown, sprint tickets, or executable test plans.
-5. Then invoke Canon. Canon will preserve your authored sections verbatim into the eight-artifact packet, attach closure findings if the brief is weak, and govern the run.
+5. Then invoke Canon. Canon will preserve your authored sections verbatim into the full planning packet, add `execution-handoff.md` only when one slice is credibly ready for downstream implementation, attach closure findings if the brief is weak, and govern the run.
 
 If you cannot author a credible body because the upstream structure is genuinely unsettled, say so directly and redirect to `$canon-system-shaping` or `$canon-architecture` instead of submitting an empty brief.
 
@@ -82,14 +82,16 @@ If you cannot author a credible body because the upstream structure is genuinely
 
 - Canon command: `canon run --mode backlog --system-context existing --risk <RISK> --zone <ZONE> [--owner <OWNER>] (--input <INPUT_PATH> | --input-text <INPUT_TEXT>)`
 - Return the real Canon run id, state, and any closure findings Canon emits.
-- A sufficiently bounded backlog run completes with a full eight-artifact planning packet.
+- A sufficiently bounded backlog run completes with the full planning packet: `backlog-overview.md`, `epic-tree.md`, `capability-to-epic-map.md`, `dependency-map.md`, `delivery-slices.md`, `sequencing-plan.md`, `acceptance-anchors.md`, and `planning-risks.md`.
+- When one slice is credibly bounded for downstream execution, Canon adds `execution-handoff.md` as an additive governed handoff artifact.
+- When the planning packet is otherwise valid but no slice is credible enough for downstream execution, Canon completes the full packet but says handoff unavailable and omits `execution-handoff.md`.
 - A closure-limited backlog run may complete in downgraded form or stop blocked, but it must surface explicit closure findings and limit outputs to `backlog-overview.md` and `planning-risks.md`.
 
 ## Expected Output Shape
 
 - concise run-start summary
 - Canon-backed run state
-- direct statement of whether the backlog packet is full or closure-limited
+- direct statement of whether the backlog packet is full or closure-limited, and whether governed execution handoff is available, unavailable, or withheld
 - primary artifact path and short excerpt when available
 - concrete `.canon/artifacts/<RUN_ID>/backlog/` paths when Canon emitted them
 - closure findings, decomposition scope, and closure notes when the run is downgraded or blocked
@@ -103,12 +105,13 @@ If you cannot author a credible body because the upstream structure is genuinely
 - If the user is still shaping the capability or debating boundaries, redirect to `$canon-system-shaping` or `$canon-architecture` instead of inventing backlog decomposition.
 - If Canon returns a blocked or downgraded packet, point first to `planning-risks.md`, the closure findings Canon surfaced, and the limited artifact set rather than implying the full packet exists.
 - If Canon emits only the risk packet, say directly that Canon did not claim credible decomposition yet.
+- If Canon emits the full planning packet but no `execution-handoff.md`, say directly that handoff unavailable remains explicit until slice evidence improves.
 
 ## Next-Step Guidance
 
 - When Canon emitted a readable packet, recommend `$canon-inspect-artifacts` first.
 - Use `$canon-inspect-evidence` when the user needs lineage, closure rationale, or policy decisions.
-- Use `$canon-implementation` only after a bounded slice is selected from the packet.
+- Use `$canon-implementation` only after a bounded slice is selected from the packet, preferably from `execution-handoff.md` when Canon emitted it.
 - Return to `$canon-system-shaping` or `$canon-architecture` when the real blocker is unresolved structure, ownership, or dependency closure.
 
 ## Related Skills
@@ -128,5 +131,6 @@ If you cannot author a credible body because the upstream structure is genuinely
 ## Output Intent
 
 - durable backlog planning packet
+- optional governed execution handoff when one slice is credibly ready
 - explicit closure findings when source architecture is not sufficiently closed
 - no task-level decomposition

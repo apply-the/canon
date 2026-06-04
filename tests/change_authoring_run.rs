@@ -10,6 +10,7 @@ use tempfile::TempDir;
 
 fn git(workspace: &TempDir, args: &[&str]) {
     let output = ProcessCommand::new("git")
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
         .args(args)
         .current_dir(workspace.path())
         .output()

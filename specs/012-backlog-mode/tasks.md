@@ -207,7 +207,7 @@ T038 Add backlog embedded and materialized skill surfaces
 
 1. Complete Phase 0, Phase 1, and Phase 2.
 2. Deliver US1 and validate successful backlog packet generation end to end.
-3. Stop and confirm the full eight-artifact packet, traceability surfaces, and non-task granularity before enabling closure downgrade behavior.
+3. Stop and confirm the full planning packet, optional handoff semantics, traceability surfaces, and non-task granularity before enabling closure downgrade behavior.
 
 ### Incremental Delivery
 
@@ -232,7 +232,7 @@ T038 Add backlog embedded and materialized skill surfaces
 - Parallel opportunities identified: test scaffolds, foundational runtime scaffolding, validation-first story work, artifact-contract versus persistence work, and tech-docs/skills versus publish routing in US3
 - Suggested MVP scope: Phase 0 through Phase 3 (US1) only
 - Independent test criteria:
-  - US1: a bounded backlog run emits the full eight-artifact packet without task-level output
+  - US1: a bounded backlog run emits the full planning packet without task-level output and adds `execution-handoff.md` only when a slice is credibly ready
   - US2: an insufficiently closed backlog run blocks or downgrades with explicit closure findings and no misleading full packet
   - US3: a published backlog packet under `tech-docs/planning/<RUN_ID>/` preserves source links, dependencies, sequencing context, and acceptance anchors for downstream execution planning
 - Validation evidence paths: `specs/012-backlog-mode/decision-log.md`, `specs/012-backlog-mode/validation-report.md`, `specs/012-backlog-mode/contracts/backlog-authored-input-contract.md`, `specs/012-backlog-mode/contracts/backlog-packet-contract.md`, and `specs/012-backlog-mode/quickstart.md`

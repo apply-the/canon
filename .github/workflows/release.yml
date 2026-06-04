@@ -128,6 +128,29 @@ jobs:
       - name: Build release binary
         run: cargo build --locked -p canon-cli --bin canon --release --target ${{ matrix.target }}
 
+      - name: Install cargo-deb
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+
+      - name: Package Debian artifact
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cargo deb --target ${{ matrix.target }} -p canon-cli --no-build --no-strip
+          for deb in target/${{ matrix.target }}/debian/*.deb; do
+            filename=$(basename "$deb")
+            new_filename="${filename/-1_/_}"
+            cp "$deb" "dist/$new_filename"
+          done
+          for deb in dist/*.deb; do
+            echo "Inspecting $deb..."
+            dpkg-deb --info "$deb"
+            dpkg-deb --contents "$deb"
+          done
+
       - name: Package unix artifact
         if: matrix.packaging == 'unix'
         shell: bash
@@ -246,6 +269,8 @@ jobs:
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-macos-x86_64.tar.gz
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-linux-arm64.tar.gz
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-linux-x86_64.tar.gz
+            dist/canon_${{ needs.prepare-release-metadata.outputs.version }}_amd64.deb
+            dist/canon_${{ needs.prepare-release-metadata.outputs.version }}_arm64.deb
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-windows-x86_64.zip
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-SHA256SUMS.txt
             dist/canon-${{ needs.prepare-release-metadata.outputs.version }}-distribution-metadata.json
@@ -322,4 +347,58 @@ jobs:
 
           git add Formula/canon.rb
           git commit -m "canon ${VERSION}"
+          git push origin HEAD:main
+
+  sync-packages-repo:
+    name: sync-packages-repo
+    needs:
+      - prepare-release-metadata
+      - assemble-release
+    if: needs.prepare-release-metadata.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require packages repo token
+        shell: bash
+        env:
+          PACKAGES_REPO_TOKEN: ${{ secrets.PACKAGES_REPO_TOKEN }}
+        run: |
+          if [[ -z "$PACKAGES_REPO_TOKEN" ]]; then
+            echo "PACKAGES_REPO_TOKEN is required to sync apply-the/packages. Add it as a repository or organization secret available to this repo with contents:write access to apply-the/packages and permission to push to its main branch, then rerun the release workflow." >&2
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle-${{ needs.prepare-release-metadata.outputs.version }}
+          path: dist
+
+      - uses: actions/checkout@v4
+        with:
+          repository: apply-the/packages
+          ref: main
+          token: ${{ secrets.PACKAGES_REPO_TOKEN }}
+          path: packages-repo
+
+      - name: Copy Debian packages to APT repository
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare-release-metadata.outputs.version }}
+        run: |
+          cd packages-repo
+          
+          mkdir -p apt/pool/main/c/canon/
+          cp ../dist/canon_${VERSION}_amd64.deb apt/pool/main/c/canon/ || true
+          cp ../dist/canon_${VERSION}_arm64.deb apt/pool/main/c/canon/ || true
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          git add apt/pool/main/c/canon/
+          
+          if git diff --staged --quiet; then
+            echo "No new .deb packages found for Canon ${VERSION}." >&2
+            exit 0
+          fi
+          
+          git commit -m "canon ${VERSION} APT packages"
           git push origin HEAD:main

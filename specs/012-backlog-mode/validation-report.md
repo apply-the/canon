@@ -2,7 +2,7 @@
 
 ## Summary
 
-Validation for backlog mode must prove that Canon can turn bounded upstream decisions into governed delivery decomposition without inventing task-level detail and without pretending vague architecture is decomposable. Validation remains layered and explicitly separate from generation.
+Validation for backlog mode must prove that Canon can turn bounded upstream decisions into governed delivery decomposition without inventing task-level detail, without pretending vague architecture is decomposable, and without inventing downstream execution readiness when slice evidence is weak. Validation remains layered and explicitly separate from generation.
 
 ## Validation Ownership
 
@@ -39,12 +39,14 @@ Add dedicated coverage for:
 - canonical authored-input binding for `canon-input/backlog.md` and `canon-input/backlog/`
 - folder-backed packet precedence with `brief.md` authoritative
 - persisted run context contents for backlog planning context and closure findings
+- stable `slice_id` propagation and optional `execution-handoff.md` requirements
 
 ### Integration Tests
 
 Add dedicated coverage for:
 
-- successful bounded backlog run that emits the full eight-artifact packet
+- successful bounded backlog run that emits the full planning packet plus `execution-handoff.md`
+- successful bounded backlog run that emits the full planning packet while making handoff unavailable explicit
 - closure-blocked backlog run that exposes explicit findings instead of a full packet
 - publish compatibility for backlog through the existing publish flow
 - status and inspect compatibility for display id, UUID, short id, slug, and `@last`
@@ -63,7 +65,9 @@ Add dedicated coverage for:
 An independent reviewer pass must verify:
 
 - backlog packets are credible as standalone planning documents
+- governed execution handoff appears only when implementation refs and independent verification anchors are truly present
 - closure-limited packets make the lack of decomposition credibility obvious
+- handoff-unavailable full packets make the lack of downstream execution readiness obvious
 - published backlog packets remain above task level and do not drift into tool-specific ticket output
 - source traceability is visible enough that a reader can understand why an epic or slice exists
 
@@ -93,10 +97,11 @@ Record evidence in the delivering Canon run under `.canon/runs/<RUN_ID>/evidence
 - `cargo test --test direct_runtime_coverage --test invocation_cli_contract` passed with service-level backlog coverage for persisted `backlog_planning` context and CLI-level coverage for completed backlog invocation/evidence inspection.
 - `cargo test --test backlog_contract --test backlog_closure_run --test runtime_evidence_contract --test policy_and_traces` passed after implementing closure-aware contract selection, blocked-versus-downgraded severity handling, risk-only packet emission, structured closure fields in `status` and `inspect evidence`, and trace/evidence assertions for downgraded backlog runs.
 - `cargo test --test backlog_run --test run_lookup --test render_next_steps --test skills_bootstrap` passed for US3 with explicit assertions that published backlog packets land under `tech-docs/planning/<RUN_ID>/`, stay readable without hidden runtime state, preserve source links/dependencies/sequencing/acceptance-anchor context for downstream handoff, remain resolvable through `@last` and short-id lookup, keep completed next-step rendering backlog-safe, and materialize `canon-backlog` as an `available-now` skill.
+- `cargo test --test backlog_contract --test backlog_run --test backlog_closure_run --test run_lookup --test skills_bootstrap` passed for the handoff follow-up with explicit assertions that stable `slice_id` values propagate across the full planning packet, `execution-handoff.md` appears only when credibility evidence exists, published full packets can still say handoff unavailable honestly, and closure-limited packets continue to withhold the handoff artifact.
 - `/bin/bash scripts/validate-canon-skills.sh` passed after promoting `canon-backlog` to `available-now` and syncing the embedded skill source, materialized skill copy, and shared skill index.
 - Successful backlog runs now complete through the existing CLI surface with `--mode backlog --system-context existing`, emit `.canon/artifacts/<RUN_ID>/backlog/backlog-overview.md` as the primary artifact, and surface the backlog-specific mode result summary through existing output rendering.
 - Closure-limited backlog runs now either block with explicit blocking findings or complete in downgraded mode with the risk-only packet. In both cases the runtime persists only `backlog-overview.md` plus `planning-risks.md`, exposes closure status and findings in `canon status --output json` and `canon inspect evidence --output json`, and keeps the reduced packet visible in the evidence bundle and trace-linked artifact refs.
-- README, MODE_GUIDE, NEXT_FEATURES, AGENTS skill listings, the shared skill index, and both backlog skill surfaces now describe backlog as a delivered governed mode instead of a planned one.
+- README, MODE_GUIDE, GETTING_STARTED, the canonical backlog packet contract, and both backlog skill surfaces now describe backlog as a delivered governed mode whose full packet and handoff semantics match the runtime.
 
 ## Open Validation Gaps
 

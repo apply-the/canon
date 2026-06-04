@@ -1,0 +1,4 @@
+.fa-solid {
+  color: #a855f7; /* Default brand purple for Canon */
+  color: var(--vp-c-brand-1, #a855f7);
+}

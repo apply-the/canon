@@ -52,6 +52,7 @@ fn init_workspace() -> TempDir {
 
 fn git(workspace: &TempDir, args: &[&str]) {
     let output = ProcessCommand::new("git")
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
         .args(args)
         .current_dir(workspace.path())
         .output()
@@ -425,6 +426,29 @@ fn backlog_runs_remain_publishable_via_last_alias_and_short_id() {
             .join(default_publish_leaf(run_id, "backlog"))
             .join("01-backlog-overview.md")
             .exists()
+    );
+    assert!(
+        !workspace
+            .path()
+            .join("tech-docs")
+            .join("planning")
+            .join(default_publish_leaf(run_id, "backlog"))
+            .join("09-execution-handoff.md")
+            .exists(),
+        "full planning packets without handoff evidence must not publish a fake execution handoff"
+    );
+    let backlog_overview = fs::read_to_string(
+        workspace
+            .path()
+            .join("tech-docs")
+            .join("planning")
+            .join(default_publish_leaf(run_id, "backlog"))
+            .join("01-backlog-overview.md"),
+    )
+    .expect("published backlog overview");
+    assert!(
+        backlog_overview.contains("handoff unavailable"),
+        "published backlog overview should make handoff unavailability explicit"
     );
 
     cli_command()
