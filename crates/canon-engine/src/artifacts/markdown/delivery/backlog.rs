@@ -374,3 +374,51 @@ fn render_handoff_availability(planning_context: &BacklogPlanningContext) -> Str
 fn render_slice_ids(planning_context: &BacklogPlanningContext) -> String {
     render_string_list(&planning_context.slice_ids, "- No stable slice identifiers were recorded.")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::run::{
+        BacklogExecutionHandoff, BacklogGranularity, BacklogHandoffAvailability,
+        BacklogPlanningContext, ClosureAssessment,
+    };
+
+    #[test]
+    fn render_execution_handoff_artifact_handles_some_and_none() {
+        let mut context = BacklogPlanningContext {
+            mode: "backlog".to_string(),
+            delivery_intent: "test".to_string(),
+            desired_granularity: BacklogGranularity::EpicOnly,
+            planning_horizon: None,
+            source_refs: vec![],
+            priority_inputs: vec![],
+            constraints: vec![],
+            out_of_scope: vec![],
+            closure_assessment: ClosureAssessment::sufficient(),
+            handoff_availability: BacklogHandoffAvailability::Unavailable,
+            handoff_findings: vec![],
+            slice_ids: vec![],
+            execution_handoff: None,
+        };
+
+        let output_none = render_execution_handoff_artifact(&context);
+        assert!(output_none.contains("No governed execution handoff is available"));
+
+        context.execution_handoff = Some(BacklogExecutionHandoff {
+            selected_slice_id: "SLICE-1".to_string(),
+            selection_rationale: "Rationale test".to_string(),
+            implementation_artifact_refs: vec!["ref1".to_string()],
+            dependency_prerequisites: vec!["dep1".to_string()],
+            independent_verification_anchors: vec!["anchor1".to_string()],
+            blocked_assumptions: vec!["assumption1".to_string()],
+        });
+
+        let output_some = render_execution_handoff_artifact(&context);
+        assert!(output_some.contains("SLICE-1"));
+        assert!(output_some.contains("Rationale test"));
+        assert!(output_some.contains("ref1"));
+        assert!(output_some.contains("dep1"));
+        assert!(output_some.contains("anchor1"));
+        assert!(output_some.contains("assumption1"));
+    }
+}

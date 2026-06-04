@@ -1108,4 +1108,12 @@ mod tests {
         assert_eq!(SystemContext::New.as_str(), "new");
         assert_eq!(SystemContext::Existing.as_str(), "existing");
     }
+
+    #[test]
+    fn backlog_handoff_availability_as_str_returns_kebab_case() {
+        use super::BacklogHandoffAvailability;
+        assert_eq!(BacklogHandoffAvailability::WithheldForClosure.as_str(), "withheld-for-closure");
+        assert_eq!(BacklogHandoffAvailability::Unavailable.as_str(), "unavailable");
+        assert_eq!(BacklogHandoffAvailability::Available.as_str(), "available");
+    }
 }

@@ -876,4 +876,72 @@ mod tests {
         assert!(evidence_summary.contains("missing-exclusion"));
         assert!(evidence_summary.contains("Validation placeholder"));
     }
+
+    #[test]
+    fn string_extractor_helpers_behave_as_expected() {
+        use super::{extract_first_slice_id, extract_slice_ids_from_text, has_duplicate_entries};
+
+        let ids = extract_slice_ids_from_text("SLICE-123, SLICE-ABC: and SLICE-123");
+        assert_eq!(ids, vec!["SLICE-123".to_string(), "SLICE-ABC".to_string()]);
+
+        let first = extract_first_slice_id("nothing here SLICE-001 then SLICE-002");
+        assert_eq!(first, Some("SLICE-001".to_string()));
+
+        assert!(has_duplicate_entries(&["a".to_string(), "A".to_string()]));
+        assert!(!has_duplicate_entries(&["a".to_string(), "b".to_string()]));
+    }
+
+    #[test]
+    fn parse_backlog_execution_handoff_handles_validation_failures() {
+        use super::{ClosureAssessment, parse_backlog_execution_handoff};
+        use crate::domain::run::BacklogHandoffAvailability;
+
+        // 1. Missing slice ids
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &[],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 2. Duplicate entries
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string(), "SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 3. Missing implementation artifacts
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 4. Missing independent verification anchors
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 5. Selected slice not in authored slices
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-2\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 6. Success
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Available);
+    }
 }

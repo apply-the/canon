@@ -582,3 +582,87 @@ mod debugging_summarizer_tests {
         assert!(summary.artifact_packet_summary.contains("Defect description is missing"));
     }
 }
+
+#[cfg(test)]
+mod backlog_summarizer_tests {
+    use super::*;
+    use crate::domain::artifact::ArtifactRecord;
+    use crate::persistence::store::PersistedArtifact;
+
+    #[test]
+    fn test_summarize_backlog_mode_result_partial() {
+        let artifact = PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "01-backlog-overview.md".to_string(),
+                relative_path: "backlog/01-backlog-overview.md".to_string(),
+                format: crate::domain::artifact::ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Backlog Overview\n\n## Delivery Intent\n\nSome intent\n\n## Decomposition Posture\n\nrisk-only\n\n## Planning Horizon\n\nQ3\n\n## Execution Handoff\n\navailable".to_string(),
+        };
+        let summary = summarize_backlog_mode_result(&[artifact]).unwrap();
+        assert!(summary.result_excerpt.contains("Some intent"));
+        assert!(summary.artifact_packet_summary.contains("structurally complete only"));
+    }
+
+    #[test]
+    fn test_summarize_backlog_mode_result_full_packet_with_handoff() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "01-backlog-overview.md".to_string(),
+                    relative_path: "backlog/01-backlog-overview.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Backlog Overview\n\n## Delivery Intent\n\nSome intent".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "02-epic-tree.md".to_string(),
+                    relative_path: "backlog/02-epic-tree.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "content".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "03-execution-handoff.md".to_string(),
+                    relative_path: "backlog/03-execution-handoff.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "content".to_string(),
+            },
+        ];
+        let summary = summarize_backlog_mode_result(&artifacts).unwrap();
+        assert!(summary.artifact_packet_summary.contains("exposes one governed execution handoff"));
+    }
+
+    #[test]
+    fn test_summarize_backlog_mode_result_full_packet_without_handoff() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "01-backlog-overview.md".to_string(),
+                    relative_path: "backlog/01-backlog-overview.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Backlog Overview\n\n## Delivery Intent\n\nSome intent".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "02-epic-tree.md".to_string(),
+                    relative_path: "backlog/02-epic-tree.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "content".to_string(),
+            },
+        ];
+        let summary = summarize_backlog_mode_result(&artifacts).unwrap();
+        assert!(summary.artifact_packet_summary.contains("handoff remains unavailable"));
+    }
+}

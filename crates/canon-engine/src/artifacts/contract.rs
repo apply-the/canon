@@ -301,4 +301,34 @@ mod tests {
         assert_eq!(errors.len(), 1);
         assert!(errors[0].contains("Problem"));
     }
+
+    #[test]
+    fn backlog_contract_for_planning_context_removes_execution_handoff_when_unavailable() {
+        use super::backlog_contract_for_planning_context;
+        use crate::domain::run::{
+            BacklogGranularity, BacklogHandoffAvailability, BacklogPlanningContext,
+            ClosureAssessment,
+        };
+
+        let contract = contract_for_mode(Mode::Backlog);
+        let context = BacklogPlanningContext {
+            mode: "backlog".to_string(),
+            delivery_intent: "test".to_string(),
+            desired_granularity: BacklogGranularity::EpicOnly,
+            planning_horizon: None,
+            source_refs: vec![],
+            priority_inputs: vec![],
+            constraints: vec![],
+            out_of_scope: vec![],
+            closure_assessment: ClosureAssessment::sufficient(),
+            handoff_availability: BacklogHandoffAvailability::Unavailable,
+            handoff_findings: vec![],
+            slice_ids: vec![],
+            execution_handoff: None,
+        };
+
+        let filtered = backlog_contract_for_planning_context(&contract, &context);
+        let slugs = filtered.artifact_requirements.iter().map(|r| r.slug()).collect::<Vec<_>>();
+        assert!(!slugs.contains(&"execution-handoff.md"));
+    }
 }
