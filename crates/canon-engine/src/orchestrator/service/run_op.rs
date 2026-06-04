@@ -70,6 +70,7 @@ impl EngineService {
             Mode::PrReview => self.run_pr_review(&store, request, policy_set),
             Mode::DomainLanguage => self.run_domain_language(&store, request, policy_set),
             Mode::DomainModel => self.run_domain_model(&store, request, policy_set),
+            Mode::PolicyShaping => self.run_policy_shaping(&store, request, policy_set),
         }
     }
 

@@ -134,6 +134,7 @@ pub(super) fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::DomainLanguage => "tech-docs/domain/language",
         Mode::DomainModel => "tech-docs/domain/model",
         Mode::Debugging => "tech-docs/debugging",
+        Mode::PolicyShaping => "tech-docs/policies",
     }
 }
 

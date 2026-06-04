@@ -435,3 +435,25 @@ pub(super) fn summarize_pr_review_mode_result(
         action_chips: Vec::new(),
     })
 }
+
+pub(super) fn summarize_policy_shaping_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary = artifacts
+        .iter()
+        .find(|artifact| artifact.record.slug() == "conformance-impact-report.md")?;
+
+    Some(ModeResultSummary {
+        headline: "Policy Shaping impact report completed.".to_string(),
+        artifact_packet_summary: "Policy Shaping run generated an impact report.".to_string(),
+        execution_posture: None,
+        primary_artifact_title: "Conformance Impact Report".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: "Impact report ready for review.".to_string(),
+        action_chips: Vec::new(),
+    })
+}

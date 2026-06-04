@@ -240,6 +240,7 @@ pub enum Command {
         command: ListCommand,
     },
     Publish(PublishCommand),
+    PolicyShaping(commands::policy_shaping::PolicyShapingArgs),
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -338,6 +339,9 @@ fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command)
         }
         Command::List { command } => commands::list::execute(service, command),
         Command::Publish(cmd) => commands::publish::execute(service, cmd),
+        Command::PolicyShaping(args) => commands::policy_shaping::handle(&args)
+            .map(|_| 0)
+            .map_err(|e| crate::error::CliError::InvalidInput(e.to_string())),
     }
 }
 

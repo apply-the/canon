@@ -11,7 +11,6 @@ flowchart TD
     classDef boundline fill:#1f6b4e,stroke:#333,stroke-width:2px,color:#fff
 
     subgraph Core Foundations
-        B04["Boundline 04<br/>(Backlog Contract)"]:::boundline
         B05["Boundline 05<br/>(Plan Analysis)"]:::boundline
         B06["Boundline 06<br/>(Context Substrate)"]:::boundline
     end
@@ -46,7 +45,6 @@ flowchart TD
 
     subgraph Advanced Workflows & Policy
         C04["Canon 04<br/>(Brainstorming Ideation)"]:::canon
-        C05["Canon 05<br/>(Policy Shaping)"]:::canon
         B09["Boundline 09<br/>(Contextual Help)"]:::boundline
     end
 

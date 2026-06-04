@@ -26,6 +26,7 @@ pub fn system_context_requirement(mode: Mode) -> SystemContextRequirement {
         | Mode::SystemAssessment
         | Mode::SecurityAssessment
         | Mode::SupplyChainAnalysis
+        | Mode::PolicyShaping
         | Mode::Debugging => SystemContextRequirement::Required,
         Mode::Discovery
         | Mode::Requirements

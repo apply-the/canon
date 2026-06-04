@@ -75,6 +75,7 @@ mod mode_domain_language;
 mod mode_domain_model;
 mod mode_incident;
 mod mode_migration;
+mod mode_policy_shaping;
 mod mode_pr_review;
 mod mode_requirements;
 mod mode_review;
