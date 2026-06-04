@@ -1,6 +1,3 @@
-use crate::domain::gate::GateKind;
-use canon_adapters::CapabilityKind;
-
 /// The method definition filename for brainstorming mode.
 pub const MODE_FILE: &str = "brainstorming.toml";
 /// The ordered step sequence for brainstorming mode execution.
@@ -14,12 +11,15 @@ pub const STEP_SEQUENCE: &[&str] = &[
     "emit-artifacts",
     "evaluate-gates",
 ];
-/// The gates required to close a brainstorming mode run.
-pub const REQUIRED_GATES: &[GateKind] =
-    &[GateKind::Exploration, GateKind::Risk, GateKind::ReleaseReadiness];
-/// The capabilities governed during brainstorming mode execution.
-pub const GOVERNED_CAPABILITIES: &[CapabilityKind] = &[
-    CapabilityKind::ReadRepository,
-    CapabilityKind::GenerateContent,
-    CapabilityKind::CritiqueContent,
-];
+pub use super::discovery::{GOVERNED_CAPABILITIES, REQUIRED_GATES};
+
+pub const ARTIFACT_CONTEXT_SLUG: &str = "context.md";
+pub const ARTIFACT_OPTIONS_SLUG: &str = "options.md";
+pub const ARTIFACT_TRADEOFFS_SLUG: &str = "tradeoffs.md";
+pub const ARTIFACT_SPIKES_SLUG: &str = "spikes.md";
+
+pub const HEADING_CONTEXT: &str = "Context";
+pub const HEADING_SUMMARY: &str = "Summary";
+pub const HEADING_OPTIONS: &str = "Options";
+pub const HEADING_TRADEOFFS: &str = "Tradeoffs";
+pub const HEADING_SPIKES: &str = "Spikes";

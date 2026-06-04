@@ -768,6 +768,23 @@ mod tests {
     }
 
     #[test]
+    fn run_dispatches_brainstorming_mode_correctly() {
+        let workspace = tempdir().expect("tempdir");
+        std::fs::write(
+            workspace.path().join("brainstorm.md"),
+            "# Ideation\n\n## Problem\nThink about it.\n\n## Outcome\nDecide it.\n",
+        )
+        .expect("write brief");
+        let service = EngineService::new(workspace.path());
+
+        let mut request = requirements_file_request("brainstorm.md", "Owner <owner@example.com>");
+        request.mode = Mode::Brainstorming;
+
+        let summary = service.run(request).expect("brainstorming run");
+        assert_eq!(summary.state, "Draft");
+    }
+
+    #[test]
     fn approve_rejects_unsupported_targets() {
         let workspace = tempdir().expect("tempdir");
         std::fs::write(

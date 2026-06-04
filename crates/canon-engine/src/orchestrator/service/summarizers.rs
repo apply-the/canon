@@ -733,4 +733,15 @@ mod tests {
         let artifacts = vec![make_artifact("invariants.md", "## Invariants\n- keep stable\n")];
         assert!(summarize_mode_result(Mode::Architecture, &artifacts).is_none());
     }
+
+    #[test]
+    fn summarize_mode_result_delegates_to_brainstorming_for_brainstorming_mode() {
+        let artifacts = vec![make_artifact(
+            crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG,
+            &format!("## {}\n- context here\n", crate::modes::brainstorming::HEADING_CONTEXT),
+        )];
+
+        let summary = summarize_mode_result(Mode::Brainstorming, &artifacts).unwrap();
+        assert_eq!(summary.primary_artifact_title, crate::modes::brainstorming::HEADING_CONTEXT);
+    }
 }

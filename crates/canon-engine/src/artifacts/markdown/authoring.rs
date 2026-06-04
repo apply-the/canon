@@ -315,35 +315,47 @@ pub fn render_brainstorming_artifact(
     let authored_summary = "Brainstorming context capture.";
 
     match file_name {
-        "context.md" => render_authored_artifact(
-            "Context",
+        crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG => render_authored_artifact(
+            crate::modes::brainstorming::HEADING_CONTEXT,
             authored_summary,
             context_summary,
             &[
-                AuthoredSectionSpec { canonical_heading: "Context", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: crate::modes::brainstorming::HEADING_CONTEXT,
+                    aliases: &[],
+                },
                 AuthoredSectionSpec { canonical_heading: "Goals", aliases: &[] },
             ],
         ),
-        "options.md" => render_authored_artifact(
-            "Options",
+        crate::modes::brainstorming::ARTIFACT_OPTIONS_SLUG => render_authored_artifact(
+            crate::modes::brainstorming::HEADING_OPTIONS,
             authored_summary,
             context_summary,
             &[
-                AuthoredSectionSpec { canonical_heading: "Options", aliases: &[] },
+                AuthoredSectionSpec {
+                    canonical_heading: crate::modes::brainstorming::HEADING_OPTIONS,
+                    aliases: &[],
+                },
                 AuthoredSectionSpec { canonical_heading: "Recommended Option", aliases: &[] },
             ],
         ),
-        "tradeoffs.md" => render_authored_artifact(
-            "Tradeoffs",
+        crate::modes::brainstorming::ARTIFACT_TRADEOFFS_SLUG => render_authored_artifact(
+            crate::modes::brainstorming::HEADING_TRADEOFFS,
             authored_summary,
             context_summary,
-            &[AuthoredSectionSpec { canonical_heading: "Tradeoffs", aliases: &[] }],
+            &[AuthoredSectionSpec {
+                canonical_heading: crate::modes::brainstorming::HEADING_TRADEOFFS,
+                aliases: &[],
+            }],
         ),
-        "spikes.md" => render_authored_artifact(
-            "Spikes",
+        crate::modes::brainstorming::ARTIFACT_SPIKES_SLUG => render_authored_artifact(
+            crate::modes::brainstorming::HEADING_SPIKES,
             authored_summary,
             context_summary,
-            &[AuthoredSectionSpec { canonical_heading: "Spikes", aliases: &[] }],
+            &[AuthoredSectionSpec {
+                canonical_heading: crate::modes::brainstorming::HEADING_SPIKES,
+                aliases: &[],
+            }],
         ),
         "open-questions.md" => render_authored_artifact(
             "Open Questions",
@@ -352,5 +364,178 @@ pub fn render_brainstorming_artifact(
             &[AuthoredSectionSpec { canonical_heading: "Open Questions", aliases: &[] }],
         ),
         other => render_markdown(other, context_summary),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn render_brainstorming_artifact_uses_constants_and_formats_properly() {
+        let content = render_brainstorming_artifact(
+            crate::modes::brainstorming::ARTIFACT_CONTEXT_SLUG,
+            &format!(
+                "## {}\nctx summary\n## Goals\ngoals summary\n",
+                crate::modes::brainstorming::HEADING_CONTEXT
+            ),
+            "gen summary",
+            "crit summary",
+        );
+        assert!(content.contains(&format!("# {}", crate::modes::brainstorming::HEADING_CONTEXT)));
+        assert!(content.contains("ctx summary"));
+    }
+
+    #[test]
+    fn render_requirements_artifact_covers_all_branches() {
+        assert!(
+            render_requirements_artifact("problem-statement.md", "idea")
+                .contains("Problem Statement")
+        );
+        assert!(render_requirements_artifact("constraints.md", "idea").contains("Constraints"));
+        assert!(render_requirements_artifact("options.md", "idea").contains("Options"));
+        assert!(render_requirements_artifact("tradeoffs.md", "idea").contains("Tradeoffs"));
+        assert!(render_requirements_artifact("scope-cuts.md", "idea").contains("Scope Cuts"));
+        assert!(
+            render_requirements_artifact("decision-checklist.md", "idea")
+                .contains("Decision Checklist")
+        );
+        assert!(
+            render_requirements_artifact("prd.md", "idea")
+                .contains("Product Requirements Document")
+        );
+        assert!(render_requirements_artifact("unknown.md", "idea").contains("unknown.md"));
+    }
+
+    #[test]
+    fn render_requirements_artifact_from_evidence_covers_all_branches() {
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "problem-statement.md",
+                "idea",
+                "## Problem\nprob",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("prob")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "constraints.md",
+                "idea",
+                "## Constraints\ncons",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("cons")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "options.md",
+                "idea",
+                "## Options\nopts",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("opts")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "tradeoffs.md",
+                "idea",
+                "## Tradeoffs\ntrades",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("trades")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "scope-cuts.md",
+                "idea",
+                "## Scope Cuts\ncuts",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("cuts")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "decision-checklist.md",
+                "idea",
+                "## Decision Checklist\ndec",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("dec")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "prd.md",
+                "idea",
+                "## Problem\nprob",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("prob")
+        );
+        assert!(
+            render_requirements_artifact_from_evidence(
+                "unknown.md",
+                "idea",
+                "## Problem\nprob",
+                "gen",
+                "crit",
+                "den"
+            )
+            .contains("unknown.md")
+        );
+    }
+
+    #[test]
+    fn render_discovery_artifact_covers_all_branches() {
+        assert!(render_discovery_artifact("problem-map.md", "idea").contains("Problem Map"));
+        assert!(
+            render_discovery_artifact("unknowns-and-assumptions.md", "idea").contains("Unknowns")
+        );
+        assert!(
+            render_discovery_artifact("context-boundary.md", "idea").contains("Context Boundary")
+        );
+        assert!(render_discovery_artifact("unknown.md", "idea").contains("unknown.md"));
+    }
+
+    #[test]
+    fn render_system_shaping_artifact_covers_all_branches() {
+        assert!(
+            render_system_shaping_artifact("system-shape.md", "idea", "gen", "crit")
+                .contains("System Shape")
+        );
+        assert!(
+            render_system_shaping_artifact("domain-model.md", "idea", "gen", "crit")
+                .contains("Domain Model")
+        );
+        assert!(
+            render_system_shaping_artifact("capability-map.md", "idea", "gen", "crit")
+                .contains("Capability Map")
+        );
+        assert!(
+            render_system_shaping_artifact("delivery-options.md", "idea", "gen", "crit")
+                .contains("Delivery Options")
+        );
+        assert!(
+            render_system_shaping_artifact("risk-hotspots.md", "idea", "gen", "crit")
+                .contains("Risk Hotspots")
+        );
+        assert!(
+            render_system_shaping_artifact("unknown.md", "idea", "gen", "crit")
+                .contains("unknown.md")
+        );
     }
 }
