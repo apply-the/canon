@@ -27,7 +27,10 @@ use crate::domain::artifact::{
 };
 use crate::domain::gate::GateKind;
 use crate::domain::mode::Mode;
-use crate::domain::run::{ClosureAssessment, ClosureDecompositionScope};
+use crate::domain::run::{
+    BacklogHandoffAvailability, BacklogPlanningContext, ClosureAssessment,
+    ClosureDecompositionScope,
+};
 use crate::domain::verification::VerificationLayer;
 
 /// Return the full [`ArtifactContract`] for the given [`Mode`].
@@ -116,6 +119,21 @@ pub fn backlog_contract_for_closure(
     } else {
         contract.clone()
     }
+}
+
+/// Returns the effective backlog contract for the current planning context,
+/// filtering optional handoff surfaces when no downstream handoff is available.
+pub fn backlog_contract_for_planning_context(
+    contract: &ArtifactContract,
+    planning_context: &BacklogPlanningContext,
+) -> ArtifactContract {
+    let mut filtered = backlog_contract_for_closure(contract, &planning_context.closure_assessment);
+    if !matches!(planning_context.handoff_availability, BacklogHandoffAvailability::Available) {
+        filtered.artifact_requirements.retain(|requirement| {
+            crate::domain::artifact::artifact_slug(&requirement.file_name) != "execution-handoff.md"
+        });
+    }
+    filtered
 }
 
 /// Returns a filtered contract for architecture packets, enabling only artifacts
@@ -282,5 +300,35 @@ mod tests {
         let errors = validate_artifact(&req, contents);
         assert_eq!(errors.len(), 1);
         assert!(errors[0].contains("Problem"));
+    }
+
+    #[test]
+    fn backlog_contract_for_planning_context_removes_execution_handoff_when_unavailable() {
+        use super::backlog_contract_for_planning_context;
+        use crate::domain::run::{
+            BacklogGranularity, BacklogHandoffAvailability, BacklogPlanningContext,
+            ClosureAssessment,
+        };
+
+        let contract = contract_for_mode(Mode::Backlog);
+        let context = BacklogPlanningContext {
+            mode: "backlog".to_string(),
+            delivery_intent: "test".to_string(),
+            desired_granularity: BacklogGranularity::EpicOnly,
+            planning_horizon: None,
+            source_refs: vec![],
+            priority_inputs: vec![],
+            constraints: vec![],
+            out_of_scope: vec![],
+            closure_assessment: ClosureAssessment::sufficient(),
+            handoff_availability: BacklogHandoffAvailability::Unavailable,
+            handoff_findings: vec![],
+            slice_ids: vec![],
+            execution_handoff: None,
+        };
+
+        let filtered = backlog_contract_for_planning_context(&contract, &context);
+        let slugs = filtered.artifact_requirements.iter().map(|r| r.slug()).collect::<Vec<_>>();
+        assert!(!slugs.contains(&"execution-handoff.md"));
     }
 }

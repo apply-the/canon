@@ -39,8 +39,8 @@
 
 - **Status**: Proposed
 - **Context**: The spec requires honest block-or-downgrade behavior when closure is insufficient.
-- **Decision**: Successful runs emit the full eight-artifact backlog packet. Closure-limited runs emit a bounded risk-focused packet and must not present a fake full decomposition.
-- **Consequences**: Packet shape communicates confidence level directly and reduces the risk of users acting on invented detail.
+- **Decision**: Successful runs emit the full planning packet. They add `execution-handoff.md` only when one slice is credibly ready for downstream implementation. Closure-limited runs emit a bounded risk-focused packet and must not present a fake full decomposition or fake execution readiness.
+- **Consequences**: Packet shape communicates both planning completeness and downstream handoff credibility directly, reducing the risk of users acting on invented detail.
 
 ## D-007: No new top-level CLI surface is introduced
 
@@ -66,7 +66,7 @@
 ## D-010: Successful backlog generation uses the canonical backlog packet and stays above task-level output
 
 - **Status**: Accepted for implementation
-- **Context**: US1 requires backlog to be independently runnable from `canon-input/backlog.md|/`, to emit the full eight-artifact planning packet, and to stay reusable for downstream implementation work without collapsing into task mapping.
+- **Context**: US1 requires backlog to be independently runnable from `canon-input/backlog.md|/`, to emit the full planning packet, and to stay reusable for downstream implementation work without collapsing into task mapping.
 - **Decision**: The successful backlog path now prefers the canonical backlog authored-input packet, persists a backlog planning context in `context.toml`, records read/generate/critique/validate lineage, and emits `backlog-overview.md`, `epic-tree.md`, `capability-to-epic-map.md`, `dependency-map.md`, `delivery-slices.md`, `sequencing-plan.md`, `acceptance-anchors.md`, and `planning-risks.md` with planning-only sections.
 - **Consequences**: Full-packet runs are testable through existing CLI and inspect surfaces, primary-artifact summaries stay backlog-specific, and the packet remains bounded enough for later closure-aware refinement without inventing task-level execution detail.
 
@@ -83,3 +83,10 @@
 - **Context**: US3 requires a published backlog packet to remain readable outside Canon and a downstream implementation lead to recover source links, dependencies, sequencing, and acceptance anchors without hidden runtime state. The runtime publish path already reused Canon's generic lookup and destination model, but the backlog skill and top-level docs still described backlog as planned rather than delivered.
 - **Decision**: Keep backlog on the existing `canon publish`, run lookup, inspect, and next-step surfaces; treat `tech-docs/planning/<RUN_ID>/` as the authoritative public packet location; keep published backlog artifacts explicitly planning-only; and promote the backlog skill plus shared tech-docs/index surfaces to `available-now` only after tests prove the packet and skill materialization behave as delivered.
 - **Consequences**: Downstream readers can reuse backlog packets through Canon's existing lifecycle without a parallel handoff interface, publish and `@last`/short-id lookup compatibility remain generic instead of mode-specific, and skills/docs now align with runtime truth instead of aspirational roadmap text.
+
+## D-013: Stable slice identity and governed handoff remain additive to the planning packet
+
+- **Status**: Accepted for implementation
+- **Context**: Downstream implementation leads need a bounded slice identity they can quote across published planning artifacts, but backlog must stay above task-level decomposition and must not imply execution authority when evidence is still weak.
+- **Decision**: Persist stable `slice_id` values across `dependency-map.md`, `delivery-slices.md`, `sequencing-plan.md`, and `acceptance-anchors.md`. Treat `execution-handoff.md` as an additive artifact that names one selected slice together with implementation refs, dependency prerequisites, independent verification anchors, and explicit execution boundaries only when those signals are present.
+- **Consequences**: Readers can recover the same slice across planning surfaces, downstream implementation work can anchor itself to one governed slice when available, and full planning packets can still remain honest by omitting the handoff artifact when readiness evidence is insufficient.

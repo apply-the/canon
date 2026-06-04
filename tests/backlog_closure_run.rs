@@ -23,6 +23,7 @@ fn cli_command() -> Command {
 
 fn git(workspace: &TempDir, args: &[&str]) {
     let output = ProcessCommand::new("git")
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
         .args(args)
         .current_dir(workspace.path())
         .output()
@@ -67,7 +68,7 @@ fn write_downgraded_backlog_packet(workspace: &TempDir) {
     fs::create_dir_all(&packet_root).expect("backlog packet dir");
     fs::write(
 		packet_root.join("brief.md"),
-		"# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n",
+		"# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n\n## Epic Tree\n- Epic AUTH-SESSION: harden revocation and verification boundaries.\n\n## Capability To Epic Map\n- Auth session revocation -> Epic AUTH-SESSION\n\n## Dependency Map\n- [SLICE-AUTH-001] depends on auth-boundary rollback guard rails.\n\n## Delivery Slices\n- [SLICE-AUTH-001] Revoke sessions with rollback-safe persistence boundaries.\n\n## Sequencing Plan\n1. [SLICE-AUTH-001] first because it establishes the bounded revoke path.\n\n## Acceptance Anchors\n- [SLICE-AUTH-001] Session revoke behavior is bounded and traceable.\n\n## Planning Risks\n- Verification posture is still underspecified for downstream execution.\n",
 	)
 	.expect("brief");
     fs::write(
@@ -179,9 +180,9 @@ fn downgraded_backlog_run_completes_with_a_risk_only_packet() {
     let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
     assert_eq!(json["mode"].as_str(), Some("backlog"));
     assert_eq!(json["state"].as_str(), Some("Completed"));
-    assert_eq!(json["artifact_count"].as_u64(), Some(3));
+    assert_eq!(json["artifact_count"].as_u64(), Some(9));
     assert!(json["mode_result"]["headline"].as_str().is_some_and(|headline| {
-        headline.contains("closure-limited") || headline.contains("planning risks")
+        headline.contains("handoff unavailable") || headline.contains("planning risks")
     }));
 
     let run_id = json["run_id"].as_str().expect("run id");
@@ -202,9 +203,37 @@ fn downgraded_backlog_run_completes_with_a_risk_only_packet() {
         actual_paths,
         vec![
             format!(".canon/artifacts/{run_id}/backlog/01-backlog-overview.md"),
+            format!(".canon/artifacts/{run_id}/backlog/02-epic-tree.md"),
+            format!(".canon/artifacts/{run_id}/backlog/03-capability-to-epic-map.md"),
+            format!(".canon/artifacts/{run_id}/backlog/04-dependency-map.md"),
+            format!(".canon/artifacts/{run_id}/backlog/05-delivery-slices.md"),
+            format!(".canon/artifacts/{run_id}/backlog/06-sequencing-plan.md"),
+            format!(".canon/artifacts/{run_id}/backlog/07-acceptance-anchors.md"),
             format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
             format!(".canon/artifacts/{run_id}/backlog/packet-metadata.json"),
         ]
+    );
+
+    let overview = fs::read_to_string(
+        workspace
+            .path()
+            .join(".canon")
+            .join("artifacts")
+            .join(run_id)
+            .join("backlog")
+            .join("01-backlog-overview.md"),
+    )
+    .expect("read overview");
+    assert!(overview.contains("handoff unavailable"));
+    assert!(
+        !workspace
+            .path()
+            .join(".canon")
+            .join("artifacts")
+            .join(run_id)
+            .join("backlog")
+            .join("09-execution-handoff.md")
+            .exists()
     );
 
     let status_output = cli_command()
@@ -217,7 +246,6 @@ fn downgraded_backlog_run_completes_with_a_risk_only_packet() {
         .clone();
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("json output");
-    assert_eq!(status_json["closure_status"].as_str(), Some("downgraded"));
-    assert_eq!(status_json["decomposition_scope"].as_str(), Some("risk-only-packet"));
-    assert_eq!(status_json["closure_findings"][0]["category"].as_str(), Some("missing-exclusion"));
+    assert_eq!(status_json["closure_status"].as_str(), Some("sufficient"));
+    assert_eq!(status_json["decomposition_scope"].as_str(), Some("full-packet"));
 }

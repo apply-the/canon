@@ -24,6 +24,7 @@ fn cli_command() -> Command {
 
 fn git(workspace: &TempDir, args: &[&str]) {
     let output = ProcessCommand::new("git")
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
         .args(args)
         .current_dir(workspace.path())
         .output()
@@ -58,7 +59,7 @@ fn write_backlog_packet(workspace: &TempDir) {
     fs::create_dir_all(&packet_root).expect("backlog packet dir");
     fs::write(
 		packet_root.join("brief.md"),
-		"# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n",
+		"# Backlog Brief\n\n## Delivery Intent\nPrepare a bounded delivery backlog for auth session hardening.\n\n## Desired Granularity\nepic-plus-slice\n\n## Planning Horizon\nnext two releases\n\n## Source References\n- tech-docs/changes/auth-session.md\n- tech-docs/architecture/auth-boundary.md\n\n## Constraints\n- Keep the output above task level.\n\n## Out of Scope\n- Login UI redesign\n\n## Epic Tree\n- Epic AUTH-SESSION: harden revocation and verification boundaries.\n\n## Capability To Epic Map\n- Auth session revocation -> Epic AUTH-SESSION\n\n## Dependency Map\n- [SLICE-AUTH-001] depends on auth-boundary rollback guard rails.\n\n## Delivery Slices\n- [SLICE-AUTH-001] Revoke sessions with rollback-safe persistence boundaries.\n- [SLICE-AUTH-002] Verify revocation evidence reaches downstream operators.\n\n## Sequencing Plan\n1. [SLICE-AUTH-001] first because it establishes the bounded revoke path.\n2. [SLICE-AUTH-002] after the revoke path is stable.\n\n## Acceptance Anchors\n- [SLICE-AUTH-001] Session revoke behavior is bounded and traceable.\n- [SLICE-AUTH-002] Revocation evidence is externally reviewable.\n\n## Planning Risks\n- Hidden auth-boundary coupling can widen rollback scope.\n\n## Execution Handoff\nSelected Slice: SLICE-AUTH-001\nRationale: deliver the first rollback-safe bounded slice before evidence expansion.\n\n## Implementation Artifact References\n- src/auth/session.rs\n- tech-docs/changes/auth-session.md\n\n## Dependency Prerequisites\n- auth-boundary rollback guard rails remain intact.\n\n## Independent Verification Anchors\n- contract test proves an existing session revokes without widening mutation scope.\n\n## Blocked Assumptions\n- No additional login UI changes are required for the first slice.\n",
 	)
 	.expect("brief");
     fs::write(
@@ -153,6 +154,7 @@ fn inspect_artifacts_lists_the_full_backlog_bundle() {
         format!(".canon/artifacts/{run_id}/backlog/06-sequencing-plan.md"),
         format!(".canon/artifacts/{run_id}/backlog/07-acceptance-anchors.md"),
         format!(".canon/artifacts/{run_id}/backlog/08-planning-risks.md"),
+        format!(".canon/artifacts/{run_id}/backlog/09-execution-handoff.md"),
         format!(".canon/artifacts/{run_id}/backlog/packet-metadata.json"),
     ];
     assert_eq!(actual_paths, expected_paths);
@@ -208,7 +210,7 @@ fn run_backlog_markdown_surfaces_primary_result_without_task_level_sections() {
         .success()
         .stdout(contains("# run"))
         .stdout(contains("Primary Artifact: .canon/artifacts/"))
-        .stdout(contains("Backlog packet is publishable for downstream execution planning."))
+        .stdout(contains("governed execution handoff"))
         .stdout(contains("## Task Mapping").not())
         .stdout(contains("task-mapping.md").not());
 }
@@ -240,18 +242,36 @@ fn publish_backlog_packet_preserves_handoff_context_without_hidden_runtime_state
             .join("packet-metadata.json")
             .exists()
     );
+    assert!(
+        workspace
+            .path()
+            .join("tech-docs")
+            .join("planning")
+            .join(default_publish_leaf(&run_id, "backlog"))
+            .join("09-execution-handoff.md")
+            .exists()
+    );
 
     let slices = read_published_file(&workspace, &run_id, "05-delivery-slices.md");
     let dependencies = read_published_file(&workspace, &run_id, "04-dependency-map.md");
     let sequencing = read_published_file(&workspace, &run_id, "06-sequencing-plan.md");
     let anchors = read_published_file(&workspace, &run_id, "07-acceptance-anchors.md");
+    let handoff = read_published_file(&workspace, &run_id, "09-execution-handoff.md");
 
     assert!(slices.contains("## Dependency Links"));
+    assert!(slices.contains("SLICE-AUTH-001"));
     assert!(slices.contains("tech-docs/changes/auth-session.md"));
     assert!(dependencies.contains("## Blocking Edges"));
+    assert!(dependencies.contains("SLICE-AUTH-001"));
     assert!(sequencing.contains("## Ordering Rationale"));
+    assert!(sequencing.contains("SLICE-AUTH-001"));
     assert!(anchors.contains("## Source Trace Links"));
+    assert!(anchors.contains("SLICE-AUTH-001"));
     assert!(anchors.contains("tech-docs/architecture/auth-boundary.md"));
+    assert!(handoff.contains("## Selected Slice"));
+    assert!(handoff.contains("SLICE-AUTH-001"));
+    assert!(handoff.contains("src/auth/session.rs"));
+    assert!(handoff.contains("## Independent Verification Anchors"));
     assert!(!slices.contains("story points"));
     assert!(!anchors.contains("ticket"));
 }

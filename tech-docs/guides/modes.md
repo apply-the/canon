@@ -961,6 +961,7 @@ run.
 - how bounded upstream decisions decompose into epics and slices
 - which dependencies and sequencing constraints matter for execution planning
 - what acceptance anchors a later implementation lead should preserve
+- whether one bounded slice is credible enough for a governed downstream handoff
 - where closure is still weak enough to block or downgrade decomposition
 
 ### Questions This Mode Does Not Answer Well
@@ -972,7 +973,7 @@ run.
 
 ### What Canon Emits
 
-Backlog produces a delivery decomposition packet with these artifacts:
+Backlog produces the full planning packet with these artifacts:
 
 - `backlog-overview.md`
 - `epic-tree.md`
@@ -983,28 +984,41 @@ Backlog produces a delivery decomposition packet with these artifacts:
 - `acceptance-anchors.md`
 - `planning-risks.md`
 
+When one slice is credibly bounded for downstream implementation, Canon adds:
+
+- `execution-handoff.md`
+
 The packet stays above task level. It is meant to remain publishable and
-readable outside Canon as a standalone planning artifact.
+readable outside Canon as a standalone planning artifact. `execution-handoff.md`
+remains additive: Canon omits it when the planning packet is sound but the
+slice evidence is still too weak for downstream execution authority.
 
 ### Closure and Downgrade Behavior
 
-Backlog does not pretend decomposition is credible when upstream closure is
-weak. If source constraints, ownership boundaries, or dependencies are still
-materially unresolved, Canon either blocks the run or completes it in a
-closure-limited form.
+Backlog does not pretend decomposition or execution readiness is credible when
+upstream closure is weak. Canon distinguishes three states:
+
+- full planning packet plus `execution-handoff.md` when one slice is credibly
+  ready for downstream implementation
+- full planning packet with explicit handoff unavailable wording when the
+  planning packet is sound but no slice yet has enough evidence for downstream
+  execution authority
+- closure-limited packet when source constraints, ownership boundaries, or
+  dependencies are still materially unresolved
 
 Closure-limited runs emit only:
 
 - `backlog-overview.md`
 - `planning-risks.md`
 
-Use that signal to return to `system-shaping` or `architecture` instead of
-carrying false precision into execution.
+Use the handoff-unavailable or closure-limited signals to return to
+`system-shaping` or `architecture` instead of carrying false precision into
+execution.
 
 ### Typical Handoff After This Mode
 
 - publish the approved backlog packet with `canon publish <RUN_ID>` to `tech-docs/planning/<YYYY-MM-DD>-<descriptor>/`, or use `--to` for another public destination
-- move into `implementation` only after selecting a bounded slice from the packet
+- move into `implementation` only after selecting a bounded slice from the packet, preferably from `execution-handoff.md` when Canon emitted it
 - return to `architecture` or `system-shaping` if closure findings show the source decisions are still too weak
 - use `dependency-map.md`, `sequencing-plan.md`, and `acceptance-anchors.md` to keep later execution work traceable to earlier decisions
 

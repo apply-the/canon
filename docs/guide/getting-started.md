@@ -1,10 +1,8 @@
 # Getting Started
 
-For a 5-minute technical setup with commands, use the [[Quick Start|Quick-Start]].
+For a 5-minute technical setup with commands, use the [Quickstart](./quickstart).
 
 This path is for a user who wants to understand Canon by running one governed packet from authored input to inspection and publication.
-
-This page is maintained against `0.65.0`.
 
 ## What Canon Is
 
@@ -21,22 +19,16 @@ The Canon CLI owns the governance surface:
 
 The AI assistant supplies the reasoning content. Canon records the governed shape, boundaries, and traceability.
 
-## First Run
+## The Lifecycle
 
-1. Install the `canon` CLI.
-2. Initialize Canon inside the repository you want to govern. *(Note: Canon resolves the workspace automatically, so you can run it from any subdirectory once initialized).*
-3. Write authored input under `canon-input/`.
-4. Inspect clarity before running.
-5. Start a governed run.
-6. Inspect status, evidence, and artifacts.
-7. Approve or resume if gates require it.
-8. Publish the packet when it is reusable.
+The process of creating and publishing governed work always follows this sequence:
 
-The canonical command walkthrough lives in the source repo: [Getting Started with Canon](https://github.com/apply-the/canon/blob/main/tech-docs/guides/getting-started.md).
-
-The first `canon init` step now opens a guided assistant selector by default
-when the current terminal supports the interactive flow. For scripts, CI, or
-machine-readable output, use `canon init --non-interactive`.
+1. **Authored Input:** Write a brief under `canon-input/`.
+2. **Inspect Clarity:** Verify the inputs before running.
+3. **Run:** Start a governed session.
+4. **Inspect:** Review status, evidence, and artifacts.
+5. **Approve:** Review and unblock the agent when human judgment is needed.
+6. **Publish:** Promote the final artifacts into your repository's permanent memory.
 
 ## Choose A Mode
 
@@ -50,7 +42,7 @@ Pick the mode by the kind of knowledge you need, not by the file you happen to h
 - Use `change` when the structure is known and the task is a bounded modification.
 - Use `verification` when a claim, packet, or quality signal needs direct challenge.
 
-For the complete mode guide, use [[Canon Modes|Canon-Modes]] and the source guide: [Canon Mode Guide](https://github.com/apply-the/canon/blob/main/tech-docs/guides/modes.md).
+For the complete mode guide, see [Canon Modes](./canon-modes).
 
 ## Inspect The Produced Packet
 
@@ -71,12 +63,11 @@ Readiness says whether the packet can be reused. Evidence says why its claims sh
 
 These are separate signals. A packet can be well written but weakly evidenced. It can have evidence but still require approval. It can be approved for one downstream use without becoming a universal standard.
 
-Use [[Evidence And Approvals|Evidence-And-Approvals]] before publishing or promoting anything into project memory.
+Use your repository's constitution and [Core Concepts](./core-concepts) before publishing or promoting anything into project memory.
 
 ## What To Read Next
 
-- [[Installation And Setup|Installation-And-Setup]] for setup details
-- [[Canon Modes|Canon-Modes]] for mode selection
-- [[Packets And Ordered Documents|Packets-And-Ordered-Documents]] for packet structure
-- [[Examples]] for concrete scenarios
-- [[Troubleshooting]] if a run is blocked or unclear
+- [Installation](./installation) for CLI installation details
+- [First Workspace](./first-workspace) to understand repository resolution and setup
+- [Core Concepts](./core-concepts) for the underlying mechanics
+- [Common Workflows](./common-workflows) for concrete scenarios

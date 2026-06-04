@@ -60,6 +60,7 @@ fn engine_publish_allows_approval_gated_operational_packets() {
     let workspace = TempDir::new().expect("temp dir");
     let git = |args: &[&str]| {
         let output = std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
             .args(args)
             .current_dir(workspace.path())
             .output()

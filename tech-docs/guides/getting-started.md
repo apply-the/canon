@@ -97,7 +97,7 @@ tradeoffs, and open questions.
 EOF
 ```
 
-For the current first slice, `requirements`, `architecture`, and `change`
+For the current first slice, `requirements`, `architecture`, `backlog`, and `change`
 author against explicit packet shapes and bounded personas: product lead,
 architect, and change owner. Those personas shape tone and audience fit only;
 they do not weaken canonical sections or missing-body honesty.
@@ -187,6 +187,7 @@ Canon is strict about authored input shape.
 - `requirements`, `architecture`, and `change` each have a worked template and
   example under `defaults/templates/canon-input/` and `tech-docs/examples/canon-input/`
   if you want the current first-slice shape-plus-persona contract.
+- `backlog` binds from `canon-input/backlog.md` or `canon-input/backlog/`. For a folder-backed packet, `brief.md` stays authoritative, `priorities.md` carries explicit ordering, and a successful run emits the full planning packet while adding `execution-handoff.md` only when one slice is credibly ready for downstream implementation.
 - `review` expects a review packet under `canon-input/review.md` or `canon-input/review/`
 - `pr-review` does not bind from `canon-input/`; it works from explicit refs or `WORKTREE`
 

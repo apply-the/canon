@@ -169,6 +169,8 @@ pub(super) fn summarize_backlog_mode_result(
         .unwrap_or_else(|| "NOT CAPTURED - Decomposition posture is missing.".to_string());
     let planning_horizon = extract_context_section(&primary.contents, "Planning Horizon")
         .unwrap_or_else(|| "NOT CAPTURED - Planning horizon is missing.".to_string());
+    let handoff = extract_context_section(&primary.contents, "Execution Handoff")
+        .unwrap_or_else(|| "NOT CAPTURED - Execution handoff state is missing.".to_string());
     let closure_findings = risks_artifact
         .and_then(|artifact| extract_context_section(&artifact.contents, "Closure Findings"))
         .unwrap_or_else(|| "NOT CAPTURED - Closure findings are missing.".to_string());
@@ -178,34 +180,44 @@ pub(super) fn summarize_backlog_mode_result(
         .unwrap_or(0);
 
     let full_packet = artifacts.iter().any(|artifact| artifact.record.slug() == "epic-tree.md");
+    let handoff_available =
+        artifacts.iter().any(|artifact| artifact.record.slug() == "execution-handoff.md");
     let missing_context_markers = count_missing_context_markers([
         &delivery_intent,
         &posture,
         &planning_horizon,
+        &handoff,
         &closure_findings,
     ]);
 
-    let headline = if full_packet {
+    let headline = if !full_packet {
+        "Backlog packet is structurally complete only and remains closure-limited with planning risks explicit.".to_string()
+    } else if handoff_available {
         packet_output_quality_headline(
             "Backlog",
             missing_context_markers,
             0,
             "",
-            "downstream execution planning",
+            "governed execution handoff",
         )
     } else {
-        "Backlog packet is structurally complete only and remains closure-limited with planning risks explicit.".to_string()
+        "Backlog packet is planning-complete, but handoff unavailable remains explicit until slice evidence improves.".to_string()
     };
-    let artifact_packet_summary = if full_packet {
+    let artifact_packet_summary = if !full_packet {
         format!(
-            "{} Packet stays planning-level and records {slice_count} delivery slice set(s). Planning horizon: {}.",
+            "Primary artifact is structurally complete only and decomposition stayed risk-only. Closure findings: {}.",
+            truncate_context_excerpt(&closure_findings, 140)
+        )
+    } else if handoff_available {
+        format!(
+            "{} Packet stays planning-level, records {slice_count} delivery slice set(s), and exposes one governed execution handoff. Planning horizon: {}.",
             packet_output_quality_artifact_prefix(missing_context_markers, 0, ""),
             truncate_context_excerpt(&planning_horizon, 120)
         )
     } else {
         format!(
-            "Primary artifact is structurally complete only and decomposition stayed risk-only. Closure findings: {}.",
-            truncate_context_excerpt(&closure_findings, 140)
+            "Packet stays planning-level and records {slice_count} delivery slice set(s), but handoff remains unavailable: {}.",
+            truncate_context_excerpt(&handoff, 140)
         )
     };
 
@@ -568,5 +580,89 @@ mod debugging_summarizer_tests {
         let summary = summarize_debugging_mode_result(&[artifact]).unwrap();
         assert!(summary.result_excerpt.contains("NOT CAPTURED"));
         assert!(summary.artifact_packet_summary.contains("Defect description is missing"));
+    }
+}
+
+#[cfg(test)]
+mod backlog_summarizer_tests {
+    use super::*;
+    use crate::domain::artifact::ArtifactRecord;
+    use crate::persistence::store::PersistedArtifact;
+
+    #[test]
+    fn test_summarize_backlog_mode_result_partial() {
+        let artifact = PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "01-backlog-overview.md".to_string(),
+                relative_path: "backlog/01-backlog-overview.md".to_string(),
+                format: crate::domain::artifact::ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "# Backlog Overview\n\n## Delivery Intent\n\nSome intent\n\n## Decomposition Posture\n\nrisk-only\n\n## Planning Horizon\n\nQ3\n\n## Execution Handoff\n\navailable".to_string(),
+        };
+        let summary = summarize_backlog_mode_result(&[artifact]).unwrap();
+        assert!(summary.result_excerpt.contains("Some intent"));
+        assert!(summary.artifact_packet_summary.contains("structurally complete only"));
+    }
+
+    #[test]
+    fn test_summarize_backlog_mode_result_full_packet_with_handoff() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "01-backlog-overview.md".to_string(),
+                    relative_path: "backlog/01-backlog-overview.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Backlog Overview\n\n## Delivery Intent\n\nSome intent".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "02-epic-tree.md".to_string(),
+                    relative_path: "backlog/02-epic-tree.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "content".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "03-execution-handoff.md".to_string(),
+                    relative_path: "backlog/03-execution-handoff.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "content".to_string(),
+            },
+        ];
+        let summary = summarize_backlog_mode_result(&artifacts).unwrap();
+        assert!(summary.artifact_packet_summary.contains("exposes one governed execution handoff"));
+    }
+
+    #[test]
+    fn test_summarize_backlog_mode_result_full_packet_without_handoff() {
+        let artifacts = vec![
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "01-backlog-overview.md".to_string(),
+                    relative_path: "backlog/01-backlog-overview.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "# Backlog Overview\n\n## Delivery Intent\n\nSome intent".to_string(),
+            },
+            PersistedArtifact {
+                record: ArtifactRecord {
+                    file_name: "02-epic-tree.md".to_string(),
+                    relative_path: "backlog/02-epic-tree.md".to_string(),
+                    format: crate::domain::artifact::ArtifactFormat::Markdown,
+                    provenance: None,
+                },
+                contents: "content".to_string(),
+            },
+        ];
+        let summary = summarize_backlog_mode_result(&artifacts).unwrap();
+        assert!(summary.artifact_packet_summary.contains("handoff remains unavailable"));
     }
 }

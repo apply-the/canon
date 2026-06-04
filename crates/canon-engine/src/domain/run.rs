@@ -537,6 +537,50 @@ impl ClosureAssessment {
     }
 }
 
+/// Whether the backlog packet can emit an execution handoff artifact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BacklogHandoffAvailability {
+    /// The packet is closure-limited, so handoff is withheld entirely.
+    WithheldForClosure,
+    /// The packet is planning-complete, but no slice is yet credible for handoff.
+    Unavailable,
+    /// The packet includes one slice credible for downstream execution handoff.
+    Available,
+}
+
+impl BacklogHandoffAvailability {
+    /// Returns the kebab-case string representation of this handoff state.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::WithheldForClosure => "withheld-for-closure",
+            Self::Unavailable => "unavailable",
+            Self::Available => "available",
+        }
+    }
+}
+
+/// Slice-scoped handoff evidence emitted for downstream execution validators.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BacklogExecutionHandoff {
+    /// The selected first slice for downstream execution handoff.
+    pub selected_slice_id: String,
+    /// Why this slice is selected first.
+    pub selection_rationale: String,
+    /// Bounded implementation refs a downstream runtime is expected to touch.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub implementation_artifact_refs: Vec<String>,
+    /// Dependencies or prerequisites that must already hold for the selected slice.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dependency_prerequisites: Vec<String>,
+    /// Independent proof targets for downstream validation.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub independent_verification_anchors: Vec<String>,
+    /// Assumptions that remain explicit at handoff time.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub blocked_assumptions: Vec<String>,
+}
+
 /// Declares the granularity at which backlog items are decomposed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BacklogPlanningContext {
@@ -561,8 +605,19 @@ pub struct BacklogPlanningContext {
     /// Items explicitly excluded from the backlog scope.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub out_of_scope: Vec<String>,
+    /// Stable slice IDs available across the backlog packet artifacts.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub slice_ids: Vec<String>,
     /// Closure assessment for the backlog packet.
     pub closure_assessment: ClosureAssessment,
+    /// Whether a downstream execution handoff artifact is available.
+    pub handoff_availability: BacklogHandoffAvailability,
+    /// Reasons or summaries explaining current handoff posture.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub handoff_findings: Vec<String>,
+    /// Slice-scoped handoff payload when downstream execution handoff is available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution_handoff: Option<BacklogExecutionHandoff>,
 }
 
 fn is_false(value: &bool) -> bool {
@@ -742,12 +797,13 @@ mod tests {
     use time::OffsetDateTime;
 
     use super::{
-        BacklogGranularity, BacklogPlanningContext, ClarificationAnswerKind, ClarificationRecord,
-        ClarificationRefinementContext, ClarificationRefinementStatus,
-        ClarificationResolutionState, ClosureAssessment, ClosureDecompositionScope, ClosureFinding,
-        ClosureFindingSeverity, ClosureStatus, ContinuationCandidateSummary,
-        ImplementationExecutionContext, ReadinessDeltaItem, ReadinessDeltaSourceKind,
-        RefactorExecutionContext, RefinementWorkflowFamily, RunContext, RunState, UpstreamContext,
+        BacklogGranularity, BacklogHandoffAvailability, BacklogPlanningContext,
+        ClarificationAnswerKind, ClarificationRecord, ClarificationRefinementContext,
+        ClarificationRefinementStatus, ClarificationResolutionState, ClosureAssessment,
+        ClosureDecompositionScope, ClosureFinding, ClosureFindingSeverity, ClosureStatus,
+        ContinuationCandidateSummary, ImplementationExecutionContext, ReadinessDeltaItem,
+        ReadinessDeltaSourceKind, RefactorExecutionContext, RefinementWorkflowFamily, RunContext,
+        RunState, UpstreamContext,
     };
     use crate::domain::execution::{
         ExecutionPosture, MutationBounds, MutationExpansionPolicy, SafetyNetEvidence,
@@ -908,6 +964,7 @@ mod tests {
                 priority_inputs: vec!["Reduce auth-session rollback risk first.".to_string()],
                 constraints: vec!["Keep the packet above task-level planning.".to_string()],
                 out_of_scope: vec!["Login UI redesign".to_string()],
+                slice_ids: vec!["SLICE-AUTH-001".to_string()],
                 closure_assessment: ClosureAssessment {
                     status: ClosureStatus::Downgraded,
                     findings: vec![ClosureFinding {
@@ -919,6 +976,11 @@ mod tests {
                     decomposition_scope: ClosureDecompositionScope::RiskOnlyPacket,
                     notes: Some("The backlog packet stayed closure-limited in this sample.".to_string()),
                 },
+                handoff_availability: BacklogHandoffAvailability::WithheldForClosure,
+                handoff_findings: vec![
+                    "closure-limited packet withheld downstream handoff".to_string(),
+                ],
+                execution_handoff: None,
             }),
             clarification_refinement: Some(sample_clarification_refinement_context()),
             inline_inputs: Vec::new(),
@@ -1045,5 +1107,13 @@ mod tests {
         use super::SystemContext;
         assert_eq!(SystemContext::New.as_str(), "new");
         assert_eq!(SystemContext::Existing.as_str(), "existing");
+    }
+
+    #[test]
+    fn backlog_handoff_availability_as_str_returns_kebab_case() {
+        use super::BacklogHandoffAvailability;
+        assert_eq!(BacklogHandoffAvailability::WithheldForClosure.as_str(), "withheld-for-closure");
+        assert_eq!(BacklogHandoffAvailability::Unavailable.as_str(), "unavailable");
+        assert_eq!(BacklogHandoffAvailability::Available.as_str(), "available");
     }
 }

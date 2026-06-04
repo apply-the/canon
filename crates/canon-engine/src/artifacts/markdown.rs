@@ -240,7 +240,8 @@ mod tests {
         render_system_shaping_artifact, render_verification_artifact,
     };
     use crate::domain::run::{
-        BacklogGranularity, BacklogPlanningContext, ClarificationAnswerKind, ClarificationRecord,
+        BacklogExecutionHandoff, BacklogGranularity, BacklogHandoffAvailability,
+        BacklogPlanningContext, ClarificationAnswerKind, ClarificationRecord,
         ClarificationRefinementContext, ClarificationRefinementStatus,
         ClarificationResolutionState, ClosureAssessment, ClosureFinding, ClosureFindingSeverity,
         ContinuationCandidateSummary, ReadinessDeltaItem, ReadinessDeltaSourceKind,
@@ -371,6 +372,22 @@ mod tests {
             constraints: vec!["Stay above task level".to_string()],
             out_of_scope: vec!["New runtime modes".to_string()],
             closure_assessment: ClosureAssessment::sufficient(),
+            slice_ids: vec!["SLICE-RUNTIME-001".to_string()],
+            handoff_availability: BacklogHandoffAvailability::Available,
+            handoff_findings: vec!["selected slice has explicit implementation refs".to_string()],
+            execution_handoff: Some(BacklogExecutionHandoff {
+                selected_slice_id: "SLICE-RUNTIME-001".to_string(),
+                selection_rationale: "Stabilize the first bounded runtime honesty slice."
+                    .to_string(),
+                implementation_artifact_refs: vec!["src/runtime/honesty.rs".to_string()],
+                dependency_prerequisites: vec![
+                    "reasoning posture contract remains stable".to_string(),
+                ],
+                independent_verification_anchors: vec![
+                    "contract test proves fallback artifacts stay evidence-backed".to_string(),
+                ],
+                blocked_assumptions: vec!["No new runtime mode is required".to_string()],
+            }),
         }
     }
 

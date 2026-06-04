@@ -1,8 +1,8 @@
-# Quick Start
+# Quickstart
 
 Get Canon running in your repository in 5 minutes.
 
-This quick start tracks `0.65.0`.
+This quickstart tracks `0.65.0`.
 
 ## 1. Install
 
@@ -66,6 +66,6 @@ For `requirements`, the governed packet will be materialized under the default p
 
 ## Next Steps
 
-- Explore [[Canon Modes|Canon-Modes]] to see what else you can govern.
-- Read [[Core Concepts|Core-Concepts]] to understand the governance model.
-- See [[Examples]] for more complex scenarios.
+- Explore [Getting Started](./getting-started) to understand the governance model.
+- See [First Workspace](./first-workspace) to understand repository resolution and structure.
+- Review [Canon Modes](./canon-modes) for advanced scenarios.

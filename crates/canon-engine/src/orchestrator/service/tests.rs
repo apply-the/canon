@@ -24,11 +24,12 @@ use crate::domain::mode::Mode;
 use crate::domain::policy::{RiskClass, UsageZone};
 use crate::domain::publish_profile::AuthorityApprovalState;
 use crate::domain::run::{
-    BacklogGranularity, BacklogPlanningContext, ClarificationAnswerKind,
-    ClarificationRefinementContext, ClarificationRefinementStatus, ClarificationResolutionState,
-    ClassificationProvenance, ClosureAssessment, ClosureDecompositionScope, ClosureFinding,
-    ClosureFindingSeverity, ClosureStatus, ReadinessDeltaItem, ReadinessDeltaSourceKind,
-    RefinementWorkflowFamily, RunContext, RunIdentity, RunState, SystemContext, UpstreamContext,
+    BacklogGranularity, BacklogHandoffAvailability, BacklogPlanningContext,
+    ClarificationAnswerKind, ClarificationRefinementContext, ClarificationRefinementStatus,
+    ClarificationResolutionState, ClassificationProvenance, ClosureAssessment,
+    ClosureDecompositionScope, ClosureFinding, ClosureFindingSeverity, ClosureStatus,
+    ReadinessDeltaItem, ReadinessDeltaSourceKind, RefinementWorkflowFamily, RunContext,
+    RunIdentity, RunState, SystemContext, UpstreamContext,
 };
 use crate::orchestrator::evidence::{attach_paths, default_independence, empty_evidence_bundle};
 use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
@@ -294,6 +295,7 @@ fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
                 priority_inputs: vec!["stabilize operator inspect output".to_string()],
                 constraints: vec!["Stay above task level.".to_string()],
                 out_of_scope: vec!["frontend packaging refresh".to_string()],
+                slice_ids: vec!["SLICE-RUNTIME-001".to_string()],
                 closure_assessment: ClosureAssessment {
                     status: ClosureStatus::Downgraded,
                     findings: vec![ClosureFinding {
@@ -306,6 +308,11 @@ fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
                     decomposition_scope: ClosureDecompositionScope::RiskOnlyPacket,
                     notes: Some("One more independent rollback check remains.".to_string()),
                 },
+                handoff_availability: BacklogHandoffAvailability::WithheldForClosure,
+                handoff_findings: vec![
+                    "closure findings keep downstream handoff unavailable".to_string(),
+                ],
+                execution_handoff: None,
             }),
             clarification_refinement: None,
             inline_inputs: Vec::new(),

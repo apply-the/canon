@@ -33,8 +33,40 @@ Canon operates on a simple, predictable four-step mental model:
 
 Get your first governed session running in seconds:
 
+### Debian/Ubuntu (APT)
+
+```bash
+curl -fsSL https://apply-the.github.io/packages/apt/gpg.key \
+  | sudo gpg --dearmor -o /usr/share/keyrings/apply-the-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/apply-the-archive-keyring.gpg] https://apply-the.github.io/packages/apt stable main" \
+  | sudo tee /etc/apt/sources.list.d/apply-the.list
+
+sudo apt update
+sudo apt install canon
+```
+
+### macOS (Homebrew)
+
 ```bash
 brew tap apply-the/canon && brew install canon
+```
+
+### Other Installation Options
+
+- **GitHub Release (.deb fallback):** Download `.deb` files directly from the [Releases](https://github.com/apply-the/canon/releases) page.
+- **Source install fallback (requires Rust):** Run `cargo install --path .` from the repository root.
+
+### Verify Installation
+
+Verify canon was installed correctly:
+```bash
+canon --version
+```
+
+### Run
+
+```bash
 cd my-project
 canon init
 canon run --mode requirements --risk bounded-impact
@@ -54,13 +86,19 @@ as the semantic owner while making selector shape, independence minima,
 confidence handoff, provenance, compatibility windows, and active-versus-legacy
 migration rules explicit and fail-closed.
 
+Backlog is also a delivered governed mode in this line. A successful backlog
+run emits the full planning packet and may add `execution-handoff.md` when one
+slice is credibly ready for downstream implementation. When planning is
+complete but slice evidence is still weak, Canon keeps the full packet and says
+handoff unavailable instead of inventing execution readiness.
+
 ## 🛠️ Key Commands
 
 These are the commands you'll actually use every day:
 
 | Command | What it does |
 |---|---|
-| `canon run` | Start a new governed session with explicit boundaries. Available modes include `requirements`, `architecture`, `brainstorming`, `debugging`, `change`, `incident`, and more. |
+| `canon run` | Start a new governed session with explicit boundaries. Available modes include `requirements`, `architecture`, `backlog`, `brainstorming`, `debugging`, `change`, `incident`, and more. |
 | `canon status` | See exactly what the agent is doing right now. |
 | `canon inspect` | Review generated evidence and artifacts. |
 | `canon approve` | Unblock a session that hit a governance gate. |

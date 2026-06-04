@@ -1,13 +1,14 @@
 use super::EngineService;
 use super::*;
 
-use crate::artifacts::contract::backlog_contract_for_closure;
+use crate::artifacts::contract::backlog_contract_for_planning_context;
 use crate::artifacts::markdown::render_backlog_artifact;
 use crate::domain::artifact::ArtifactProvenance;
 use crate::domain::execution::EvidenceDisposition;
 use crate::domain::run::{
-    BacklogGranularity, BacklogPlanningContext, ClosureAssessment, ClosureDecompositionScope,
-    ClosureFinding, ClosureFindingSeverity, ClosureStatus,
+    BacklogExecutionHandoff, BacklogGranularity, BacklogHandoffAvailability,
+    BacklogPlanningContext, ClosureAssessment, ClosureDecompositionScope, ClosureFinding,
+    ClosureFindingSeverity, ClosureStatus,
 };
 
 impl EngineService {
@@ -48,7 +49,7 @@ impl EngineService {
             self.read_requirements_context(&request.inputs, &request.inline_inputs)?;
         let planning_context = build_backlog_planning_context(&context_summary, &input_scope);
         artifact_contract =
-            backlog_contract_for_closure(&artifact_contract, &planning_context.closure_assessment);
+            backlog_contract_for_planning_context(&artifact_contract, &planning_context);
         let context_attempt = self.completed_attempt(
             &context_request,
             1,
@@ -412,6 +413,9 @@ fn build_backlog_planning_context(
     );
     let closure_assessment =
         assess_backlog_closure(&delivery_intent, desired_granularity, &source_refs, &out_of_scope);
+    let slice_ids = extract_backlog_slice_ids(context_summary);
+    let parsed_handoff =
+        parse_backlog_execution_handoff(context_summary, &slice_ids, &closure_assessment);
 
     BacklogPlanningContext {
         mode: "backlog".to_string(),
@@ -422,8 +426,144 @@ fn build_backlog_planning_context(
         priority_inputs,
         constraints,
         out_of_scope,
+        slice_ids,
         closure_assessment,
+        handoff_availability: parsed_handoff.availability,
+        handoff_findings: parsed_handoff.findings,
+        execution_handoff: parsed_handoff.execution_handoff,
     }
+}
+
+const SLICE_ID_PREFIX: &str = "SLICE-";
+
+struct ParsedBacklogHandoff {
+    availability: BacklogHandoffAvailability,
+    findings: Vec<String>,
+    execution_handoff: Option<BacklogExecutionHandoff>,
+}
+
+fn parse_backlog_execution_handoff(
+    context_summary: &str,
+    slice_ids: &[String],
+    closure_assessment: &ClosureAssessment,
+) -> ParsedBacklogHandoff {
+    if matches!(closure_assessment.decomposition_scope, ClosureDecompositionScope::RiskOnlyPacket) {
+        return ParsedBacklogHandoff {
+            availability: BacklogHandoffAvailability::WithheldForClosure,
+            findings: vec!["closure-limited packet withheld downstream handoff".to_string()],
+            execution_handoff: None,
+        };
+    }
+
+    let handoff_body = extract_first_marker_body(context_summary, &["execution handoff"]);
+    let implementation_artifact_refs = extract_first_marker_entries(
+        context_summary,
+        &["implementation artifact references", "implementation refs"],
+    );
+    let dependency_prerequisites = extract_first_marker_entries(
+        context_summary,
+        &["dependency prerequisites", "handoff prerequisites"],
+    );
+    let independent_verification_anchors = extract_first_marker_entries(
+        context_summary,
+        &["independent verification anchors", "verification anchors"],
+    );
+    let blocked_assumptions =
+        extract_first_marker_entries(context_summary, &["blocked assumptions"]);
+    let selected_slice_id = handoff_body
+        .as_deref()
+        .and_then(extract_first_slice_id)
+        .or_else(|| slice_ids.first().cloned());
+
+    if slice_ids.is_empty() {
+        return unavailable_handoff(
+            "no stable slice identifiers were authored for backlog handoff",
+        );
+    }
+    if has_duplicate_entries(slice_ids) {
+        return unavailable_handoff(
+            "duplicate stable slice identifiers make backlog handoff unsafe",
+        );
+    }
+    if implementation_artifact_refs.is_empty() {
+        return unavailable_handoff(
+            "handoff unavailable because implementation artifact references are missing",
+        );
+    }
+    if independent_verification_anchors.is_empty() {
+        return unavailable_handoff(
+            "handoff unavailable because independent verification anchors are missing",
+        );
+    }
+
+    let Some(selected_slice_id) = selected_slice_id else {
+        return unavailable_handoff("handoff unavailable because no slice was selected");
+    };
+    if !slice_ids.iter().any(|slice_id| slice_id == &selected_slice_id) {
+        return unavailable_handoff(
+            "handoff unavailable because the selected slice is not part of the authored delivery slices",
+        );
+    }
+
+    ParsedBacklogHandoff {
+        availability: BacklogHandoffAvailability::Available,
+        findings: vec![format!("governed execution handoff is available for {selected_slice_id}")],
+        execution_handoff: Some(BacklogExecutionHandoff {
+            selected_slice_id,
+            selection_rationale: handoff_body.unwrap_or_else(|| {
+                "Selected the first authored bounded slice for downstream execution handoff."
+                    .to_string()
+            }),
+            implementation_artifact_refs,
+            dependency_prerequisites,
+            independent_verification_anchors,
+            blocked_assumptions,
+        }),
+    }
+}
+
+fn unavailable_handoff(summary: &str) -> ParsedBacklogHandoff {
+    ParsedBacklogHandoff {
+        availability: BacklogHandoffAvailability::Unavailable,
+        findings: vec![summary.to_string()],
+        execution_handoff: None,
+    }
+}
+
+fn extract_backlog_slice_ids(source: &str) -> Vec<String> {
+    let authored_slices =
+        extract_first_marker_body(source, &["delivery slices"]).unwrap_or_default();
+    extract_slice_ids_from_text(&authored_slices)
+}
+
+fn extract_first_marker_body(source: &str, markers: &[&str]) -> Option<String> {
+    let normalized = source.to_lowercase();
+    markers.iter().find_map(|marker| extract_marker(source, &normalized, marker))
+}
+
+fn extract_slice_ids_from_text(source: &str) -> Vec<String> {
+    let mut slice_ids = Vec::new();
+    for token in source.split_whitespace() {
+        let trimmed =
+            token.trim_matches(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '-' || ch == '_'));
+        if !trimmed.starts_with(SLICE_ID_PREFIX) {
+            continue;
+        }
+        let normalized = trimmed.trim_end_matches(':').to_string();
+        if !slice_ids.iter().any(|existing| existing == &normalized) {
+            slice_ids.push(normalized);
+        }
+    }
+    slice_ids
+}
+
+fn extract_first_slice_id(source: &str) -> Option<String> {
+    extract_slice_ids_from_text(source).into_iter().next()
+}
+
+fn has_duplicate_entries(values: &[String]) -> bool {
+    let mut seen = std::collections::BTreeSet::new();
+    values.iter().any(|value| !seen.insert(value.to_ascii_lowercase()))
 }
 
 fn assess_backlog_closure(
@@ -735,5 +875,73 @@ mod tests {
         assert!(evidence_summary.contains("## Closure Findings"));
         assert!(evidence_summary.contains("missing-exclusion"));
         assert!(evidence_summary.contains("Validation placeholder"));
+    }
+
+    #[test]
+    fn string_extractor_helpers_behave_as_expected() {
+        use super::{extract_first_slice_id, extract_slice_ids_from_text, has_duplicate_entries};
+
+        let ids = extract_slice_ids_from_text("SLICE-123, SLICE-ABC: and SLICE-123");
+        assert_eq!(ids, vec!["SLICE-123".to_string(), "SLICE-ABC".to_string()]);
+
+        let first = extract_first_slice_id("nothing here SLICE-001 then SLICE-002");
+        assert_eq!(first, Some("SLICE-001".to_string()));
+
+        assert!(has_duplicate_entries(&["a".to_string(), "A".to_string()]));
+        assert!(!has_duplicate_entries(&["a".to_string(), "b".to_string()]));
+    }
+
+    #[test]
+    fn parse_backlog_execution_handoff_handles_validation_failures() {
+        use super::{ClosureAssessment, parse_backlog_execution_handoff};
+        use crate::domain::run::BacklogHandoffAvailability;
+
+        // 1. Missing slice ids
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &[],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 2. Duplicate entries
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string(), "SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 3. Missing implementation artifacts
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 4. Missing independent verification anchors
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 5. Selected slice not in authored slices
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-2\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Unavailable);
+
+        // 6. Success
+        let parsed = parse_backlog_execution_handoff(
+            "## Execution Handoff\nSLICE-1\n## Implementation Artifact References\nfoo\n## Independent Verification Anchors\nbar",
+            &["SLICE-1".to_string()],
+            &ClosureAssessment::sufficient(),
+        );
+        assert_eq!(parsed.availability, BacklogHandoffAvailability::Available);
     }
 }

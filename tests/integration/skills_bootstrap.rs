@@ -21,6 +21,7 @@ fn cli_command() -> Command {
 
 fn git(workspace: &TempDir, args: &[&str]) {
     let output = ProcessCommand::new("git")
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
         .args(args)
         .current_dir(workspace.path())
         .output()
@@ -401,6 +402,14 @@ fn init_with_codex_materializes_backlog_skill_and_available_now_support_state() 
         contents.contains("available-now"),
         "backlog skill should advertise available-now support"
     );
+    assert!(
+        contents.contains("execution-handoff.md"),
+        "backlog skill should describe the optional execution handoff artifact"
+    );
+    assert!(
+        contents.contains("handoff unavailable"),
+        "backlog skill should distinguish full packets from handoff-unavailable packets"
+    );
 }
 
 #[cfg(unix)]
@@ -436,6 +445,7 @@ fn pr_review_preflight_accepts_remote_tracking_refs() {
     let remote = TempDir::new().expect("remote temp dir");
 
     let remote_output = ProcessCommand::new("git")
+        .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
         .args(["init", "--bare", "--initial-branch=main"])
         .arg(remote.path())
         .output()

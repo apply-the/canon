@@ -11,6 +11,7 @@ use tempfile::TempDir;
 fn init_implementation_repo(workspace: &TempDir) {
     let git = |args: &[&str]| {
         let output = std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
             .args(args)
             .current_dir(workspace.path())
             .output()
