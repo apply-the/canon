@@ -23,20 +23,32 @@ pub fn evaluate_diff(
     patch_lines: u32,
     llm_payload: &str,
 ) -> Result<EvaluatorPayload, String> {
-    // Large diff threshold check (>20 files or >500 lines)
-    let is_large_diff = changed_files > 20 || patch_lines > 500;
-
     let mut payload: EvaluatorPayload =
         serde_json::from_str(llm_payload).map_err(|e| e.to_string())?;
 
+    validate_coverage(changed_files, patch_lines, &payload)?;
+    map_github_comments(&mut payload.github_comments, patch);
+    validate_missing_tests(&payload.missing_tests)?;
+
+    Ok(payload)
+}
+
+fn validate_coverage(
+    changed_files: u32,
+    patch_lines: u32,
+    payload: &EvaluatorPayload,
+) -> Result<(), String> {
+    let is_large_diff = changed_files > 20 || patch_lines > 500;
     if is_large_diff && payload.review_coverage.is_none() {
         return Err(
             "Large diffs (>20 files or >500 lines) require a review_coverage block.".to_string()
         );
     }
+    Ok(())
+}
 
-    // Map and validate line numbers for github comments
-    for comment in &mut payload.github_comments {
+fn map_github_comments(comments: &mut [GithubComment], patch: &str) {
+    for comment in comments {
         if let (Some(path), Some(line)) = (&comment.path, comment.line) {
             match validate_and_map_line(path, line, patch) {
                 Ok(valid_line) => {
@@ -45,18 +57,15 @@ pub fn evaluate_diff(
                 Err(hunk_fallback) => {
                     // Downgrade finding to hunk or general
                     comment.line = None;
-                    if let Some(hunk) = hunk_fallback {
-                        comment.hunk_header = Some(hunk);
-                    } else {
-                        comment.hunk_header = None;
-                    }
+                    comment.hunk_header = hunk_fallback;
                 }
             }
         }
     }
+}
 
-    // Check SC-003: 100% of missing test findings map to behavior
-    for mt in &payload.missing_tests {
+fn validate_missing_tests(missing_tests: &[MissingTest]) -> Result<(), String> {
+    for mt in missing_tests {
         if mt.affected_behavior.trim().is_empty() {
             return Err(format!(
                 "MissingTest {} is invalid: affected_behavior must be explicit.",
@@ -64,8 +73,7 @@ pub fn evaluate_diff(
             ));
         }
     }
-
-    Ok(payload)
+    Ok(())
 }
 
 /// Derives the final decision from the evaluated payload.

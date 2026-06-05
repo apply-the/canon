@@ -59,49 +59,10 @@ pub fn generate_review_summary(
     ));
 
     out.push_str("## Must-Fix Findings\n\n");
-    let must_fix_comments: Vec<_> = payload.github_comments.iter().filter(|c| c.blocking).collect();
-    let must_fix_tests: Vec<_> = payload.missing_tests.iter().filter(|m| m.blocking).collect();
-    let deterministic_must_fix = packet.must_fix_findings();
-    if must_fix_comments.is_empty()
-        && must_fix_tests.is_empty()
-        && deterministic_must_fix.is_empty()
-    {
-        out.push_str("- No must-fix findings remain.\n\n");
-    } else {
-        for f in &deterministic_must_fix {
-            out.push_str(&format!(
-                "- [must-fix] {}: {}\n  - Surfaces: {}\n",
-                f.title,
-                f.details,
-                f.changed_surfaces.join(", ")
-            ));
-        }
-        for c in must_fix_comments {
-            out.push_str(&format!(
-                "- [Blocking] {}: {}\n",
-                c.path.as_deref().unwrap_or("PR"),
-                c.body
-            ));
-        }
-        for m in must_fix_tests {
-            out.push_str(&format!(
-                "- [Blocking] Missing Test for {}: {}\n",
-                m.affected_behavior, m.reason
-            ));
-        }
-        out.push('\n');
-    }
+    append_must_fix_findings(&mut out, payload, packet);
 
     out.push_str("## Accepted Risks\n\n");
-    let accepted_risks = packet.note_findings();
-    if accepted_risks.is_empty() {
-        out.push_str("- No accepted risks recorded.\n\n");
-    } else {
-        for f in &accepted_risks {
-            out.push_str(&format!("- {}\n", f.title));
-        }
-        out.push('\n');
-    }
+    append_accepted_risks(&mut out, packet);
 
     out.push_str("## Final Disposition\n\n");
     match decision {
@@ -140,59 +101,10 @@ pub fn generate_conventional_comments(
     out.push_str("- Approval posture remains anchored by `review-summary.md`.\n\n");
 
     out.push_str("## Conventional Comments\n\n");
-    let mut empty = true;
-    for f in &packet.findings {
-        empty = false;
-        let scope = f.scope.as_str();
-        let surfaces = if f.changed_surfaces.is_empty() {
-            "none".to_string()
-        } else {
-            f.changed_surfaces.join(", ")
-        };
-        let anchor_detail = f.anchor.as_ref().map_or_else(String::new, |anchor| {
-            let line_end = anchor.line_end.map(|le| format!("-{}", le)).unwrap_or_default();
-            format!("\n  - Anchor: {}:{}{}", anchor.surface, anchor.line_start, line_end)
-        });
-        let scope_detail = match f.scope {
-            super::findings::ConventionalCommentScope::Pr => String::new(),
-            super::findings::ConventionalCommentScope::File
-            | super::findings::ConventionalCommentScope::Surface => {
-                format!("\n  - Scope surfaces: {surfaces}")
-            }
-        };
+    let has_packet_findings = append_packet_findings(&mut out, packet);
+    let has_github_comments = append_github_comments(&mut out, payload);
 
-        out.push_str(&format!(
-            "- {}(scope:{}): {}\n  - Why: {}\n  - Surfaces: {}{}{}\n",
-            f.conventional_comment_kind(),
-            scope,
-            f.title,
-            f.details,
-            surfaces,
-            anchor_detail,
-            scope_detail,
-        ));
-    }
-
-    for c in &payload.github_comments {
-        empty = false;
-        let prefix = if c.blocking { "**[BLOCKING]**" } else { "[Non-blocking]" };
-        let loc = match (&c.path, c.line) {
-            (Some(p), Some(l)) => format!("{}:{}", p, l),
-            (Some(p), None) => format!("{} (hunk)", p),
-            _ => "PR General".to_string(),
-        };
-
-        out.push_str(&format!("### {} - {}\n", loc, c.kind));
-        out.push_str(&format!("{} {}\n\n", prefix, c.body));
-        out.push_str(&format!("**Why it matters**: {}\n\n", c.why_it_matters));
-        if let Some(change) = &c.suggested_change {
-            out.push_str("```rust\n");
-            out.push_str(change);
-            out.push_str("\n```\n\n");
-        }
-    }
-
-    if empty {
+    if !has_packet_findings && !has_github_comments {
         out.push_str("- No conventional comments were generated.\n\n");
     }
 
@@ -248,4 +160,115 @@ pub fn generate_missing_tests(
     out.push_str("- Updated tests moved with the changed surface.\n");
 
     out
+}
+
+fn append_must_fix_findings(
+    out: &mut String,
+    payload: &EvaluatorPayload,
+    packet: &super::findings::ReviewPacket,
+) {
+    let must_fix_comments: Vec<_> = payload.github_comments.iter().filter(|c| c.blocking).collect();
+    let must_fix_tests: Vec<_> = payload.missing_tests.iter().filter(|m| m.blocking).collect();
+    let deterministic_must_fix = packet.must_fix_findings();
+
+    if must_fix_comments.is_empty()
+        && must_fix_tests.is_empty()
+        && deterministic_must_fix.is_empty()
+    {
+        out.push_str("- No must-fix findings remain.\n\n");
+    } else {
+        for f in &deterministic_must_fix {
+            out.push_str(&format!(
+                "- [must-fix] {}: {}\n  - Surfaces: {}\n",
+                f.title,
+                f.details,
+                f.changed_surfaces.join(", ")
+            ));
+        }
+        for c in must_fix_comments {
+            out.push_str(&format!(
+                "- [Blocking] {}: {}\n",
+                c.path.as_deref().unwrap_or("PR"),
+                c.body
+            ));
+        }
+        for m in must_fix_tests {
+            out.push_str(&format!(
+                "- [Blocking] Missing Test for {}: {}\n",
+                m.affected_behavior, m.reason
+            ));
+        }
+        out.push('\n');
+    }
+}
+
+fn append_accepted_risks(out: &mut String, packet: &super::findings::ReviewPacket) {
+    let accepted_risks = packet.note_findings();
+    if accepted_risks.is_empty() {
+        out.push_str("- No accepted risks recorded.\n\n");
+    } else {
+        for f in &accepted_risks {
+            out.push_str(&format!("- {}\n", f.title));
+        }
+        out.push('\n');
+    }
+}
+
+fn append_packet_findings(out: &mut String, packet: &super::findings::ReviewPacket) -> bool {
+    let mut has_items = false;
+    for f in &packet.findings {
+        has_items = true;
+        let scope = f.scope.as_str();
+        let surfaces = if f.changed_surfaces.is_empty() {
+            "none".to_string()
+        } else {
+            f.changed_surfaces.join(", ")
+        };
+        let anchor_detail = f.anchor.as_ref().map_or_else(String::new, |anchor| {
+            let line_end = anchor.line_end.map(|le| format!("-{}", le)).unwrap_or_default();
+            format!("\n  - Anchor: {}:{}{}", anchor.surface, anchor.line_start, line_end)
+        });
+        let scope_detail = match f.scope {
+            super::findings::ConventionalCommentScope::Pr => String::new(),
+            super::findings::ConventionalCommentScope::File
+            | super::findings::ConventionalCommentScope::Surface => {
+                format!("\n  - Scope surfaces: {surfaces}")
+            }
+        };
+
+        out.push_str(&format!(
+            "- {}(scope:{}): {}\n  - Why: {}\n  - Surfaces: {}{}{}\n",
+            f.conventional_comment_kind(),
+            scope,
+            f.title,
+            f.details,
+            surfaces,
+            anchor_detail,
+            scope_detail,
+        ));
+    }
+    has_items
+}
+
+fn append_github_comments(out: &mut String, payload: &EvaluatorPayload) -> bool {
+    let mut has_items = false;
+    for c in &payload.github_comments {
+        has_items = true;
+        let prefix = if c.blocking { "**[BLOCKING]**" } else { "[Non-blocking]" };
+        let loc = match (&c.path, c.line) {
+            (Some(p), Some(l)) => format!("{}:{}", p, l),
+            (Some(p), None) => format!("{} (hunk)", p),
+            _ => "PR General".to_string(),
+        };
+
+        out.push_str(&format!("### {} - {}\n", loc, c.kind));
+        out.push_str(&format!("{} {}\n\n", prefix, c.body));
+        out.push_str(&format!("**Why it matters**: {}\n\n", c.why_it_matters));
+        if let Some(change) = &c.suggested_change {
+            out.push_str("```rust\n");
+            out.push_str(change);
+            out.push_str("\n```\n\n");
+        }
+    }
+    has_items
 }
