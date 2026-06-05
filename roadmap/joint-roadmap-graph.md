@@ -60,7 +60,6 @@ flowchart TD
     B07 -.-> B17
     
     C06 -.->|Design for| B08
-    C05 -.->|Pairs well| C06
 ```
 
 ## Execution Order and Dependencies
@@ -77,5 +76,5 @@ flowchart TD
    - The actual external provider setup (MCP, setup, activation, health). `Boundline 07` comes first, followed by the security layer `Boundline 13` (secret inheritance and sandbox). It establishes the plugin layer that powers B14, B15, and B17.
 6. **Canon 07 (After provider setup)**
    - Arrives at the end to close the loop on the CLI side (Canon init) by gathering local routing choices, delegating execution back to Boundline.
-7. **Independent Features (Canon 04, 05, 06 & Boundline 08-12, 16)**
+7. **Independent Features (Canon 04, 06 & Boundline 08-12, 16)**
    - These features cover autonomous workflows, policy, observability, and advanced orchestrator additions. They do not block the core engine loop and can be parallelized based on priority. 

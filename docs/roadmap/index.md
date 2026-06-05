@@ -9,7 +9,7 @@ The goal of Canon is to transform AI-assisted engineering activity into a proces
 ## <i class="fa-solid fa-rocket"></i> Upcoming Features & Topics
 
 ### Current 0.68.0
-- **Systematic Debugging Mode**: Canon 0.68.0 introduces the systematic debugging mode, establishing a green-zone workflow with a five-phase verification gate (context, reproduction, root-cause, fix-decision, and verification) for tracking codebase incidents.
+- **Systematic Debugging Mode**: Canon 0.69.0 introduces the systematic debugging mode, establishing a green-zone workflow with a five-phase verification gate (context, reproduction, root-cause, fix-decision, and verification) for tracking codebase incidents.
 
 ### Recently Landed
 - **Assistant Surface Expansion**: `canon init` now supports Cursor and Antigravity alongside the existing assistant targets, while repository-level assistant package metadata remains aligned with the current release.

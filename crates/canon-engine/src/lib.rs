@@ -6,6 +6,8 @@ pub mod artifacts;
 pub mod domain;
 /// Mode-specific execution logic.
 pub mod modes;
+/// Observability design and telemetry planning.
+pub mod observability;
 /// Orchestration layer: classification, gating, execution, and service.
 pub mod orchestrator;
 /// Persistence layer: manifests, invocation records, and workspace store.

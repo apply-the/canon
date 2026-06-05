@@ -15,6 +15,19 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.69.0] - 2026-06-05
+
+Delivered specs:
+
+- `specs/071-observability-design/`
+- `specs/070-policy-shaping-mode/`
+
+Highlights:
+
+- Added a new `observability-design` mode to generate telemetry contracts, SLI/SLO thresholds, and runbook stubs.
+- Added a new `policy-shaping` mode to shape and modify governance policies.
+- Bumped workspace version to `0.69.0`.
+
 ## [0.68.0] - 2026-06-03
 
 Delivered specs:

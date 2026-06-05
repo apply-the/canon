@@ -8,9 +8,9 @@ publication_status = "active"
 
 [compatibility_window]
 boundline_min = "0.63.0"
-boundline_max_exclusive = "0.68.0"
-canon_min = "0.68.0"
-canon_max_exclusive = "0.68.0"
+boundline_max_exclusive = "0.69.0"
+canon_min = "0.69.0"
+canon_max_exclusive = "0.69.0"
 contract_line = "governed_reasoning_posture_v2"
 
 [profile_selector]

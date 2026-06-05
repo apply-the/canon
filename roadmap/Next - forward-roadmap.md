@@ -56,8 +56,7 @@ the current mode surface cannot express without workarounds.
 | # | Feature | Type | Unlocks |
 |---|---------|------|---------|
 | 03 | [Plan Progress and Handoff Schemas](features/03-plan-execution-orchestration.md) | Governed metadata contract | Standard progress and handoff packets for external orchestrators |
-| 05 | [Policy Shaping](features/05-policy-shaping.md) | New mode | Retroactive impact analysis for rule changes |
-| 06 | [Observability Design](features/06-observability-design.md) | New mode | Proactive telemetry contracts before deployment |
+| 06 | [Observability Design](../specs/071-observability-design/feat-observability-design.md) | New mode | Proactive telemetry contracts before deployment |
 
 ### Tier 3: Product Surface (extend Canon's reach)
 
@@ -84,8 +83,7 @@ change governance semantics.
   │ Tier 2: Missing Lifecycle Phases                                    │
   │                                                                     │
   │  03 Progress/Handoff ──── requires 02 (evidence_ref contract)       │
-  │  05 Policy Shaping ─────── independent, can start in parallel       │
-  │  06 Observability Design ─ independent, pairs well with 05          │
+  │  06 Observability Design ─ independent, can start in parallel       │
   └─────────────────────────────────────────────────────────────────────┘
             │
             ▼
@@ -100,7 +98,7 @@ Key sequencing rules:
 
 - **02 before 03**: progress and handoff packets need a stable
   `claim -> proof -> evidence_ref` contract rather than vague completion text.
-- **05, 06 are parallel**: they address different lifecycle gaps and do not
+- **06 stays independent**: it addresses lifecycle gaps and does not
   share internal dependencies.
 - **07 stays low priority**: it improves local setup and routing intent, not core packet semantics.
 

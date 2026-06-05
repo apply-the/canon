@@ -1,6 +1,6 @@
 # Canon Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-06-04
+Auto-generated from all feature plans. Last updated: 2026-06-05
 
 ## Governing Constitution
 
@@ -77,9 +77,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 071-observability-design: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
 - 070-policy-shaping-mode: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
 - 068-ideation-mode: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
-- 067-systematic-debugging: Added Rust 1.96.0, Edition 2024 + clap, serde, serde_json, serde_yaml, tracing, thiserror
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
