@@ -375,4 +375,19 @@ mod tests {
     fn verification_all_artifacts_are_required() {
         assert!(verification().iter().all(|r| r.required));
     }
+
+    #[test]
+    fn policy_shaping_has_expected_artifact_count() {
+        assert_eq!(policy_shaping().len(), 3);
+    }
+
+    #[test]
+    fn policy_shaping_all_artifacts_are_required() {
+        assert!(policy_shaping().iter().all(|r| r.required));
+    }
+
+    #[test]
+    fn policy_shaping_primary_artifact_is_conformance_impact_report() {
+        assert_eq!(policy_shaping()[0].file_name, "conformance-impact-report.md");
+    }
 }

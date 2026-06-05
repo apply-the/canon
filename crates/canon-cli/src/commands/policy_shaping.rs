@@ -38,3 +38,40 @@ pub fn handle(args: &PolicyShapingArgs) -> Result<(), Box<dyn std::error::Error>
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_handle_missing_acknowledge() {
+        let args = PolicyShapingArgs {
+            draft_policy_path: "draft.md".to_string(),
+            acknowledge_broad_impact: false,
+            approve: true,
+        };
+        let err = handle(&args).unwrap_err();
+        assert!(err.to_string().contains("--acknowledge-broad-impact"));
+    }
+
+    #[test]
+    fn test_handle_missing_approve() {
+        let args = PolicyShapingArgs {
+            draft_policy_path: "draft.md".to_string(),
+            acknowledge_broad_impact: true,
+            approve: false,
+        };
+        let err = handle(&args).unwrap_err();
+        assert!(err.to_string().contains("--approve"));
+    }
+
+    #[test]
+    fn test_handle_success() {
+        let args = PolicyShapingArgs {
+            draft_policy_path: "draft.md".to_string(),
+            acknowledge_broad_impact: true,
+            approve: true,
+        };
+        assert!(handle(&args).is_ok());
+    }
+}

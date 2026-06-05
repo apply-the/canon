@@ -21,3 +21,47 @@ pub fn generate_diff(old_policy: Option<&DraftPolicy>, new_policy: &DraftPolicy)
         PolicyDiff { semantic_changes: vec!["Initial policy draft".to_string()] }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::policy::models::DraftPolicy;
+
+    #[test]
+    fn test_generate_diff_initial() {
+        let new_policy = DraftPolicy {
+            title: "Draft".to_string(),
+            mode: "policy-shaping".to_string(),
+            risk: "low-impact".to_string(),
+            scope_in: vec![],
+            scope_out: vec![],
+            invariants: vec![],
+        };
+        let diff = generate_diff(None, &new_policy);
+        assert_eq!(diff.semantic_changes, vec!["Initial policy draft".to_string()]);
+    }
+
+    #[test]
+    fn test_generate_diff_with_changes() {
+        let old_policy = DraftPolicy {
+            title: "Draft".to_string(),
+            mode: "policy-shaping".to_string(),
+            risk: "low-impact".to_string(),
+            scope_in: vec!["a".to_string()],
+            scope_out: vec![],
+            invariants: vec!["inv1".to_string(), "inv2".to_string()],
+        };
+        let new_policy = DraftPolicy {
+            title: "Draft".to_string(),
+            mode: "policy-shaping".to_string(),
+            risk: "low-impact".to_string(),
+            scope_in: vec!["b".to_string()],
+            scope_out: vec![],
+            invariants: vec!["inv2".to_string(), "inv3".to_string()],
+        };
+        let diff = generate_diff(Some(&old_policy), &new_policy);
+        assert!(diff.semantic_changes.contains(&"Scope changed".to_string()));
+        assert!(diff.semantic_changes.contains(&"Added invariant: inv3".to_string()));
+        assert!(diff.semantic_changes.contains(&"Removed invariant: inv1".to_string()));
+    }
+}

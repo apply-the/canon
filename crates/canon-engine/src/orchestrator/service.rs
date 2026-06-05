@@ -68,14 +68,14 @@ mod identity;
 mod input_handling;
 mod inspect;
 mod mode_backlog;
-mod mode_brainstorming;
 mod mode_change;
 mod mode_discovery;
 mod mode_domain_language;
 mod mode_domain_model;
+mod mode_generic_authoring;
 mod mode_incident;
 mod mode_migration;
-mod mode_policy_shaping;
+
 mod mode_pr_review;
 mod mode_requirements;
 mod mode_review;

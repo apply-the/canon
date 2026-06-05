@@ -782,6 +782,22 @@ mod tests {
     }
 
     #[test]
+    fn policy_shaping_parses_args_correctly() {
+        let cli = Cli::parse_from([
+            "canon",
+            "policy-shaping",
+            "draft.md",
+            "--approve",
+            "--acknowledge-broad-impact",
+        ]);
+
+        assert_command!(
+            cli.command,
+            Command::PolicyShaping(args) if args.draft_policy_path == "draft.md" && args.approve && args.acknowledge_broad_impact
+        );
+    }
+
+    #[test]
     fn run_with_dispatches_each_command_variant() {
         let workspace = tempdir().expect("create temp workspace");
         let repo_root = workspace.path().to_path_buf();

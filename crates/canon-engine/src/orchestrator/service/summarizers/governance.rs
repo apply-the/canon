@@ -457,3 +457,38 @@ pub(super) fn summarize_policy_shaping_mode_result(
         action_chips: Vec::new(),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::artifact::{ArtifactFormat, ArtifactRecord};
+    use crate::persistence::store::PersistedArtifact;
+
+    #[test]
+    fn test_summarize_policy_shaping_mode_result() {
+        let artifacts = vec![PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "conformance-impact-report.md".to_string(),
+                relative_path: "artifacts/test/conformance-impact-report.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "".to_string(),
+        }];
+
+        let summary = summarize_policy_shaping_mode_result(&artifacts).unwrap();
+        assert_eq!(summary.headline, "Policy Shaping impact report completed.");
+        assert_eq!(summary.primary_artifact_title, "Conformance Impact Report");
+        assert_eq!(
+            summary.primary_artifact_path,
+            ".canon/artifacts/test/conformance-impact-report.md"
+        );
+    }
+
+    #[test]
+    fn test_summarize_policy_shaping_mode_result_missing_artifact() {
+        let artifacts = vec![];
+        let summary = summarize_policy_shaping_mode_result(&artifacts);
+        assert!(summary.is_none());
+    }
+}
