@@ -29,10 +29,10 @@ const FIXTURE_ROOT: &str =
 
 const SUPPORTED_BOUNDLINE_VERSION: &str = "0.63.0";
 const SUPPORTED_BOUNDLINE_WINDOW: &str = "0.63.x";
-const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.68.0";
-const SUPPORTED_CANON_VERSION: &str = "0.68.0";
+const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.69.0";
+const SUPPORTED_CANON_VERSION: &str = "0.69.0";
 const SUPPORTED_CANON_WINDOW: &str = "0.64.x";
-const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.68.0";
+const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.69.0";
 const SUPPORTED_CONTRACT_LINE: &str = "governed_reasoning_posture_v2";
 
 const REQUIRED_TOP_LEVEL_FIELDS: [&str; 8] = [

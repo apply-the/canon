@@ -241,6 +241,7 @@ pub enum Command {
     },
     Publish(PublishCommand),
     PolicyShaping(commands::policy_shaping::PolicyShapingArgs),
+    ObservabilityDesign(commands::observability_design::ObservabilityDesignArgs),
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -340,6 +341,9 @@ fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command)
         Command::List { command } => commands::list::execute(service, command),
         Command::Publish(cmd) => commands::publish::execute(service, cmd),
         Command::PolicyShaping(args) => commands::policy_shaping::handle(&args)
+            .map(|_| 0)
+            .map_err(|e| crate::error::CliError::InvalidInput(e.to_string())),
+        Command::ObservabilityDesign(args) => commands::observability_design::handle(&args)
             .map(|_| 0)
             .map_err(|e| crate::error::CliError::InvalidInput(e.to_string())),
     }

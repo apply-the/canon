@@ -77,8 +77,8 @@ selector by default. Use `canon init --non-interactive` for scripts, CI, or
 machine-readable output such as `--output json`. The guided selector includes
 Codex, Copilot, Claude, Cursor, and Antigravity.
 
-The public documentation is aligned with `0.68.0`. Where the site links back
-to repository source, it now points at the `0.68.0` release line.
+The public documentation is aligned with `0.69.0`. Where the site links back
+to repository source, it now points at the `0.69.0` release line.
 
 Canon now publishes `governed_reasoning_posture_v2` as the current stable
 reasoning-posture contract for downstream consumers. The new line keeps Canon

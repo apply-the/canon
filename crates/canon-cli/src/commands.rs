@@ -3,6 +3,7 @@ pub mod governance;
 pub mod init;
 pub mod inspect;
 pub mod list;
+pub mod observability_design;
 pub mod policy_shaping;
 pub mod publish;
 pub mod resume;
