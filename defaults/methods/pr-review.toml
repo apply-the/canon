@@ -12,4 +12,6 @@ artifacts = [
     "missing-tests.md",
     "decision-impact.md",
     "review-summary.md",
+    "github-comments.json",
+    "review-findings.json",
 ]

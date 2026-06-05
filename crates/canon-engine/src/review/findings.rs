@@ -471,6 +471,45 @@ fn push_patch_interval(intervals: &mut Vec<PatchInterval>, next: PatchInterval) 
     intervals.push(next);
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GithubComment {
+    pub id: String,
+    pub path: Option<String>,
+    pub line: Option<u32>,
+    pub side: Option<String>,
+    pub hunk_header: Option<String>,
+    pub area: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub blocking: bool,
+    pub severity: String,
+    pub category: String,
+    pub body: String,
+    pub why_it_matters: String,
+    pub suggested_remediation: String,
+    pub suggested_change: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MissingTest {
+    pub id: String,
+    pub affected_behavior: String,
+    pub reason: String,
+    pub risk: String,
+    pub suggested_shape: String,
+    pub blocking: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewCoverage {
+    pub changed_files_total: u32,
+    pub files_reviewed_deeply: u32,
+    pub files_sampled: u32,
+    pub files_not_reviewed_deeply: u32,
+    pub coverage_strategy: String,
+    pub unreviewed_risk: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::{

@@ -131,6 +131,19 @@ impl EngineService {
             &critique_output.summary,
         );
         let review_summary = ReviewSummary::from_evidence(&review_packet, false);
+
+        let eval_payload = crate::review::evaluator::evaluate_diff(
+            &diff.patch,
+            diff.changed_files.len() as u32,
+            diff.patch.lines().count() as u32,
+            &critique_output.summary,
+        )
+        .unwrap_or_else(|_| crate::review::evaluator::EvaluatorPayload {
+            github_comments: Vec::new(),
+            missing_tests: Vec::new(),
+            review_coverage: None,
+        });
+        let decision = crate::review::evaluator::derive_decision(&eval_payload, &review_packet);
         let artifact_paths = artifact_contract
             .artifact_requirements
             .iter()
@@ -199,6 +212,28 @@ impl EngineService {
                 },
                 contents: match artifact_slug(&requirement.file_name) {
                     "packet-metadata.json" => packet_metadata_contents.clone(),
+                    "review-findings.json" => {
+                        serde_json::to_string_pretty(&eval_payload).unwrap_or_default()
+                    }
+                    "github-comments.json" => {
+                        serde_json::to_string_pretty(&eval_payload.github_comments)
+                            .unwrap_or_default()
+                    }
+                    "review-summary.md" => crate::review::generators::generate_review_summary(
+                        &eval_payload,
+                        &review_packet,
+                        &decision,
+                    ),
+                    "conventional-comments.md" => {
+                        crate::review::generators::generate_conventional_comments(
+                            &eval_payload,
+                            &review_packet,
+                        )
+                    }
+                    "missing-tests.md" => crate::review::generators::generate_missing_tests(
+                        &eval_payload,
+                        &review_packet,
+                    ),
                     _ => render_pr_review_artifact(
                         &requirement.file_name,
                         &review_packet,
