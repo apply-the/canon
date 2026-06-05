@@ -51,7 +51,7 @@ impl EngineService {
             Mode::Requirements => self.run_requirements(&store, request, policy_set),
             Mode::Discovery => self.run_discovery(&store, request, policy_set),
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
-            Mode::Brainstorming => self.run_brainstorming(&store, request, policy_set),
+            Mode::Brainstorming => self.run_generic_authoring(&store, request, policy_set),
             Mode::Change => self.run_change(&store, request, policy_set),
             Mode::Backlog => self.run_backlog(&store, request, policy_set),
             Mode::Incident => self.run_incident(&store, request, policy_set),
@@ -70,6 +70,7 @@ impl EngineService {
             Mode::PrReview => self.run_pr_review(&store, request, policy_set),
             Mode::DomainLanguage => self.run_domain_language(&store, request, policy_set),
             Mode::DomainModel => self.run_domain_model(&store, request, policy_set),
+            Mode::PolicyShaping => self.run_generic_authoring(&store, request, policy_set),
         }
     }
 
@@ -781,6 +782,21 @@ mod tests {
         request.mode = Mode::Brainstorming;
 
         let summary = service.run(request).expect("brainstorming run");
+        assert_eq!(summary.state, "Draft");
+    }
+
+    #[test]
+    fn run_dispatches_policy_shaping_mode_correctly() {
+        let workspace = tempdir().expect("tempdir");
+        std::fs::write(workspace.path().join("policy.md"), "# Policy\n\n## Rule\nDo not fail.\n")
+            .expect("write policy");
+        let service = EngineService::new(workspace.path());
+
+        let mut request = requirements_file_request("policy.md", "Owner <owner@example.com>");
+        request.mode = Mode::PolicyShaping;
+        request.system_context = Some(crate::domain::run::SystemContext::Existing);
+
+        let summary = service.run(request).expect("policy shaping run");
         assert_eq!(summary.state, "Draft");
     }
 

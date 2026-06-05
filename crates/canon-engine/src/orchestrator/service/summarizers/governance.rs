@@ -435,3 +435,60 @@ pub(super) fn summarize_pr_review_mode_result(
         action_chips: Vec::new(),
     })
 }
+
+pub(super) fn summarize_policy_shaping_mode_result(
+    artifacts: &[PersistedArtifact],
+) -> Option<ModeResultSummary> {
+    let primary = artifacts
+        .iter()
+        .find(|artifact| artifact.record.slug() == "conformance-impact-report.md")?;
+
+    Some(ModeResultSummary {
+        headline: "Policy Shaping impact report completed.".to_string(),
+        artifact_packet_summary: "Policy Shaping run generated an impact report.".to_string(),
+        execution_posture: None,
+        primary_artifact_title: "Conformance Impact Report".to_string(),
+        primary_artifact_path: format!(".canon/{}", primary.record.relative_path),
+        primary_artifact_action: primary_artifact_action_for(&format!(
+            ".canon/{}",
+            primary.record.relative_path
+        )),
+        result_excerpt: "Impact report ready for review.".to_string(),
+        action_chips: Vec::new(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::artifact::{ArtifactFormat, ArtifactRecord};
+    use crate::persistence::store::PersistedArtifact;
+
+    #[test]
+    fn test_summarize_policy_shaping_mode_result() {
+        let artifacts = vec![PersistedArtifact {
+            record: ArtifactRecord {
+                file_name: "conformance-impact-report.md".to_string(),
+                relative_path: "artifacts/test/conformance-impact-report.md".to_string(),
+                format: ArtifactFormat::Markdown,
+                provenance: None,
+            },
+            contents: "".to_string(),
+        }];
+
+        let summary = summarize_policy_shaping_mode_result(&artifacts).unwrap();
+        assert_eq!(summary.headline, "Policy Shaping impact report completed.");
+        assert_eq!(summary.primary_artifact_title, "Conformance Impact Report");
+        assert_eq!(
+            summary.primary_artifact_path,
+            ".canon/artifacts/test/conformance-impact-report.md"
+        );
+    }
+
+    #[test]
+    fn test_summarize_policy_shaping_mode_result_missing_artifact() {
+        let artifacts = vec![];
+        let summary = summarize_policy_shaping_mode_result(&artifacts);
+        assert!(summary.is_none());
+    }
+}

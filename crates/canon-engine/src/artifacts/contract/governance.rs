@@ -302,6 +302,27 @@ pub(super) fn verification() -> Vec<ArtifactRequirement> {
     ]
 }
 
+/// Returns the artifact requirements for the [`PolicyShaping`](crate::domain::mode::Mode::PolicyShaping) mode.
+pub(super) fn policy_shaping() -> Vec<ArtifactRequirement> {
+    vec![
+        requirement(
+            "conformance-impact-report.md",
+            &[SUMMARY, "Impact", "Violations"],
+            &[GateKind::Risk, GateKind::Architecture],
+        ),
+        requirement(
+            "policy-diff.md",
+            &[SUMMARY, "Semantic Changes"],
+            &[GateKind::ReleaseReadiness],
+        ),
+        requirement(
+            "04-migration.md",
+            &[SUMMARY, "Waiver Policy", "Rollout Phases", "Debt Created"],
+            &[GateKind::ReleaseReadiness],
+        ),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -353,5 +374,20 @@ mod tests {
     #[test]
     fn verification_all_artifacts_are_required() {
         assert!(verification().iter().all(|r| r.required));
+    }
+
+    #[test]
+    fn policy_shaping_has_expected_artifact_count() {
+        assert_eq!(policy_shaping().len(), 3);
+    }
+
+    #[test]
+    fn policy_shaping_all_artifacts_are_required() {
+        assert!(policy_shaping().iter().all(|r| r.required));
+    }
+
+    #[test]
+    fn policy_shaping_primary_artifact_is_conformance_impact_report() {
+        assert_eq!(policy_shaping()[0].file_name, "conformance-impact-report.md");
     }
 }

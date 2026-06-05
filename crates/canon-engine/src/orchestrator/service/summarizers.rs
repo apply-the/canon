@@ -73,6 +73,7 @@ pub(crate) fn summarize_mode_result(
         Mode::DomainLanguage => domain::summarize_domain_language_mode_result(artifacts),
         Mode::DomainModel => domain::summarize_domain_model_mode_result(artifacts),
         Mode::Debugging => delivery::summarize_debugging_mode_result(artifacts),
+        Mode::PolicyShaping => governance::summarize_policy_shaping_mode_result(artifacts),
     }
 }
 

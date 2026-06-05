@@ -21,7 +21,8 @@ pub(super) fn evaluate_promotion_policy(
             | Mode::Change
             | Mode::Implementation
             | Mode::Refactor
-            | Mode::Migration,
+            | Mode::Migration
+            | Mode::PolicyShaping,
             RunState::Completed,
         ) => PromotionState::AutoIfApproved,
         (
@@ -29,7 +30,8 @@ pub(super) fn evaluate_promotion_policy(
             | Mode::Change
             | Mode::Implementation
             | Mode::Refactor
-            | Mode::Migration,
+            | Mode::Migration
+            | Mode::PolicyShaping,
             _,
         ) => PromotionState::PendingIndex,
         (
@@ -59,6 +61,7 @@ pub(super) fn default_update_strategy_for(mode: Mode) -> UpdateStrategy {
         | Mode::Refactor
         | Mode::Debugging
         | Mode::DomainLanguage
+        | Mode::PolicyShaping
         | Mode::DomainModel => UpdateStrategy::ManagedBlocks,
         Mode::Incident | Mode::Migration => UpdateStrategy::ProposalFiles,
         Mode::Verification
@@ -97,7 +100,9 @@ pub(super) fn stable_project_memory_surface(mode: Mode) -> &'static str {
         Mode::Discovery | Mode::Brainstorming => "tech-docs/project/overview.md",
         Mode::Requirements => "tech-docs/project/product-context.md",
         Mode::SystemShaping | Mode::Architecture => "tech-docs/project/architecture-map.md",
-        Mode::Change | Mode::Migration => "tech-docs/project/decision-index.md",
+        Mode::Change | Mode::Migration | Mode::PolicyShaping => {
+            "tech-docs/project/decision-index.md"
+        }
         Mode::Backlog | Mode::Implementation | Mode::Refactor | Mode::Debugging => {
             "tech-docs/project/delivery-map.md"
         }

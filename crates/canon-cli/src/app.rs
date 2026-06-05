@@ -240,6 +240,7 @@ pub enum Command {
         command: ListCommand,
     },
     Publish(PublishCommand),
+    PolicyShaping(commands::policy_shaping::PolicyShapingArgs),
 }
 
 #[derive(Debug, Subcommand, Clone)]
@@ -338,6 +339,9 @@ fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command)
         }
         Command::List { command } => commands::list::execute(service, command),
         Command::Publish(cmd) => commands::publish::execute(service, cmd),
+        Command::PolicyShaping(args) => commands::policy_shaping::handle(&args)
+            .map(|_| 0)
+            .map_err(|e| crate::error::CliError::InvalidInput(e.to_string())),
     }
 }
 
@@ -774,6 +778,22 @@ mod tests {
         assert_command!(
             cli.command,
             Command::Governance { command: GovernanceCommand::Capabilities { json } } if json
+        );
+    }
+
+    #[test]
+    fn policy_shaping_parses_args_correctly() {
+        let cli = Cli::parse_from([
+            "canon",
+            "policy-shaping",
+            "draft.md",
+            "--approve",
+            "--acknowledge-broad-impact",
+        ]);
+
+        assert_command!(
+            cli.command,
+            Command::PolicyShaping(args) if args.draft_policy_path == "draft.md" && args.approve && args.acknowledge_broad_impact
         );
     }
 

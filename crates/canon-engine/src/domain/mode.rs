@@ -52,6 +52,8 @@ pub enum Mode {
     Debugging,
     /// Ideation mode for structured divergence and lateral thinking.
     Brainstorming,
+    /// Govern the evolution and impact of retroactive codebase policy rules.
+    PolicyShaping,
 }
 
 /// The class of governed expertise packet produced by an authoring-specialization mode.
@@ -147,6 +149,7 @@ impl Mode {
             Self::DomainModel => "domain-model",
             Self::Debugging => "debugging",
             Self::Brainstorming => "brainstorming",
+            Self::PolicyShaping => "policy-shaping",
         }
     }
 
@@ -182,6 +185,7 @@ impl Mode {
             Self::DomainModel,
             Self::Debugging,
             Self::Brainstorming,
+            Self::PolicyShaping,
         ]
     }
 }
@@ -223,6 +227,7 @@ impl std::str::FromStr for Mode {
             "domain-model" => Ok(Self::DomainModel),
             "debugging" => Ok(Self::Debugging),
             "brainstorming" => Ok(Self::Brainstorming),
+            "policy-shaping" => Ok(Self::PolicyShaping),
             other => Err(format!("unsupported mode: {other}")),
         }
     }
@@ -290,15 +295,17 @@ impl Mode {
     /// Returns the Canon-owned intended persona profile for this mode.
     pub fn intended_persona_profile(self) -> IntendedPersonaProfile {
         match self {
-            Self::Requirements | Self::Discovery | Self::Backlog | Self::Brainstorming => {
-                IntendedPersonaProfile {
-                    intended_persona: IntendedPersona::ProductStrategist,
-                    persona_anti_behaviors: vec![
-                        "premature implementation".to_string(),
-                        "unbounded platform expansion".to_string(),
-                    ],
-                }
-            }
+            Self::Requirements
+            | Self::Discovery
+            | Self::Backlog
+            | Self::Brainstorming
+            | Self::PolicyShaping => IntendedPersonaProfile {
+                intended_persona: IntendedPersona::ProductStrategist,
+                persona_anti_behaviors: vec![
+                    "premature implementation".to_string(),
+                    "unbounded platform expansion".to_string(),
+                ],
+            },
             Self::SystemShaping | Self::Architecture | Self::SystemAssessment => {
                 IntendedPersonaProfile {
                     intended_persona: IntendedPersona::SystemArchitect,
@@ -416,8 +423,8 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     use ImplementationDepth::Full;
     use Mode::{
         Architecture as ArchitectureMode, Backlog, Brainstorming, Change, Debugging, Discovery,
-        DomainLanguage, DomainModel, Implementation, Incident, Migration, PrReview, Refactor,
-        Requirements, Review, SecurityAssessment, SupplyChainAnalysis, SystemAssessment,
+        DomainLanguage, DomainModel, Implementation, Incident, Migration, PolicyShaping, PrReview,
+        Refactor, Requirements, Review, SecurityAssessment, SupplyChainAnalysis, SystemAssessment,
         SystemShaping, Verification,
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
@@ -760,6 +767,20 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             artifact_families: vec!["context", "options", "tradeoffs", "open questions", "spikes"],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
         },
+        ModeProfile {
+            mode: PolicyShaping,
+            purpose: "Govern the evolution and impact of retroactive codebase policy rules.",
+            emphasis: AnalysisHeavy,
+            implementation_depth: Full,
+            gate_profile: vec![Risk, ReleaseReadiness],
+            artifact_families: vec![
+                "draft policy",
+                "conformance impact report",
+                "migration plan",
+                "policy diff",
+            ],
+            allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
+        },
     ]
 }
 
@@ -790,6 +811,7 @@ mod tests {
             (Mode::DomainModel, "domain-model", Some(GovernedExpertiseKind::DomainModel)),
             (Mode::Debugging, "debugging", None),
             (Mode::Brainstorming, "brainstorming", None),
+            (Mode::PolicyShaping, "policy-shaping", None),
         ];
 
         assert_eq!(
@@ -815,6 +837,7 @@ mod tests {
                 Mode::DomainModel,
                 Mode::Debugging,
                 Mode::Brainstorming,
+                Mode::PolicyShaping,
             ]
         );
 

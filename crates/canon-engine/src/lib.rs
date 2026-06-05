@@ -10,6 +10,8 @@ pub mod modes;
 pub mod orchestrator;
 /// Persistence layer: manifests, invocation records, and workspace store.
 pub mod persistence;
+/// Policy definition and evaluation.
+pub mod policy;
 /// Review domain: findings, critique, and summary types.
 pub mod review;
 

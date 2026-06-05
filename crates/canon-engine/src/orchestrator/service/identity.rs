@@ -102,6 +102,7 @@ impl EngineService {
                 | Mode::SystemShaping
                 | Mode::Architecture
                 | Mode::Change
+                | Mode::PolicyShaping
         )
     }
 
@@ -254,6 +255,7 @@ impl EngineService {
             | Mode::Change
             | Mode::Backlog
             | Mode::DomainLanguage
+            | Mode::PolicyShaping
             | Mode::DomainModel => RefinementWorkflowFamily::Planning,
             Mode::Implementation | Mode::Refactor | Mode::Migration | Mode::Debugging => {
                 RefinementWorkflowFamily::Execution
@@ -300,7 +302,11 @@ impl EngineService {
                     clarification_questions: prioritized_discovery_clarification_questions(&brief),
                 })
             }
-            Mode::SystemShaping | Mode::Brainstorming | Mode::Architecture | Mode::Change => {
+            Mode::SystemShaping
+            | Mode::Brainstorming
+            | Mode::Architecture
+            | Mode::Change
+            | Mode::PolicyShaping => {
                 let brief = AuthoredModeBrief::from_context(mode, context_summary, &source_inputs);
                 Ok(RefinementSeedState {
                     source_inputs,

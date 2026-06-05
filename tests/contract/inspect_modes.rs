@@ -51,6 +51,7 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
             "domain-model",
             "debugging",
             "brainstorming",
+            "policy-shaping",
         ])
     );
 }

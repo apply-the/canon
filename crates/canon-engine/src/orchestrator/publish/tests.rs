@@ -1431,6 +1431,12 @@ fn canonical_project_memory_surface_map_covers_all_modes() {
             "tech-docs/project/pending-decisions.md",
             "tech-docs/project/audit-log.md",
         ),
+        (
+            Mode::PolicyShaping,
+            "tech-docs/project/decision-index.md",
+            "tech-docs/project/pending-decisions.md",
+            "tech-docs/project/audit-log.md",
+        ),
     ];
 
     assert_eq!(expected.len(), Mode::all().len());

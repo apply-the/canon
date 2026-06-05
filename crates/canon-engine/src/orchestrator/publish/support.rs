@@ -134,6 +134,7 @@ pub(super) fn default_publish_directory(mode: Mode) -> &'static str {
         Mode::DomainLanguage => "tech-docs/domain/language",
         Mode::DomainModel => "tech-docs/domain/model",
         Mode::Debugging => "tech-docs/debugging",
+        Mode::PolicyShaping => "tech-docs/policies",
     }
 }
 
@@ -144,5 +145,10 @@ mod tests {
     #[test]
     fn default_publish_directory_covers_debugging() {
         assert_eq!(default_publish_directory(Mode::Debugging), "tech-docs/debugging");
+    }
+
+    #[test]
+    fn default_publish_directory_covers_policy_shaping() {
+        assert_eq!(default_publish_directory(Mode::PolicyShaping), "tech-docs/policies");
     }
 }

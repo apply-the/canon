@@ -53,6 +53,7 @@ impl EngineService {
             || spec.mode == Mode::Discovery
             || spec.mode == Mode::SystemShaping
             || spec.mode == Mode::Requirements
+            || spec.mode == Mode::PolicyShaping
         {
             context_summary_data =
                 self.read_requirements_context(&request.inputs, &request.inline_inputs)?;

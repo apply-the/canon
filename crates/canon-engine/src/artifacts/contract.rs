@@ -62,6 +62,7 @@ pub fn contract_for_mode(mode: Mode) -> ArtifactContract {
         Mode::DomainModel => domain::domain_model(),
         Mode::Debugging => delivery::debugging(),
         Mode::Brainstorming => authoring::brainstorming(),
+        Mode::PolicyShaping => governance::policy_shaping(),
     };
 
     build_contract(files)

@@ -19,9 +19,11 @@ impl AuthoredClarityFamily {
 
 pub(super) fn authored_clarity_family(mode: Mode) -> AuthoredClarityFamily {
     match mode {
-        Mode::SystemShaping | Mode::Architecture | Mode::Change | Mode::Backlog => {
-            AuthoredClarityFamily::Planning
-        }
+        Mode::SystemShaping
+        | Mode::Architecture
+        | Mode::Change
+        | Mode::Backlog
+        | Mode::PolicyShaping => AuthoredClarityFamily::Planning,
         Mode::Implementation | Mode::Refactor | Mode::Migration | Mode::Debugging => {
             AuthoredClarityFamily::Execution
         }
