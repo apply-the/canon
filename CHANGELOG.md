@@ -15,7 +15,7 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
-## [0.65.0] - 2026-06-03
+## [0.68.0] - 2026-06-03
 
 Delivered specs:
 
@@ -31,7 +31,7 @@ Highlights:
 - Enforced required artifacts for the `debugging` mode: `01-context`, `02-reproduction`, `03-root-cause`, `04-fix-decision`, and `05-verification`.
 - Integrated `debugging` mode into the governance surface and CLI contracts as a recommendation-only, green-zone workflow.
 - Updated docs, README, and CLI references to include `brainstorming` and `debugging`.
-- Bumped workspace version to `0.65.0`.
+- Bumped workspace version to `0.68.0`.
 
 ## [0.64.0] - 2026-06-02
 

@@ -15,7 +15,7 @@ compatibility windows.
 - `boundline_min = 0.63.0`
 - `boundline_max_exclusive = 0.64.0`
 - `canon_min = 0.64.0`
-- `canon_max_exclusive = 0.65.0`
+- `canon_max_exclusive = 0.68.0`
 - executable fixtures live under `tests/fixtures/governed_reasoning_posture_v2/`
 
 ## Normative Relationship

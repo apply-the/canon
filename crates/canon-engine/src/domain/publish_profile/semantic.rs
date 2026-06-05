@@ -18,15 +18,15 @@ pub const GOVERNED_REASONING_POSTURE_V1_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.63.0"
 /// Minimum supported Canon version for the governed reasoning posture v1 line.
 pub const GOVERNED_REASONING_POSTURE_V1_CANON_MIN: &str = "0.63.1";
 /// Maximum exclusive Canon version for the governed reasoning posture v1 line.
-pub const GOVERNED_REASONING_POSTURE_V1_CANON_MAX_EXCLUSIVE: &str = "0.65.0";
+pub const GOVERNED_REASONING_POSTURE_V1_CANON_MAX_EXCLUSIVE: &str = "0.68.0";
 /// Minimum supported Boundline version for the governed reasoning posture v2 line.
 pub const GOVERNED_REASONING_POSTURE_V2_BOUNDLINE_MIN: &str = "0.63.0";
 /// Maximum exclusive Boundline version for the governed reasoning posture v2 line.
-pub const GOVERNED_REASONING_POSTURE_V2_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.65.0";
+pub const GOVERNED_REASONING_POSTURE_V2_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.68.0";
 /// Minimum supported Canon version for the governed reasoning posture v2 line.
-pub const GOVERNED_REASONING_POSTURE_V2_CANON_MIN: &str = "0.65.0";
+pub const GOVERNED_REASONING_POSTURE_V2_CANON_MIN: &str = "0.68.0";
 /// Maximum exclusive Canon version for the governed reasoning posture v2 line.
-pub const GOVERNED_REASONING_POSTURE_V2_CANON_MAX_EXCLUSIVE: &str = "0.65.0";
+pub const GOVERNED_REASONING_POSTURE_V2_CANON_MAX_EXCLUSIVE: &str = "0.68.0";
 
 /// Canon-owned contract line vocabulary for governed reasoning posture payloads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

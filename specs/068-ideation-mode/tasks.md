@@ -8,9 +8,9 @@
 
 ## Phase 1: Setup
 
-- [X] T004 Bump version to `0.65.0` in all relevant `Cargo.toml` files.
+- [X] T004 Bump version to `0.68.0` in all relevant `Cargo.toml` files.
 - [X] T005 [P] Update `README.md` (repo root) to mention the new `brainstorming` mode.
-- [X] T006 [P] Update `CHANGELOG.md` (repo root) for version `0.65.0` with the ideation feature.
+- [X] T006 [P] Update `CHANGELOG.md` (repo root) for version `0.68.0` with the ideation feature.
 - [X] T007 [P] Remove `04-brainstorming-ideation.md` from `roadmap/features/` and update any roadmap indexes.
 - [X] T008 [P] Update `tech-docs/` and `docs/` directories (repo root) to include a guide on how to use the `brainstorming` mode.
 

@@ -10,7 +10,7 @@ publication_status = "active"
 boundline_min = "0.62.0"
 boundline_max_exclusive = "0.63.0"
 canon_min = "0.63.1"
-canon_max_exclusive = "0.65.0"
+canon_max_exclusive = "0.68.0"
 contract_line = "governed_reasoning_posture_v1"
 
 [profile_selector]
