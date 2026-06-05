@@ -104,7 +104,11 @@ grounded, reviewable artifact set.
 3. If the diff is self-explanatory, generate the review directly. If it is structurally bounded but materially ambiguous, run the clarification loop before final generation.
 4. Draft each finding, verdict, and recommendation so it is grounded in the actual diff content, in an explicit user clarification, or in a clearly marked open question.
 5. Run a critique pass that challenges uncritical acceptance, hallucinated bugs not present in the diff, missing review of nontrivial change surfaces, and unsupported verdicts on changed code.
-6. Overwrite the templated stubs with the revised review packet and write the provenance sidecar.
+6. The critique MUST output exactly one JSON object matching the internal schema `EvaluatorPayload`, containing:
+   - `github_comments`: Array of review comments. Each comment MUST have `id`, `path`, `line`, `side`, `area`, `type`, `blocking`, `severity`, `category`, `body`, `why_it_matters`, `suggested_remediation`, and `suggested_change`.
+   - `missing_tests`: Array of missing test coverage findings. Each finding MUST have an explicit `affected_behavior`.
+   - `review_coverage`: (Required for diffs >20 files or >500 lines).
+7. Overwrite the templated stubs with the revised review packet and write the provenance sidecar.
 
 ### Clarification Loop
 

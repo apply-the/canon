@@ -77,9 +77,9 @@ Before 1.0.0, breaking changes MAY occur in minor versions.
 - `specs/001-canon-spec/decision-log.md`
 
 ## Recent Changes
+- 072-pr-review-mode: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
 - 071-observability-design: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
 - 070-policy-shaping-mode: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
-- 068-ideation-mode: Added Rust 1.96.0, Edition 2024 + `clap`, `serde`, `serde_json`, `serde_yaml`, `tracing`, `canon-engine`, `canon-cli`
 
 <!-- MANUAL ADDITIONS START -->
 ## Codex Skills Frontend
