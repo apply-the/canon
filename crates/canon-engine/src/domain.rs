@@ -8,6 +8,8 @@ pub mod decision;
 pub mod execution;
 /// Gate kinds, gate statuses, and gate evaluation types.
 pub mod gate;
+/// Help-next diagnostic and recommendation types.
+pub mod help_next;
 /// Method step definitions and exit criteria types.
 pub mod method;
 /// Mode enum, mode profiles, and governed expertise kinds.

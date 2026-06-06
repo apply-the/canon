@@ -59,6 +59,7 @@ use crate::review::summary::ReviewSummary;
 pub(crate) mod clarity;
 pub(crate) mod context_parse;
 pub(crate) mod execution;
+pub(crate) mod help_next;
 pub(crate) mod next_action;
 pub(crate) mod patch;
 pub(crate) mod summarizers;
