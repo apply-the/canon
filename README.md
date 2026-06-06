@@ -33,7 +33,7 @@ Canon operates on a simple, predictable four-step mental model:
 
 Get your first governed session running in seconds:
 
-### Debian/Ubuntu (APT)
+### Linux (Debian/Ubuntu)
 
 ```bash
 curl -fsSL https://apply-the.github.io/packages/apt/gpg.key \
@@ -46,11 +46,15 @@ sudo apt update
 sudo apt install canon
 ```
 
-### macOS (Homebrew)
+### macOS
 
 ```bash
 brew tap apply-the/canon && brew install canon
 ```
+
+### Windows
+
+Download the installer directly from the [Releases](https://github.com/apply-the/canon/releases) page. Alternatively, use Windows Subsystem for Linux (WSL) and follow the Linux instructions.
 
 ### Other Installation Options
 
