@@ -27,12 +27,12 @@ const ASSISTANT_PLUGIN_METADATA_PATH: &str =
 const FIXTURE_ROOT: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/governed_reasoning_posture_v2");
 
-const SUPPORTED_BOUNDLINE_VERSION: &str = "0.63.0";
-const SUPPORTED_BOUNDLINE_WINDOW: &str = "0.63.x";
-const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.69.0";
-const SUPPORTED_CANON_VERSION: &str = "0.69.0";
-const SUPPORTED_CANON_WINDOW: &str = "0.64.x";
-const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.69.0";
+const SUPPORTED_BOUNDLINE_VERSION: &str = "0.74.0";
+const SUPPORTED_BOUNDLINE_WINDOW: &str = "0.74.x";
+const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.75.0";
+const SUPPORTED_CANON_VERSION: &str = "0.71.0";
+const SUPPORTED_CANON_WINDOW: &str = "0.71.x";
+const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.72.0";
 const SUPPORTED_CONTRACT_LINE: &str = "governed_reasoning_posture_v2";
 
 const REQUIRED_TOP_LEVEL_FIELDS: [&str; 8] = [

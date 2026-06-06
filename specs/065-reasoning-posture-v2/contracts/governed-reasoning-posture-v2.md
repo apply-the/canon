@@ -10,8 +10,8 @@ compatibility windows.
 
 ## Supported Release Pair
 
-- `supported_boundline_window = 0.63.x`
-- `supported_canon_window = 0.64.x`
+- `supported_boundline_window = 0.74.x`
+- `supported_canon_window = 0.71.x`
 - `boundline_min = 0.63.0`
 - `boundline_max_exclusive = 0.64.0`
 - `canon_min = 0.64.0`

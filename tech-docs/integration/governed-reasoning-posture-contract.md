@@ -10,8 +10,8 @@
 - `example_corpus`: `tests/fixtures/governed_reasoning_posture_v2/`
 - `migration_contract`: `specs/065-reasoning-posture-v2/contracts/governed-reasoning-posture-v2-migration.md`
 - `primary_consumer`: `boundline`
-- `supported_boundline_window`: `0.63.x`
-- `supported_canon_window`: `0.64.x`
+- `supported_boundline_window`: `0.74.x`
+- `supported_canon_window`: `0.71.x`
 
 ## Purpose
 
@@ -175,11 +175,11 @@ Executable validation MUST reject:
 - Canon MUST fail closed on unsupported or incomplete producer data before the
   posture is published to consumers.
 - Additive optional fields MAY be introduced without a new contract line only
-  when they preserve backward compatibility for Boundline `0.63.x`.
+  when they preserve backward compatibility for Boundline `0.74.x`.
 - Any breaking change to required fields, compatibility semantics, or the
   supported vocabulary requires a new contract line.
 - Release-facing metadata that claims support for `governed_reasoning_posture_v2`
-  MUST align with Boundline `0.63.x` and Canon `0.64.x`.
+  MUST align with Boundline `0.74.x` and Canon `0.71.x`.
 
 ## Coexistence And Migration Rules
 

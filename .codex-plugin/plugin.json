@@ -1,7 +1,7 @@
 {
   "name": "canon",
   "displayName": "Canon Assistant Support for Codex",
-  "version": "0.69.0",
+  "version": "0.71.0",
   "description": "Canon provides semantic governance for AI-assisted engineering work: structured packets, governed evidence, approvals, lineage, project memory, and reusable delivery knowledge.",
   "author": {
     "name": "Apply The",

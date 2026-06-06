@@ -8,7 +8,7 @@
 - `stable_doc`: `tech-docs/integration/governed-reasoning-posture-contract.md`
 - `primary_consumer`: `boundline`
 - `supported_boundline_window`: `0.62.x`
-- `supported_canon_window`: `0.63.x`
+- `supported_canon_window`: `0.71.x`
 
 ## Purpose
 
