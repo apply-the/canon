@@ -383,6 +383,8 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ needs.prepare-release-metadata.outputs.version }}
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
         run: |
           cd packages-repo
           
@@ -399,6 +401,11 @@ jobs:
             echo "No new .deb packages found for Canon ${VERSION}." >&2
             exit 0
           fi
+          
+          sudo apt-get update && sudo apt-get install -y dpkg-dev
+          ./scripts/rebuild-apt-repo.sh
+          
+          git add apt/dists/
           
           git commit -m "canon ${VERSION} APT packages"
           git push origin HEAD:main
