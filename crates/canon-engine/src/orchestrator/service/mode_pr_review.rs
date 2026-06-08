@@ -143,6 +143,14 @@ impl EngineService {
             missing_tests: Vec::new(),
             review_coverage: None,
         });
+
+        // Build the canonical comment set and review findings from evaluated data.
+        let canonical_set = crate::review::findings::CanonicalCommentSet::from_evaluated(
+            eval_payload.github_comments.clone(),
+        );
+        let review_findings =
+            crate::review::findings::build_review_findings(&canonical_set, &review_packet);
+
         let decision = crate::review::evaluator::derive_decision(&eval_payload, &review_packet);
         let artifact_paths = artifact_contract
             .artifact_requirements
@@ -213,25 +221,22 @@ impl EngineService {
                 contents: match artifact_slug(&requirement.file_name) {
                     "packet-metadata.json" => packet_metadata_contents.clone(),
                     "review-findings.json" => {
-                        serde_json::to_string_pretty(&eval_payload).unwrap_or_default()
+                        crate::review::generators::generate_review_findings_json(&review_findings)
                     }
                     "github-comments.json" => {
-                        serde_json::to_string_pretty(&eval_payload.github_comments)
-                            .unwrap_or_default()
+                        crate::review::generators::generate_github_comments_json(&canonical_set)
                     }
                     "review-summary.md" => crate::review::generators::generate_review_summary(
-                        &eval_payload,
-                        &review_packet,
+                        &canonical_set,
+                        &eval_payload.missing_tests,
                         &decision,
+                        &review_packet,
                     ),
                     "conventional-comments.md" => {
-                        crate::review::generators::generate_conventional_comments(
-                            &eval_payload,
-                            &review_packet,
-                        )
+                        crate::review::generators::generate_conventional_comments(&canonical_set)
                     }
                     "missing-tests.md" => crate::review::generators::generate_missing_tests(
-                        &eval_payload,
+                        &eval_payload.missing_tests,
                         &review_packet,
                     ),
                     _ => render_pr_review_artifact(

@@ -425,7 +425,7 @@ pub(super) fn summarize_pr_review_mode_result(
         headline,
         artifact_packet_summary,
         execution_posture: None,
-        primary_artifact_title: "PR Analysis".to_string(),
+        primary_artifact_title: "Review Summary".to_string(),
         primary_artifact_path: format!(".canon/{}", primary_artifact.record.relative_path),
         primary_artifact_action: primary_artifact_action_for(&format!(
             ".canon/{}",
