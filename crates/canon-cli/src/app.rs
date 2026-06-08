@@ -235,6 +235,11 @@ pub enum Command {
         #[command(subcommand)]
         command: GovernanceCommand,
     },
+    /// Onion-layer PR review: prepare, accept, and finalize phases.
+    PrReview {
+        #[command(subcommand)]
+        command: PrReviewCommand,
+    },
     List {
         #[command(subcommand)]
         command: ListCommand,
@@ -245,6 +250,35 @@ pub enum Command {
     HelpNext {
         #[arg(long, default_value_t)]
         output: OutputFormat,
+    },
+}
+
+/// Sub-commands for phased onion-layer PR review.
+#[derive(Debug, Subcommand, Clone)]
+pub enum PrReviewCommand {
+    /// Prepare the review context: collect diff, build context index, write layer instructions.
+    Prepare {
+        /// Run ID for this review (auto-generated if omitted).
+        #[arg(long)]
+        run: Option<String>,
+        /// Base ref to diff against (e.g. `origin/main`).
+        #[arg(long)]
+        base: String,
+        /// Head ref to review (e.g. `HEAD`).
+        #[arg(long)]
+        head: String,
+    },
+    /// Validate the LLM-authored reviewer output.
+    Accept {
+        /// Run ID from the prepare phase.
+        #[arg(long)]
+        run: String,
+    },
+    /// Render all reviewer-facing artifacts and finalize the review.
+    Finalize {
+        /// Run ID from the prepare phase.
+        #[arg(long)]
+        run: String,
     },
 }
 
@@ -342,6 +376,7 @@ fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command)
         Command::Governance { command } => {
             commands::governance::execute(service, repo_root, command)
         }
+        Command::PrReview { command } => commands::pr_review::execute(service, command),
         Command::List { command } => commands::list::execute(service, command),
         Command::Publish(cmd) => commands::publish::execute(service, cmd),
         Command::PolicyShaping(args) => commands::policy_shaping::handle(&args)

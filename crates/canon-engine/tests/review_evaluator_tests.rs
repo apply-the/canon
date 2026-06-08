@@ -5,7 +5,7 @@ use canon_engine::review::findings::{
 };
 use canon_engine::review::generators::{
     generate_conventional_comments, generate_github_comments_json, generate_missing_tests,
-    generate_review_findings_json, generate_review_summary,
+    generate_review_findings_json, generate_review_report, generate_review_summary,
 };
 
 const MOCK_PATCH: &str = "\
@@ -256,8 +256,7 @@ fn test_generators_produce_expected_markdown() {
     assert!(s2.contains("Status: ready"));
 
     let c2 = generate_conventional_comments(&empty_canonical);
-    assert!(c2.contains("## Blocking Comments"));
-    assert!(c2.contains("No blocking comments"));
+    assert!(c2.contains("## Empty Comment Set"));
 }
 
 #[test]
@@ -325,7 +324,7 @@ fn test_conventional_comments_renders_hunk_target() {
     let canonical = CanonicalCommentSet::from_evaluated(vec![c]);
     let cc_md = generate_conventional_comments(&canonical);
     assert!(cc_md.contains("C001"));
-    assert!(cc_md.contains("Target: `src/b.rs` at `@@ -20,3 +20,4 @@`"));
+    assert!(cc_md.contains("hunk `@@ -20,3 +20,4 @@`"));
     assert!(cc_md.contains("Hunk issue."));
 }
 
@@ -436,4 +435,128 @@ fn test_blocking_count_and_non_blocking_count() {
     let canonical = CanonicalCommentSet::from_evaluated(vec![b1, nb, b2]);
     assert_eq!(canonical.blocking_count(), 2);
     assert_eq!(canonical.non_blocking_count(), 1);
+}
+
+#[test]
+fn test_generate_review_report_with_non_empty_canonical_set() {
+    let b1 = comment("src/a.rs", Some(1), true, "Blocking 1.");
+    let mj = comment("src/b.rs", Some(2), false, "Major issue.");
+    let mn = comment("src/c.rs", Some(3), false, "Minor issue.");
+    let mut canonical = CanonicalCommentSet::from_evaluated(vec![b1, mj, mn]);
+    canonical.reviewer_status = "actionable_review_executed".to_string();
+    let changed: Vec<String> =
+        vec!["src/a.rs".to_string(), "src/b.rs".to_string(), "src/c.rs".to_string()];
+    let inspected: Vec<String> = vec!["src/a.rs".to_string()];
+    let skipped: Vec<String> = vec![];
+    let packet = empty_packet();
+    let report = generate_review_report(
+        &canonical,
+        &Decision::RequestChanges,
+        &packet,
+        &changed,
+        &inspected,
+        &skipped,
+    );
+    assert!(report.contains("# PR Review Report"));
+    assert!(report.contains("## Summary"));
+    assert!(report.contains("## Recommendation"));
+    assert!(report.contains("**Request changes**"));
+    assert!(report.contains("## Recommendation Rationale"));
+    assert!(report.contains("## Severity Summary"));
+    assert!(report.contains("## Blocking Issues"));
+    assert!(report.contains("## Major Issues"));
+    assert!(report.contains("## Minor Issues"));
+    assert!(report.contains("## Questions"));
+    assert!(report.contains("## Nitpicks"));
+    assert!(report.contains("## Review Coverage"));
+    assert!(report.contains("## Governance Observations"));
+    assert!(report.contains("## Decision Rules Applied"));
+    assert!(report.contains("## Final Recommendation"));
+}
+
+#[test]
+fn test_generate_review_report_with_approve_decision() {
+    let canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    let packet = empty_packet();
+    let empty: Vec<String> = vec![];
+    let report =
+        generate_review_report(&canonical, &Decision::Approve, &packet, &empty, &empty, &empty);
+    assert!(report.contains("**Approve**"));
+    assert!(report.contains("No blocking findings"));
+}
+
+#[test]
+fn test_generate_review_report_with_comment_decision_and_not_configured() {
+    let mut canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    canonical.reviewer_status = "actionable_review_not_configured".to_string();
+    let changed: Vec<String> = vec!["src/a.rs".to_string()];
+    let empty: Vec<String> = vec![];
+    let skipped: Vec<String> = vec!["src/a.rs".to_string()];
+    let packet = empty_packet();
+    let report =
+        generate_review_report(&canonical, &Decision::Comment, &packet, &changed, &empty, &skipped);
+    assert!(report.contains("**Comment**"));
+    assert!(report.contains("Actionable reviewer not configured"));
+}
+
+#[test]
+fn test_generate_github_comments_json_with_non_empty_set() {
+    let c = comment("src/a.rs", Some(5), true, "Bug.");
+    let canonical = CanonicalCommentSet::from_evaluated(vec![c]);
+    let json = generate_github_comments_json(&canonical);
+    assert!(json.contains("C001"));
+    assert!(json.contains("src/a.rs"));
+}
+
+#[test]
+fn test_generate_conventional_comments_with_empty_set() {
+    let canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    let out = generate_conventional_comments(&canonical);
+    assert!(out.contains("## Empty Comment Set"));
+    assert!(out.contains("No actionable comments were emitted"));
+}
+
+#[test]
+fn test_generate_missing_tests_with_non_empty_list() {
+    let mt = missing_test("MT001", "login flow", false);
+    let packet = empty_packet();
+    let out = generate_missing_tests(&[mt], &packet);
+    assert!(out.contains("login flow"));
+    assert!(out.contains("**Blocking**: No"));
+}
+
+#[test]
+fn test_generate_conventional_comments_sorts_file_comments_by_path_and_severity() {
+    let mut c1 = comment("src/a.rs", Some(1), false, "Minor in a.");
+    c1.severity = "minor".to_string();
+    let mut c2 = comment("src/b.rs", Some(1), true, "Blocking in b.");
+    c2.severity = "blocking".to_string();
+    let canonical = CanonicalCommentSet::from_evaluated(vec![c1, c2]);
+    let out = generate_conventional_comments(&canonical);
+    assert!(out.contains("## Blocking File Comments"));
+    assert!(out.contains("`src/b.rs`"));
+    assert!(out.contains("Blocking in b."));
+    assert!(out.contains("## Minor File Comments"));
+    assert!(out.contains("`src/a.rs`"));
+    assert!(out.contains("Minor in a."));
+}
+
+#[test]
+fn test_generate_review_report_skipped_files_section() {
+    let canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    let mut packet = empty_packet();
+    packet.findings = vec![ReviewFinding {
+        category: FindingCategory::BoundaryCheck,
+        severity: FindingSeverity::MustFix,
+        title: "Governance issue".to_string(),
+        details: "Requires attention".to_string(),
+        scope: ConventionalCommentScope::Pr,
+        anchor: None,
+        changed_surfaces: vec!["src/boundary.rs".to_string()],
+    }];
+    let empty: Vec<String> = vec![];
+    let report =
+        generate_review_report(&canonical, &Decision::Comment, &packet, &empty, &empty, &empty);
+    assert!(report.contains("Governance issue"));
+    assert!(report.contains("Requires attention"));
 }

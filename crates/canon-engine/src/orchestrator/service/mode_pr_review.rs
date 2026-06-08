@@ -132,26 +132,65 @@ impl EngineService {
         );
         let review_summary = ReviewSummary::from_evidence(&review_packet, false);
 
-        let eval_payload = crate::review::evaluator::evaluate_diff(
-            &diff.patch,
-            diff.changed_files.len() as u32,
-            diff.patch.lines().count() as u32,
-            &critique_output.summary,
-        )
-        .unwrap_or_else(|_| crate::review::evaluator::EvaluatorPayload {
-            github_comments: Vec::new(),
-            missing_tests: Vec::new(),
-            review_coverage: None,
-        });
-
-        // Build the canonical comment set and review findings from evaluated data.
-        let canonical_set = crate::review::findings::CanonicalCommentSet::from_evaluated(
-            eval_payload.github_comments.clone(),
+        // ── Actionable reviewer adapter invocation ───────────────────────
+        let reviewer_input = canon_adapters::reviewer::ReviewerInput {
+            patch: diff.patch.clone(),
+            changed_files: diff.changed_files.clone(),
+            base_ref: diff.base_ref.clone(),
+            head_ref: diff.head_ref.clone(),
+        };
+        // Use stub reviewer for now; real adapter selection is future work.
+        let stub = canon_adapters::reviewer_stub::StubReviewerAdapter::not_configured(
+            diff.changed_files.clone(),
         );
+        let reviewer_output = stub.review(&reviewer_input);
+
+        // Build canonical set from reviewer findings (primary) + evaluated critique (fallback).
+        let canonical_set =
+            if reviewer_output.status == canon_adapters::reviewer::ReviewerStatus::Executed {
+                crate::review::findings::CanonicalCommentSet::from_reviewer(
+                    reviewer_output.findings,
+                    reviewer_output.status.as_str(),
+                )
+            } else {
+                let eval_payload = crate::review::evaluator::evaluate_diff(
+                    &diff.patch,
+                    diff.changed_files.len() as u32,
+                    diff.patch.lines().count() as u32,
+                    &critique_output.summary,
+                )
+                .unwrap_or_else(|_| crate::review::evaluator::EvaluatorPayload {
+                    github_comments: Vec::new(),
+                    missing_tests: Vec::new(),
+                    review_coverage: None,
+                });
+                let mut set = crate::review::findings::CanonicalCommentSet::from_evaluated(
+                    eval_payload.github_comments,
+                );
+                set.reviewer_status = reviewer_output.status.as_str().to_string();
+                set
+            };
+
         let review_findings =
             crate::review::findings::build_review_findings(&canonical_set, &review_packet);
 
-        let decision = crate::review::evaluator::derive_decision(&eval_payload, &review_packet);
+        // Decision: derive from canonical set + governance packet.
+        let has_blocking = canonical_set.blocking_count() > 0
+            || reviewer_output.status == canon_adapters::reviewer::ReviewerStatus::Failed
+            || review_packet
+                .findings
+                .iter()
+                .any(|f| matches!(f.severity, crate::review::findings::FindingSeverity::MustFix));
+        let has_any_findings = !canonical_set.comments.is_empty()
+            || !review_packet.findings.is_empty()
+            || reviewer_output.status == canon_adapters::reviewer::ReviewerStatus::NotConfigured;
+        let decision = if has_blocking {
+            crate::review::evaluator::Decision::RequestChanges
+        } else if has_any_findings {
+            crate::review::evaluator::Decision::Comment
+        } else {
+            crate::review::evaluator::Decision::Approve
+        };
         let artifact_paths = artifact_contract
             .artifact_requirements
             .iter()
@@ -228,16 +267,23 @@ impl EngineService {
                     }
                     "review-summary.md" => crate::review::generators::generate_review_summary(
                         &canonical_set,
-                        &eval_payload.missing_tests,
+                        &[],
                         &decision,
                         &review_packet,
                     ),
                     "conventional-comments.md" => {
                         crate::review::generators::generate_conventional_comments(&canonical_set)
                     }
-                    "missing-tests.md" => crate::review::generators::generate_missing_tests(
-                        &eval_payload.missing_tests,
+                    "missing-tests.md" => {
+                        crate::review::generators::generate_missing_tests(&[], &review_packet)
+                    }
+                    "review-report.md" => crate::review::generators::generate_review_report(
+                        &canonical_set,
+                        &decision,
                         &review_packet,
+                        &diff.changed_files,
+                        &reviewer_output.coverage.files_inspected_deeply,
+                        &reviewer_output.coverage.files_skipped,
                     ),
                     _ => render_pr_review_artifact(
                         &requirement.file_name,

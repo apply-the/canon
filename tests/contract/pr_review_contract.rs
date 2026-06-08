@@ -89,10 +89,7 @@ fn pr_review_contract_includes_conventional_comments_artifact() {
         .find(|requirement| requirement.slug() == "conventional-comments.md")
         .expect("conventional-comments artifact requirement");
 
-    assert_eq!(
-        conventional_comments.required_sections,
-        vec!["Summary", "Blocking Comments", "Non-Blocking Comments",]
-    );
+    assert_eq!(conventional_comments.required_sections, vec!["Summary"]);
 }
 
 #[test]
@@ -172,12 +169,8 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     let conventional_comments_text =
         fs::read_to_string(conventional_comments).expect("conventional comments artifact");
     assert!(
-        conventional_comments_text.contains("## Blocking Comments"),
-        "conventional-comments should have a Blocking Comments section"
-    );
-    assert!(
-        conventional_comments_text.contains("## Non-Blocking Comments"),
-        "conventional-comments should have a Non-Blocking Comments section"
+        conventional_comments_text.contains("## Empty Comment Set"),
+        "conventional-comments should have an Empty Comment Set section when no reviewer findings exist"
     );
 
     let status_output = cli_command()

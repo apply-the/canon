@@ -134,8 +134,6 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
             .exists()
     );
 
-    assert!(published_text.contains("## Blocking Comments"));
-    assert!(published_text.contains("## Non-Blocking Comments"));
-    assert!(published_text.contains("No blocking comments"));
-    assert!(published_text.contains("No non-blocking comments"));
+    assert!(published_text.contains("## Empty Comment Set"));
+    assert!(published_text.contains("No actionable comments were emitted"));
 }

@@ -14,6 +14,10 @@ pub mod dispatcher;
 pub mod filesystem;
 /// MCP stdio adapter: invokes structured tools via the Model Context Protocol.
 pub mod mcp_stdio;
+/// Provider-neutral reviewer adapter contract for actionable pr-review.
+pub mod reviewer;
+/// Deterministic stub reviewer adapter for testing.
+pub mod reviewer_stub;
 /// Shell adapter: executes arbitrary local shell commands.
 pub mod shell;
 

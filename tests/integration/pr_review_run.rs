@@ -191,11 +191,12 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
         "03-github-comments.json",
         "04-review-findings.json",
         "05-missing-tests.md",
-        "06-pr-analysis.md",
-        "07-boundary-check.md",
-        "08-duplication-check.md",
-        "09-contract-drift.md",
-        "10-decision-impact.md",
+        "06-review-report.md",
+        "07-pr-analysis.md",
+        "08-boundary-check.md",
+        "09-duplication-check.md",
+        "10-contract-drift.md",
+        "11-decision-impact.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -204,7 +205,7 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     }
 
     let pr_analysis =
-        fs::read_to_string(artifact_root.join("06-pr-analysis.md")).expect("pr analysis artifact");
+        fs::read_to_string(artifact_root.join("07-pr-analysis.md")).expect("pr analysis artifact");
     assert!(
         pr_analysis.contains("src/reviewer.rs"),
         "pr-analysis should map the changed source file"
@@ -221,8 +222,8 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     // Governance findings are now in governance artifacts, not in conventional comments.
     // Conventional comments contain only actionable review comments with stable IDs.
     assert!(
-        conventional_comments.contains("## Blocking Comments"),
-        "conventional-comments should have a Blocking Comments section"
+        conventional_comments.contains("## Empty Comment Set"),
+        "conventional-comments should have an Empty Comment Set section"
     );
 
     let status_output = cli_command()
@@ -291,7 +292,7 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     assert!(
-        artifact_root.join("06-pr-analysis.md").exists(),
+        artifact_root.join("07-pr-analysis.md").exists(),
         "pr-analysis should exist for worktree review"
     );
     assert!(
@@ -300,7 +301,7 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
     );
 
     let pr_analysis =
-        fs::read_to_string(artifact_root.join("06-pr-analysis.md")).expect("pr analysis artifact");
+        fs::read_to_string(artifact_root.join("07-pr-analysis.md")).expect("pr analysis artifact");
     assert!(
         pr_analysis.contains("src/reviewer.rs"),
         "pr-analysis should detect the uncommitted change in src/reviewer.rs"
@@ -323,7 +324,7 @@ fn run_pr_review_renders_line_anchor_for_single_surface_note() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     // Governance findings with anchors are rendered in governance artifacts.
-    let duplication_check = fs::read_to_string(artifact_root.join("08-duplication-check.md"))
+    let duplication_check = fs::read_to_string(artifact_root.join("09-duplication-check.md"))
         .expect("duplication check artifact");
     assert!(
         duplication_check.contains("tests/reviewer.md"),
@@ -350,7 +351,7 @@ fn run_pr_review_renders_span_anchor_for_single_surface_note() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     // Governance findings with anchors are rendered in governance artifacts.
-    let duplication_check = fs::read_to_string(artifact_root.join("08-duplication-check.md"))
+    let duplication_check = fs::read_to_string(artifact_root.join("09-duplication-check.md"))
         .expect("duplication check artifact");
     assert!(
         duplication_check.contains("tests/reviewer.md"),

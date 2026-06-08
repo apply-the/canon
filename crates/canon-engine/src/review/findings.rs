@@ -554,13 +554,12 @@ pub struct ReviewFindingEntry {
 pub struct CanonicalCommentSet {
     /// Actionable review comments with stable IDs.
     pub comments: Vec<GithubComment>,
+    /// Status of the actionable reviewer adapter.
+    pub reviewer_status: String,
 }
 
 impl CanonicalCommentSet {
     /// Builds a canonical comment set from evaluated GitHub comments.
-    ///
-    /// Assigns stable IDs (`C001`, `C002`, ...) and filters out comments
-    /// that lack actionable targets (no path, line, or hunk).
     pub fn from_evaluated(comments: Vec<GithubComment>) -> Self {
         let actionable: Vec<GithubComment> = comments
             .into_iter()
@@ -571,7 +570,44 @@ impl CanonicalCommentSet {
                 c
             })
             .collect();
-        Self { comments: actionable }
+        Self {
+            comments: actionable,
+            reviewer_status: "actionable_review_not_configured".to_string(),
+        }
+    }
+
+    /// Builds from reviewer adapter output, converting findings to comments.
+    pub fn from_reviewer(
+        findings: Vec<canon_adapters::reviewer::ReviewerFinding>,
+        status: &str,
+    ) -> Self {
+        let comments: Vec<GithubComment> = findings
+            .into_iter()
+            .enumerate()
+            .map(|(i, f)| {
+                let severity_str = f.severity.as_str().to_string();
+                GithubComment {
+                    id: format!("C{:03}", i + 1),
+                    path: f.path,
+                    line: f.line,
+                    side: f.side,
+                    hunk_header: f.hunk_header,
+                    area: String::new(),
+                    kind: f.kind,
+                    blocking: matches!(
+                        f.severity,
+                        canon_adapters::reviewer::ReviewerSeverity::Blocking
+                    ),
+                    severity: severity_str,
+                    category: String::new(),
+                    body: f.summary,
+                    why_it_matters: f.why_it_matters,
+                    suggested_remediation: f.suggested_remediation,
+                    suggested_change: f.suggested_change,
+                }
+            })
+            .collect();
+        Self { comments, reviewer_status: status.to_string() }
     }
 
     /// Returns the number of blocking comments.
@@ -582,6 +618,40 @@ impl CanonicalCommentSet {
     /// Returns the number of non-blocking comments.
     pub fn non_blocking_count(&self) -> usize {
         self.comments.iter().filter(|c| !c.blocking).count()
+    }
+
+    /// Count comments by severity string.
+    pub fn count_by_severity(&self, severity: &str) -> usize {
+        self.comments.iter().filter(|c| c.severity == severity).count()
+    }
+
+    /// Returns file-level comments sorted lexicographically by path, then severity, then line.
+    pub fn file_comments_sorted(&self) -> Vec<&GithubComment> {
+        let mut file_comments: Vec<&GithubComment> =
+            self.comments.iter().filter(|c| c.path.is_some()).collect();
+        file_comments.sort_by(|a, b| {
+            a.path
+                .cmp(&b.path)
+                .then_with(|| severity_order(&a.severity).cmp(&severity_order(&b.severity)))
+                .then_with(|| a.line.cmp(&b.line))
+        });
+        file_comments
+    }
+
+    /// Returns global comments (no path).
+    pub fn global_comments(&self) -> Vec<&GithubComment> {
+        self.comments.iter().filter(|c| c.path.is_none()).collect()
+    }
+}
+
+fn severity_order(severity: &str) -> u8 {
+    match severity {
+        "blocking" => 0,
+        "major" => 1,
+        "minor" => 2,
+        "question" => 3,
+        "nitpick" => 4,
+        _ => 5,
     }
 }
 
