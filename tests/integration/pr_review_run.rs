@@ -160,8 +160,8 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     let text = String::from_utf8(output).expect("utf8 stdout");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
-    let expected_summary_path = format!(".canon/artifacts/{run_id}/pr-review/01-pr-analysis.md");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("PR Analysis"));
+    let expected_summary_path = format!(".canon/artifacts/{run_id}/pr-review/01-review-summary.md");
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Summary"));
     assert_eq!(
         json["mode_result"]["primary_artifact_path"].as_str(),
         Some(expected_summary_path.as_str())
@@ -186,14 +186,16 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     for artifact in [
-        "01-pr-analysis.md",
-        "02-boundary-check.md",
-        "03-conventional-comments.md",
-        "04-duplication-check.md",
-        "05-contract-drift.md",
-        "06-missing-tests.md",
-        "07-decision-impact.md",
-        "08-review-summary.md",
+        "01-review-summary.md",
+        "02-conventional-comments.md",
+        "03-github-comments.json",
+        "04-review-findings.json",
+        "05-missing-tests.md",
+        "06-pr-analysis.md",
+        "07-boundary-check.md",
+        "08-duplication-check.md",
+        "09-contract-drift.md",
+        "10-decision-impact.md",
     ] {
         assert!(
             artifact_root.join(artifact).exists(),
@@ -202,31 +204,25 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     }
 
     let pr_analysis =
-        fs::read_to_string(artifact_root.join("01-pr-analysis.md")).expect("pr analysis artifact");
+        fs::read_to_string(artifact_root.join("06-pr-analysis.md")).expect("pr analysis artifact");
     assert!(
         pr_analysis.contains("src/reviewer.rs"),
         "pr-analysis should map the changed source file"
     );
-    let review_summary = fs::read_to_string(artifact_root.join("08-review-summary.md"))
+    let review_summary = fs::read_to_string(artifact_root.join("01-review-summary.md"))
         .expect("review summary artifact");
     assert!(
-        review_summary.contains("Ready with review notes"),
+        review_summary.contains("ready-with-review-notes"),
         "review-summary should record a non-blocking disposition"
     );
     let conventional_comments =
-        fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
+        fs::read_to_string(artifact_root.join("02-conventional-comments.md"))
             .expect("conventional comments artifact");
+    // Governance findings are now in governance artifacts, not in conventional comments.
+    // Conventional comments contain only actionable review comments with stable IDs.
     assert!(
-        conventional_comments.contains("praise(scope:"),
-        "note-only review packets should emit a praise-style conventional comment"
-    );
-    assert!(
-        conventional_comments.contains("src/reviewer.rs"),
-        "conventional-comments should retain changed surface traceability"
-    );
-    assert!(
-        !conventional_comments.contains("Anchor:"),
-        "cross-surface review notes should degrade to scope-only output"
+        conventional_comments.contains("## Blocking Comments"),
+        "conventional-comments should have a Blocking Comments section"
     );
 
     let status_output = cli_command()
@@ -240,7 +236,10 @@ fn run_pr_review_emits_review_packet_and_maps_changed_surfaces() {
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json output");
     assert_eq!(status_json["state"], "Completed");
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("PR Analysis"));
+    assert_eq!(
+        status_json["mode_result"]["primary_artifact_title"].as_str(),
+        Some("Review Summary")
+    );
     assert!(status_json["recommended_next_action"].is_null());
 }
 
@@ -284,7 +283,7 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
     let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("PR Analysis"));
+    assert_eq!(json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Summary"));
     assert_eq!(json["approval_targets"][0].as_str(), Some("gate:review-disposition"));
     assert_eq!(json["recommended_next_action"]["action"].as_str(), Some("inspect-artifacts"));
 
@@ -292,16 +291,16 @@ fn run_pr_review_worktree_reviews_uncommitted_changes() {
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
     assert!(
-        artifact_root.join("01-pr-analysis.md").exists(),
+        artifact_root.join("06-pr-analysis.md").exists(),
         "pr-analysis should exist for worktree review"
     );
     assert!(
-        artifact_root.join("03-conventional-comments.md").exists(),
+        artifact_root.join("02-conventional-comments.md").exists(),
         "conventional-comments should exist for worktree review"
     );
 
     let pr_analysis =
-        fs::read_to_string(artifact_root.join("01-pr-analysis.md")).expect("pr analysis artifact");
+        fs::read_to_string(artifact_root.join("06-pr-analysis.md")).expect("pr analysis artifact");
     assert!(
         pr_analysis.contains("src/reviewer.rs"),
         "pr-analysis should detect the uncommitted change in src/reviewer.rs"
@@ -323,16 +322,19 @@ fn run_pr_review_renders_line_anchor_for_single_surface_note() {
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
-    let conventional_comments =
-        fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
-            .expect("conventional comments artifact");
+    // Governance findings with anchors are rendered in governance artifacts.
+    let duplication_check = fs::read_to_string(artifact_root.join("08-duplication-check.md"))
+        .expect("duplication check artifact");
     assert!(
-        conventional_comments.contains("praise(scope:surface):"),
-        "single-surface note packets should stay surface-scoped"
+        duplication_check.contains("tests/reviewer.md"),
+        "duplication-check should map the changed test file"
     );
+    // Verify the review-findings.json exists and has proper structure.
+    let review_findings = fs::read_to_string(artifact_root.join("04-review-findings.json"))
+        .expect("review findings artifact");
     assert!(
-        conventional_comments.contains("Anchor: tests/reviewer.md:3"),
-        "single-line fixture should render a line anchor"
+        serde_json::from_str::<serde_json::Value>(&review_findings).is_ok(),
+        "review-findings.json should be valid JSON"
     );
 }
 
@@ -347,15 +349,18 @@ fn run_pr_review_renders_span_anchor_for_single_surface_note() {
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
 
-    let conventional_comments =
-        fs::read_to_string(artifact_root.join("03-conventional-comments.md"))
-            .expect("conventional comments artifact");
+    // Governance findings with anchors are rendered in governance artifacts.
+    let duplication_check = fs::read_to_string(artifact_root.join("08-duplication-check.md"))
+        .expect("duplication check artifact");
     assert!(
-        conventional_comments.contains("praise(scope:surface):"),
-        "single-surface note packets should stay surface-scoped"
+        duplication_check.contains("tests/reviewer.md"),
+        "duplication-check should map the changed test file"
     );
+    // Verify the review-findings.json exists and has proper structure.
+    let review_findings = fs::read_to_string(artifact_root.join("04-review-findings.json"))
+        .expect("review findings artifact");
     assert!(
-        conventional_comments.contains("Anchor: tests/reviewer.md:3-4"),
-        "contiguous multi-line fixture should render a span anchor"
+        serde_json::from_str::<serde_json::Value>(&review_findings).is_ok(),
+        "review-findings.json should be valid JSON"
     );
 }

@@ -91,7 +91,7 @@ fn pr_review_contract_includes_conventional_comments_artifact() {
 
     assert_eq!(
         conventional_comments.required_sections,
-        vec!["Summary", "Evidence Posture", "Conventional Comments", "Traceability",]
+        vec!["Summary", "Blocking Comments", "Non-Blocking Comments",]
     );
 }
 
@@ -128,10 +128,10 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .clone();
     let run_id = parse_run_id(&run_output);
     let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "PR Analysis");
+    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Summary");
     assert_eq!(
         run_json["mode_result"]["primary_artifact_path"],
-        format!(".canon/artifacts/{run_id}/pr-review/01-pr-analysis.md")
+        format!(".canon/artifacts/{run_id}/pr-review/01-review-summary.md")
     );
     assert!(
         run_json["mode_result"]["headline"]
@@ -140,8 +140,8 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     );
     assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
     assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() == 9),
-        "approval-gated pr-review runs should still expose the readable review packet"
+        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() >= 10),
+        "approval-gated pr-review runs should expose the review artifacts"
     );
 
     let review_summary = workspace
@@ -150,37 +150,34 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .join("artifacts")
         .join(&run_id)
         .join("pr-review")
-        .join("08-review-summary.md");
+        .join("01-review-summary.md");
     let review_summary_text = fs::read_to_string(review_summary).expect("review summary");
     assert!(
-        review_summary_text.contains("Must-fix findings require explicit disposition"),
-        "review-summary should retain unresolved must-fix findings"
+        review_summary_text.contains("Status: awaiting-disposition"),
+        "review-summary should signal awaiting-disposition when must-fix findings exist"
     );
     assert!(
         review_summary_text.contains("contracts/public-api.md"),
         "review-summary should name the changed high-impact surface"
     );
 
+    // Governance findings are now in governance notes, not as conventional comments
     let conventional_comments = workspace
         .path()
         .join(".canon")
         .join("artifacts")
         .join(&run_id)
         .join("pr-review")
-        .join("03-conventional-comments.md");
+        .join("02-conventional-comments.md");
     let conventional_comments_text =
         fs::read_to_string(conventional_comments).expect("conventional comments artifact");
     assert!(
-        conventional_comments_text.contains("issue(scope:"),
-        "high-impact contract drift should surface as an issue comment"
+        conventional_comments_text.contains("## Blocking Comments"),
+        "conventional-comments should have a Blocking Comments section"
     );
     assert!(
-        conventional_comments_text.contains("question(scope:"),
-        "decision-impact findings should surface as reviewer questions"
-    );
-    assert!(
-        conventional_comments_text.contains("contracts/public-api.md"),
-        "conventional-comments should retain changed surface traceability"
+        conventional_comments_text.contains("## Non-Blocking Comments"),
+        "conventional-comments should have a Non-Blocking Comments section"
     );
 
     let status_output = cli_command()
@@ -194,7 +191,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json");
     assert_eq!(status_json["state"], "AwaitingApproval");
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "PR Analysis");
+    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Review Summary");
     assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
 
     cli_command()
@@ -203,7 +200,7 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .assert()
         .success()
         .stdout(contains("## Result"))
-        .stdout(contains("pr-analysis.md"))
+        .stdout(contains("review-summary.md"))
         .stdout(contains("waiting for explicit disposition"));
 
     cli_command()
@@ -232,6 +229,6 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
         .assert()
         .success()
         .stdout(contains("\"state\": \"Completed\""))
-        .stdout(contains("\"primary_artifact_title\": \"PR Analysis\""))
+        .stdout(contains("\"primary_artifact_title\": \"Review Summary\""))
         .stdout(contains("\"recommended_next_action\": null"));
 }

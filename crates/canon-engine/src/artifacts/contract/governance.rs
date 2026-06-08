@@ -36,15 +36,18 @@ const MISSING_EVIDENCE_MD: &str = "missing-evidence.md";
 const DECISION_IMPACT_MD: &str = "decision-impact.md";
 const REVIEW_DISPOSITION_MD: &str = "review-disposition.md";
 
-// PrReview
+// PrReview — primary actionable review artifacts
+const REVIEW_SUMMARY_MD: &str = "review-summary.md";
+const CONVENTIONAL_COMMENTS_MD: &str = "conventional-comments.md";
+const GITHUB_COMMENTS_JSON: &str = "github-comments.json";
+const REVIEW_FINDINGS_JSON: &str = "review-findings.json";
+const MISSING_TESTS_MD: &str = "missing-tests.md";
+// PrReview — secondary governance artifacts
 const PR_ANALYSIS_MD: &str = "pr-analysis.md";
 const BOUNDARY_CHECK_MD: &str = "boundary-check.md";
-const CONVENTIONAL_COMMENTS_MD: &str = "conventional-comments.md";
 const DUPLICATION_CHECK_MD: &str = "duplication-check.md";
 const CONTRACT_DRIFT_MD: &str = "contract-drift.md";
-const MISSING_TESTS_MD: &str = "missing-tests.md";
 const PR_DECISION_IMPACT_MD: &str = "decision-impact.md";
-const REVIEW_SUMMARY_MD: &str = "review-summary.md";
 
 // Verification
 const INVARIANTS_CHECKLIST_MD: &str = "invariants-checklist.md";
@@ -217,6 +220,47 @@ pub(super) fn review() -> Vec<ArtifactRequirement> {
 /// Returns the artifact requirements for the [`PrReview`](crate::domain::mode::Mode::PrReview) mode.
 pub(super) fn pr_review() -> Vec<ArtifactRequirement> {
     vec![
+        // ── Primary actionable review artifacts ─────────────────────────────
+        requirement(
+            REVIEW_SUMMARY_MD,
+            &[
+                SUMMARY,
+                DECISION,
+                "Executive Summary",
+                "Must-Fix Findings",
+                "Accepted Risks",
+                "Missing Tests",
+                "GitHub-Ready Comments",
+                "General Findings",
+                "Governance Notes",
+                "Severity",
+                FINAL_DISPOSITION,
+            ],
+            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+        ),
+        requirement(
+            CONVENTIONAL_COMMENTS_MD,
+            &[SUMMARY, "Blocking Comments", "Non-Blocking Comments"],
+            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+        ),
+        requirement_with_format(
+            GITHUB_COMMENTS_JSON,
+            ArtifactFormat::Json,
+            &[],
+            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+        ),
+        requirement_with_format(
+            REVIEW_FINDINGS_JSON,
+            ArtifactFormat::Json,
+            &[],
+            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+        ),
+        requirement(
+            MISSING_TESTS_MD,
+            &[SUMMARY, "Missing Tests"],
+            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+        ),
+        // ── Secondary governance artifacts ─────────────────────────────────
         requirement(
             PR_ANALYSIS_MD,
             &[
@@ -234,11 +278,6 @@ pub(super) fn pr_review() -> Vec<ArtifactRequirement> {
             &[GateKind::Architecture, GateKind::ReviewDisposition],
         ),
         requirement(
-            CONVENTIONAL_COMMENTS_MD,
-            &[SUMMARY, "Evidence Posture", "Conventional Comments", "Traceability"],
-            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
-        ),
-        requirement(
             DUPLICATION_CHECK_MD,
             &[SUMMARY, "Duplicate Behavior", "Canonical Owner Conflicts"],
             &[GateKind::ReviewDisposition],
@@ -249,24 +288,9 @@ pub(super) fn pr_review() -> Vec<ArtifactRequirement> {
             &[GateKind::Architecture, GateKind::ReleaseReadiness],
         ),
         requirement(
-            MISSING_TESTS_MD,
-            &[
-                SUMMARY,
-                "Missing Invariant Checks",
-                "Missing Contract Checks",
-                "Weak or Mirrored Tests",
-            ],
-            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
-        ),
-        requirement(
             PR_DECISION_IMPACT_MD,
             &[SUMMARY, "Implied Decisions", "Absent Decision Records", "Reversibility Concerns"],
             &[GateKind::Risk, GateKind::ReviewDisposition],
-        ),
-        requirement(
-            REVIEW_SUMMARY_MD,
-            &[SUMMARY, "Severity", "Must-Fix Findings", ACCEPTED_RISKS, FINAL_DISPOSITION],
-            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
         ),
     ]
 }
@@ -358,12 +382,12 @@ mod tests {
 
     #[test]
     fn pr_review_has_expected_artifact_count() {
-        assert_eq!(pr_review().len(), 8);
+        assert_eq!(pr_review().len(), 10);
     }
 
     #[test]
-    fn pr_review_primary_artifact_is_pr_analysis() {
-        assert_eq!(pr_review()[0].file_name, PR_ANALYSIS_MD);
+    fn pr_review_primary_artifact_is_review_summary() {
+        assert_eq!(pr_review()[0].file_name, REVIEW_SUMMARY_MD);
     }
 
     #[test]

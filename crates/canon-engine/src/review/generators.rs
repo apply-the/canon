@@ -1,274 +1,367 @@
-use super::evaluator::{Decision, EvaluatorPayload};
+use super::evaluator::Decision;
+use super::findings::{CanonicalCommentSet, GithubComment, MissingTest, ReviewPacket};
 
+/// Generates `review-summary.md` — the primary reviewer-facing entry point.
 pub fn generate_review_summary(
-    payload: &EvaluatorPayload,
-    packet: &super::findings::ReviewPacket,
+    canonical: &CanonicalCommentSet,
+    missing_tests: &[MissingTest],
     decision: &Decision,
+    packet: &ReviewPacket,
 ) -> String {
     let mut out = String::new();
-    out.push_str("# Canon PR Review Summary\n\n");
+    append_title(&mut out);
+    append_summary(&mut out, packet);
+    append_decision(&mut out, decision);
+    append_executive_summary(&mut out, canonical, missing_tests, decision, packet);
+    append_must_fix(&mut out, canonical);
+    append_accepted_risks(&mut out, canonical);
+    append_missing_tests_section(&mut out, missing_tests);
+    append_github_ready(&mut out, canonical);
+    append_general_findings(&mut out, packet);
+    append_governance_notes(&mut out, packet);
+    append_severity(&mut out, canonical, missing_tests, packet);
+    append_final_disposition(&mut out, decision);
+    append_status_line(&mut out, decision);
+    out
+}
 
+// ── Section helpers (alphabetical order) ────────────────────────────────
+
+fn append_title(out: &mut String) {
+    out.push_str("# PR Review\n\n");
+}
+
+fn append_summary(out: &mut String, packet: &ReviewPacket) {
     out.push_str("## Summary\n\n");
-    let decision_str = match decision {
-        Decision::Approve => "✅ **APPROVE**\nStatus: ready-with-review-notes",
-        Decision::Comment => "💬 **COMMENT**\nStatus: ready-with-review-notes",
-        Decision::RequestChanges => "❌ **REQUEST CHANGES**\nStatus: awaiting-disposition",
-    };
-    out.push_str(&format!("**Decision**: {}\n\n", decision_str));
-
-    if let Some(cov) = &payload.review_coverage {
-        out.push_str("### Review Coverage\n");
-        out.push_str(&format!("- Total files changed: {}\n", cov.changed_files_total));
-        out.push_str(&format!("- Files reviewed deeply: {}\n", cov.files_reviewed_deeply));
-        out.push_str(&format!("- Files sampled: {}\n", cov.files_sampled));
-        out.push_str(&format!("- Strategy: {}\n\n", cov.coverage_strategy));
-    }
-
     out.push_str(&format!(
-        "*Found {} comments and {} missing test findings.*\n\n",
-        payload.github_comments.len() + packet.findings.len(),
-        payload.missing_tests.len()
+        "Review of {base_ref}..{head_ref} across {surface_count} changed surface(s).\n\n",
+        base_ref = packet.base_ref,
+        head_ref = packet.head_ref,
+        surface_count = packet.changed_surfaces.len(),
     ));
+}
 
-    out.push_str("## Severity\n\n");
-    let has_blocking = payload.github_comments.iter().any(|c| c.blocking)
-        || payload.missing_tests.iter().any(|m| m.blocking)
-        || packet
-            .findings
-            .iter()
-            .any(|f| matches!(f.severity, super::findings::FindingSeverity::MustFix));
-    let severity = if has_blocking {
+fn append_decision(out: &mut String, decision: &Decision) {
+    out.push_str("## Decision\n\n");
+    match decision {
+        Decision::Approve => out.push_str("**Approve**\n\n"),
+        Decision::Comment => out.push_str("**Comment**\n\n"),
+        Decision::RequestChanges => out.push_str("**Request changes**\n\n"),
+    }
+}
+
+fn append_executive_summary(
+    out: &mut String,
+    canonical: &CanonicalCommentSet,
+    missing_tests: &[MissingTest],
+    decision: &Decision,
+    packet: &ReviewPacket,
+) {
+    out.push_str("## Executive Summary\n\n");
+    let blocking = canonical.blocking_count();
+    let non_blocking = canonical.non_blocking_count();
+    let test_count = missing_tests.len();
+    let governance_count = packet.findings.len();
+
+    match decision {
+        Decision::Approve => out.push_str("No blocking findings remain. "),
+        Decision::RequestChanges => {
+            out.push_str("Blocking findings require resolution before this PR can be approved. ")
+        }
+        Decision::Comment => out.push_str("Non-blocking review notes are attached. "),
+    }
+    out.push_str(&format!(
+        "This review found {blocking} blocking comment(s), {non_blocking} non-blocking comment(s), \
+         {test_count} missing-test finding(s), and {governance_count} governance observation(s).\n\n"
+    ));
+}
+
+fn append_must_fix(out: &mut String, canonical: &CanonicalCommentSet) {
+    out.push_str("## Must-Fix Findings\n\n");
+    let blocking: Vec<_> = canonical.comments.iter().filter(|c| c.blocking).collect();
+    if blocking.is_empty() {
+        out.push_str("- No must-fix findings remain.\n\n");
+    } else {
+        for c in &blocking {
+            out.push_str(&format!(
+                "- **[{id}]** {loc}: {body}\n",
+                id = c.id,
+                loc = comment_location(c),
+                body = c.body,
+            ));
+        }
+        out.push('\n');
+    }
+}
+
+fn append_accepted_risks(out: &mut String, canonical: &CanonicalCommentSet) {
+    out.push_str("## Accepted Risks\n\n");
+    let non_blocking: Vec<_> = canonical.comments.iter().filter(|c| !c.blocking).collect();
+    if non_blocking.is_empty() {
+        out.push_str("- No non-blocking findings.\n\n");
+    } else {
+        for c in &non_blocking {
+            out.push_str(&format!(
+                "- **[{id}]** {loc}: {body}\n",
+                id = c.id,
+                loc = comment_location(c),
+                body = c.body,
+            ));
+        }
+        out.push('\n');
+    }
+}
+
+fn append_missing_tests_section(out: &mut String, missing_tests: &[MissingTest]) {
+    out.push_str("## Missing Tests\n\n");
+    if missing_tests.is_empty() {
+        out.push_str("- No missing tests identified.\n\n");
+    } else {
+        for mt in missing_tests {
+            let prefix = if mt.blocking { "**[BLOCKING]**" } else { "[Non-blocking]" };
+            out.push_str(&format!(
+                "- [{id}] {prefix} {behavior}\n  - Risk: {risk}\n  - Suggested: {shape}\n",
+                id = mt.id,
+                behavior = mt.affected_behavior,
+                risk = mt.risk,
+                shape = mt.suggested_shape,
+            ));
+        }
+        out.push('\n');
+    }
+}
+
+fn append_github_ready(out: &mut String, canonical: &CanonicalCommentSet) {
+    out.push_str("## GitHub-Ready Comments\n\n");
+    if canonical.comments.is_empty() {
+        out.push_str("- No GitHub-ready comments.\n");
+    } else {
+        for c in &canonical.comments {
+            out.push_str(&format!("- **{id}** — {loc}\n", id = c.id, loc = comment_location(c)));
+        }
+    }
+    out.push('\n');
+}
+
+fn append_general_findings(out: &mut String, packet: &ReviewPacket) {
+    out.push_str("## General Findings\n\n");
+    let gov: Vec<_> = packet.findings.iter().filter(|f| f.changed_surfaces.is_empty()).collect();
+    if gov.is_empty() {
+        out.push_str("- No general findings.\n\n");
+    } else {
+        for f in &gov {
+            out.push_str(&format!("- {}: {}\n", f.title, f.details));
+        }
+        out.push('\n');
+    }
+}
+
+fn append_governance_notes(out: &mut String, packet: &ReviewPacket) {
+    out.push_str("## Governance Notes\n\n");
+    out.push_str(&format!("- Base ref: `{}`, Head ref: `{}`\n", packet.base_ref, packet.head_ref,));
+    out.push_str(&format!("- Changed surfaces: {}\n", packet.changed_surfaces.len()));
+    if !packet.surprising_surface_area.is_empty() {
+        out.push_str(&format!(
+            "- Surprising surface area: {}\n",
+            packet.surprising_surface_area.join(", ")
+        ));
+    }
+    out.push_str(&format!("- Governance findings: {}\n", packet.findings.len()));
+    out.push_str("- Governance artifacts are emitted as secondary outputs.\n");
+}
+
+fn append_severity(
+    out: &mut String,
+    canonical: &CanonicalCommentSet,
+    missing_tests: &[MissingTest],
+    packet: &ReviewPacket,
+) {
+    let must_fix_count = canonical.blocking_count()
+        + missing_tests.iter().filter(|m| m.blocking).count()
+        + packet.must_fix_findings().len();
+    let review_note_count = canonical.non_blocking_count()
+        + missing_tests.iter().filter(|m| !m.blocking).count()
+        + packet.note_findings().len();
+    let has_blocking = must_fix_count > 0;
+
+    out.push_str("\n## Severity\n\n");
+    out.push_str(&format!(
+        "- Overall severity: {}\n- Must-fix findings: {must_fix_count}\n- Review notes: {review_note_count}\n\n",
+        severity_label(has_blocking, must_fix_count, review_note_count),
+    ));
+}
+
+fn severity_label(
+    has_blocking: bool,
+    must_fix_count: usize,
+    review_note_count: usize,
+) -> &'static str {
+    if has_blocking {
         "must-fix"
-    } else if !payload.github_comments.is_empty()
-        || !payload.missing_tests.is_empty()
-        || !packet.findings.is_empty()
-    {
+    } else if must_fix_count > 0 || review_note_count > 0 {
         "review-notes"
     } else {
         "none"
-    };
-    out.push_str(&format!(
-        "- Overall severity: {}\n- Must-fix findings: {}\n- Review notes: {}\n\n",
-        severity,
-        payload.github_comments.iter().filter(|c| c.blocking).count()
-            + payload.missing_tests.iter().filter(|m| m.blocking).count()
-            + packet.must_fix_findings().len(),
-        payload.github_comments.iter().filter(|c| !c.blocking).count()
-            + payload.missing_tests.iter().filter(|m| !m.blocking).count()
-            + packet.note_findings().len()
-    ));
-
-    out.push_str("## Must-Fix Findings\n\n");
-    append_must_fix_findings(&mut out, payload, packet);
-
-    out.push_str("## Accepted Risks\n\n");
-    append_accepted_risks(&mut out, packet);
-
-    out.push_str("## Final Disposition\n\n");
-    match decision {
-        Decision::Approve => {
-            out.push_str("Status: ready-with-review-notes\n\n");
-            out.push_str("Rationale: Ready with review notes because the changed surface stays bounded and no must-fix findings remain unresolved. Governed diff inspection and critique evidence remain linked from the review bundle.\n");
-        }
-        Decision::Comment => {
-            out.push_str("Status: ready-with-review-notes\n\n");
-            out.push_str("Rationale: Ready with review notes because the changed surface stays bounded and no must-fix findings remain unresolved. Governed diff inspection and critique evidence remain linked from the review bundle.\n");
-        }
-        Decision::RequestChanges => {
-            out.push_str("Status: awaiting-disposition\n\n");
-            out.push_str("Rationale: Must-fix findings require explicit disposition before readiness can pass. Governed diff inspection and critique evidence remain linked from the review bundle.\n");
-        }
     }
-
-    out
 }
 
-pub fn generate_conventional_comments(
-    payload: &EvaluatorPayload,
-    packet: &super::findings::ReviewPacket,
-) -> String {
+fn append_final_disposition(out: &mut String, decision: &Decision) {
+    out.push_str("## Final Disposition\n\n");
+    let (status, rationale) = disposition_text(decision);
+    out.push_str(&format!("Status: {status}\n\nRationale: {rationale}\n"));
+}
+
+fn disposition_text(decision: &Decision) -> (&'static str, &'static str) {
+    match decision {
+        Decision::Approve => ("ready", "Ready because no must-fix findings remain unresolved."),
+        Decision::Comment => (
+            "ready-with-review-notes",
+            "Ready with review notes because the changed surface stays bounded and no must-fix findings remain unresolved.",
+        ),
+        Decision::RequestChanges => (
+            "awaiting-disposition",
+            "Must-fix findings require explicit disposition before readiness can pass.",
+        ),
+    }
+}
+
+fn append_status_line(out: &mut String, decision: &Decision) {
+    let (status, _) = disposition_text(decision);
+    out.push_str(&format!("\nStatus: {status}\n"));
+}
+
+/// Returns a human-readable location string for a GithubComment.
+fn comment_location(c: &GithubComment) -> String {
+    match (&c.path, c.line) {
+        (Some(p), Some(l)) => format!("`{p}` line {l}"),
+        (Some(p), None) => format!("`{p}` (hunk)"),
+        _ => "PR-level".to_string(),
+    }
+}
+
+/// Generates `conventional-comments.md` — human-readable, copy-ready rendering
+/// of the canonical comment set.
+///
+/// Every comment ID matches `github-comments.json`.
+pub fn generate_conventional_comments(canonical: &CanonicalCommentSet) -> String {
     let mut out = String::new();
+
     out.push_str("# Conventional Comments\n\n");
+    out.push_str(
+        "> Copy-ready review comments. Every comment ID matches `github-comments.json`.\n\n",
+    );
 
     out.push_str("## Summary\n\n");
     out.push_str(&format!(
-        "Reviewer-facing conventional comments derived from {} persisted finding(s).\n\n",
-        payload.github_comments.len() + packet.findings.len()
+        "{} actionable comment(s): {} blocking, {} non-blocking.\n\n",
+        canonical.comments.len(),
+        canonical.blocking_count(),
+        canonical.non_blocking_count(),
     ));
 
-    out.push_str("## Evidence Posture\n\n");
-    out.push_str("- Comment kinds are deterministically mapped from review findings.\n");
-    out.push_str("- Approval posture remains anchored by `review-summary.md`.\n\n");
-
-    out.push_str("## Conventional Comments\n\n");
-    let has_packet_findings = append_packet_findings(&mut out, packet);
-    let has_github_comments = append_github_comments(&mut out, payload);
-
-    if !has_packet_findings && !has_github_comments {
-        out.push_str("- No conventional comments were generated.\n\n");
+    // ── Blocking Comments ────────────────────────────────────────────────
+    let blocking: Vec<_> = canonical.comments.iter().filter(|c| c.blocking).collect();
+    out.push_str("## Blocking Comments\n\n");
+    if !blocking.is_empty() {
+        for c in &blocking {
+            append_comment_markdown(&mut out, c);
+        }
+    } else {
+        out.push_str("- No blocking comments.\n\n");
     }
 
-    out.push_str("## Traceability\n\n");
-    out.push_str("- Source packet: `review-summary.md` and `pr-analysis.md`\n");
+    // ── Non-Blocking Comments ────────────────────────────────────────────
+    let non_blocking: Vec<_> = canonical.comments.iter().filter(|c| !c.blocking).collect();
+    out.push_str("## Non-Blocking Comments\n\n");
+    if !non_blocking.is_empty() {
+        for c in &non_blocking {
+            append_comment_markdown(&mut out, c);
+        }
+    } else {
+        out.push_str("- No non-blocking comments.\n\n");
+    }
 
     out
 }
 
-pub fn generate_missing_tests(
-    payload: &EvaluatorPayload,
-    packet: &super::findings::ReviewPacket,
-) -> String {
+/// Renders a single canonical comment into conventional-comments.md format.
+fn append_comment_markdown(out: &mut String, c: &GithubComment) {
+    let loc = match (&c.path, c.line) {
+        (Some(_p), Some(l)) => format!("Target: line {l}\n"),
+        (Some(p), None) => match &c.hunk_header {
+            Some(h) => format!("Target: `{p}` at `{h}`\n"),
+            None => format!("Target: `{p}`\n"),
+        },
+        _ => String::new(),
+    };
+
+    out.push_str(&format!(
+        "### {id} — `{path}`\n\n",
+        id = c.id,
+        path = c.path.as_deref().unwrap_or("PR")
+    ));
+    out.push_str(&loc);
+    out.push_str(&format!(
+        "\n{kind}({severity}): {body}\n\n",
+        kind = c.kind,
+        severity = c.severity,
+        body = c.body
+    ));
+    out.push_str("Why it matters:\n");
+    out.push_str(&format!("{}\n\n", c.why_it_matters));
+    out.push_str("Suggested remediation:\n");
+    out.push_str(&format!("{}\n\n", c.suggested_remediation));
+}
+
+/// Generates `missing-tests.md` with spec-format entries.
+pub fn generate_missing_tests(missing_tests: &[MissingTest], packet: &ReviewPacket) -> String {
     let mut out = String::new();
     out.push_str("# Missing Tests\n\n");
 
     out.push_str("## Summary\n\n");
-    out.push_str("Verification coverage review for the diff.\n\n");
-
-    out.push_str("## Missing Invariant Checks\n\n");
-    let missing_invariants: Vec<_> = payload.missing_tests.iter().collect();
-    let deterministic_missing_tests: Vec<_> = packet
-        .findings
-        .iter()
-        .filter(|f| matches!(f.category, super::findings::FindingCategory::MissingTests))
-        .collect();
-
-    if missing_invariants.is_empty() && deterministic_missing_tests.is_empty() {
-        out.push_str("- No missing invariant checks inferred.\n\n");
+    if missing_tests.is_empty() {
+        // Check if we can determine missing tests from governance
+        let source_changed = packet.changed_surfaces.iter().any(|s| s.starts_with("src/"));
+        let tests_changed = packet.changed_surfaces.iter().any(|s| s.starts_with("tests/"));
+        if source_changed && !tests_changed && !packet.changed_surfaces.is_empty() {
+            out.push_str("Source files changed without companion test updates. ");
+            out.push_str("Manual verification of test coverage is recommended.\n\n");
+        } else if packet.changed_surfaces.is_empty() {
+            out.push_str("No changed surfaces to evaluate for test coverage.\n\n");
+        } else {
+            out.push_str("No missing test findings were identified. ");
+            out.push_str("Changed surfaces include source and test updates.\n\n");
+        }
     } else {
-        for f in &deterministic_missing_tests {
-            out.push_str(&format!(
-                "- [{}] {}: {}\n  - Surfaces: {}\n",
-                f.severity.as_str(),
-                f.title,
-                f.details,
-                f.changed_surfaces.join(", ")
-            ));
-        }
-        for m in &missing_invariants {
-            let prefix = if m.blocking { "**[BLOCKING]**" } else { "[Non-blocking]" };
-            out.push_str(&format!("### Behavior: {}\n", m.affected_behavior));
-            out.push_str(&format!("{} {}\n\n", prefix, m.reason));
-            out.push_str(&format!("**Risk**: {}\n\n", m.risk));
-            out.push_str(&format!("**Suggested shape**: {}\n\n", m.suggested_shape));
-        }
+        out.push_str(&format!("{} missing test scenario(s) identified.\n\n", missing_tests.len()));
     }
 
-    out.push_str("## Missing Contract Checks\n\n");
-    out.push_str("- No missing contract checks inferred.\n\n");
-
-    out.push_str("## Weak or Mirrored Tests\n\n");
-    out.push_str("- Updated tests moved with the changed surface.\n");
+    out.push_str("## Missing Tests\n\n");
+    if missing_tests.is_empty() {
+        out.push_str("No missing tests identified for the changed behavior.\n\n");
+    } else {
+        for mt in missing_tests {
+            out.push_str(&format!("### {id}\n\n", id = mt.id));
+            out.push_str(&format!("**Affected behavior**: {}\n\n", mt.affected_behavior));
+            out.push_str(&format!("**Why it matters**: {}\n\n", mt.reason));
+            out.push_str(&format!("**Risk**: {}\n\n", mt.risk));
+            out.push_str(&format!("**Suggested test shape**: {}\n\n", mt.suggested_shape));
+            out.push_str(&format!("**Blocking**: {}\n\n", if mt.blocking { "Yes" } else { "No" }));
+        }
+    }
 
     out
 }
 
-fn append_must_fix_findings(
-    out: &mut String,
-    payload: &EvaluatorPayload,
-    packet: &super::findings::ReviewPacket,
-) {
-    let must_fix_comments: Vec<_> = payload.github_comments.iter().filter(|c| c.blocking).collect();
-    let must_fix_tests: Vec<_> = payload.missing_tests.iter().filter(|m| m.blocking).collect();
-    let deterministic_must_fix = packet.must_fix_findings();
-
-    if must_fix_comments.is_empty()
-        && must_fix_tests.is_empty()
-        && deterministic_must_fix.is_empty()
-    {
-        out.push_str("- No must-fix findings remain.\n\n");
-    } else {
-        for f in &deterministic_must_fix {
-            out.push_str(&format!(
-                "- [must-fix] {}: {}\n  - Surfaces: {}\n",
-                f.title,
-                f.details,
-                f.changed_surfaces.join(", ")
-            ));
-        }
-        for c in must_fix_comments {
-            out.push_str(&format!(
-                "- [Blocking] {}: {}\n",
-                c.path.as_deref().unwrap_or("PR"),
-                c.body
-            ));
-        }
-        for m in must_fix_tests {
-            out.push_str(&format!(
-                "- [Blocking] Missing Test for {}: {}\n",
-                m.affected_behavior, m.reason
-            ));
-        }
-        out.push('\n');
-    }
+/// Generates `github-comments.json` from the canonical comment set.
+///
+/// This is equivalent to serializing the canonical set directly, but
+/// provided as an explicit function for testability.
+pub fn generate_github_comments_json(canonical: &CanonicalCommentSet) -> String {
+    serde_json::to_string_pretty(&canonical.comments).unwrap_or_default()
 }
 
-fn append_accepted_risks(out: &mut String, packet: &super::findings::ReviewPacket) {
-    let accepted_risks = packet.note_findings();
-    if accepted_risks.is_empty() {
-        out.push_str("- No accepted risks recorded.\n\n");
-    } else {
-        for f in &accepted_risks {
-            out.push_str(&format!("- {}\n", f.title));
-        }
-        out.push('\n');
-    }
-}
-
-fn append_packet_findings(out: &mut String, packet: &super::findings::ReviewPacket) -> bool {
-    let mut has_items = false;
-    for f in &packet.findings {
-        has_items = true;
-        let scope = f.scope.as_str();
-        let surfaces = if f.changed_surfaces.is_empty() {
-            "none".to_string()
-        } else {
-            f.changed_surfaces.join(", ")
-        };
-        let anchor_detail = f.anchor.as_ref().map_or_else(String::new, |anchor| {
-            let line_end = anchor.line_end.map(|le| format!("-{}", le)).unwrap_or_default();
-            format!("\n  - Anchor: {}:{}{}", anchor.surface, anchor.line_start, line_end)
-        });
-        let scope_detail = match f.scope {
-            super::findings::ConventionalCommentScope::Pr => String::new(),
-            super::findings::ConventionalCommentScope::File
-            | super::findings::ConventionalCommentScope::Surface => {
-                format!("\n  - Scope surfaces: {surfaces}")
-            }
-        };
-
-        out.push_str(&format!(
-            "- {}(scope:{}): {}\n  - Why: {}\n  - Surfaces: {}{}{}\n",
-            f.conventional_comment_kind(),
-            scope,
-            f.title,
-            f.details,
-            surfaces,
-            anchor_detail,
-            scope_detail,
-        ));
-    }
-    has_items
-}
-
-fn append_github_comments(out: &mut String, payload: &EvaluatorPayload) -> bool {
-    let mut has_items = false;
-    for c in &payload.github_comments {
-        has_items = true;
-        let prefix = if c.blocking { "**[BLOCKING]**" } else { "[Non-blocking]" };
-        let loc = match (&c.path, c.line) {
-            (Some(p), Some(l)) => format!("{}:{}", p, l),
-            (Some(p), None) => format!("{} (hunk)", p),
-            _ => "PR General".to_string(),
-        };
-
-        out.push_str(&format!("### {} - {}\n", loc, c.kind));
-        out.push_str(&format!("{} {}\n\n", prefix, c.body));
-        out.push_str(&format!("**Why it matters**: {}\n\n", c.why_it_matters));
-        if let Some(change) = &c.suggested_change {
-            out.push_str("```rust\n");
-            out.push_str(change);
-            out.push_str("\n```\n\n");
-        }
-    }
-    has_items
+/// Generates `review-findings.json` from findings entries.
+pub fn generate_review_findings_json(findings: &[super::findings::ReviewFindingEntry]) -> String {
+    serde_json::to_string_pretty(&findings).unwrap_or_default()
 }

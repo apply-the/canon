@@ -510,6 +510,152 @@ pub struct ReviewCoverage {
     pub unreviewed_risk: String,
 }
 
+/// A normalized review finding emitted in `review-findings.json`.
+///
+/// Findings may be linked to a GitHub comment via `github_comment_id`.
+/// Governance-only findings omit the comment link and are marked with
+/// `kind = "governance"`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewFindingEntry {
+    /// Stable finding ID (F001, F002, ...).
+    pub id: String,
+    /// Kind of finding: `code`, `governance`, `test`, or `coverage`.
+    pub kind: String,
+    /// Changed file path when applicable.
+    pub path: Option<String>,
+    /// Line number when applicable.
+    pub line: Option<u32>,
+    /// Diff hunk header when exact line cannot be determined.
+    pub hunk_header: Option<String>,
+    /// Severity: `blocking` or `non-blocking`.
+    pub severity: String,
+    /// Category label (e.g. `contract-compliance`, `bug`, `missing-test`).
+    pub category: String,
+    /// One-line summary of the finding.
+    pub summary: String,
+    /// What the spec or contract requires.
+    pub expected_behavior: String,
+    /// What was observed in the implementation.
+    pub observed_behavior: String,
+    /// Evidence references supporting this finding.
+    pub evidence: Vec<String>,
+    /// Recommended action to resolve the finding.
+    pub recommended_action: String,
+    /// Link to the corresponding GitHub comment ID (C001, ...), when applicable.
+    pub github_comment_id: Option<String>,
+}
+
+/// A canonical set of actionable review comments shared between
+/// `github-comments.json` and `conventional-comments.md`.
+///
+/// Every comment carries a stable `C`-prefixed ID that appears in both
+/// renderings. Governance-only signals MUST NOT be included.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CanonicalCommentSet {
+    /// Actionable review comments with stable IDs.
+    pub comments: Vec<GithubComment>,
+}
+
+impl CanonicalCommentSet {
+    /// Builds a canonical comment set from evaluated GitHub comments.
+    ///
+    /// Assigns stable IDs (`C001`, `C002`, ...) and filters out comments
+    /// that lack actionable targets (no path, line, or hunk).
+    pub fn from_evaluated(comments: Vec<GithubComment>) -> Self {
+        let actionable: Vec<GithubComment> = comments
+            .into_iter()
+            .filter(|c| c.path.is_some() || c.hunk_header.is_some())
+            .enumerate()
+            .map(|(i, mut c)| {
+                c.id = format!("C{:03}", i + 1);
+                c
+            })
+            .collect();
+        Self { comments: actionable }
+    }
+
+    /// Returns the number of blocking comments.
+    pub fn blocking_count(&self) -> usize {
+        self.comments.iter().filter(|c| c.blocking).count()
+    }
+
+    /// Returns the number of non-blocking comments.
+    pub fn non_blocking_count(&self) -> usize {
+        self.comments.iter().filter(|c| !c.blocking).count()
+    }
+}
+
+/// Builds normalized review findings from canonical comments and governance context.
+///
+/// Each actionable GitHub comment produces a corresponding finding with
+/// `kind = "code"`. Governance-only signals from the review packet are emitted
+/// as separate findings with `kind = "governance"`.
+pub fn build_review_findings(
+    canonical: &CanonicalCommentSet,
+    packet: &ReviewPacket,
+) -> Vec<ReviewFindingEntry> {
+    let mut findings = Vec::new();
+
+    // Map canonical comments to code findings
+    for comment in &canonical.comments {
+        let expected =
+            "Implementation must satisfy the spec contract for this behavior.".to_string();
+        let observed = format!(
+            "{} comment at {}: {}",
+            comment.severity,
+            comment.path.as_deref().unwrap_or(comment.hunk_header.as_deref().unwrap_or("PR")),
+            comment.body
+        );
+        findings.push(ReviewFindingEntry {
+            id: format!("F{:03}", findings.len() + 1),
+            kind: "code".to_string(),
+            path: comment.path.clone(),
+            line: comment.line,
+            hunk_header: comment.hunk_header.clone(),
+            severity: if comment.blocking {
+                "blocking".to_string()
+            } else {
+                "non-blocking".to_string()
+            },
+            category: comment.category.clone(),
+            summary: comment.body.clone(),
+            expected_behavior: expected,
+            observed_behavior: observed,
+            evidence: vec![format!("github-comment:{}", comment.id)],
+            recommended_action: comment.suggested_remediation.clone(),
+            github_comment_id: Some(comment.id.clone()),
+        });
+    }
+
+    // Map governance packet findings to governance findings
+    for finding in &packet.findings {
+        let severity = if matches!(finding.severity, FindingSeverity::MustFix) {
+            "blocking"
+        } else {
+            "non-blocking"
+        };
+        findings.push(ReviewFindingEntry {
+            id: format!("F{:03}", findings.len() + 1),
+            kind: "governance".to_string(),
+            path: finding.changed_surfaces.first().cloned(),
+            line: finding.anchor.as_ref().map(|a| a.line_start as u32),
+            hunk_header: None,
+            severity: severity.to_string(),
+            category: finding.category.as_str().to_string(),
+            summary: finding.title.clone(),
+            expected_behavior: "Changed surfaces must have explicit reviewer disposition."
+                .to_string(),
+            observed_behavior: finding.details.clone(),
+            evidence: finding.changed_surfaces.clone(),
+            recommended_action: "Review the changed surfaces and record an explicit disposition."
+                .to_string(),
+            github_comment_id: None,
+        });
+    }
+
+    findings
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
