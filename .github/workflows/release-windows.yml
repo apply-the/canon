@@ -1,0 +1,93 @@
+name: release-windows
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-metadata:
+    name: prepare-release-metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      tag: ${{ steps.extract.outputs.tag }}
+      publish: ${{ steps.extract.outputs.publish }}
+    steps:
+      - id: extract
+        name: Extract release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF#refs/tags/}"
+          version="${tag}"
+
+          if [[ -z "${version:-}" ]]; then
+            echo "Could not extract version from tag '${tag}'." >&2
+            exit 1
+          fi
+
+          if [[ "${tag}" == *"-"* ]]; then
+            echo "Prerelease tag '${tag}' detected — skip downstream publication." >&2
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  verify-release-assets:
+    name: verify-release-assets
+    needs:
+      - prepare-metadata
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.prepare-metadata.outputs.version }}
+      TAG: ${{ needs.prepare-metadata.outputs.tag }}
+    steps:
+      - name: Confirm release assets are available
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          windows_url="https://github.com/apply-the/canon/releases/download/${TAG}/canon-${VERSION}-windows-x86_64.zip"
+          checksums_url="https://github.com/apply-the/canon/releases/download/${TAG}/canon-${VERSION}-SHA256SUMS.txt"
+          metadata_url="https://github.com/apply-the/canon/releases/download/${TAG}/canon-${VERSION}-distribution-metadata.json"
+          winget_installer_url="https://github.com/apply-the/canon/releases/download/${TAG}/ApplyThe.Canon.installer.yaml"
+          scoop_url="https://github.com/apply-the/canon/releases/download/${TAG}/canon-${VERSION}-scoop-manifest.json"
+
+          max_attempts=18
+          retry_delay_seconds=10
+
+          check_asset() {
+            local label="$1"
+            local url="$2"
+            local attempt=1
+
+            while (( attempt <= max_attempts )); do
+              if curl -fsI "$url" >/dev/null; then
+                return 0
+              fi
+
+              if (( attempt == max_attempts )); then
+                echo "${label} not found at ${url}" >&2
+                return 1
+              fi
+
+              echo "${label} not available yet; retrying (${attempt}/${max_attempts})..."
+              attempt=$(( attempt + 1 ))
+              sleep "$retry_delay_seconds"
+            done
+          }
+
+          echo "Checking release assets..."
+          check_asset "Windows zip" "$windows_url"
+          check_asset "Checksums" "$checksums_url"
+          check_asset "Distribution metadata" "$metadata_url"
+          check_asset "Winget installer manifest" "$winget_installer_url"
+          check_asset "Scoop manifest" "$scoop_url"
+          echo "All release assets confirmed."
