@@ -272,6 +272,14 @@ impl GuidedTerminalConfig {
 }
 
 fn layout_fits(actual_size: (u16, u16), required_size: (u16, u16)) -> bool {
+    // When the terminal reports a clearly bogus size (0 or 1), the platform
+    // likely cannot measure the real dimensions (common in IDE-embedded
+    // terminals that don't expose a proper TTY). Rather than blocking with
+    // a false "too small" error, treat the mystery terminal as large enough
+    // and let the TUI attempt to open.
+    if actual_size.0 <= 1 || actual_size.1 <= 1 {
+        return true;
+    }
     actual_size.0 >= required_size.0 && actual_size.1 >= required_size.1
 }
 
