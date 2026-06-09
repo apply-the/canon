@@ -42,6 +42,7 @@ const CONVENTIONAL_COMMENTS_MD: &str = "conventional-comments.md";
 const GITHUB_COMMENTS_JSON: &str = "github-comments.json";
 const REVIEW_FINDINGS_JSON: &str = "review-findings.json";
 const MISSING_TESTS_MD: &str = "missing-tests.md";
+const REVIEW_REPORT_MD: &str = "review-report.md";
 // PrReview — secondary governance artifacts
 const PR_ANALYSIS_MD: &str = "pr-analysis.md";
 const BOUNDARY_CHECK_MD: &str = "boundary-check.md";
@@ -240,7 +241,7 @@ pub(super) fn pr_review() -> Vec<ArtifactRequirement> {
         ),
         requirement(
             CONVENTIONAL_COMMENTS_MD,
-            &[SUMMARY, "Blocking Comments", "Non-Blocking Comments"],
+            &[SUMMARY],
             &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
         ),
         requirement_with_format(
@@ -258,6 +259,25 @@ pub(super) fn pr_review() -> Vec<ArtifactRequirement> {
         requirement(
             MISSING_TESTS_MD,
             &[SUMMARY, "Missing Tests"],
+            &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
+        ),
+        requirement(
+            REVIEW_REPORT_MD,
+            &[
+                SUMMARY,
+                "Recommendation",
+                "Recommendation Rationale",
+                "Severity Summary",
+                "Blocking Issues",
+                "Major Issues",
+                "Minor Issues",
+                "Questions",
+                "Nitpicks",
+                "Review Coverage",
+                "Governance Observations",
+                "Decision Rules Applied",
+                "Final Recommendation",
+            ],
             &[GateKind::ReviewDisposition, GateKind::ReleaseReadiness],
         ),
         // ── Secondary governance artifacts ─────────────────────────────────
@@ -382,7 +402,7 @@ mod tests {
 
     #[test]
     fn pr_review_has_expected_artifact_count() {
-        assert_eq!(pr_review().len(), 10);
+        assert_eq!(pr_review().len(), 11);
     }
 
     #[test]

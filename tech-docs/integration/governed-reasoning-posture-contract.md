@@ -11,7 +11,7 @@
 - `migration_contract`: `specs/065-reasoning-posture-v2/contracts/governed-reasoning-posture-v2-migration.md`
 - `primary_consumer`: `boundline`
 - `supported_boundline_window`: `0.74.x`
-- `supported_canon_window`: `0.71.x`
+- `supported_canon_window`: `0.72.x`
 
 ## Purpose
 
@@ -179,7 +179,7 @@ Executable validation MUST reject:
 - Any breaking change to required fields, compatibility semantics, or the
   supported vocabulary requires a new contract line.
 - Release-facing metadata that claims support for `governed_reasoning_posture_v2`
-  MUST align with Boundline `0.74.x` and Canon `0.71.x`.
+  MUST align with Boundline `0.74.x` and Canon `0.72.x`.
 
 ## Coexistence And Migration Rules
 

@@ -1,3 +1,5 @@
+/// Onion-layer review context index builder.
+pub mod context;
 /// Critique note types for review runs.
 pub mod critique;
 /// Diff mapping and line extraction utilities.
@@ -8,5 +10,11 @@ pub mod evaluator;
 pub mod findings;
 /// Markdown generators for review artifacts.
 pub mod generators;
+/// Onion-layer review state machine.
+pub mod onion;
+/// Artifact rendering and recommendation logic for pr-review finalize.
+pub mod render;
 /// Review summary and disposition types.
 pub mod summary;
+/// Reviewer output validation for pr-review accept phase.
+pub mod validate;

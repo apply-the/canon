@@ -243,74 +243,123 @@ fn comment_location(c: &GithubComment) -> String {
 /// of the canonical comment set.
 ///
 /// Every comment ID matches `github-comments.json`.
+/// Generates `conventional-comments.md` — template-compliant rendering.
+///
+/// File comments grouped by severity, sorted lexicographically by path.
+/// Global comments at the end. Every ID matches `github-comments.json`.
 pub fn generate_conventional_comments(canonical: &CanonicalCommentSet) -> String {
     let mut out = String::new();
-
     out.push_str("# Conventional Comments\n\n");
     out.push_str(
-        "> Copy-ready review comments. Every comment ID matches `github-comments.json`.\n\n",
+        "> Human-readable, copy-ready rendering of the canonical actionable comment set.\n",
     );
+    out.push_str("> Every comment ID matches `github-comments.json`.\n\n");
 
-    out.push_str("## Summary\n\n");
-    out.push_str(&format!(
-        "{} actionable comment(s): {} blocking, {} non-blocking.\n\n",
-        canonical.comments.len(),
-        canonical.blocking_count(),
-        canonical.non_blocking_count(),
-    ));
-
-    // ── Blocking Comments ────────────────────────────────────────────────
-    let blocking: Vec<_> = canonical.comments.iter().filter(|c| c.blocking).collect();
-    out.push_str("## Blocking Comments\n\n");
-    if !blocking.is_empty() {
-        for c in &blocking {
-            append_comment_markdown(&mut out, c);
-        }
-    } else {
-        out.push_str("- No blocking comments.\n\n");
-    }
-
-    // ── Non-Blocking Comments ────────────────────────────────────────────
-    let non_blocking: Vec<_> = canonical.comments.iter().filter(|c| !c.blocking).collect();
-    out.push_str("## Non-Blocking Comments\n\n");
-    if !non_blocking.is_empty() {
-        for c in &non_blocking {
-            append_comment_markdown(&mut out, c);
-        }
-    } else {
-        out.push_str("- No non-blocking comments.\n\n");
-    }
+    render_comment_summary(&mut out, canonical);
+    render_file_comments_grouped(&mut out, canonical);
+    render_global_comments(&mut out, canonical);
+    render_empty_comment_set(&mut out, canonical);
 
     out
 }
 
-/// Renders a single canonical comment into conventional-comments.md format.
-fn append_comment_markdown(out: &mut String, c: &GithubComment) {
-    let loc = match (&c.path, c.line) {
-        (Some(_p), Some(l)) => format!("Target: line {l}\n"),
-        (Some(p), None) => match &c.hunk_header {
-            Some(h) => format!("Target: `{p}` at `{h}`\n"),
-            None => format!("Target: `{p}`\n"),
-        },
-        _ => String::new(),
-    };
+/// Renders the summary section with severity counts.
+fn render_comment_summary(out: &mut String, canonical: &CanonicalCommentSet) {
+    let total = canonical.comments.len();
+    out.push_str("## Summary\n\n");
+    out.push_str(&format!("{total} actionable comment(s):\n\n"));
+    let severities = ["blocking", "major", "minor", "question", "nitpick"];
+    let has_any = severities.iter().any(|sev| canonical.count_by_severity(sev) > 0);
+    if has_any {
+        out.push_str("| Severity | Count |\n|---|---|\n");
+        for sev in &severities {
+            let c = canonical.count_by_severity(sev);
+            if c > 0 {
+                out.push_str(&format!("| {sev} | {c} |\n"));
+            }
+        }
+    }
+    out.push('\n');
+}
 
-    out.push_str(&format!(
-        "### {id} — `{path}`\n\n",
-        id = c.id,
-        path = c.path.as_deref().unwrap_or("PR")
-    ));
-    out.push_str(&loc);
-    out.push_str(&format!(
-        "\n{kind}({severity}): {body}\n\n",
-        kind = c.kind,
-        severity = c.severity,
-        body = c.body
-    ));
+/// Renders file comments grouped by severity, sorted by path.
+fn render_file_comments_grouped(out: &mut String, canonical: &CanonicalCommentSet) {
+    let file_comments = canonical.file_comments_sorted();
+    if file_comments.is_empty() {
+        return;
+    }
+    let sev_headers = [
+        ("blocking", "## Blocking File Comments"),
+        ("major", "## Major File Comments"),
+        ("minor", "## Minor File Comments"),
+        ("question", "## Questions"),
+        ("nitpick", "## Nitpicks"),
+    ];
+    for (sev_label, header) in &sev_headers {
+        let group: Vec<_> = file_comments.iter().filter(|c| c.severity == *sev_label).collect();
+        if group.is_empty() {
+            continue;
+        }
+        out.push_str(&format!("\n{header}\n\n"));
+        let mut current_path: Option<&str> = None;
+        for c in &group {
+            let path = c.path.as_deref().unwrap_or("PR");
+            if current_path != Some(path) {
+                current_path = Some(path);
+                out.push_str(&format!("### `{path}`\n\n"));
+            }
+            append_comment_entry(out, c);
+        }
+    }
+}
+
+/// Renders global (no-path) comments after file comments.
+fn render_global_comments(out: &mut String, canonical: &CanonicalCommentSet) {
+    let global = canonical.global_comments();
+    if global.is_empty() {
+        return;
+    }
+    out.push_str("\n## Global Comments\n\n");
+    for c in &global {
+        append_comment_entry(out, c);
+    }
+}
+
+/// Renders the empty-comment-set explanation when no comments exist.
+fn render_empty_comment_set(out: &mut String, canonical: &CanonicalCommentSet) {
+    if !canonical.comments.is_empty() {
+        return;
+    }
+    out.push_str("\n## Empty Comment Set\n\n");
+    out.push_str("No actionable comments were emitted.\n\n");
+    out.push_str(&format!("Reason: {}\n\n", empty_comment_reason(canonical)));
+    out.push_str(&format!("Actionable review status: {}\n", canonical.reviewer_status));
+}
+
+fn append_comment_entry(out: &mut String, c: &GithubComment) {
+    let target = match (&c.path, c.line, &c.hunk_header) {
+        (_, Some(l), _) => format!("line {l}"),
+        (_, _, Some(h)) => format!("hunk `{h}`"),
+        _ => "whole PR".to_string(),
+    };
+    let prefix = if c.blocking { "blocking" } else { "non-blocking" };
+    out.push_str(&format!("#### {}\n\n", c.id));
+    out.push_str(&format!("Severity: {}\nTarget: {target}\n\n", c.severity));
+    out.push_str(&format!("{}({prefix}): {}\n\n", c.kind, c.body));
     out.push_str("Why it matters:\n");
     out.push_str(&format!("{}\n\n", c.why_it_matters));
     out.push_str("Suggested remediation:\n");
     out.push_str(&format!("{}\n\n", c.suggested_remediation));
+}
+
+fn empty_comment_reason(canonical: &CanonicalCommentSet) -> &str {
+    match canonical.reviewer_status.as_str() {
+        "actionable_review_executed" => "valid_empty_actionable_review",
+        "actionable_review_failed" => "actionable_review_failed",
+        "actionable_review_not_configured" => "actionable_review_not_configured",
+        "governance_only" => "governance_only",
+        _ => "governance_only",
+    }
 }
 
 /// Generates `missing-tests.md` with spec-format entries.
@@ -364,4 +413,117 @@ pub fn generate_github_comments_json(canonical: &CanonicalCommentSet) -> String 
 /// Generates `review-findings.json` from findings entries.
 pub fn generate_review_findings_json(findings: &[super::findings::ReviewFindingEntry]) -> String {
     serde_json::to_string_pretty(&findings).unwrap_or_default()
+}
+
+/// Generates `review-report.md` — template-compliant severity-oriented report.
+pub fn generate_review_report(
+    canonical: &CanonicalCommentSet,
+    decision: &Decision,
+    packet: &ReviewPacket,
+    changed_files: &[String],
+    files_inspected: &[String],
+    files_skipped: &[String],
+) -> String {
+    let mut out = String::new();
+    out.push_str("# PR Review Report\n\n");
+
+    out.push_str("## Summary\n\n");
+    out.push_str(&format!(
+        "Severity-oriented review report. {} actionable comment(s), {} files changed.\n\n",
+        canonical.comments.len(),
+        changed_files.len(),
+    ));
+
+    let rec = match decision {
+        Decision::Approve => "Approve",
+        Decision::Comment => "Comment",
+        Decision::RequestChanges => "Request changes",
+    };
+    out.push_str("## Recommendation\n\n");
+    out.push_str(&format!("**{rec}**\n\n"));
+
+    out.push_str("## Recommendation Rationale\n\n");
+    out.push_str(&format!("{}\n\n", rationale_for(decision, canonical)));
+
+    // Severity Summary
+    out.push_str("## Severity Summary\n\n");
+    out.push_str("| Severity | Count |\n|---|---|\n");
+    for sev in &["blocking", "major", "minor", "question", "nitpick"] {
+        out.push_str(&format!("| {sev} | {} |\n", canonical.count_by_severity(sev)));
+    }
+
+    // Issues
+    for (sev, header) in &[
+        ("blocking", "## Blocking Issues"),
+        ("major", "## Major Issues"),
+        ("minor", "## Minor Issues"),
+        ("question", "## Questions"),
+        ("nitpick", "## Nitpicks"),
+    ] {
+        out.push_str(&format!("\n{header}\n\n"));
+        let items: Vec<_> = canonical.comments.iter().filter(|c| c.severity == *sev).collect();
+        if items.is_empty() {
+            out.push_str("- None.\n");
+        } else {
+            for c in &items {
+                let loc = comment_location(c);
+                out.push_str(&format!("- **{id}** — {loc}: {body}\n", id = c.id, body = c.body));
+            }
+        }
+    }
+
+    // Coverage
+    out.push_str("\n## Review Coverage\n\n");
+    out.push_str("| Field | Value |\n|---|---|\n");
+    out.push_str(&format!("| Actionable review status | {} |\n", canonical.reviewer_status));
+    out.push_str(&format!("| Files changed | {} |\n", changed_files.len()));
+    out.push_str(&format!("| Files inspected deeply | {} |\n", files_inspected.len()));
+    out.push_str(&format!("| Files skipped | {} |\n", files_skipped.len()));
+
+    // Governance
+    out.push_str("\n## Governance Observations\n\n");
+    if packet.findings.is_empty() {
+        out.push_str("- No governance observations.\n");
+    } else {
+        for f in &packet.findings {
+            out.push_str(&format!("- {}: {}\n", f.title, f.details));
+        }
+    }
+
+    // Decision Rules
+    out.push_str("\n## Decision Rules Applied\n\n");
+    out.push_str(&format!(
+        "- Reviewer status: {}\n- Blocking comments: {}\n- Governance must-fix: {}\n",
+        canonical.reviewer_status,
+        canonical.blocking_count(),
+        packet.must_fix_findings().len(),
+    ));
+
+    // Final
+    out.push_str("\n## Final Recommendation\n\n");
+    out.push_str(&format!("**{rec}**\n\n"));
+    out.push_str(&format!("{}\n", rationale_for(decision, canonical)));
+
+    out
+}
+
+fn rationale_for(decision: &Decision, canonical: &CanonicalCommentSet) -> String {
+    match decision {
+        Decision::Approve => {
+            "No blocking findings, sufficient coverage, no unresolved gates.".to_string()
+        }
+        Decision::Comment => format!(
+            "{} non-blocking finding(s). {}",
+            canonical.non_blocking_count(),
+            if canonical.reviewer_status == "actionable_review_not_configured" {
+                "Actionable reviewer not configured; governance-only inspection performed."
+            } else {
+                "Review completed with notes."
+            }
+        ),
+        Decision::RequestChanges => format!(
+            "{} blocking comment(s) require resolution before approval.",
+            canonical.blocking_count(),
+        ),
+    }
 }

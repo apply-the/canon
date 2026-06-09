@@ -78,6 +78,9 @@ mod mode_incident;
 mod mode_migration;
 
 mod mode_pr_review;
+mod mode_pr_review_accept;
+mod mode_pr_review_finalize;
+mod mode_pr_review_prepare;
 mod mode_requirements;
 mod mode_review;
 mod mode_security_assessment;

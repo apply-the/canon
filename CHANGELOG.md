@@ -15,6 +15,23 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.72.0] - 2026-06-09
+
+Delivered specs:
+
+- `specs/074-pr-review-onion-orchestration/`
+- `specs/073-newcomer-startup-improvements/`
+
+Highlights:
+
+- Implemented phased onion-layer PR review workflow with prepare, accept, and finalize commands.
+- Added `canon pr-review` CLI with `prepare`, `accept`, and `finalize` sub-commands.
+- Created 14-state review lifecycle state machine for five-layer progressive context discovery.
+- Added reviewer output validation with schema, severity, comment ID, path, and layer coverage checks.
+- Implemented recommendation derivation from canonical comment set with inconsistency detection.
+- Added stub reviewer adapter with per-layer findings for deterministic testing.
+- Bumped workspace version to `0.72.0`.
+
 ## [0.69.0] - 2026-06-05
 
 Delivered specs:
