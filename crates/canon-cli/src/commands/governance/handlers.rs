@@ -20,9 +20,9 @@ use super::*;
 /// Returns a blocked or failed response without panicking on any error path.
 pub(super) fn handle_start(
     service: &EngineService,
-    repo_root: &Path,
     request: GovernanceRequest,
 ) -> GovernanceResponse {
+    let repo_root = service.repo_root();
     let validated = match validate_request(repo_root, &request, GovernanceOperation::Start) {
         Ok(validated) => validated,
         Err(response) => return *response,
@@ -44,7 +44,7 @@ pub(super) fn handle_start(
 
     match service.run(run_request) {
         Ok(summary) => project_run_response(
-            repo_root,
+            service,
             &summary.run_id,
             summary.mode_result.map(|result| result.headline),
         ),
@@ -57,7 +57,11 @@ pub(super) fn handle_start(
 /// Re-projects the current run state for an existing `run_ref` without
 /// re-executing the run. Used by adapters to poll for updated approval or
 /// readiness status after a human has acted on a run outside the adapter.
-pub(super) fn handle_refresh(repo_root: &Path, request: GovernanceRequest) -> GovernanceResponse {
+pub(super) fn handle_refresh(
+    service: &EngineService,
+    request: GovernanceRequest,
+) -> GovernanceResponse {
+    let repo_root = service.repo_root();
     if let Err(response) = validate_request(repo_root, &request, GovernanceOperation::Refresh) {
         return *response;
     }
@@ -70,7 +74,7 @@ pub(super) fn handle_refresh(repo_root: &Path, request: GovernanceRequest) -> Go
         );
     };
 
-    project_run_response(repo_root, run_ref, None)
+    project_run_response(service, run_ref, None)
 }
 
 /// Validates a [`GovernanceRequest`] for the given [`GovernanceOperation`].

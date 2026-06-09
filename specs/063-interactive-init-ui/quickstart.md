@@ -104,3 +104,19 @@ Expected behavior:
 - The command fails before opening the full-screen UI.
 - The error explains that the current terminal layout does not fit.
 - No `.canon/` side effects are created.
+
+## 8. Validate parent Canon workspace binding
+
+```bash
+WORKDIR_SHARED="$(mktemp -d)"
+mkdir -p "$WORKDIR_SHARED/repo-a"
+cd "$WORKDIR_SHARED/repo-a"
+git init
+"$CANON_BIN" init --non-interactive --repo-root "$WORKDIR_SHARED/repo-a" --canon-root "$WORKDIR_SHARED"
+```
+
+Expected behavior:
+
+- `.canon/` is created under `$WORKDIR_SHARED`, not inside `repo-a`.
+- Follow-on Canon commands can target `repo-a` while reusing the shared parent runtime via `--repo-root` and `--canon-root`.
+- Git-scoped behavior still resolves against `repo-a` rather than the parent workspace.

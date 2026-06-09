@@ -46,6 +46,7 @@ pub(super) fn infer_runtime_packet_metadata(
         semantic_descriptor: None,
         authority_governance: None,
         adaptive_governance: None,
+        workspace_identity: None,
     }
 }
 

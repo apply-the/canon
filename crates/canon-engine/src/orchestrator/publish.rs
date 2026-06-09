@@ -134,11 +134,12 @@ fn create_parent_directory(path: &Path) -> Result<(), std::io::Error> {
 /// Publishes the artifacts from the named run to the given destination using the default profile.
 pub fn publish_run(
     repo_root: &Path,
+    canon_workspace_root: &Path,
     run_id: &str,
     destination_override: Option<&Path>,
     adr: bool,
 ) -> Result<PublishSummary, EngineError> {
-    let store = WorkspaceStore::new(repo_root);
+    let store = WorkspaceStore::from_roots(repo_root, canon_workspace_root);
     let manifest = store.load_run_manifest(run_id)?;
     let state = store.load_run_state(run_id)?;
 
@@ -262,11 +263,12 @@ pub fn publish_run(
 /// state, update strategy, and lineage metadata for project-memory promotion.
 pub fn publish_run_with_profile(
     repo_root: &Path,
+    canon_workspace_root: &Path,
     run_id: &str,
     profile: PublishProfile,
     destination_override: Option<&Path>,
 ) -> Result<PublishSummary, EngineError> {
-    let store = WorkspaceStore::new(repo_root);
+    let store = WorkspaceStore::from_roots(repo_root, canon_workspace_root);
     let manifest = store.load_run_manifest(run_id)?;
     let state = store.load_run_state(run_id)?;
 

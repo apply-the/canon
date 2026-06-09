@@ -19,7 +19,6 @@ use super::*;
 /// and `Refresh` additionally validate the adapter schema version.
 pub(super) fn command_response(
     service: &EngineService,
-    repo_root: &Path,
     command: GovernanceCommand,
     request: Option<GovernanceRequest>,
 ) -> CliResult<serde_json::Value> {
@@ -34,7 +33,7 @@ pub(super) fn command_response(
                 CliError::InvalidInput("governance start requires a JSON request body".to_string())
             })?;
             enforce_supported_schema_version(request.adapter_schema_version.as_deref())?;
-            Ok(serde_json::to_value(handle_start(service, repo_root, request))?)
+            Ok(serde_json::to_value(handle_start(service, request))?)
         }
         GovernanceCommand::Refresh { json } => {
             require_json(json)?;
@@ -44,7 +43,7 @@ pub(super) fn command_response(
                 )
             })?;
             enforce_supported_schema_version(request.adapter_schema_version.as_deref())?;
-            Ok(serde_json::to_value(handle_refresh(repo_root, request))?)
+            Ok(serde_json::to_value(handle_refresh(service, request))?)
         }
     }
 }

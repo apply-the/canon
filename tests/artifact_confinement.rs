@@ -7,7 +7,9 @@ use canon_engine::domain::artifact::{
 };
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
-use canon_engine::domain::run::{ClassificationProvenance, RunContext, RunState};
+use canon_engine::domain::run::{
+    ClassificationProvenance, RunContext, RunState, WorkspaceIdentity,
+};
 use canon_engine::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use canon_engine::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 use tempfile::TempDir;
@@ -35,6 +37,7 @@ fn sample_bundle(repo_root: &str, relative_path: &str) -> PersistedRunBundle {
         },
         context: RunContext {
             repo_root: repo_root.to_string(),
+            workspace_identity: WorkspaceIdentity::same_root(repo_root),
             owner: Some("owner@example.com".to_string()),
             inputs: vec!["brief.md".to_string()],
             excluded_paths: Vec::new(),
@@ -176,6 +179,9 @@ fn persist_operational_artifact_bundle_rejects_escape_paths() {
         },
         context: RunContext {
             repo_root: workspace.path().display().to_string(),
+            workspace_identity: WorkspaceIdentity::same_root(
+                workspace.path().display().to_string(),
+            ),
             owner: Some("owner@example.com".to_string()),
             inputs: vec!["incident.md".to_string()],
             excluded_paths: Vec::new(),

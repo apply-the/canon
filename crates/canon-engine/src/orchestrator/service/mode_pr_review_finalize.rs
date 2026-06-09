@@ -21,7 +21,7 @@ const PR_REVIEW_PACKET_SLUG: &str = "pr-review";
 impl EngineService {
     /// Runs the finalize phase: renders artifacts and transitions to finalized.
     pub fn run_pr_review_finalize(&self, run_id: &str) -> Result<(), String> {
-        let run_dir = self.repo_root.join(".canon").join("runs").join(run_id).join("pr-review");
+        let run_dir = self.canon_runtime_dir().join("runs").join(run_id).join("pr-review");
 
         let current_state = read_run_state(&run_dir)?;
         if current_state != RunState::ReviewerOutputAccepted {

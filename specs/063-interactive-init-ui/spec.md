@@ -58,6 +58,12 @@ feature packet rather than relying on chat-only context.
 - Q: If the terminal starts too small, should the TUI still open and rely on the user to resize it? → A: No. Insufficient terminal size remains a pre-start validation failure; the TUI must not open or wait for a later resize.
 - Q: Should the spec define a fixed minimum terminal size such as `80x24` or `100x30`? → A: No. The contract uses runtime layout fit instead of a fixed numeric threshold; the TUI opens only when the current layout actually fits the available terminal space.
 
+### Session 2026-06-09
+
+- Q: When Canon is used from a multi-repository workspace, should `.canon/` stay pinned to the Git repo root? → A: No. Canon runtime state may live at the repo root or at a parent Canon workspace root, while Git operations remain pinned to the target repo root.
+- Q: How should operators and automation override the Canon workspace root versus the Git repo root? → A: `canon init` and follow-on commands accept independent `--canon-root` and `--repo-root` overrides, with optional `CANON_ROOT` and `CANON_REPO_ROOT` environment fallbacks.
+- Q: What runtime identity must be persisted when `.canon/` is shared across sibling repos? → A: Canon records Canon workspace root, repo root, repo name, repo path relative to the Canon workspace, current working directory, and when applicable `base_ref` plus `head_ref`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Guided Interactive Init (Priority: P1)
@@ -114,6 +120,7 @@ As a terminal user, I want the command to leave my shell in a clean, usable stat
 - When a user requests `json`, `yaml`, or `markdown` output without `--non-interactive`, the command fails before opening the TUI and tells the user to rerun with `--non-interactive`.
 - When interactive terminal capabilities are unavailable and the user requests `json`, `yaml`, or `markdown` output without `--non-interactive`, the command still rejects the request and tells the user to rerun with `--non-interactive`.
 - When the user interrupts with `Ctrl+C` before any repository initialization work starts, the command restores the terminal and exits without creating init side effects.
+- When a parent workspace already owns `.canon/`, `canon init` may target a nested Git repo with `--repo-root <repo>` while keeping runtime state under `--canon-root <workspace>`.
 
 ## Requirements *(mandatory)*
 
@@ -134,6 +141,10 @@ As a terminal user, I want the command to leave my shell in a clean, usable stat
 - **FR-013**: Structured output formats for `canon init` MUST be supported only with `--non-interactive`; when a user requests `json`, `yaml`, or `markdown` output without `--non-interactive`, including environments that would otherwise fall back because interactive terminal capabilities are unavailable, system MUST fail before initialization begins and instruct the user to rerun with `--non-interactive`.
 - **FR-014**: System MUST handle `Ctrl+C` as the only user-driven interruption path for the guided setup and stop before initialization side effects begin.
 - **FR-015**: System MUST determine whether interactive startup is allowed by checking whether the current guided layout fits the available terminal space at runtime, not by relying on a fixed documented minimum size.
+- **FR-016**: System MUST resolve the Canon workspace root independently from the Git repository root so that `.canon/` may live at the target repo root or at a parent workspace root containing the target repo.
+- **FR-017**: System MUST accept explicit `--canon-root` and `--repo-root` overrides for `canon init`, and SHOULD honor `CANON_ROOT` plus `CANON_REPO_ROOT` as environment fallbacks when flags are absent.
+- **FR-018**: System MUST keep Git discovery, Git validation, and Git command execution pinned to `repo_root` even when Canon runtime state is stored under a different `canon_root`.
+- **FR-019**: System MUST record Canon workspace identity metadata for initialized and executed work, including Canon workspace root, repo root, repo name, repo-relative path from Canon root, current working directory, and optional PR review refs.
 
 ### Key Entities *(include if feature involves data)*
 

@@ -297,6 +297,7 @@ mod tests {
     fn sample_context() -> RunContext {
         RunContext {
             repo_root: "/repo".to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root("/repo"),
             owner: Some("owner@example.com".to_string()),
             inputs: vec!["canon-input/requirements/brief.md".to_string()],
             excluded_paths: Vec::new(),

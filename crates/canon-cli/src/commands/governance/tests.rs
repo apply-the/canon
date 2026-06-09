@@ -55,6 +55,9 @@ fn completed_requirements_context(
 ) -> RunContext {
     RunContext {
         repo_root: repo_root.display().to_string(),
+        workspace_identity: canon_engine::domain::run::WorkspaceIdentity::same_root(
+            repo_root.display().to_string(),
+        ),
         owner: Some(manifest.owner.clone()),
         inputs: vec!["requirements.md".to_string()],
         excluded_paths: Vec::new(),
@@ -349,7 +352,6 @@ fn command_response_reports_capabilities_contract() {
 
     let response = command_response(
         &service,
-        std::path::Path::new("."),
         crate::app::GovernanceCommand::Capabilities { json: true },
         None,
     )
@@ -369,7 +371,6 @@ fn command_response_requires_json_flag() {
 
     let error = command_response(
         &service,
-        std::path::Path::new("."),
         crate::app::GovernanceCommand::Capabilities { json: false },
         None,
     )
@@ -385,7 +386,6 @@ fn command_response_rejects_unsupported_schema_versions() {
 
     let error = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(GovernanceRequest {
             adapter_schema_version: Some("v2".to_string()),
@@ -406,7 +406,6 @@ fn command_response_starts_targeted_requirements_packets_in_pending_selection() 
 
     let response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(governance_start_request(
             &workspace,
@@ -435,7 +434,6 @@ fn command_response_refreshes_existing_governed_runs() {
 
     let refresh_response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Refresh { json: true },
         Some(governance_refresh_request(
             &workspace,
@@ -462,7 +460,6 @@ fn command_response_starts_targeted_architecture_packets_in_pending_selection() 
 
     let response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(governance_start_request(
             &workspace,
@@ -489,7 +486,6 @@ fn command_response_starts_incomplete_targeted_requirements_packets_in_pending_s
 
     let response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(governance_start_request(
             &workspace,
@@ -514,7 +510,6 @@ fn command_response_returns_failed_for_unknown_run_refs() {
 
     let response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Refresh { json: true },
         Some(governance_refresh_request(
             &workspace,
@@ -540,7 +535,6 @@ fn command_response_fails_when_artifact_contract_is_unreadable() {
 
     let start_response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(governance_start_request(
             &workspace,
@@ -560,7 +554,6 @@ fn command_response_fails_when_artifact_contract_is_unreadable() {
 
     let refresh_response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Refresh { json: true },
         Some(governance_refresh_request(
             &workspace,
@@ -595,7 +588,6 @@ fn command_response_fails_when_artifact_contract_is_missing_after_artifacts_exis
 
     let refresh_response = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Refresh { json: true },
         Some(governance_refresh_request(
             &workspace,
@@ -683,22 +675,14 @@ fn map_engine_error_preserves_machine_readable_reason_codes() {
 fn command_response_requires_request_bodies_for_stateful_operations() {
     let service = EngineService::new(".");
 
-    let start_error = command_response(
-        &service,
-        std::path::Path::new("."),
-        crate::app::GovernanceCommand::Start { json: true },
-        None,
-    )
-    .expect_err("start should require a request body");
+    let start_error =
+        command_response(&service, crate::app::GovernanceCommand::Start { json: true }, None)
+            .expect_err("start should require a request body");
     assert!(start_error.to_string().contains("requires a JSON request body"));
 
-    let refresh_error = command_response(
-        &service,
-        std::path::Path::new("."),
-        crate::app::GovernanceCommand::Refresh { json: true },
-        None,
-    )
-    .expect_err("refresh should require a request body");
+    let refresh_error =
+        command_response(&service, crate::app::GovernanceCommand::Refresh { json: true }, None)
+            .expect_err("refresh should require a request body");
     assert!(refresh_error.to_string().contains("requires a JSON request body"));
 }
 
@@ -709,7 +693,6 @@ fn command_response_blocks_missing_fields_and_request_kind_mismatches() {
 
     let missing = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(GovernanceRequest::default()),
     )
@@ -735,7 +718,6 @@ fn command_response_blocks_missing_fields_and_request_kind_mismatches() {
 
     let mismatch = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(GovernanceRequest {
             request_kind: Some("refresh".to_string()),
@@ -783,7 +765,6 @@ fn command_response_rejects_workspace_mismatches_and_unavailable_inputs() {
 
     let mismatch = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(GovernanceRequest {
             request_kind: Some("start".to_string()),
@@ -804,7 +785,6 @@ fn command_response_rejects_workspace_mismatches_and_unavailable_inputs() {
 
     let missing_document = command_response(
         &service,
-        workspace.path(),
         crate::app::GovernanceCommand::Start { json: true },
         Some(governance_start_request(
             &workspace,
@@ -832,7 +812,6 @@ fn command_response_rejects_unsupported_domain_values() {
     ] {
         let response = command_response(
             &service,
-            workspace.path(),
             crate::app::GovernanceCommand::Start { json: true },
             Some(GovernanceRequest {
                 request_kind: Some("start".to_string()),
@@ -862,7 +841,6 @@ fn handle_start_maps_engine_validation_failures() {
 
     let response = handle_start(
         &service,
-        workspace.path(),
         governance_start_request(
             &workspace,
             "requirements",
@@ -881,7 +859,9 @@ fn handle_start_maps_engine_validation_failures() {
 fn handle_refresh_returns_validation_failures_directly() {
     let workspace = TempDir::new().expect("temp dir");
 
-    let response = handle_refresh(workspace.path(), GovernanceRequest::default());
+    let service = EngineService::new(workspace.path());
+
+    let response = handle_refresh(&service, GovernanceRequest::default());
 
     assert_eq!(response.status, GovernanceStatus::Blocked);
     assert_eq!(response.reason_code, Some(GovernanceReasonCode::MissingRequiredField));

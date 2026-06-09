@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -136,10 +138,54 @@ pub enum RunState {
 /// Recorded once when the run transitions to `ContextCaptured` and immutable
 /// thereafter. The gatekeeper and orchestrator read this to make all
 /// subsequent decisions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct WorkspaceIdentity {
+    /// Absolute path to the Canon workspace root that owns `.canon/`.
+    pub canon_root: String,
+    /// Absolute path to the repository root bound to the run.
+    pub repo_root: String,
+    /// Final path segment of the repository root.
+    pub repo_name: String,
+    /// Repository path relative to `canon_root`.
+    pub repo_relative_path_from_canon_root: String,
+    /// Current working directory captured when the run started.
+    pub current_working_directory: String,
+    /// Base ref for PR-style runs, when applicable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_ref: Option<String>,
+    /// Head ref for PR-style runs, when applicable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub head_ref: Option<String>,
+}
+
+impl WorkspaceIdentity {
+    /// Build a local workspace identity where Canon and Git roots coincide.
+    pub fn same_root(repo_root: impl Into<String>) -> Self {
+        let repo_root = repo_root.into();
+        let repo_name = Path::new(&repo_root)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .to_string();
+
+        Self {
+            canon_root: repo_root.clone(),
+            repo_root: repo_root.clone(),
+            repo_name,
+            repo_relative_path_from_canon_root: ".".to_string(),
+            current_working_directory: repo_root,
+            base_ref: None,
+            head_ref: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RunContext {
     /// Absolute path to the repository root at the time of capture.
     pub repo_root: String,
+    /// Captured workspace binding metadata for shared Canon runtimes.
+    pub workspace_identity: WorkspaceIdentity,
     /// Named owner of this run, required for `SystemicImpact` risk class.
     pub owner: Option<String>,
     /// Paths to the input documents supplied at run start.
@@ -803,7 +849,7 @@ mod tests {
         ClosureDecompositionScope, ClosureFinding, ClosureFindingSeverity, ClosureStatus,
         ContinuationCandidateSummary, ImplementationExecutionContext, ReadinessDeltaItem,
         ReadinessDeltaSourceKind, RefactorExecutionContext, RefinementWorkflowFamily, RunContext,
-        RunState, UpstreamContext,
+        RunState, UpstreamContext, WorkspaceIdentity,
     };
     use crate::domain::execution::{
         ExecutionPosture, MutationBounds, MutationExpansionPolicy, SafetyNetEvidence,
@@ -856,6 +902,7 @@ mod tests {
     fn run_context_deserializes_without_mode_specific_execution_blocks() {
         let context_toml = toml::to_string_pretty(&RunContext {
             repo_root: "/repo".to_string(),
+            workspace_identity: WorkspaceIdentity::same_root("/repo"),
             owner: None,
             inputs: vec!["canon-input/change.md".to_string()],
             excluded_paths: Vec::new(),
@@ -897,6 +944,7 @@ mod tests {
     fn run_context_serializes_mode_specific_execution_blocks_when_present() {
         let context = RunContext {
             repo_root: "/repo".to_string(),
+            workspace_identity: WorkspaceIdentity::same_root("/repo"),
             owner: Some("staff-engineer".to_string()),
             inputs: vec!["canon-input/implementation.md".to_string()],
             excluded_paths: Vec::new(),

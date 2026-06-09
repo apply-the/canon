@@ -1,5 +1,6 @@
 use super::EngineService;
 use super::*;
+use crate::domain::run::WorkspaceIdentity;
 
 impl EngineService {
     pub(super) fn load_input_summary(
@@ -45,6 +46,7 @@ impl EngineService {
 
         RunContext {
             repo_root: self.repo_root.display().to_string(),
+            workspace_identity: self.runtime_workspace_identity(None, None),
             owner: Some(request.owner.clone()),
             inputs: request.merged_input_sources(),
             excluded_paths: request.excluded_paths.clone(),
@@ -57,6 +59,41 @@ impl EngineService {
             clarification_refinement: None,
             inline_inputs: request.transient_inline_inputs(),
             captured_at,
+        }
+    }
+
+    pub(super) fn runtime_workspace_identity(
+        &self,
+        base_ref: Option<&str>,
+        head_ref: Option<&str>,
+    ) -> WorkspaceIdentity {
+        let repo_relative_path_from_canon_root = self
+            .repo_root
+            .strip_prefix(&self.canon_workspace_root)
+            .ok()
+            .map(|relative| {
+                if relative.as_os_str().is_empty() {
+                    ".".to_string()
+                } else {
+                    relative.to_string_lossy().into_owned()
+                }
+            })
+            .unwrap_or_else(|| ".".to_string());
+        let repo_name = self
+            .repo_root
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .to_string();
+
+        WorkspaceIdentity {
+            canon_root: self.canon_workspace_root.display().to_string(),
+            repo_root: self.repo_root.display().to_string(),
+            repo_name,
+            repo_relative_path_from_canon_root,
+            current_working_directory: self.current_working_directory.display().to_string(),
+            base_ref: base_ref.map(ToOwned::to_owned),
+            head_ref: head_ref.map(ToOwned::to_owned),
         }
     }
 

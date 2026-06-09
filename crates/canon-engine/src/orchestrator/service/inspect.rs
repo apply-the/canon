@@ -5,7 +5,7 @@ use crate::domain::run::ClarificationRecord;
 impl EngineService {
     /// Runs a structured inspection against the given target and returns an inspect response.
     pub fn inspect(&self, target: InspectTarget) -> Result<InspectResponse, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let (name, system_context, entries) = match target {
             InspectTarget::Modes => (
                 "modes".to_string(),
@@ -702,6 +702,7 @@ mod tests {
     fn build_refinement_inspect_summary_returns_none_without_refinement_context() {
         let run_context = RunContext {
             repo_root: "/tmp/repo".to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root("/tmp/repo"),
             owner: None,
             inputs: vec![],
             excluded_paths: vec![],
@@ -735,6 +736,7 @@ mod tests {
     fn build_refinement_inspect_summary_maps_records_readiness_candidate_and_lineage() {
         let run_context = RunContext {
             repo_root: "/tmp/repo".to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root("/tmp/repo"),
             owner: Some("Owner <owner@example.com>".to_string()),
             inputs: vec!["canon-input/requirements/brief.md".to_string()],
             excluded_paths: vec![],

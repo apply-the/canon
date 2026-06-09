@@ -20,6 +20,14 @@ fn cli_command() -> Command {
     command
 }
 
+fn workspace_cli_command(workspace: &TempDir) -> Command {
+    let mut command = cli_command();
+    command.current_dir(workspace.path());
+    command.arg("--repo-root");
+    command.arg(workspace.path());
+    command
+}
+
 #[test]
 fn inspect_clarity_surfaces_targeted_questions_for_requirements_inputs() {
     let workspace = TempDir::new().expect("temp dir");
@@ -29,8 +37,7 @@ fn inspect_clarity_surfaces_targeted_questions_for_requirements_inputs() {
     )
     .expect("requirements brief");
 
-    cli_command()
-        .current_dir(workspace.path())
+    workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -72,8 +79,7 @@ fn inspect_clarity_recurses_directory_inputs_and_accepts_multiple_paths_in_one_g
     )
     .expect("scope questions");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
+    let output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -137,8 +143,7 @@ fn inspect_clarity_keeps_ambiguous_directory_packets_explicit() {
     )
     .expect("notes");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
+    let output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -179,8 +184,7 @@ fn inspect_clarity_surfaces_targeted_questions_for_supply_chain_inputs() {
     )
     .expect("supply-chain brief");
 
-    cli_command()
-        .current_dir(workspace.path())
+    workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -257,8 +261,7 @@ fn inspect_clarity_supports_all_file_backed_governed_modes_with_reasoning_signal
         let workspace = TempDir::new().expect("temp dir");
         let input_path = stage_representative_mode_input(&workspace, mode);
 
-        let output = cli_command()
-            .current_dir(workspace.path())
+        let output = workspace_cli_command(&workspace)
             .args([
                 "inspect",
                 "clarity",
@@ -302,8 +305,7 @@ fn inspect_clarity_marks_materially_closed_architecture_briefs() {
     )
     .expect("architecture brief");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
+    let output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -341,8 +343,7 @@ fn inspect_clarity_reports_output_quality_posture_for_weak_and_strong_packets() 
     )
     .expect("architecture brief");
 
-    let weak_output = cli_command()
-        .current_dir(workspace.path())
+    let weak_output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -370,8 +371,7 @@ fn inspect_clarity_reports_output_quality_posture_for_weak_and_strong_packets() 
             .is_some_and(|reasons| !reasons.is_empty())
     );
 
-    let strong_output = cli_command()
-        .current_dir(workspace.path())
+    let strong_output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -404,8 +404,7 @@ fn inspect_clarity_rejects_pr_review_mode_as_unsupported() {
     // pr-review is a diff-based mode and clarity inspection does not apply to it
     let workspace = TempDir::new().expect("temp dir");
 
-    cli_command()
-        .current_dir(workspace.path())
+    workspace_cli_command(&workspace)
         .args(["inspect", "clarity", "--mode", "pr-review", "--input", "HEAD~1", "--input", "HEAD"])
         .assert()
         .failure();
@@ -416,8 +415,7 @@ fn inspect_clarity_rejects_empty_input_list() {
     // clarity inspect with no --input and no --input-text should be rejected
     let workspace = TempDir::new().expect("temp dir");
 
-    cli_command()
-        .current_dir(workspace.path())
+    workspace_cli_command(&workspace)
         .args(["inspect", "clarity", "--mode", "requirements"])
         .assert()
         .failure();
@@ -427,8 +425,7 @@ fn inspect_clarity_rejects_empty_input_list() {
 fn inspect_clarity_rejects_nonexistent_input_path_for_requirements() {
     let workspace = TempDir::new().expect("temp dir");
 
-    cli_command()
-        .current_dir(workspace.path())
+    workspace_cli_command(&workspace)
         .args(["inspect", "clarity", "--mode", "requirements", "--input", "nonexistent-brief.md"])
         .assert()
         .failure();
@@ -438,8 +435,7 @@ fn inspect_clarity_rejects_nonexistent_input_path_for_requirements() {
 fn inspect_clarity_rejects_nonexistent_input_path_for_discovery() {
     let workspace = TempDir::new().expect("temp dir");
 
-    cli_command()
-        .current_dir(workspace.path())
+    workspace_cli_command(&workspace)
         .args(["inspect", "clarity", "--mode", "discovery", "--input", "nonexistent-discovery.md"])
         .assert()
         .failure();

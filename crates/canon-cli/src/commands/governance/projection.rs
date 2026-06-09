@@ -19,11 +19,11 @@ use super::*;
 /// [`RuntimePacketMetadata`] with the projected metadata before assembling
 /// the final response.
 pub(super) fn project_run_response(
-    repo_root: &Path,
+    service: &EngineService,
     run_ref: &str,
     headline_hint: Option<String>,
 ) -> GovernanceResponse {
-    let projection = match load_run_projection(repo_root, run_ref) {
+    let projection = match load_run_projection(service, run_ref) {
         Ok(projection) => projection,
         Err(response) => return *response,
     };
@@ -58,10 +58,10 @@ pub(super) fn project_run_response(
 /// All store reads are mapped to typed [`GovernanceResponse`] failures so the
 /// caller can return them directly without additional error handling.
 pub(super) fn load_run_projection(
-    repo_root: &Path,
+    service: &EngineService,
     run_ref: &str,
 ) -> Result<RunProjection, GovernanceFailure> {
-    let store = WorkspaceStore::new(repo_root);
+    let store = WorkspaceStore::from_layout(service.project_layout());
     let manifest = store.load_run_manifest(run_ref).map_err(|_| {
         Box::new(GovernanceResponse::failed(
             GovernanceReasonCode::RunNotFound,
@@ -69,6 +69,13 @@ pub(super) fn load_run_projection(
             Some(run_ref.to_string()),
         ))
     })?;
+    if !run_belongs_to_service_repo(service, &store, run_ref) {
+        return Err(Box::new(GovernanceResponse::failed(
+            GovernanceReasonCode::RunNotFound,
+            format!("run `{run_ref}` was not found in this workspace"),
+            Some(run_ref.to_string()),
+        )));
+    }
     let state = store.load_run_state(run_ref).map_err(|error| {
         Box::new(GovernanceResponse::failed(
             GovernanceReasonCode::RuntimeError,
@@ -128,7 +135,7 @@ pub(super) fn load_run_projection(
     }
 
     let missing_refs = missing_document_refs(&expected_document_refs, &document_refs);
-    let rejected_refs = rejected_document_refs(repo_root, &document_refs);
+    let rejected_refs = rejected_document_refs(service.repo_root(), &document_refs);
     let packet_readiness = packet_readiness_value(
         &expected_document_refs,
         &document_refs,
@@ -153,16 +160,19 @@ pub(super) fn load_run_projection(
         &expected_document_refs,
         &document_refs,
     );
-    let packet_metadata = load_runtime_packet_metadata(repo_root, run_ref, manifest.mode)
-        .map_err(|error| {
-            Box::new(GovernanceResponse::failed(
-                GovernanceReasonCode::RuntimeError,
-                format!("run `{run_ref}` packet metadata could not be loaded: {error}"),
-                Some(run_ref.to_string()),
-            ))
-        })?
-        .map(|metadata| merge_projected_governance_metadata(metadata, &projected_packet_metadata))
-        .or(Some(projected_packet_metadata));
+    let packet_metadata =
+        load_runtime_packet_metadata(&service.project_layout(), run_ref, manifest.mode)
+            .map_err(|error| {
+                Box::new(GovernanceResponse::failed(
+                    GovernanceReasonCode::RuntimeError,
+                    format!("run `{run_ref}` packet metadata could not be loaded: {error}"),
+                    Some(run_ref.to_string()),
+                ))
+            })?
+            .map(|metadata| {
+                merge_projected_governance_metadata(metadata, &projected_packet_metadata)
+            })
+            .or(Some(projected_packet_metadata));
 
     Ok(RunProjection {
         run_ref: run_ref.to_string(),
@@ -185,19 +195,40 @@ pub(super) fn load_run_projection(
     })
 }
 
+fn run_belongs_to_service_repo(
+    service: &EngineService,
+    store: &WorkspaceStore,
+    run_ref: &str,
+) -> bool {
+    if service.repo_root() == service.canon_workspace_root() {
+        return true;
+    }
+
+    let Ok(context) = store.load_run_context(run_ref) else {
+        return false;
+    };
+    let recorded_repo_root = context.repo_root;
+    let run_repo_root = std::path::PathBuf::from(&recorded_repo_root)
+        .canonicalize()
+        .unwrap_or_else(|_| std::path::PathBuf::from(recorded_repo_root));
+    let service_repo_root =
+        service.repo_root().canonicalize().unwrap_or_else(|_| service.repo_root().to_path_buf());
+
+    run_repo_root == service_repo_root
+}
+
 /// Reads the persisted [`RuntimePacketMetadata`] for a run from disk, or
 /// returns `Ok(None)` when the file does not exist yet.
 ///
 /// A missing file is not an error; it means the engine has not emitted packet
 /// metadata for this run yet and a projected snapshot will be used instead.
 pub(super) fn load_runtime_packet_metadata(
-    repo_root: &Path,
+    layout: &canon_engine::persistence::layout::ProjectLayout,
     run_ref: &str,
     mode: Mode,
 ) -> Result<Option<RuntimePacketMetadata>, std::io::Error> {
-    let path = repo_root
-        .join(".canon")
-        .join("artifacts")
+    let path = layout
+        .artifacts_dir()
         .join(run_ref)
         .join(mode.as_str())
         .join(RUNTIME_PACKET_METADATA_FILE_NAME);
@@ -259,6 +290,7 @@ pub(super) fn project_runtime_packet_metadata(
                 packet_readiness: authority_packet_readiness,
             },
         )),
+        workspace_identity: None,
     }
 }
 
@@ -332,6 +364,7 @@ mod tests {
         load_run_projection, load_runtime_packet_metadata, merge_projected_governance_metadata,
         project_run_response, project_runtime_packet_metadata, projected_artifact_order,
     };
+    use canon_engine::EngineService;
     use canon_engine::domain::artifact::RuntimePacketMetadata;
     use canon_engine::domain::mode::Mode;
     use canon_engine::domain::policy::{RiskClass, UsageZone};
@@ -339,8 +372,9 @@ mod tests {
     use canon_engine::domain::publish_profile::{
         SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticEligibilityState, SemanticProvenanceBoundary,
     };
-    use canon_engine::domain::run::ClassificationProvenance;
-    use canon_engine::domain::run::RunState;
+    use canon_engine::domain::run::{
+        ClassificationProvenance, RunContext, RunState, WorkspaceIdentity,
+    };
     use canon_engine::persistence::manifests::{RunManifest, RunStateManifest};
     use std::fs;
     use std::path::Path;
@@ -477,11 +511,40 @@ mod tests {
         .expect("write run state");
     }
 
+    fn write_run_context(repo_root: &Path, run_ref: &str, bound_repo_root: &Path) {
+        let run_dir = repo_root.join(".canon").join("runs").join(run_ref);
+        fs::create_dir_all(&run_dir).expect("create run dir");
+        fs::write(
+            run_dir.join("context.toml"),
+            toml::to_string(&RunContext {
+                repo_root: bound_repo_root.display().to_string(),
+                workspace_identity: WorkspaceIdentity::same_root(
+                    bound_repo_root.display().to_string(),
+                ),
+                owner: Some("staff-engineer".to_string()),
+                inputs: vec!["brief.md".to_string()],
+                excluded_paths: Vec::new(),
+                input_fingerprints: Vec::new(),
+                system_context: None,
+                upstream_context: None,
+                implementation_execution: None,
+                refactor_execution: None,
+                backlog_planning: None,
+                clarification_refinement: None,
+                inline_inputs: Vec::new(),
+                captured_at: OffsetDateTime::UNIX_EPOCH,
+            })
+            .expect("serialize run context"),
+        )
+        .expect("write run context");
+    }
+
     #[test]
     fn project_run_response_returns_run_not_found_when_manifest_is_missing() {
         let workspace = TempDir::new().expect("tempdir");
+        let service = EngineService::new(workspace.path());
 
-        let response = project_run_response(workspace.path(), "missing-run", None);
+        let response = project_run_response(&service, "missing-run", None);
 
         assert_eq!(response.status, GovernanceStatus::Failed);
         assert_eq!(response.reason_code, Some(GovernanceReasonCode::RunNotFound));
@@ -492,8 +555,9 @@ mod tests {
         let workspace = TempDir::new().expect("tempdir");
         let run_ref = "019db71e-f1bb-7dc2-b535-213e556d16fe";
         write_run_manifest(workspace.path(), run_ref);
+        let service = EngineService::new(workspace.path());
 
-        let response = load_run_projection(workspace.path(), run_ref).unwrap_err();
+        let response = load_run_projection(&service, run_ref).unwrap_err();
 
         assert_eq!(response.status, GovernanceStatus::Failed);
         assert_eq!(response.reason_code, Some(GovernanceReasonCode::RuntimeError));
@@ -506,8 +570,9 @@ mod tests {
         let run_ref = "019db71e-f1bb-7dc2-b535-213e556d16fe";
         write_run_manifest(workspace.path(), run_ref);
         write_run_state(workspace.path(), run_ref);
+        let service = EngineService::new(workspace.path());
 
-        let projection = load_run_projection(workspace.path(), run_ref).expect("projection");
+        let projection = load_run_projection(&service, run_ref).expect("projection");
 
         assert!(projection.expected_document_refs.is_empty());
         assert!(projection.document_refs.is_empty());
@@ -517,11 +582,37 @@ mod tests {
     #[test]
     fn load_runtime_packet_metadata_returns_none_when_sidecar_is_missing() {
         let workspace = TempDir::new().expect("tempdir");
+        let service = EngineService::new(workspace.path());
 
-        let metadata =
-            load_runtime_packet_metadata(workspace.path(), "missing-run", Mode::Architecture)
-                .expect("missing sidecar should not be an error");
+        let metadata = load_runtime_packet_metadata(
+            &service.project_layout(),
+            "missing-run",
+            Mode::Architecture,
+        )
+        .expect("missing sidecar should not be an error");
 
         assert_eq!(metadata, None);
+    }
+
+    #[test]
+    fn load_run_projection_hides_runs_bound_to_sibling_repo_in_shared_runtime() {
+        let workspace = TempDir::new().expect("tempdir");
+        let workspace_root = workspace.path().join("workspace");
+        let repo_a = workspace_root.join("repo-a");
+        let repo_b = workspace_root.join("repo-b");
+        fs::create_dir_all(&repo_a).expect("repo a");
+        fs::create_dir_all(&repo_b).expect("repo b");
+        fs::create_dir_all(workspace_root.join(".canon")).expect("shared canon runtime");
+        let service = EngineService::from_roots(&repo_a, &workspace_root, &repo_a);
+        let run_ref = "019db71e-f1bb-7dc2-b535-213e556d16fe";
+
+        write_run_manifest(&workspace_root, run_ref);
+        write_run_context(&workspace_root, run_ref, &repo_b);
+        write_run_state(&workspace_root, run_ref);
+
+        let response = load_run_projection(&service, run_ref).unwrap_err();
+
+        assert_eq!(response.status, GovernanceStatus::Failed);
+        assert_eq!(response.reason_code, Some(GovernanceReasonCode::RunNotFound));
     }
 }

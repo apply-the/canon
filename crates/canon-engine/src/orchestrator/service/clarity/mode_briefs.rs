@@ -209,6 +209,7 @@ impl RequirementsBrief {
 
 #[derive(Debug, Clone)]
 pub(crate) struct DiscoveryBrief {
+    #[allow(dead_code)]
     pub(crate) context_summary: String,
     pub(crate) problem: String,
     pub(crate) constraints: String,
@@ -281,6 +282,7 @@ impl DiscoveryBrief {
         Self { context_summary, problem, constraints, repo_focus, unknowns, next_phase }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn generation_prompt(&self, repo_surfaces: &[String]) -> String {
         format!(
             "# Discovery Brief\n\n## Problem\n{}\n\n## Constraints\n{}\n\n## Repo Focus\n{}\n\n## Repo Surface\n{}\n\n## Unknowns\n{}\n\n## Next Phase\n{}",
@@ -293,6 +295,7 @@ impl DiscoveryBrief {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn critique_prompt(
         &self,
         generation_summary: &str,

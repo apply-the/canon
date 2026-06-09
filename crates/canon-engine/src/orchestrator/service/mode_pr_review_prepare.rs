@@ -16,7 +16,7 @@ impl EngineService {
         base_ref: &str,
         head_ref: &str,
     ) -> Result<(), String> {
-        let run_dir = self.repo_root.join(".canon").join("runs").join(run_id).join("pr-review");
+        let run_dir = self.canon_runtime_dir().join("runs").join(run_id).join("pr-review");
         fs::create_dir_all(&run_dir).map_err(|e| format!("create run dir: {e}"))?;
 
         let shell = canon_adapters::shell::ShellAdapter;

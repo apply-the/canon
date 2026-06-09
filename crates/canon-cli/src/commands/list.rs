@@ -1,5 +1,4 @@
 use canon_engine::EngineService;
-use canon_engine::persistence::layout::ProjectLayout;
 use canon_engine::persistence::lookup::{RunHandle, scan_all};
 
 use crate::app::{ListCommand, OutputFormat};
@@ -12,7 +11,7 @@ pub fn execute(service: &EngineService, command: ListCommand) -> CliResult<i32> 
 }
 
 fn list_runs(service: &EngineService, output: OutputFormat) -> CliResult<i32> {
-    let layout = ProjectLayout::new(service.repo_root());
+    let layout = service.project_layout();
     let runs = scan_all(&layout).map_err(|e| {
         crate::error::CliError::Engine(canon_engine::EngineError::Validation(e.to_string()))
     })?;

@@ -121,6 +121,9 @@ mod tests {
     ) -> canon_engine::domain::run::RunContext {
         canon_engine::domain::run::RunContext {
             repo_root: repo_root.display().to_string(),
+            workspace_identity: canon_engine::domain::run::WorkspaceIdentity::same_root(
+                repo_root.display().to_string(),
+            ),
             owner: Some(manifest.owner.clone()),
             inputs: vec!["canon-input/publish.md".to_string()],
             excluded_paths: Vec::new(),

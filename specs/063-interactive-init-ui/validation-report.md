@@ -4,7 +4,7 @@
 
 | Area | Validation | Status | Evidence |
 |------|------------|--------|----------|
-| Guided state machine | Focused unit tests for selection, confirmation, ignored `Esc`, and interruption handling | Pass | `cargo test -p canon-cli --bin canon` passed with 192/192 tests, including `tui::init::*`, `tui::mod::*`, `tui::render::*`, and `tui::terminal::*` coverage-focused additions. |
+| Guided state machine | Focused unit tests for selection, confirmation, ignored `Esc`, and interruption handling | Pass | `cargo test -p canon-cli --bin canon` passed with 192/192 tests, including `tui::init::*`, `tui::tests::*`, `tui::render::*`, and `tui::terminal::*` coverage-focused additions. |
 | Guided command contract | Guided integration coverage for default launch, `--ai` preselection, and 10-keypress reachability | Pass | `cargo test --test init_guided_contract --test init_terminal_recovery` passed; `guided_flow_reaches_claude_within_ten_keypresses` is green. |
 | Non-interactive compatibility | Regression and contract coverage for `--non-interactive`, `--ai`, structured output, and no-TTY fallback | Pass | `cargo test --test init_creates_canon --test init_non_interactive_contract` passed; non-interactive idempotence, AI passthrough, JSON summary output, and structured-output rejection without `--non-interactive` are green. |
 | Terminal lifecycle | Focused unit and integration coverage for restore-on-drop, `Ctrl+C`, failure, and layout-fit rejection | Pass | `cargo test -p canon-cli --bin canon` plus `cargo test --test init_terminal_recovery` passed; restore-on-drop, interruption, failure teardown, and too-small-layout rejection are green. |
@@ -12,7 +12,7 @@
 | Release surfaces | Version, changelog, docs, site, roadmap, quickstart, and CLI contract review | Pass | Release surfaces aligned to `0.63.0`; `cargo test --test assistant_plugin_packages metadata_paths_and_versions_are_aligned` passed after updating assistant and runtime-compatibility metadata. |
 | Formatting | `cargo fmt --check` | Pass | `cargo fmt` completed successfully in final closeout. |
 | Linting | `cargo clippy --workspace --all-targets --all-features -- -D warnings` | Pass | Final strict clippy run passed without warnings. |
-| Coverage on touched Rust files | LCOV-backed changed-file coverage evidence over 95% for touched Rust sources | Pass | `cargo llvm-cov -p canon-cli --all-targets --all-features --lcov --output-path lcov.canon-cli.info` produced: `app.rs 98.83%`, `main.rs 96.36%`, `commands/init.rs 100.00%`, `tui/mod.rs 98.57%`, `tui/init.rs 97.04%`, `tui/render.rs 100.00%`, `tui/terminal.rs 99.27%`. Patch intersection against touched production Rust files reported no misses. |
+| Coverage on touched Rust files | LCOV-backed changed-file coverage evidence over 95% for touched Rust sources | Pass | `cargo llvm-cov -p canon-cli --all-targets --all-features --lcov --output-path lcov.canon-cli.info` produced: `app.rs 98.83%`, `main.rs 96.36%`, `commands/init.rs 100.00%`, `tui.rs 98.57%`, `tui/init.rs 97.04%`, `tui/render.rs 100.00%`, `tui/terminal.rs 99.27%`. Patch intersection against touched production Rust files reported no misses. |
 
 ## Implementation Evidence
 
@@ -50,11 +50,11 @@
 		- `crates/canon-cli/src/app.rs`: `509/515` (`98.83%`)
 		- `crates/canon-cli/src/main.rs`: `53/55` (`96.36%`)
 		- `crates/canon-cli/src/commands/init.rs`: `151/151` (`100.00%`)
-		- `crates/canon-cli/src/tui/mod.rs`: `69/70` (`98.57%`)
+		- `crates/canon-cli/src/tui.rs`: `69/70` (`98.57%`)
 		- `crates/canon-cli/src/tui/init.rs`: `131/135` (`97.04%`)
 		- `crates/canon-cli/src/tui/render.rs`: `133/133` (`100.00%`)
 		- `crates/canon-cli/src/tui/terminal.rs`: `410/413` (`99.27%`)
-	- Patch validation command: `git diff --unified=0 -- crates/canon-cli/src/app.rs crates/canon-cli/src/main.rs crates/canon-cli/src/commands/init.rs crates/canon-cli/src/tui/mod.rs crates/canon-cli/src/tui/init.rs crates/canon-cli/src/tui/render.rs crates/canon-cli/src/tui/terminal.rs | python3 scripts/common/coverage/intersect_patch_coverage.py --lcov lcov.info ...`
+	- Patch validation command: `git diff --unified=0 -- crates/canon-cli/src/app.rs crates/canon-cli/src/main.rs crates/canon-cli/src/commands/init.rs crates/canon-cli/src/tui.rs crates/canon-cli/src/tui/init.rs crates/canon-cli/src/tui/render.rs crates/canon-cli/src/tui/terminal.rs | python3 scripts/common/coverage/intersect_patch_coverage.py --lcov lcov.info ...`
 	- Patch-validation outcome: no uncovered touched production Rust lines remained.
 
 ## Independent Review Focus

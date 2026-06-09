@@ -16,7 +16,9 @@ use crate::domain::publish_profile::{
     PublishProfile, SEMANTIC_ARTIFACT_CONTRACT_LINE_V1, SemanticArtifactDescriptor,
     SemanticEligibilityState, SemanticProvenanceBoundary, UpdateStrategy,
 };
-use crate::domain::run::{ClassificationProvenance, RunContext, RunState, SystemContext};
+use crate::domain::run::{
+    ClassificationProvenance, RunContext, RunState, SystemContext, WorkspaceIdentity,
+};
 use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use crate::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 
@@ -114,6 +116,7 @@ fn artifact_contract_for_files(files: &[(&str, bool)]) -> ArtifactContract {
 fn sample_context(repo_root: &Path, manifest: &RunManifest) -> RunContext {
     RunContext {
         repo_root: repo_root.display().to_string(),
+        workspace_identity: WorkspaceIdentity::same_root(repo_root.display().to_string()),
         owner: Some(manifest.owner.clone()),
         inputs: vec!["canon-input/publish.md".to_string()],
         excluded_paths: Vec::new(),
@@ -536,7 +539,8 @@ fn publish_run_allows_operational_packets_awaiting_approval_and_exports_adr() {
     );
 
     let summary =
-        super::publish_run(workspace.path(), &manifest.run_id, None, true).expect("publish run");
+        super::publish_run(workspace.path(), workspace.path(), &manifest.run_id, None, true)
+            .expect("publish run");
 
     assert!(summary.published_to.contains("tech-docs/migrations"));
     assert!(summary.published_files.iter().any(|file| file.starts_with("tech-docs/adr/ADR-")));
@@ -554,8 +558,9 @@ fn publish_run_reports_missing_required_persisted_artifacts() {
         Vec::new(),
     );
 
-    let error = super::publish_run(workspace.path(), &manifest.run_id, None, false)
-        .expect_err("missing required artifact should fail");
+    let error =
+        super::publish_run(workspace.path(), workspace.path(), &manifest.run_id, None, false)
+            .expect_err("missing required artifact should fail");
 
     assert!(error.to_string().contains("has no publishable artifacts"));
 }
@@ -572,8 +577,9 @@ fn publish_run_rejects_empty_publishable_artifacts() {
         Vec::new(),
     );
 
-    let error = super::publish_run(workspace.path(), &manifest.run_id, None, false)
-        .expect_err("empty publish packet should fail");
+    let error =
+        super::publish_run(workspace.path(), workspace.path(), &manifest.run_id, None, false)
+            .expect_err("empty publish packet should fail");
 
     assert!(error.to_string().contains("has no publishable artifacts"));
 }
@@ -591,6 +597,7 @@ fn publish_run_with_profile_reports_missing_required_persisted_artifacts() {
     );
 
     let error = super::publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &manifest.run_id,
         PublishProfile::ProjectMemory,
@@ -614,6 +621,7 @@ fn publish_run_with_profile_rejects_empty_publishable_artifacts() {
     );
 
     let error = super::publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &manifest.run_id,
         PublishProfile::ProjectMemory,
@@ -642,6 +650,7 @@ fn publish_run_with_profile_writes_metadata_for_directory_override() {
     );
 
     let summary = super::publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &manifest.run_id,
         PublishProfile::ProjectMemory,

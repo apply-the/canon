@@ -271,6 +271,9 @@ fn persist_inspect_evidence_bundle(workspace: &TempDir) -> String {
         },
         context: RunContext {
             repo_root: workspace.path().display().to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root(
+                workspace.path().display().to_string(),
+            ),
             owner: Some("planner".to_string()),
             inputs: vec!["canon-input/backlog.md".to_string()],
             excluded_paths: Vec::new(),
@@ -370,6 +373,9 @@ fn persist_inspect_invocation_bundle(workspace: &TempDir) -> String {
         },
         context: RunContext {
             repo_root: workspace.path().display().to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root(
+                workspace.path().display().to_string(),
+            ),
             owner: Some("staff-engineer".to_string()),
             inputs: vec!["canon-input/implementation.md".to_string()],
             excluded_paths: Vec::new(),
@@ -736,6 +742,59 @@ fn build_runtime_packet_metadata_emits_order_and_legacy_aliases() {
     assert_eq!(metadata["adaptive_governance"]["contract_line"], "adaptive-governance-v1");
     assert_eq!(metadata["adaptive_governance"]["governance_state"], "advisory");
     assert_eq!(metadata["adaptive_governance"]["rollout_profile"], "minimal");
+}
+
+#[test]
+fn engine_packet_metadata_includes_workspace_identity_and_pr_refs() {
+    let service = EngineService::from_roots(
+        "/tmp/workspace/repo-a",
+        "/tmp/workspace",
+        "/tmp/workspace/repo-a/crates/canon-cli",
+    );
+    let requirements = vec![ArtifactRequirement {
+        file_name: "01-review-summary.md".to_string(),
+        format: ArtifactFormat::Markdown,
+        required_sections: Vec::new(),
+        gates: vec![GateKind::Exploration],
+        required: true,
+    }];
+    let request = RunRequest {
+        mode: Mode::PrReview,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(crate::domain::run::SystemContext::Existing),
+        classification: ClassificationProvenance::explicit(),
+        owner: "reviewer".to_string(),
+        inputs: Vec::new(),
+        inline_inputs: Vec::new(),
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    };
+
+    let metadata_contents = service
+        .build_runtime_packet_metadata(
+            "R-test",
+            &request,
+            &[],
+            &requirements,
+            Some("origin/main"),
+            Some("HEAD"),
+        )
+        .expect("packet metadata should render");
+    let metadata: serde_json::Value =
+        serde_json::from_str(&metadata_contents).expect("packet metadata json");
+
+    assert_eq!(metadata["workspace_identity"]["canon_root"], "/tmp/workspace");
+    assert_eq!(metadata["workspace_identity"]["repo_root"], "/tmp/workspace/repo-a");
+    assert_eq!(metadata["workspace_identity"]["repo_name"], "repo-a");
+    assert_eq!(metadata["workspace_identity"]["repo_relative_path_from_canon_root"], "repo-a");
+    assert_eq!(
+        metadata["workspace_identity"]["current_working_directory"],
+        "/tmp/workspace/repo-a/crates/canon-cli"
+    );
+    assert_eq!(metadata["workspace_identity"]["base_ref"], "origin/main");
+    assert_eq!(metadata["workspace_identity"]["head_ref"], "HEAD");
 }
 
 #[test]
@@ -1279,6 +1338,41 @@ fn build_run_context_scaffolds_refactor_execution_metadata() {
     assert_eq!(refactor.refactor_scope.owners, vec!["staff-engineer"]);
     assert_eq!(refactor.execution_posture, ExecutionPosture::RecommendationOnly);
     assert!(!refactor.post_approval_execution_consumed);
+}
+
+#[test]
+fn build_run_context_records_workspace_identity_for_shared_runtime() {
+    let service = EngineService::from_roots(
+        "/tmp/workspace/repo-a",
+        "/tmp/workspace",
+        "/tmp/workspace/repo-a/src/module",
+    );
+    let request = RunRequest {
+        mode: Mode::Requirements,
+        risk: RiskClass::LowImpact,
+        zone: UsageZone::Green,
+        system_context: Some(crate::domain::run::SystemContext::Existing),
+        classification: crate::domain::run::ClassificationProvenance::explicit(),
+        owner: "owner".to_string(),
+        inputs: vec!["brief.md".to_string()],
+        inline_inputs: Vec::new(),
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    };
+
+    let context = service.build_run_context(&request, Vec::new(), OffsetDateTime::UNIX_EPOCH);
+
+    assert_eq!(context.workspace_identity.canon_root, "/tmp/workspace");
+    assert_eq!(context.workspace_identity.repo_root, "/tmp/workspace/repo-a");
+    assert_eq!(context.workspace_identity.repo_name, "repo-a");
+    assert_eq!(context.workspace_identity.repo_relative_path_from_canon_root, "repo-a");
+    assert_eq!(
+        context.workspace_identity.current_working_directory,
+        "/tmp/workspace/repo-a/src/module"
+    );
+    assert_eq!(context.workspace_identity.base_ref, None);
+    assert_eq!(context.workspace_identity.head_ref, None);
 }
 
 #[test]

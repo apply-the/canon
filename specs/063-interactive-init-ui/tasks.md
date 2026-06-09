@@ -19,7 +19,7 @@ description: "Task list for implementing the interactive init experience"
 **Purpose**: Add the dependencies, module entrypoints, and test harness files required by the feature.
 
 - [X] T001 Add `ratatui` and `crossterm` workspace dependencies in Cargo.toml and crates/canon-cli/Cargo.toml
-- [X] T002 [P] Create guided-init module scaffolding in crates/canon-cli/src/tui/mod.rs, crates/canon-cli/src/tui/terminal.rs, crates/canon-cli/src/tui/init.rs, and crates/canon-cli/src/tui/render.rs
+- [X] T002 [P] Create guided-init module scaffolding in crates/canon-cli/src/tui.rs, crates/canon-cli/src/tui/terminal.rs, crates/canon-cli/src/tui/init.rs, and crates/canon-cli/src/tui/render.rs
 - [X] T003 [P] Add integration harness entrypoints in tests/init_guided_contract.rs, tests/init_non_interactive_contract.rs, and tests/init_terminal_recovery.rs
 
 ---
@@ -33,7 +33,7 @@ description: "Task list for implementing the interactive init experience"
 - [X] T004 Extend init CLI parsing for `--non-interactive` and guided preselection in crates/canon-cli/src/app.rs
 - [X] T005 [P] Introduce typed init invocation and session models in crates/canon-cli/src/commands/init.rs and crates/canon-cli/src/tui/init.rs
 - [X] T006 [P] Implement terminal capability and layout-fit preflight primitives in crates/canon-cli/src/tui/terminal.rs
-- [X] T007 [P] Add branded render entrypoints and reusable layout helpers in crates/canon-cli/src/tui/render.rs and crates/canon-cli/src/tui/mod.rs
+- [X] T007 [P] Add branded render entrypoints and reusable layout helpers in crates/canon-cli/src/tui/render.rs and crates/canon-cli/src/tui.rs
 - [X] T008 Create shared guided-init error propagation and module wiring in crates/canon-cli/src/main.rs and crates/canon-cli/src/commands.rs
 
 **Checkpoint**: Shared init routing and TUI infrastructure are ready; user story work can proceed.
@@ -55,7 +55,7 @@ description: "Task list for implementing the interactive init experience"
 
 - [X] T011 [P] [US1] Implement assistant selection state transitions, ignored `Esc` handling, and confirm flow in crates/canon-cli/src/tui/init.rs
 - [X] T012 [P] [US1] Implement branded full-screen assistant chooser and keyboard instruction rendering in crates/canon-cli/src/tui/render.rs
-- [X] T013 [US1] Route default `canon init` through the guided event loop in crates/canon-cli/src/commands/init.rs and crates/canon-cli/src/tui/mod.rs
+- [X] T013 [US1] Route default `canon init` through the guided event loop in crates/canon-cli/src/commands/init.rs and crates/canon-cli/src/tui.rs
 - [X] T014 [US1] Preserve engine-backed initialization handoff for confirmed assistant and no-assistant choices in crates/canon-cli/src/commands/init.rs
 
 **Checkpoint**: The default interactive init path is functional and testable on its own.

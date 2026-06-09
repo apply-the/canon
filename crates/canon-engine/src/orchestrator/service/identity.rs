@@ -423,12 +423,11 @@ impl EngineService {
     }
 
     fn refinement_working_brief_path(&self, run_id: &str, mode: Mode) -> String {
-        let run_dir =
-            crate::persistence::layout::ProjectLayout::new(&self.repo_root).run_dir(run_id);
+        let run_dir = self.project_layout().run_dir(run_id);
         let relative_run_dir = run_dir
-            .strip_prefix(&self.repo_root)
+            .strip_prefix(self.canon_workspace_root())
             .map(Path::to_path_buf)
-            .unwrap_or_else(|_| PathBuf::from(".canon").join("runs").join(run_id));
+            .unwrap_or_else(|_| run_dir.clone());
 
         relative_run_dir
             .join("artifacts")
@@ -547,6 +546,9 @@ mod tests {
         );
         let run_context = RunContext {
             repo_root: store.layout.repo_root.display().to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root(
+                store.layout.repo_root.display().to_string(),
+            ),
             owner: Some("Owner <owner@example.com>".to_string()),
             inputs: vec!["idea.md".to_string()],
             excluded_paths: Vec::new(),
@@ -599,6 +601,9 @@ mod tests {
 
         let missing = RunContext {
             repo_root: workspace.path().display().to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root(
+                workspace.path().display().to_string(),
+            ),
             owner: None,
             inputs: Vec::new(),
             excluded_paths: Vec::new(),

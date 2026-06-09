@@ -8,6 +8,8 @@ use crate::domain::run::is_canonical_display_id;
 pub struct ProjectLayout {
     /// The absolute path to the repository root.
     pub repo_root: PathBuf,
+    /// The absolute path to the Canon workspace root that owns `.canon/`.
+    pub canon_workspace_root: PathBuf,
     /// The absolute path to the `.canon` governance directory.
     pub canon_root: PathBuf,
 }
@@ -15,8 +17,14 @@ pub struct ProjectLayout {
 impl ProjectLayout {
     /// Creates a new `ProjectLayout` from a repository root.
     pub fn new(repo_root: impl AsRef<Path>) -> Self {
+        Self::from_roots(repo_root.as_ref(), repo_root.as_ref())
+    }
+
+    /// Creates a new `ProjectLayout` from independent repository and Canon workspace roots.
+    pub fn from_roots(repo_root: impl AsRef<Path>, canon_workspace_root: impl AsRef<Path>) -> Self {
         let repo_root = repo_root.as_ref().to_path_buf();
-        Self { canon_root: repo_root.join(".canon"), repo_root }
+        let canon_workspace_root = canon_workspace_root.as_ref().to_path_buf();
+        Self { repo_root, canon_root: canon_workspace_root.join(".canon"), canon_workspace_root }
     }
 
     /// Path to the sessions directory containing active run data.

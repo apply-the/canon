@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use canon_adapters::classify_capability;
-use canon_adapters::copilot_cli::{CopilotCliAdapter, RequirementsGenerationInput};
+use canon_adapters::copilot_cli::CopilotCliAdapter;
 use canon_adapters::filesystem::FilesystemAdapter;
 use canon_adapters::shell::ShellAdapter;
 use canon_adapters::{CapabilityKind, LineageClass};
@@ -14,10 +14,10 @@ use time::OffsetDateTime;
 
 use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
-    render_architecture_artifact, render_change_artifact, render_discovery_artifact,
-    render_domain_language_artifact, render_domain_model_artifact, render_implementation_artifact,
-    render_incident_artifact, render_migration_artifact, render_pr_review_artifact,
-    render_refactor_artifact, render_requirements_artifact_from_evidence, render_review_artifact,
+    render_architecture_artifact, render_change_artifact, render_domain_language_artifact,
+    render_domain_model_artifact, render_implementation_artifact, render_incident_artifact,
+    render_migration_artifact, render_pr_review_artifact, render_refactor_artifact,
+    render_requirements_artifact_from_evidence, render_review_artifact,
     render_security_assessment_artifact, render_supply_chain_analysis_artifact,
     render_system_assessment_artifact, render_system_shaping_artifact,
     render_verification_artifact,
@@ -48,6 +48,7 @@ use crate::orchestrator::publish::{PublishSummary, publish_run};
 use crate::orchestrator::{classifier, gatekeeper, resume, verification_runner};
 use crate::orchestrator::{evidence as evidence_builder, invocation as invocation_runtime};
 use crate::persistence::invocations::PersistedInvocation;
+use crate::persistence::layout::ProjectLayout;
 use crate::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use crate::persistence::store::{
     InitSummary as StoreInitSummary, PersistedArtifact, PersistedRunBundle,
@@ -70,7 +71,6 @@ mod input_handling;
 mod inspect;
 mod mode_backlog;
 mod mode_change;
-mod mode_discovery;
 mod mode_domain_language;
 mod mode_domain_model;
 mod mode_generic_authoring;
@@ -81,7 +81,6 @@ mod mode_pr_review;
 mod mode_pr_review_accept;
 mod mode_pr_review_finalize;
 mod mode_pr_review_prepare;
-mod mode_requirements;
 mod mode_review;
 mod mode_security_assessment;
 mod mode_shaping;
@@ -936,17 +935,57 @@ pub(super) struct AuthoredMutationPatch {
 #[derive(Debug, Clone)]
 pub struct EngineService {
     repo_root: PathBuf,
+    canon_workspace_root: PathBuf,
+    current_working_directory: PathBuf,
 }
 
 impl EngineService {
     /// Creates a new `EngineService` anchored to a specific repository root.
     pub fn new(repo_root: impl AsRef<Path>) -> Self {
-        Self { repo_root: repo_root.as_ref().to_path_buf() }
+        let repo_root = repo_root.as_ref().to_path_buf();
+        Self::from_roots(repo_root.clone(), repo_root.clone(), repo_root)
+    }
+
+    /// Creates a new `EngineService` from independent repository and Canon workspace roots.
+    pub fn from_roots(
+        repo_root: impl AsRef<Path>,
+        canon_workspace_root: impl AsRef<Path>,
+        current_working_directory: impl AsRef<Path>,
+    ) -> Self {
+        Self {
+            repo_root: repo_root.as_ref().to_path_buf(),
+            canon_workspace_root: canon_workspace_root.as_ref().to_path_buf(),
+            current_working_directory: current_working_directory.as_ref().to_path_buf(),
+        }
     }
 
     /// Repository root this service operates against.
     pub fn repo_root(&self) -> &Path {
         &self.repo_root
+    }
+
+    /// Canon workspace root that owns the runtime `.canon/` directory.
+    pub fn canon_workspace_root(&self) -> &Path {
+        &self.canon_workspace_root
+    }
+
+    /// Current working directory captured when the service was constructed.
+    pub fn current_working_directory(&self) -> &Path {
+        &self.current_working_directory
+    }
+
+    /// Project layout used for all persisted Canon runtime paths.
+    pub fn project_layout(&self) -> ProjectLayout {
+        ProjectLayout::from_roots(&self.repo_root, &self.canon_workspace_root)
+    }
+
+    /// Absolute path to the runtime `.canon/` directory.
+    pub fn canon_runtime_dir(&self) -> PathBuf {
+        self.project_layout().canon_root
+    }
+
+    fn workspace_store(&self) -> WorkspaceStore {
+        WorkspaceStore::from_layout(self.project_layout())
     }
 
     /// Resolve a user-supplied run reference (`run_id`, full UUID, prefix
@@ -956,9 +995,8 @@ impl EngineService {
     /// run reference; it surfaces ambiguity, missing-history, and not-found
     /// errors as `EngineError::Validation`.
     pub fn resolve_run(&self, query: &str) -> Result<String, EngineError> {
-        use crate::persistence::layout::ProjectLayout;
         use crate::persistence::lookup::{LookupQuery, resolve};
-        let layout = ProjectLayout::new(&self.repo_root);
+        let layout = self.project_layout();
         let parsed = LookupQuery::parse(query);
         let handle =
             resolve(&layout, &parsed).map_err(|e| EngineError::Validation(e.to_string()))?;
@@ -967,28 +1005,28 @@ impl EngineService {
 
     /// Initializes a repository for Canon usage, ensuring required governance structures exist.
     pub fn init(&self, ai_tool: Option<AiTool>) -> Result<InitSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let summary = store.init_runtime_state(ai_tool.map(AiTool::materialization_target))?;
         Ok(Self::map_init_summary(summary))
     }
 
     /// Installs repository-local skills suitable for the specified AI tool.
     pub fn skills_install(&self, ai_tool: AiTool) -> Result<SkillsSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let summary = store.install_skills(ai_tool.materialization_target())?;
         Ok(Self::map_skills_summary(summary))
     }
 
     /// Updates existing repository-local skills to the latest versions.
     pub fn skills_update(&self, ai_tool: AiTool) -> Result<SkillsSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let summary = store.update_skills(ai_tool.materialization_target())?;
         Ok(Self::map_skills_summary(summary))
     }
 
     /// Lists all discovered Canon skills and their support status.
     pub fn skills_list(&self) -> Vec<SkillEntry> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         store
             .list_skills()
             .into_iter()
@@ -1022,11 +1060,28 @@ pub(super) fn packet_body_artifact_order(
 ///   enabling consumers to resolve unprefixed references.
 ///
 /// Build the machine-facing packet metadata sidecar for runtime-authored modes.
+#[cfg(test)]
 pub(super) fn build_runtime_packet_metadata(
     run_id: &str,
     request: &RunRequest,
     approvals: &[ApprovalRecord],
     artifact_requirements: &[ArtifactRequirement],
+) -> Result<String, EngineError> {
+    build_runtime_packet_metadata_with_identity(
+        run_id,
+        request,
+        approvals,
+        artifact_requirements,
+        None,
+    )
+}
+
+pub(super) fn build_runtime_packet_metadata_with_identity(
+    run_id: &str,
+    request: &RunRequest,
+    approvals: &[ApprovalRecord],
+    artifact_requirements: &[ArtifactRequirement],
+    workspace_identity: Option<crate::domain::run::WorkspaceIdentity>,
 ) -> Result<String, EngineError> {
     let artifact_order = packet_body_artifact_order(artifact_requirements);
     let primary_artifact = artifact_order.first().cloned().unwrap_or_default();
@@ -1081,12 +1136,33 @@ pub(super) fn build_runtime_packet_metadata(
             semantic_descriptor: None,
             authority_governance,
             adaptive_governance,
+            workspace_identity,
         },
     };
 
     serde_json::to_string_pretty(&payload).map_err(|error| {
         EngineError::Validation(format!("packet metadata serialization failed: {error}"))
     })
+}
+
+impl EngineService {
+    pub(super) fn build_runtime_packet_metadata(
+        &self,
+        run_id: &str,
+        request: &RunRequest,
+        approvals: &[ApprovalRecord],
+        artifact_requirements: &[ArtifactRequirement],
+        base_ref: Option<&str>,
+        head_ref: Option<&str>,
+    ) -> Result<String, EngineError> {
+        build_runtime_packet_metadata_with_identity(
+            run_id,
+            request,
+            approvals,
+            artifact_requirements,
+            Some(self.runtime_workspace_identity(base_ref, head_ref)),
+        )
+    }
 }
 
 #[cfg(test)]

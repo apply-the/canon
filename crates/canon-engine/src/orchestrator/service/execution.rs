@@ -161,6 +161,7 @@ mod tests {
     fn make_impl_context(posture: ExecutionPosture, consumed: bool) -> RunContext {
         RunContext {
             repo_root: ".".to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root("."),
             owner: None,
             inputs: Vec::new(),
             excluded_paths: Vec::new(),

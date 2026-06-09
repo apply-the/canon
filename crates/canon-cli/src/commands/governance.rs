@@ -119,11 +119,7 @@ enum GovernanceReasonCode {
     WorkspaceUnavailable,
 }
 
-pub fn execute(
-    service: &EngineService,
-    repo_root: &Path,
-    command: GovernanceCommand,
-) -> CliResult<i32> {
+pub fn execute(service: &EngineService, command: GovernanceCommand) -> CliResult<i32> {
     let request = if matches!(
         &command,
         GovernanceCommand::Start { .. } | GovernanceCommand::Refresh { .. }
@@ -133,7 +129,7 @@ pub fn execute(
         None
     };
 
-    let response = command_response(service, repo_root, command, request)?;
+    let response = command_response(service, command, request)?;
     output::print_value(&response, OutputFormat::Json)?;
     Ok(0)
 }

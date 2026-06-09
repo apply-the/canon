@@ -15,6 +15,14 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.72.2] - 2026-06-09
+
+- Fixed init procedure with nested git repos
+
+## [0.72.1] - 2026-06-09
+
+- Fixed init procedure within IDE terminals.
+
 ## [0.72.0] - 2026-06-09
 
 Delivered specs:

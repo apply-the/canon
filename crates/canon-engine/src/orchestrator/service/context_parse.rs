@@ -363,6 +363,7 @@ pub(crate) fn infer_discovery_next_phase(source: &str) -> String {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn render_repo_surface_block(repo_surfaces: &[String]) -> String {
     if repo_surfaces.is_empty() {
         "- no-repository-surfaces-detected".to_string()

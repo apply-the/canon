@@ -7,6 +7,7 @@ COMPAT_FILE="${REF_DIR}/runtime-compatibility.toml"
 
 command_name=""
 repo_root="$(pwd)"
+canon_root=""
 require_init="false"
 run_id=""
 owner=""
@@ -63,6 +64,7 @@ emit_result() {
   echo "PHASE=${phase}"
   echo "COMMAND=${command_name}"
   echo "REPO_ROOT=${repo_root}"
+  echo "CANON_ROOT=${canon_root}"
   echo "MESSAGE=${message}"
   echo "ACTION=${action}"
   while [[ $# -gt 0 ]]; do
@@ -111,7 +113,10 @@ infer_classification() {
   local mode="$1"
   shift
 
-  local -a cmd=(canon inspect risk-zone --mode "$mode" --output text)
+  local -a cmd=(canon inspect risk-zone --mode "$mode" --output text --repo-root "$repo_root")
+  if [[ -n "${canon_root}" ]]; then
+    cmd+=(--canon-root "$canon_root")
+  fi
   if [[ -n "${normalized_risk}" ]]; then
     cmd+=(--risk "$normalized_risk")
   fi
@@ -200,6 +205,35 @@ resolve_existing_input_path() {
   local parent_dir
   parent_dir="$(cd "$(dirname "$candidate")" && pwd -P)"
   printf '%s/%s' "$parent_dir" "$base_name"
+}
+
+canonicalize_directory() {
+  local candidate="$1"
+  (cd "$candidate" && pwd -P)
+}
+
+discover_canon_root() {
+  local current="$1"
+
+  while :; do
+    if [[ -d "${current}/.canon" ]]; then
+      printf '%s' "$current"
+      return 0
+    fi
+    if [[ "$current" == "/" ]]; then
+      return 1
+    fi
+    current="$(dirname "$current")"
+  done
+}
+
+run_directory_exists() {
+  local target_run_id="$1"
+  local runs_root="${canon_root}/.canon/runs"
+
+  [[ -n "${canon_root}" && -d "${runs_root}" ]] || return 1
+
+  find "${runs_root}" -type d \( -name "${target_run_id}" -o -name "${target_run_id}--*" \) -print -quit 2>/dev/null | grep -q .
 }
 
 authored_input_retry_action() {
@@ -409,6 +443,10 @@ while [[ $# -gt 0 ]]; do
       repo_root="${2:-}"
       shift 2
       ;;
+    --canon-root)
+      canon_root="${2:-}"
+      shift 2
+      ;;
     --require-init)
       require_init="true"
       shift
@@ -497,6 +535,31 @@ reinstall_action() {
   printf '%s' 'Install or update Canon, then rerun canon --version.'
 }
 
+if [[ -z "${repo_root}" ]]; then
+  repo_root="$(pwd)"
+elif [[ "${repo_root}" != /* ]]; then
+  repo_root="$(pwd)/${repo_root}"
+fi
+
+if ! repo_root="$(canonicalize_directory "${repo_root}")"; then
+  emit_failure "wrong-repo-context" 12 \
+    "Repository root ${repo_root} is not accessible." \
+    "Switch into the intended repository root before invoking this skill."
+fi
+
+if [[ -n "${canon_root}" ]]; then
+  if [[ "${canon_root}" != /* ]]; then
+    canon_root="$(pwd)/${canon_root}"
+  fi
+  if ! canon_root="$(canonicalize_directory "${canon_root}")"; then
+    emit_failure "workspace-unavailable" 13 \
+      "Canon workspace root ${canon_root} is not accessible." \
+      "Pass an existing --canon-root path or initialize from a reachable workspace."
+  fi
+else
+  canon_root="$(discover_canon_root "${repo_root}" || true)"
+fi
+
 if ! command -v canon >/dev/null 2>&1; then
   emit_failure "cli-missing" 10 \
     "Canon CLI is not installed or is not on PATH." \
@@ -528,10 +591,10 @@ if ! git -C "${repo_root}" rev-parse --show-toplevel >/dev/null 2>&1; then
     "Switch into the intended repository root before invoking this skill."
 fi
 
-if [[ "${require_init}" == "true" ]] && [[ ! -d "${repo_root}/.canon" ]]; then
+if [[ "${require_init}" == "true" ]] && [[ -z "${canon_root}" || ! -d "${canon_root}/.canon" ]]; then
   emit_failure "repo-not-initialized" 13 \
     "This workflow requires an initialized .canon/ directory." \
-    "Run \$canon-init or canon init in ${repo_root} first."
+    "Run \$canon-init or canon init --non-interactive --repo-root ${repo_root}${canon_root:+ --canon-root ${canon_root}} first."
 fi
 
 run_start_command="false"
@@ -567,7 +630,7 @@ if [[ "${run_id_command}" == "true" ]]; then
       "FAILED_SLOT=run-id" \
       "FAILED_KIND=RunIdInput"
   fi
-  if [[ ! -d "${repo_root}/.canon/runs/${normalized_run_id}" ]]; then
+  if ! run_directory_exists "${normalized_run_id}"; then
     emit_failure "invalid-input" 17 \
       "Run id ${normalized_run_id} was not found under .canon/runs/." \
       "Check the run id and retry with an existing run." \
@@ -677,12 +740,12 @@ if [[ "${run_start_command}" == "true" ]]; then
       fi
 
       resolved_input="$(resolve_existing_input_path "$local_input")"
-      canon_root=""
-      if [[ -d "${repo_root}/.canon" ]]; then
-        canon_root="$(cd "${repo_root}/.canon" && pwd -P)"
+      canon_runtime_root=""
+      if [[ -n "${canon_root}" && -d "${canon_root}/.canon" ]]; then
+        canon_runtime_root="$(cd "${canon_root}/.canon" && pwd -P)"
       fi
-      if [[ -n "${canon_root}" ]] && \
-        ([[ "${resolved_input}" == "${canon_root}" ]] || [[ "${resolved_input}" == "${canon_root}/"* ]]); then
+      if [[ -n "${canon_runtime_root}" ]] && \
+        ([[ "${resolved_input}" == "${canon_runtime_root}" ]] || [[ "${resolved_input}" == "${canon_runtime_root}/"* ]]); then
         input_hint=""
         if input_hint="$(canonical_mode_input_hint 2>/dev/null)"; then
           input_action="Retry with ${input_hint}, another authored file path outside .canon/, or non-empty --input-text."

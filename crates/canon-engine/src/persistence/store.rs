@@ -141,7 +141,17 @@ pub struct WorkspaceStore {
 impl WorkspaceStore {
     /// Creates a new `WorkspaceStore` anchored to the given repository root.
     pub fn new(repo_root: impl AsRef<Path>) -> Self {
-        Self { layout: ProjectLayout::new(repo_root), filesystem: FilesystemAdapter }
+        Self::from_layout(ProjectLayout::new(repo_root))
+    }
+
+    /// Creates a new `WorkspaceStore` anchored to explicit repository and Canon roots.
+    pub fn from_roots(repo_root: impl AsRef<Path>, canon_workspace_root: impl AsRef<Path>) -> Self {
+        Self::from_layout(ProjectLayout::from_roots(repo_root, canon_workspace_root))
+    }
+
+    /// Creates a new `WorkspaceStore` from a pre-resolved project layout.
+    pub fn from_layout(layout: ProjectLayout) -> Self {
+        Self { layout, filesystem: FilesystemAdapter }
     }
 
     /// Persists all data from a completed run bundle to the canonical layout.
@@ -664,6 +674,9 @@ mod tests {
 
         let context = RunContext {
             repo_root: workspace.path().display().to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root(
+                workspace.path().display().to_string(),
+            ),
             owner: Some("staff-engineer".to_string()),
             inputs: vec!["canon-input/implementation.md".to_string()],
             excluded_paths: Vec::new(),
@@ -797,6 +810,9 @@ mod tests {
             },
             context: RunContext {
                 repo_root: workspace.path().display().to_string(),
+                workspace_identity: crate::domain::run::WorkspaceIdentity::same_root(
+                    workspace.path().display().to_string(),
+                ),
                 owner: Some("principal-architect".to_string()),
                 inputs: vec!["architecture.md".to_string()],
                 excluded_paths: Vec::new(),

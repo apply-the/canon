@@ -470,11 +470,13 @@ impl EngineService {
             generation_output.summary, validation_summary, mutation_attempt.outcome.summary
         );
         let default_owner = self.resolve_owner("");
-        let packet_metadata_contents = build_runtime_packet_metadata(
+        let packet_metadata_contents = self.build_runtime_packet_metadata(
             &run_id,
             &request,
             approvals.as_slice(),
             &artifact_contract.artifact_requirements,
+            None,
+            None,
         )?;
         let artifacts = artifact_contract
             .artifact_requirements

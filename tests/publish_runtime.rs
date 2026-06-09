@@ -7,7 +7,9 @@ use canon_engine::domain::artifact::{
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
 use canon_engine::domain::publish_profile::PublishProfile;
-use canon_engine::domain::run::{ClassificationProvenance, RunContext, RunState, SystemContext};
+use canon_engine::domain::run::{
+    ClassificationProvenance, RunContext, RunState, SystemContext, WorkspaceIdentity,
+};
 use canon_engine::orchestrator::publish::{publish_run, publish_run_with_profile};
 use canon_engine::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use canon_engine::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
@@ -172,6 +174,7 @@ fn persist_completed_requirements_run(workspace_root: &Path) -> String {
         run: manifest.clone(),
         context: RunContext {
             repo_root: workspace_root.display().to_string(),
+            workspace_identity: WorkspaceIdentity::same_root(workspace_root.display().to_string()),
             owner: Some(manifest.owner.clone()),
             inputs: vec!["idea.md".to_string()],
             excluded_paths: Vec::new(),
@@ -288,6 +291,7 @@ fn persist_completed_architecture_run(workspace_root: &Path) -> String {
         run: manifest.clone(),
         context: RunContext {
             repo_root: workspace_root.display().to_string(),
+            workspace_identity: WorkspaceIdentity::same_root(workspace_root.display().to_string()),
             owner: Some(manifest.owner.clone()),
             inputs: vec!["architecture.md".to_string()],
             excluded_paths: Vec::new(),
@@ -335,8 +339,14 @@ fn publish_run_rejects_destination_that_is_an_existing_file() {
     let destination_file = workspace.path().join("published.txt");
     fs::write(&destination_file, "not a directory").expect("write file destination");
 
-    let error = publish_run(workspace.path(), &run_id, Some(&destination_file), false)
-        .expect_err("publish should reject file destination");
+    let error = publish_run(
+        workspace.path(),
+        workspace.path(),
+        &run_id,
+        Some(destination_file.as_path()),
+        false,
+    )
+    .expect_err("publish should reject file destination");
 
     assert!(error.to_string().contains("must be a directory"));
 }
@@ -352,8 +362,14 @@ fn publish_run_supports_absolute_override_outside_repo_root() {
 
     let run_id = persist_completed_requirements_run(workspace.path());
 
-    let summary = publish_run(workspace.path(), &run_id, Some(&absolute_destination), false)
-        .expect("publish should support absolute override");
+    let summary = publish_run(
+        workspace.path(),
+        workspace.path(),
+        &run_id,
+        Some(absolute_destination.as_path()),
+        false,
+    )
+    .expect("publish should support absolute override");
 
     assert_eq!(summary.published_to, absolute_destination.display().to_string());
     assert!(absolute_destination.join("01-problem-statement.md").exists());
@@ -371,8 +387,8 @@ fn publish_run_writes_metadata_sidecar_for_default_destinations() {
 
     let run_id = persist_completed_requirements_run(workspace.path());
 
-    let summary =
-        publish_run(workspace.path(), &run_id, None, false).expect("publish should succeed");
+    let summary = publish_run(workspace.path(), workspace.path(), &run_id, None, false)
+        .expect("publish should succeed");
     let metadata_path = workspace.path().join(&summary.published_to).join("packet-metadata.json");
     let metadata: serde_json::Value =
         serde_json::from_slice(&fs::read(&metadata_path).expect("read metadata sidecar"))
@@ -398,8 +414,8 @@ fn publish_run_generates_and_reports_architecture_adr_in_process() {
     let workspace = tempdir().expect("temp workspace");
     let run_id = persist_completed_architecture_run(workspace.path());
 
-    let summary =
-        publish_run(workspace.path(), &run_id, None, false).expect("publish should succeed");
+    let summary = publish_run(workspace.path(), workspace.path(), &run_id, None, false)
+        .expect("publish should succeed");
 
     assert!(summary.published_files.iter().any(|path| path.starts_with("tech-docs/adr/ADR-0001-")));
     assert!(workspace.path().join("tech-docs").join("adr").exists());
@@ -411,7 +427,7 @@ fn publish_run_rejects_incomplete_non_operational_run() {
     let manifest = sample_manifest("run-awaiting-publish");
     persist_run_manifest_and_state(workspace.path(), &manifest, RunState::AwaitingApproval);
 
-    let error = publish_run(workspace.path(), &manifest.run_id, None, false)
+    let error = publish_run(workspace.path(), workspace.path(), &manifest.run_id, None, false)
         .expect_err("incomplete requirements publish should fail");
 
     assert!(error.to_string().contains("approval and resume must complete first"));
@@ -423,7 +439,7 @@ fn publish_run_reports_missing_artifact_contract() {
     let manifest = sample_manifest("run-missing-contract-default");
     persist_run_manifest_and_state(workspace.path(), &manifest, RunState::Completed);
 
-    let error = publish_run(workspace.path(), &manifest.run_id, None, false)
+    let error = publish_run(workspace.path(), workspace.path(), &manifest.run_id, None, false)
         .expect_err("publish should fail without artifact contract");
 
     assert!(error.to_string().contains("no publishable artifact contract"));
@@ -437,9 +453,14 @@ fn publish_run_with_profile_promotes_completed_requirements() {
 
     let run_id = persist_completed_requirements_run(workspace.path());
 
-    let summary =
-        publish_run_with_profile(workspace.path(), &run_id, PublishProfile::ProjectMemory, None)
-            .expect("profile publish should succeed");
+    let summary = publish_run_with_profile(
+        workspace.path(),
+        workspace.path(),
+        &run_id,
+        PublishProfile::ProjectMemory,
+        None,
+    )
+    .expect("profile publish should succeed");
 
     assert_eq!(summary.published_to, "tech-docs/project/product-context.md");
     assert!(summary.published_files.iter().any(|p| p == "tech-docs/project/product-context.md"));
@@ -482,6 +503,7 @@ fn publish_run_with_profile_uses_append_only_index_for_review() {
 
     let summary = publish_run_with_profile(
         workspace.path(),
+        workspace.path(),
         &run.run_id,
         PublishProfile::ProjectMemory,
         None,
@@ -516,6 +538,7 @@ fn publish_run_with_profile_uses_proposal_files_for_incident() {
     let run = service.run(incident_request()).expect("incident run");
 
     let summary = publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &run.run_id,
         PublishProfile::ProjectMemory,
@@ -554,6 +577,7 @@ fn publish_run_with_profile_reports_missing_artifact_contract() {
 
     let error = publish_run_with_profile(
         workspace.path(),
+        workspace.path(),
         &manifest.run_id,
         PublishProfile::ProjectMemory,
         None,
@@ -576,6 +600,7 @@ fn publish_run_with_profile_rejects_manual_promotion() {
 
     let error = publish_run_with_profile(
         workspace.path(),
+        workspace.path(),
         "manual-run",
         PublishProfile::ProjectMemory,
         None,
@@ -597,6 +622,7 @@ fn publish_run_with_profile_rejects_override_file_destination() {
 
     let error = publish_run_with_profile(
         workspace.path(),
+        workspace.path(),
         &run_id,
         PublishProfile::ProjectMemory,
         Some(Path::new("custom-file.txt")),
@@ -615,6 +641,7 @@ fn publish_run_with_profile_respects_destination_override() {
     let run_id = persist_completed_requirements_run(workspace.path());
 
     let summary = publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &run_id,
         PublishProfile::ProjectMemory,
@@ -654,6 +681,7 @@ fn publish_run_with_profile_review_override_writes_index_and_evidence_bundle() {
 
     let summary = publish_run_with_profile(
         workspace.path(),
+        workspace.path(),
         &run.run_id,
         PublishProfile::ProjectMemory,
         Some(Path::new("custom/review")),
@@ -690,6 +718,7 @@ fn publish_run_with_profile_incident_override_writes_proposal_files() {
     let run = service.run(incident_request()).expect("incident run");
 
     let summary = publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &run.run_id,
         PublishProfile::ProjectMemory,

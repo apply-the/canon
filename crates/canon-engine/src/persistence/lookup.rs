@@ -6,11 +6,12 @@
 
 use std::fmt;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
 
 use time::OffsetDateTime;
 
-use crate::domain::run::{is_canonical_display_id, short_id_from_uuid};
+use crate::domain::run::{RunContext, is_canonical_display_id, short_id_from_uuid};
 use crate::persistence::layout::{ProjectLayout, parse_dated_display_id, parse_run_dir_name};
 use crate::persistence::manifests::RunManifest;
 
@@ -181,16 +182,20 @@ pub fn scan_all(layout: &ProjectLayout) -> Result<Vec<RunHandle>, LookupError> {
         }
         if name_str.starts_with("R-") || looks_like_uuid(name_str) {
             // Legacy UUID-keyed run directory directly under runs/.
-            push_handle_if_present(&path, &mut handles);
+            push_handle_if_present(layout, &path, &mut handles);
         } else if name_str.len() == 4 && name_str.chars().all(|c| c.is_ascii_digit()) {
             // YYYY/ bucket — recurse one level.
-            scan_year(&path, &mut handles)?;
+            scan_year(layout, &path, &mut handles)?;
         }
     }
     Ok(handles)
 }
 
-fn scan_year(year_dir: &std::path::Path, handles: &mut Vec<RunHandle>) -> Result<(), LookupError> {
+fn scan_year(
+    layout: &ProjectLayout,
+    year_dir: &Path,
+    handles: &mut Vec<RunHandle>,
+) -> Result<(), LookupError> {
     for entry in fs::read_dir(year_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -202,14 +207,18 @@ fn scan_year(year_dir: &std::path::Path, handles: &mut Vec<RunHandle>) -> Result
             let run_entry = run_entry?;
             let run_path = run_entry.path();
             if run_path.is_dir() {
-                push_handle_if_present(&run_path, handles);
+                push_handle_if_present(layout, &run_path, handles);
             }
         }
     }
     Ok(())
 }
 
-fn push_handle_if_present(run_dir: &std::path::Path, handles: &mut Vec<RunHandle>) {
+fn push_handle_if_present(layout: &ProjectLayout, run_dir: &Path, handles: &mut Vec<RunHandle>) {
+    if !run_matches_repo(layout, run_dir) {
+        return;
+    }
+
     let manifest_path = run_dir.join("run.toml");
     if !manifest_path.exists() {
         return;
@@ -247,6 +256,28 @@ fn push_handle_if_present(run_dir: &std::path::Path, handles: &mut Vec<RunHandle
     });
 }
 
+fn run_matches_repo(layout: &ProjectLayout, run_dir: &Path) -> bool {
+    if layout.repo_root == layout.canon_workspace_root {
+        return true;
+    }
+
+    let context_path = run_dir.join("context.toml");
+    let Ok(contents) = fs::read_to_string(&context_path) else {
+        return false;
+    };
+    let Ok(context): Result<RunContext, _> = toml::from_str(&contents) else {
+        return false;
+    };
+    let run_repo_root = canonicalize_repo_root(PathBuf::from(context.repo_root));
+    let layout_repo_root = canonicalize_repo_root(layout.repo_root.clone());
+
+    run_repo_root == layout_repo_root
+}
+
+fn canonicalize_repo_root(path: PathBuf) -> PathBuf {
+    path.canonicalize().unwrap_or(path)
+}
+
 fn looks_like_uuid(s: &str) -> bool {
     s.parse::<uuid::Uuid>().is_ok()
 }
@@ -263,7 +294,9 @@ mod tests {
     use super::{LookupError, LookupQuery, resolve, scan_all};
     use crate::domain::mode::Mode;
     use crate::domain::policy::{RiskClass, UsageZone};
-    use crate::domain::run::{ClassificationProvenance, SystemContext};
+    use crate::domain::run::{
+        ClassificationProvenance, RunContext, SystemContext, WorkspaceIdentity,
+    };
     use crate::persistence::layout::ProjectLayout;
     use crate::persistence::manifests::RunManifest;
 
@@ -294,6 +327,31 @@ mod tests {
         fs::create_dir_all(run_dir).expect("create run dir");
         fs::write(run_dir.join("run.toml"), toml::to_string(manifest).expect("serialize manifest"))
             .expect("write run manifest");
+    }
+
+    fn write_context(run_dir: &Path, repo_root: &Path) {
+        let context = RunContext {
+            repo_root: repo_root.display().to_string(),
+            workspace_identity: WorkspaceIdentity::same_root(repo_root.display().to_string()),
+            owner: Some("Owner <owner@example.com>".to_string()),
+            inputs: vec!["brief.md".to_string()],
+            excluded_paths: Vec::new(),
+            input_fingerprints: Vec::new(),
+            system_context: Some(SystemContext::Existing),
+            upstream_context: None,
+            implementation_execution: None,
+            refactor_execution: None,
+            backlog_planning: None,
+            clarification_refinement: None,
+            inline_inputs: Vec::new(),
+            captured_at: OffsetDateTime::UNIX_EPOCH,
+        };
+
+        fs::write(
+            run_dir.join("context.toml"),
+            toml::to_string(&context).expect("serialize context"),
+        )
+        .expect("write run context");
     }
 
     #[test]
@@ -376,6 +434,44 @@ mod tests {
         assert_eq!(legacy.uuid, legacy_uuid.as_simple().to_string());
         assert_eq!(legacy.short_id, "019db71e");
         assert!(legacy.is_legacy);
+    }
+
+    #[test]
+    fn scan_all_filters_shared_runtime_to_current_repo_root() {
+        let workspace = tempdir().expect("temp workspace");
+        let workspace_root = workspace.path().join("workspace");
+        let repo_a = workspace_root.join("repo-a");
+        let repo_b = workspace_root.join("repo-b");
+        fs::create_dir_all(&repo_a).expect("repo a");
+        fs::create_dir_all(&repo_b).expect("repo b");
+
+        let layout = ProjectLayout::from_roots(&repo_a, &workspace_root);
+        let repo_a_run = layout.new_run_dir("R-20260422-11111111", None);
+        write_manifest(
+            &repo_a_run,
+            &sample_manifest(
+                "R-20260422-11111111",
+                None,
+                OffsetDateTime::from_unix_timestamp(1_700_000_010).expect("timestamp"),
+            ),
+        );
+        write_context(&repo_a_run, &repo_a);
+
+        let repo_b_run = layout.new_run_dir("R-20260422-22222222", None);
+        write_manifest(
+            &repo_b_run,
+            &sample_manifest(
+                "R-20260422-22222222",
+                None,
+                OffsetDateTime::from_unix_timestamp(1_700_000_020).expect("timestamp"),
+            ),
+        );
+        write_context(&repo_b_run, &repo_b);
+
+        let handles = scan_all(&layout).expect("scan shared runtime");
+
+        assert_eq!(handles.len(), 1);
+        assert_eq!(handles[0].run_id, "R-20260422-11111111");
     }
 
     #[test]

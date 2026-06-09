@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use canon_engine::{AiTool, EngineService};
 use clap::{Args, Parser, Subcommand, ValueEnum};
@@ -314,11 +314,38 @@ pub struct PublishCommand {
 #[command(about = "A governed method engine for AI-assisted software engineering.")]
 #[command(version)]
 pub struct Cli {
+    #[arg(long, global = true)]
+    canon_root: Option<PathBuf>,
+    #[arg(long, global = true)]
+    repo_root: Option<PathBuf>,
     #[command(subcommand)]
     command: Command,
 }
 
-fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command) -> CliResult<i32> {
+fn command_repo_root_requirement(_command: &Command) -> workspace::RepoRootRequirement {
+    workspace::RepoRootRequirement::Optional
+}
+
+fn resolve_cli_roots(cli: &Cli) -> Result<workspace::ResolvedRoots, std::io::Error> {
+    let mut options =
+        workspace::RootResolutionOptions::new(command_repo_root_requirement(&cli.command));
+    options.canon_root_override =
+        cli.canon_root.clone().or_else(|| workspace::env_path(workspace::CANON_ROOT_ENV_VAR));
+    options.repo_root_override =
+        cli.repo_root.clone().or_else(|| workspace::env_path(workspace::CANON_REPO_ROOT_ENV_VAR));
+
+    workspace::resolve_roots(options).map_err(|error| std::io::Error::other(error.to_string()))
+}
+
+fn service_from_roots(roots: &workspace::ResolvedRoots) -> EngineService {
+    EngineService::from_roots(
+        roots.effective_repo_root(),
+        roots.canon_root_for_runtime(),
+        &roots.current_working_directory,
+    )
+}
+
+fn dispatch_command(service: &EngineService, command: Command) -> CliResult<i32> {
     match command {
         Command::Init { ai, non_interactive, output } => {
             commands::init::execute(service, ai.map(Into::into), non_interactive, output)
@@ -373,9 +400,7 @@ fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command)
         Command::Verify { .. } => commands::verify::execute(),
         Command::Inspect { command } => commands::inspect::execute(service, command),
         Command::Skills { command } => commands::skills::execute(service, command),
-        Command::Governance { command } => {
-            commands::governance::execute(service, repo_root, command)
-        }
+        Command::Governance { command } => commands::governance::execute(service, command),
         Command::PrReview { command } => commands::pr_review::execute(service, command),
         Command::List { command } => commands::list::execute(service, command),
         Command::Publish(cmd) => commands::publish::execute(service, cmd),
@@ -389,29 +414,32 @@ fn dispatch_command(service: &EngineService, repo_root: &Path, command: Command)
     }
 }
 
-fn run_with(cli: Cli, repo_root: PathBuf) -> CliResult<i32> {
-    let service = EngineService::new(&repo_root);
-    dispatch_command(&service, repo_root.as_path(), cli.command)
+fn run_with(cli: Cli, roots: workspace::ResolvedRoots) -> CliResult<i32> {
+    let service = service_from_roots(&roots);
+    dispatch_command(&service, cli.command)
 }
 
 pub fn run() -> CliResult<i32> {
     tracing_subscriber::fmt::try_init().ok();
 
-    let repo_root =
-        workspace::resolve_repo_root().map_err(|error| std::io::Error::other(error.to_string()))?;
+    let cli = Cli::parse();
+    let roots = resolve_cli_roots(&cli)?;
 
-    run_with(Cli::parse(), repo_root)
+    run_with(cli, roots)
 }
 
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+    use std::path::PathBuf;
+
     use tempfile::tempdir;
 
     use super::{
         AiTarget, ApproveCommand, Cli, Command, GovernanceCommand, InspectCommand, ListCommand,
         OutputFormat, PublishCommand, RunCommand, SkillsCommand, run_with,
     };
+    use crate::workspace::ResolvedRoots;
     use canon_engine::AiTool;
 
     macro_rules! assert_command {
@@ -826,6 +854,35 @@ mod tests {
     }
 
     #[test]
+    fn global_root_overrides_parse_before_subcommands() {
+        let cli = Cli::parse_from([
+            "canon",
+            "--canon-root",
+            "workspace",
+            "--repo-root",
+            "repo",
+            "governance",
+            "capabilities",
+            "--json",
+        ]);
+
+        assert_eq!(cli.canon_root, Some(PathBuf::from("workspace")));
+        assert_eq!(cli.repo_root, Some(PathBuf::from("repo")));
+        assert_command!(
+            cli.command,
+            Command::Governance { command: GovernanceCommand::Capabilities { json } } if json
+        );
+    }
+
+    fn resolved_roots(repo_root: PathBuf) -> ResolvedRoots {
+        ResolvedRoots {
+            current_working_directory: repo_root.clone(),
+            canon_root: Some(repo_root.clone()),
+            repo_root: Some(repo_root),
+        }
+    }
+
+    #[test]
     fn policy_shaping_parses_args_correctly() {
         let cli = Cli::parse_from([
             "canon",
@@ -849,13 +906,15 @@ mod tests {
         assert_eq!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Init {
                         ai: None,
                         non_interactive: true,
                         output: OutputFormat::Json,
                     },
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .expect("init should succeed"),
             0
@@ -864,6 +923,8 @@ mod tests {
         assert!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Run(Box::new(RunCommand {
                         mode: "not-a-mode".to_string(),
                         system_context: None,
@@ -884,15 +945,7 @@ mod tests {
                         output: OutputFormat::Json,
                     })),
                 },
-                repo_root.clone(),
-            )
-            .is_err()
-        );
-
-        assert!(
-            run_with(
-                Cli { command: Command::Resume { run: "run-missing".to_string() } },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .is_err()
         );
@@ -900,12 +953,26 @@ mod tests {
         assert!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
+                    command: Command::Resume { run: "run-missing".to_string() },
+                },
+                resolved_roots(repo_root.clone()),
+            )
+            .is_err()
+        );
+
+        assert!(
+            run_with(
+                Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Status {
                         run: "run-missing".to_string(),
                         output: OutputFormat::Json,
                     },
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .is_err()
         );
@@ -913,6 +980,8 @@ mod tests {
         assert!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Approve(ApproveCommand {
                         run: "run-missing".to_string(),
                         target: None,
@@ -922,15 +991,19 @@ mod tests {
                         rationale: "looks good".to_string(),
                     }),
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .is_err()
         );
 
         assert!(
             run_with(
-                Cli { command: Command::Verify { run: "run-missing".to_string() } },
-                repo_root.clone(),
+                Cli {
+                    canon_root: None,
+                    repo_root: None,
+                    command: Command::Verify { run: "run-missing".to_string() },
+                },
+                resolved_roots(repo_root.clone()),
             )
             .is_err()
         );
@@ -938,11 +1011,13 @@ mod tests {
         assert_eq!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Inspect {
                         command: InspectCommand::Modes { output: OutputFormat::Json },
                     },
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .expect("inspect should succeed"),
             0
@@ -951,11 +1026,13 @@ mod tests {
         assert_eq!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Skills {
                         command: SkillsCommand::List { output: OutputFormat::Json },
                     },
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .expect("skills list should succeed"),
             0
@@ -964,11 +1041,13 @@ mod tests {
         assert_eq!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Governance {
                         command: GovernanceCommand::Capabilities { json: true },
                     },
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .expect("governance capabilities should succeed"),
             0
@@ -977,11 +1056,13 @@ mod tests {
         assert_eq!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::List {
                         command: ListCommand::Runs { output: OutputFormat::Json },
                     },
                 },
-                repo_root.clone(),
+                resolved_roots(repo_root.clone()),
             )
             .expect("list runs should succeed"),
             0
@@ -990,6 +1071,8 @@ mod tests {
         assert!(
             run_with(
                 Cli {
+                    canon_root: None,
+                    repo_root: None,
                     command: Command::Publish(PublishCommand {
                         run_id: "run-missing".to_string(),
                         to: None,
@@ -997,7 +1080,7 @@ mod tests {
                         profile: None,
                     }),
                 },
-                repo_root,
+                resolved_roots(repo_root),
             )
             .is_err()
         );

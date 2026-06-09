@@ -12,13 +12,16 @@ description: Use when a repository does not have Canon runtime state yet and you
 
 ## Purpose
 
-Initialize `.canon/` in the current repository so Canon workflows can run and
-persist durable evidence locally. In Codex and compatible Copilot environments,
-this skill also materializes the matching repo-local skill surface.
+Initialize `.canon/` for the target repository so Canon workflows can run and
+persist durable evidence locally. The Canon runtime may live at the repository
+root or at a parent workspace root passed through `--canon-root`. In Codex and
+compatible Copilot environments, this skill also materializes the matching
+repo-local skill surface.
 
 ## When To Trigger
 
-- The current repository has no `.canon/` directory yet.
+- The current repository has no reachable `.canon/` directory yet at the repo
+  root or any intended parent Canon workspace.
 - A later Canon skill needs initialization before it can proceed.
 
 ## When It Must Not Trigger
@@ -31,6 +34,7 @@ this skill also materializes the matching repo-local skill surface.
 ## Required Inputs
 
 - current repository context
+- optional parent Canon workspace root when `.canon/` should be shared across sibling repos
 
 ## Preflight Profile
 
@@ -40,9 +44,9 @@ this skill also materializes the matching repo-local skill surface.
 
 ## Canon Command Contract
 
-- Canon command: `canon init --ai codex`
+- Canon command: `canon init --non-interactive --ai codex --repo-root <repo-root> [--canon-root <workspace-root>]`
 - This skill is Canon-backed immediately and should not invent setup state.
-- Execute only `canon init --ai codex`.
+- Execute only the non-interactive command above.
 - Do not automatically start another Canon skill or `canon run` in the same turn.
 
 ## Expected Output Shape
@@ -57,6 +61,7 @@ this skill also materializes the matching repo-local skill surface.
 
 - If `canon` is missing, show the install command from the shared compatibility reference.
 - If the user is outside a Git repo, tell them to switch into the intended repository root before retrying.
+- If the user wants a shared parent `.canon/`, tell them to rerun with `--canon-root <workspace-root>`.
 
 ## Next-Step Guidance
 

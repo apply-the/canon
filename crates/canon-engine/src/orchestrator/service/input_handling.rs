@@ -272,10 +272,9 @@ impl EngineService {
     }
 
     fn canonical_canon_root(&self) -> Result<Option<PathBuf>, EngineError> {
-        self.repo_root
-            .join(".canon")
+        self.canon_runtime_dir()
             .exists()
-            .then(|| self.repo_root.join(".canon").canonicalize())
+            .then(|| self.canon_runtime_dir().canonicalize())
             .transpose()
             .map_err(Into::into)
     }

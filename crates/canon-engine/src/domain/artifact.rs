@@ -9,6 +9,7 @@ use crate::domain::publish_profile::{
     AdaptiveGovernanceV1Envelope, ArtifactIndexingMetadata, AuthorityGovernanceV1Envelope,
     ExpertiseInputMetadata, PublicationTargetClass, SemanticArtifactDescriptor,
 };
+use crate::domain::run::WorkspaceIdentity;
 use crate::domain::verification::VerificationLayer;
 
 /// Filename of the view manifest sidecar emitted alongside every packet.
@@ -149,6 +150,9 @@ pub struct RuntimePacketMetadata {
     #[serde(skip_serializing_if = "Option::is_none", default)]
     /// Canon-owned adaptive-governance companion metadata, if any.
     pub adaptive_governance: Option<AdaptiveGovernanceV1Envelope>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    /// Repository and workspace identity captured for the runtime packet.
+    pub workspace_identity: Option<WorkspaceIdentity>,
 }
 
 impl RuntimePacketMetadata {
@@ -406,6 +410,7 @@ mod tests {
                     packet_readiness: AuthorityPacketReadiness::Incomplete,
                 },
             )),
+            workspace_identity: None,
         };
 
         let round_trip: RuntimePacketMetadata =
@@ -445,6 +450,7 @@ mod tests {
             semantic_descriptor: None,
             authority_governance: None,
             adaptive_governance: None,
+            workspace_identity: None,
         };
 
         assert!(metadata.validate_artifact_indexing().is_ok());
@@ -472,6 +478,7 @@ mod tests {
             }),
             authority_governance: None,
             adaptive_governance: None,
+            workspace_identity: None,
         };
 
         assert!(metadata.validate_semantic_descriptor().is_ok());
@@ -494,6 +501,7 @@ mod tests {
             semantic_descriptor: None,
             authority_governance: None,
             adaptive_governance: None,
+            workspace_identity: None,
         };
 
         let error = metadata.validate_artifact_indexing().unwrap_err();

@@ -9,6 +9,7 @@ const TEST_SIZE_ENV: &str = "CANON_TUI_TEST_SIZE";
 const TEST_EVENTS_ENV: &str = "CANON_TUI_TEST_EVENTS";
 const TEST_CAPTURE_PATH_ENV: &str = "CANON_TUI_TEST_CAPTURE_PATH";
 const DEFAULT_TERMINAL_SIZE: &str = "120x40";
+const COMPACT_TERMINAL_SIZE: &str = "42x11";
 const RESTORE_MARKER: &str = "terminal_restored=true";
 const SCREEN_RUNTIME_TITLE: &str = "AI-Assisted Engineering Governance Runtime";
 const SCREEN_VERSION_PREFIX: &str = "Version ";
@@ -42,16 +43,25 @@ fn cli_command() -> Command {
     command
 }
 
-fn guided_command(workspace: &TempDir, capture_name: &str, events: &str) -> (Command, PathBuf) {
+fn guided_command_with_size(
+    workspace: &TempDir,
+    capture_name: &str,
+    events: &str,
+    size: &str,
+) -> (Command, PathBuf) {
     let capture_path = workspace.path().join(capture_name);
     let mut command = cli_command();
     command
         .current_dir(workspace.path())
         .env(TEST_INTERACTIVE_ENV, "1")
-        .env(TEST_SIZE_ENV, DEFAULT_TERMINAL_SIZE)
+        .env(TEST_SIZE_ENV, size)
         .env(TEST_EVENTS_ENV, events)
         .env(TEST_CAPTURE_PATH_ENV, &capture_path);
     (command, capture_path)
+}
+
+fn guided_command(workspace: &TempDir, capture_name: &str, events: &str) -> (Command, PathBuf) {
+    guided_command_with_size(workspace, capture_name, events, DEFAULT_TERMINAL_SIZE)
 }
 
 #[test]
@@ -66,6 +76,24 @@ fn init_launches_guided_ui_by_default_in_supported_terminal() {
     assert!(capture.contains(SCREEN_RUNTIME_TITLE));
     assert!(capture.contains(SCREEN_VERSION_PREFIX));
     assert!(capture.contains("Select an assistant for this workspace."));
+    assert!(capture.contains(RESTORE_MARKER));
+    assert!(workspace.path().join(".canon").is_dir());
+}
+
+#[test]
+fn init_launches_guided_ui_by_default_in_compact_supported_terminal() {
+    let workspace = TempDir::new().expect("temp dir");
+    let (mut command, capture_path) = guided_command_with_size(
+        &workspace,
+        "guided-compact.log",
+        "enter,enter",
+        COMPACT_TERMINAL_SIZE,
+    );
+
+    command.arg("init").assert().success();
+
+    let capture = fs::read_to_string(&capture_path).expect("guided capture");
+    assert!(capture.contains(SCREEN_RUNTIME_TITLE));
     assert!(capture.contains(RESTORE_MARKER));
     assert!(workspace.path().join(".canon").is_dir());
 }

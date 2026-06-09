@@ -5,7 +5,7 @@ use crate::orchestrator::service::EngineError;
 impl EngineService {
     /// Inspect the current workspace and return a help-next recommendation.
     pub fn help_next(&self) -> Result<CanonHelpNextRecommendation, EngineError> {
-        let canon_dir = self.repo_root().join(".canon");
+        let canon_dir = self.canon_runtime_dir();
 
         // Not initialized
         if !canon_dir.exists() {

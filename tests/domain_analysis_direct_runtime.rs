@@ -790,6 +790,7 @@ fn domain_language_direct_run_exercises_service_summary_and_publish_paths() {
 
     let project_memory_publish = publish_run_with_profile(
         workspace.path(),
+        workspace.path(),
         &summary.run_id,
         PublishProfile::ProjectMemory,
         None,
@@ -968,6 +969,7 @@ fn domain_model_direct_run_exercises_service_summary_json_and_publish_paths() {
     );
 
     let project_memory_publish = publish_run_with_profile(
+        workspace.path(),
         workspace.path(),
         &summary.run_id,
         PublishProfile::ProjectMemory,

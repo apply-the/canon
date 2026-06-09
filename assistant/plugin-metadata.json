@@ -1,7 +1,7 @@
 {
   "name": "canon",
   "displayName": "Canon Assistant Support",
-  "version": "0.72.1",
+  "version": "0.72.2",
   "description": "Governed packet runtime for AI-assisted engineering work",
   "author": {
     "name": "Apply The",

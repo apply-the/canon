@@ -25,6 +25,14 @@ fn cli_command() -> Command {
     command
 }
 
+fn workspace_cli_command(workspace: &TempDir) -> Command {
+    let mut command = cli_command();
+    command.current_dir(workspace.path());
+    command.arg("--repo-root");
+    command.arg(workspace.path());
+    command
+}
+
 fn architecture_request(inputs: Vec<&str>) -> RunRequest {
     RunRequest {
         mode: Mode::Architecture,
@@ -216,8 +224,7 @@ fn inspect_clarity_surfaces_architecture_question_metadata_and_defaults() {
     fs::write(workspace.path().join("architecture.md"), AMBIGUOUS_ARCHITECTURE_BRIEF)
         .expect("architecture brief");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
+    let output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",
@@ -255,8 +262,7 @@ fn inspect_clarity_reroutes_under_bounded_architecture_briefs() {
     fs::write(workspace.path().join("architecture.md"), UNDER_BOUNDED_ARCHITECTURE_BRIEF)
         .expect("architecture brief");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
+    let output = workspace_cli_command(&workspace)
         .args([
             "inspect",
             "clarity",

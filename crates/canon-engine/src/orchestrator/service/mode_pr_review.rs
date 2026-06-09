@@ -227,11 +227,13 @@ impl EngineService {
             ),
         };
 
-        let packet_metadata_contents = build_runtime_packet_metadata(
+        let packet_metadata_contents = self.build_runtime_packet_metadata(
             &run_id,
             &request,
             &[],
             &artifact_contract.artifact_requirements,
+            Some(&base_ref),
+            Some(&head_ref),
         )?;
 
         let artifacts = artifact_contract
@@ -336,6 +338,10 @@ impl EngineService {
             approval_refs: Vec::new(),
         };
 
+        let mut run_context = self.build_run_context(&request, input_fingerprints, now);
+        run_context.workspace_identity =
+            self.runtime_workspace_identity(Some(&base_ref), Some(&head_ref));
+
         let bundle = PersistedRunBundle {
             run: RunManifest {
                 run_id: run_id.clone(),
@@ -352,7 +358,7 @@ impl EngineService {
                 lineage: None,
                 created_at: now,
             },
-            context: self.build_run_context(&request, input_fingerprints, now),
+            context: run_context,
             state: RunStateManifest { state, updated_at: now },
             artifact_contract: artifact_contract.clone(),
             links: LinkManifest {

@@ -108,6 +108,17 @@ mod tests {
     }
 
     #[test]
+    fn detect_guided_terminal_readiness_accepts_compact_supported_terminal() {
+        let _env = TestEnv::set(Some("1"), Some("42x11"), None, None);
+
+        let readiness = detect_guided_terminal_readiness().expect("compact scripted readiness");
+
+        assert!(readiness.interactive());
+        assert_eq!(readiness.block_reason(), None);
+        assert!(readiness.scripted());
+    }
+
+    #[test]
     fn run_guided_init_returns_selected_assistant_from_scripted_flow() {
         let workspace = tempdir().expect("tempdir");
         let capture_path = workspace.path().join("guided-init.log");

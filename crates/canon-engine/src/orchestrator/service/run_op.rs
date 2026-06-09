@@ -13,7 +13,7 @@ impl EngineService {
     /// Executes a managed run according to the provided request parameters.
     /// This handles policy validation, risk classification, and artifact emission.
     pub fn run(&self, mut request: RunRequest) -> Result<RunSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         store.init_runtime_state(None)?;
 
         let policy_root = request.policy_root.as_deref().map(|root| {
@@ -48,8 +48,9 @@ impl EngineService {
         }
 
         match request.mode {
-            Mode::Requirements => self.run_requirements(&store, request, policy_set),
-            Mode::Discovery => self.run_discovery(&store, request, policy_set),
+            Mode::Requirements | Mode::Discovery => Err(EngineError::Validation(
+                "Requirements and Discovery must use the targeted refinement workflow".to_string(),
+            )),
             Mode::SystemShaping => self.run_system_shaping(&store, request, policy_set),
             Mode::Brainstorming => self.run_generic_authoring(&store, request, policy_set),
             Mode::Change => self.run_change(&store, request, policy_set),
@@ -92,7 +93,7 @@ impl EngineService {
             ));
         }
 
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let canonical = self.resolve_run(run_id)?;
         let run_id = canonical.as_str();
         let manifest = store.load_run_manifest(run_id)?;
@@ -144,7 +145,7 @@ impl EngineService {
 
     /// Attempts to resume a previously blocked run from its persisted state.
     pub fn resume(&self, run_id: &str) -> Result<RunSummary, EngineError> {
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let canonical = self.resolve_run(run_id)?;
         let run_id = canonical.as_str();
         let manifest = store.load_run_manifest(run_id)?;
@@ -623,7 +624,7 @@ impl EngineService {
     /// Returns a full status summary for the named run, including gates, approvals, and actions.
     pub fn status(&self, run: &str) -> Result<StatusSummary, EngineError> {
         let _ = all_mode_profiles();
-        let store = WorkspaceStore::new(&self.repo_root);
+        let store = self.workspace_store();
         let canonical = self.resolve_run(run)?;
         let run = canonical.as_str();
         let manifest = store.load_run_manifest(run)?;
@@ -661,7 +662,7 @@ impl EngineService {
         adr: bool,
     ) -> Result<PublishSummary, EngineError> {
         let canonical = self.resolve_run(run)?;
-        publish_run(&self.repo_root, &canonical, to.as_deref(), adr)
+        publish_run(&self.repo_root, &self.canon_workspace_root, &canonical, to.as_deref(), adr)
     }
 
     /// Publishes the artifacts from the named run using a fully-specified publish profile.
@@ -674,6 +675,7 @@ impl EngineService {
         let canonical = self.resolve_run(run)?;
         crate::orchestrator::publish::publish_run_with_profile(
             &self.repo_root,
+            &self.canon_workspace_root,
             &canonical,
             profile,
             to.as_deref(),
@@ -713,6 +715,7 @@ mod tests {
     fn implementation_context() -> RunContext {
         RunContext {
             repo_root: "/tmp/repo".to_string(),
+            workspace_identity: crate::domain::run::WorkspaceIdentity::same_root("/tmp/repo"),
             owner: Some("Owner <owner@example.com>".to_string()),
             inputs: vec!["brief.md".to_string()],
             excluded_paths: Vec::new(),

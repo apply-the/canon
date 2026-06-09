@@ -6,7 +6,9 @@ use canon_engine::domain::artifact::{
 };
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
-use canon_engine::domain::run::{ClassificationProvenance, RunContext, RunState, SystemContext};
+use canon_engine::domain::run::{
+    ClassificationProvenance, RunContext, RunState, SystemContext, WorkspaceIdentity,
+};
 use canon_engine::persistence::manifests::{LinkManifest, RunManifest, RunStateManifest};
 use canon_engine::persistence::store::{PersistedArtifact, PersistedRunBundle, WorkspaceStore};
 use tempfile::TempDir;
@@ -115,6 +117,9 @@ fn persist_completed_architecture_run(workspace: &TempDir) -> String {
         run: manifest.clone(),
         context: RunContext {
             repo_root: workspace.path().display().to_string(),
+            workspace_identity: WorkspaceIdentity::same_root(
+                workspace.path().display().to_string(),
+            ),
             owner: Some(manifest.owner.clone()),
             inputs: vec!["architecture.md".to_string()],
             excluded_paths: Vec::new(),
@@ -168,6 +173,8 @@ fn architecture_publish_uses_next_non_conflicting_adr_number_and_keeps_registry_
     let publish_output = cli_command()
         .current_dir(workspace.path())
         .args(["publish", &run_id, "--to", "tech-docs/published/architecture-packet"])
+        .arg("--repo-root")
+        .arg(workspace.path())
         .assert()
         .success()
         .get_output()

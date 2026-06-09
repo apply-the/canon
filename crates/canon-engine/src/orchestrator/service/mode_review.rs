@@ -275,11 +275,13 @@ impl EngineService {
             ),
         };
 
-        let packet_metadata_contents = build_runtime_packet_metadata(
+        let packet_metadata_contents = self.build_runtime_packet_metadata(
             &run_id,
             &request,
             &[],
             &artifact_contract.artifact_requirements,
+            None,
+            None,
         )?;
 
         let artifact_disposition = match review_mode {
