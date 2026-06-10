@@ -186,7 +186,7 @@ mod tests {
             let layer_dir = run_dir.join("layers").join(format!("{:02}-{}", ordinal, slug));
             fs::create_dir_all(&layer_dir).unwrap();
             let output = format!(
-                "# {slug} Review\n\nFindings for layer {ordinal}. All checks passed.\n\nDetailed analysis complete.\n"
+                "# {slug} Review\n\nFindings for layer {ordinal}. All checks passed.\n\n### Reviewed: src/example.rs\n- **Depth**: deep\n- **Concerns inspected**: correctness, error handling\n- **Result**: no finding\n\nDetailed analysis complete.\n"
             );
             fs::write(layer_dir.join("output.md"), output).unwrap();
         }

@@ -1,5 +1,9 @@
+/// File classification by path-pattern heuristics.
+pub mod classifier;
 /// Onion-layer review context index builder.
 pub mod context;
+/// Coverage-aware review analysis: buckets, review type, confidence.
+pub mod coverage;
 /// Critique note types for review runs.
 pub mod critique;
 /// Diff mapping and line extraction utilities.

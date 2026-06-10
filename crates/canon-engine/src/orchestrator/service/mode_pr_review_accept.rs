@@ -69,46 +69,113 @@ impl EngineService {
 fn check_layer_coverage(run_dir: &Path) -> Result<(), String> {
     let layers_dir = run_dir.join("layers");
     if !layers_dir.exists() {
-        return Ok(()); // No 7-layer structure — fall through to existing validation
+        return Ok(());
     }
 
-    let mut errors = Vec::new();
-
-    for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
-        let ordinal = idx + 1;
-        let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
-        if !layer_dir.exists() {
-            errors.push(format!("Layer {ordinal} ({slug}): directory missing"));
-            continue;
-        }
-
-        let output_path = layer_dir.join("output.md");
-        let has_output = output_path.exists()
-            && fs::read_to_string(&output_path)
-                .map(|c| c.trim().len() > "# {slug} Output\n\n*No output yet.*\n".len())
-                .unwrap_or(false);
-
-        let deferred_path = layer_dir.join("deferral.toml");
-        let has_deferral = deferred_path.exists();
-
-        if !has_output && !has_deferral {
-            errors.push(format!(
-                "Layer {ordinal} ({slug}): missing output.md (non-placeholder) and no deferral recorded"
-            ));
-        } else if has_deferral {
-            let content = fs::read_to_string(&deferred_path).unwrap_or_default();
-            if !content.contains("reason") || content.trim().len() < 20 {
-                errors.push(format!(
-                    "Layer {ordinal} ({slug}): deferral present but reason is empty or missing"
-                ));
-            }
-        }
-    }
+    let errors: Vec<String> = LAYER_SLUGS
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, slug)| validate_single_layer(&layers_dir, slug, idx + 1))
+        .collect();
 
     if !errors.is_empty() {
         return Err(format!(
             "Layer coverage validation failed:\n{}",
             errors.iter().map(|e| format!("  - {e}")).collect::<Vec<_>>().join("\n")
+        ));
+    }
+    Ok(())
+}
+
+/// Validates a single layer directory, returning an error string if the
+/// layer is incomplete, or `None` if it passes.
+fn validate_single_layer(layers_dir: &Path, slug: &str, ordinal: usize) -> Option<String> {
+    let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+    if !layer_dir.exists() {
+        return Some(format!("Layer {ordinal} ({slug}): directory missing"));
+    }
+
+    let output_path = layer_dir.join("output.md");
+    let output_content = fs::read_to_string(&output_path).ok();
+    let has_output =
+        output_content.as_ref().map(|c| c.trim().len() > PLACEHOLDER_MIN_LEN).unwrap_or(false);
+
+    let deferred_path = layer_dir.join("deferral.toml");
+    let has_deferral = deferred_path.exists();
+
+    if !has_output && !has_deferral {
+        return Some(format!(
+            "Layer {ordinal} ({slug}): missing output.md (non-placeholder) and no deferral recorded"
+        ));
+    }
+
+    if has_deferral {
+        let content = fs::read_to_string(&deferred_path).unwrap_or_default();
+        if !content.contains("reason") || content.trim().len() < 20 {
+            return Some(format!(
+                "Layer {ordinal} ({slug}): deferral present but reason is empty or missing"
+            ));
+        }
+        return None;
+    }
+
+    if let Some(ref content) = output_content
+        && let Err(rejection) = validate_layer_output_quality(slug, ordinal, content)
+    {
+        return Some(rejection);
+    }
+
+    None
+}
+
+/// Minimum length of a non-placeholder output.md to distinguish from the
+/// empty placeholder that defaults to `"# {slug} Output\n\n*No output yet.*\n"`.
+const PLACEHOLDER_MIN_LEN: usize = 30;
+
+/// Validates that a layer's output meets quality standards beyond mere
+/// existence. Returns `Err(reason)` if the output is too generic or does
+/// not reference concrete review targets.
+///
+/// Canon-executed layers (early-signal, coverage-accounting) are exempt
+/// from target-reference validation since they produce deterministic
+/// findings.
+fn validate_layer_output_quality(slug: &str, ordinal: usize, content: &str) -> Result<(), String> {
+    // Canon-executed layers are validated differently
+    if slug == "early-signal" || slug == "coverage-accounting" {
+        return Ok(());
+    }
+
+    let trimmed = content.trim();
+
+    // Reject output that's just a generic header with no substantive content
+    if trimmed.len() < 100 {
+        return Err(format!(
+            "Layer {ordinal} ({slug}): output.md content is too short ({len} chars). \
+             Must contain substantive review findings or explicit no-finding records.",
+            len = trimmed.len(),
+        ));
+    }
+
+    // Reject output that doesn't reference the layer name (check both
+    // hyphenated slug form and human-readable space-separated form)
+    let lower = trimmed.to_lowercase();
+    let human_form = slug.to_lowercase().replace('-', " ");
+    if !lower.contains(slug) && !lower.contains(&human_form) {
+        return Err(format!(
+            "Layer {ordinal} ({slug}): output.md does not reference the layer name. \
+             Output must be layer-specific, not a generic placeholder."
+        ));
+    }
+
+    // Reject output with no finding or reviewed-file markers for semantic layers
+    let has_finding = trimmed.contains("### Finding")
+        || trimmed.contains("### Reviewed")
+        || trimmed.contains("**Severity**")
+        || trimmed.contains("**Path**");
+    if !has_finding {
+        return Err(format!(
+            "Layer {ordinal} ({slug}): output.md contains no finding or reviewed-file records. \
+             Expected `### Finding` or `### Reviewed` blocks referencing concrete targets."
         ));
     }
 
@@ -345,7 +412,7 @@ mod tests {
                 .unwrap();
             } else {
                 let content = format!(
-                    "# {slug} Review\n\nDetailed findings for layer {ordinal}.\n\nReview complete.\n"
+                    "# {slug} Review\n\nDetailed findings for layer {ordinal}.\n\n### Reviewed: src/example.rs\n- **Depth**: deep\n- **Concerns inspected**: correctness, error handling\n- **Result**: no finding\n\nReview complete.\n"
                 );
                 fs::write(layer_dir.join("output.md"), content).unwrap();
             }
@@ -402,7 +469,7 @@ mod tests {
             let layer_dir = run_dir.join("layers").join(format!("{:02}-{}", ordinal, slug));
             fs::create_dir_all(&layer_dir).unwrap();
             let output = format!(
-                "# {slug} Review\n\nFindings for layer {ordinal}. All checks passed.\n\nDetailed analysis complete.\n"
+                "# {slug} Review\n\nFindings for layer {ordinal}. All checks passed.\n\n### Reviewed: src/example.rs\n- **Depth**: deep\n- **Concerns inspected**: correctness, error handling\n- **Result**: no finding\n\nDetailed analysis complete.\n"
             );
             fs::write(layer_dir.join("output.md"), output).unwrap();
         }
