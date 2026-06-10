@@ -183,7 +183,7 @@
 
 ## Final Phase: Release, Quality, And Verification
 
-- [x] T077 Update `Cargo.toml` version from `0.71.1` to `0.72.3` (feature release, minor bump, reset patch) in `Cargo.toml`.
+- [x] T077 Update `Cargo.toml` version from `0.71.1` to `0.72.4` (feature release, minor bump, reset patch) in `Cargo.toml`.
 - [x] T078 Update `CHANGELOG.md` with `074-pr-review-onion-orchestration` highlights.
 - [x] T079 Update `docs/`, `tech-docs/`, and `roadmap/` markdown references affected by this feature.
 - [x] T080 Run `./scripts/update-docs-versions.sh`.

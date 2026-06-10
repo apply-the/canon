@@ -147,7 +147,7 @@
 
 **Purpose**: Version bump, documentation synchronization, quality gate enforcement, coverage target validation.
 
-- [ ] T060 Bump workspace version from `0.72.3` to `0.73.0` in `Cargo.toml` (feature: early signal pass as first review layer). Also update any internal crate version references that follow the workspace version.
+- [ ] T060 Bump workspace version from `0.72.4` to `0.73.0` in `Cargo.toml` (feature: early signal pass as first review layer). Also update any internal crate version references that follow the workspace version.
 - [ ] T061 Update `CHANGELOG.md` with a new `[0.73.0]` entry documenting the early signal pass feature: new `--skip-early-signal` flag, 7-layer review plan in `prepare`, stdout JSON events, persisted trace and findings artifacts.
 - [ ] T062 Update `README.md` and any affected `docs/` or `tech-docs/` markdown files referencing the PR review workflow to reflect the early signal pass terminology and the prepare → accept → finalize flow.
 - [ ] T063 Run `./scripts/update-docs-versions.sh` to synchronize version references across docs after the `Cargo.toml` bump.

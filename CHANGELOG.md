@@ -15,6 +15,40 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.72.4] - 2026-06-10
+
+Delivered specs:
+
+- `specs/075-pr-review-early-signal-pass/` (rework: coverage-aware rendering + staged orchestration)
+
+Highlights:
+
+- Added 10 file-classification buckets (application source, tests, API contracts,
+  migrations, configuration, build/CI, documentation, generated/vendor, assets,
+  unknown) with path-pattern heuristics. Every changed file is classified during
+  `prepare` so layers receive concrete targets, not empty placeholders.
+- Added four review types (Complete, FocusedRisk, Partial, GovernanceOnly),
+  three confidence levels (Low, Medium, High), and approval-readiness gating
+  (Ready, NotReady). Partial reviews are never marked ready.
+- `prepare` now generates staged review packets per layer with populated
+  `review-targets.tsv` (concrete files, bucket, risk, expected depth),
+  `required-context.tsv` (populated from ContextIndex), and layer-specific
+  instructions covering correctness, error handling, concurrency, security,
+  edge cases, and completion criteria.
+- `accept` rejects generic layer output: must be ≥100 chars, reference the
+  layer name, and contain `### Finding` or `### Reviewed` markers.
+- `finalize` renders coverage-by-bucket tables, global conventional comments
+  when coverage is partial, and an explicit not-ready statement blocking
+  premature approval.
+- Removed conflicting 5-layer `write_layer_files()` in favor of unified 7-layer
+  `generate_layer_directories()`.
+- Run state now includes staged per-layer status and `next_layer` hint for the
+  LLM agent.
+- Reduced cognitive complexity in `check_layer_coverage`, `classify_file`, and
+  `render_review_summary` to meet the ≤15 threshold.
+- Added 1189 tests (932 engine + 257 CLI) covering classification, coverage
+  analysis, staged orchestration, and enhanced accept validation.
+
 ## [0.72.3] - 2026-06-10
 
 Delivered specs:
