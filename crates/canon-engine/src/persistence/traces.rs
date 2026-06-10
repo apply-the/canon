@@ -179,4 +179,21 @@ mod tests {
         assert_eq!(events[0].request_id.as_deref(), Some("req-1"));
         assert_eq!(events[1].request_id.as_deref(), Some("req-2"));
     }
+
+    #[test]
+    fn append_jsonl_event_creates_file_and_appends_lines() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("sub").join("trace.jsonl");
+        let event = serde_json::json!({"event": "test", "run_id": "prr-1"});
+        super::append_jsonl_event(&path, &event).unwrap();
+        assert!(path.exists());
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert!(contents.contains("\"event\":\"test\""));
+        assert!(contents.contains("prr-1"));
+        // Append a second event
+        super::append_jsonl_event(&path, &event).unwrap();
+        let lines: Vec<_> =
+            std::fs::read_to_string(&path).unwrap().lines().map(String::from).collect();
+        assert_eq!(lines.len(), 2);
+    }
 }

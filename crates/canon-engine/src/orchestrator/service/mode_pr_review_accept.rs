@@ -300,4 +300,56 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(parsed["state"], "reviewer_output_accepted");
     }
+
+    #[test]
+    fn check_layer_coverage_passes_when_layers_dir_is_missing() {
+        let dir = TempDir::new().unwrap();
+        // No layers dir at all — should pass (fall through)
+        assert!(check_layer_coverage(dir.path()).is_ok());
+    }
+
+    #[test]
+    fn check_layer_coverage_rejects_missing_layer_output_and_deferral() {
+        let dir = TempDir::new().unwrap();
+        let layers_dir = dir.path().join("layers");
+        // Layer 1 has valid output (longer than placeholder)
+        let layer1 = layers_dir.join("01-early-signal");
+        fs::create_dir_all(&layer1).unwrap();
+        fs::write(
+            layer1.join("output.md"),
+            "# Early Signal Pass Review\n\nAll checks passed. No issues found.\n\nThis is valid output.\n",
+        ).unwrap();
+        // Layer 2 has no output.md and no deferral
+        let layer2 = layers_dir.join("02-application-source");
+        fs::create_dir_all(&layer2).unwrap();
+
+        let result = check_layer_coverage(dir.path());
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("application-source"), "expected layer 2 error, got: {err}");
+    }
+
+    #[test]
+    fn check_layer_coverage_accepts_deferral() {
+        let dir = TempDir::new().unwrap();
+        let layers_dir = dir.path().join("layers");
+        for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
+            let ordinal = idx + 1;
+            let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+            fs::create_dir_all(&layer_dir).unwrap();
+            if ordinal == 4 {
+                fs::write(
+                    layer_dir.join("deferral.toml"),
+                    "reason = \"edge-case analysis deferred due to time budget\"\n",
+                )
+                .unwrap();
+            } else {
+                let content = format!(
+                    "# {slug} Review\n\nDetailed findings for layer {ordinal}.\n\nReview complete.\n"
+                );
+                fs::write(layer_dir.join("output.md"), content).unwrap();
+            }
+        }
+        assert!(check_layer_coverage(dir.path()).is_ok());
+    }
 }

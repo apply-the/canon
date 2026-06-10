@@ -304,4 +304,29 @@ mod tests {
         let p = layout.run_invocation_dir("R-20260413-6f2b8d4e", "req-01");
         assert!(p.to_string_lossy().contains("invocations/req-01"));
     }
+
+    #[test]
+    fn pr_review_dir_paths() {
+        let layout = ProjectLayout::new("/tmp/canon-fixture");
+        let pr_dir = layout.pr_review_dir("R-20260413-6f2b8d4e");
+        assert!(pr_dir.to_string_lossy().contains("pr-review"));
+
+        let es_dir = layout.early_signal_dir("R-20260413-6f2b8d4e");
+        assert!(es_dir.to_string_lossy().contains("early-signal"));
+
+        let traces_dir = layout.pr_review_traces_dir("R-20260413-6f2b8d4e");
+        assert!(traces_dir.to_string_lossy().contains("traces"));
+
+        let trace_path = layout.early_signal_trace_path("R-20260413-6f2b8d4e");
+        assert!(trace_path.to_string_lossy().contains("early-signal.jsonl"));
+
+        let layers_dir = layout.layers_dir("R-20260413-6f2b8d4e");
+        assert!(layers_dir.to_string_lossy().contains("layers"));
+
+        let layer_dir = layout.layer_dir("R-20260413-6f2b8d4e", 1, "early-signal");
+        assert!(layer_dir.to_string_lossy().contains("01-early-signal"));
+
+        let layer_dir_7 = layout.layer_dir("R-20260413-6f2b8d4e", 7, "coverage-accounting");
+        assert!(layer_dir_7.to_string_lossy().contains("07-coverage-accounting"));
+    }
 }

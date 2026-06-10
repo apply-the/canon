@@ -71,4 +71,49 @@ mod tests {
         let id2 = generate_run_id();
         assert_eq!(id1, id2);
     }
+
+    #[test]
+    fn execute_rejects_skip_early_signal_without_reason() {
+        let workspace = tempfile::TempDir::new().unwrap();
+        let service = EngineService::new(workspace.path());
+        let cmd = PrReviewCommand::Prepare {
+            run: None,
+            base: "HEAD~1".to_string(),
+            head: "HEAD".to_string(),
+            skip_early_signal: true,
+            skip_reason: None,
+            output: crate::app::OutputFormat::Text,
+        };
+        let result = execute(&service, cmd);
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("skip-early-signal"));
+    }
+
+    #[test]
+    fn execute_accepts_skip_early_signal_with_valid_reason() {
+        let workspace = tempfile::TempDir::new().unwrap();
+        // Init a minimal git repo for the prepare flow
+        std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "init"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        let service = EngineService::new(workspace.path());
+        let cmd = PrReviewCommand::Prepare {
+            run: Some("test-accept-skip".to_string()),
+            base: "HEAD".to_string(),
+            head: "HEAD".to_string(),
+            skip_early_signal: true,
+            skip_reason: Some("debugging accept flow".to_string()),
+            output: crate::app::OutputFormat::Text,
+        };
+        let result = execute(&service, cmd);
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+    }
 }

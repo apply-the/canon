@@ -1094,4 +1094,93 @@ mod tests {
             .is_err()
         );
     }
+
+    #[test]
+    fn pr_review_prepare_parses_default_flags() {
+        let cli =
+            Cli::parse_from(["canon", "pr-review", "prepare", "--base", "main", "--head", "HEAD"]);
+        assert_command!(
+            cli.command,
+            Command::PrReview {
+                command: super::PrReviewCommand::Prepare {
+                    base, head, skip_early_signal, skip_reason, output, ..
+                }
+            }
+                if base == "main"
+                    && head == "HEAD"
+                    && !skip_early_signal
+                    && skip_reason.is_none()
+                    && output == OutputFormat::Text
+        );
+    }
+
+    #[test]
+    fn pr_review_prepare_parses_skip_early_signal_with_reason() {
+        let cli = Cli::parse_from([
+            "canon",
+            "pr-review",
+            "prepare",
+            "--base",
+            "main",
+            "--head",
+            "HEAD",
+            "--skip-early-signal",
+            "--skip-reason",
+            "debugging",
+        ]);
+        assert_command!(
+            cli.command,
+            Command::PrReview {
+                command: super::PrReviewCommand::Prepare {
+                    skip_early_signal, skip_reason, ..
+                }
+            }
+                if skip_early_signal
+                    && skip_reason.as_deref() == Some("debugging")
+        );
+    }
+
+    #[test]
+    fn pr_review_prepare_parses_output_json() {
+        let cli = Cli::parse_from([
+            "canon",
+            "pr-review",
+            "prepare",
+            "--base",
+            "main",
+            "--head",
+            "HEAD",
+            "--output",
+            "json",
+        ]);
+        assert_command!(
+            cli.command,
+            Command::PrReview {
+                command: super::PrReviewCommand::Prepare { output, .. }
+            }
+                if output == OutputFormat::Json
+        );
+    }
+
+    #[test]
+    fn pr_review_prepare_parses_custom_run_id() {
+        let cli = Cli::parse_from([
+            "canon",
+            "pr-review",
+            "prepare",
+            "--base",
+            "main",
+            "--head",
+            "HEAD",
+            "--run",
+            "my-custom-run",
+        ]);
+        assert_command!(
+            cli.command,
+            Command::PrReview {
+                command: super::PrReviewCommand::Prepare { run, .. }
+            }
+                if run.as_deref() == Some("my-custom-run")
+        );
+    }
 }

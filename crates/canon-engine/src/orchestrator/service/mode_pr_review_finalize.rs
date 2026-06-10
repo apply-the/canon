@@ -531,6 +531,7 @@ fn verify_early_signal_finalize_gate(run_dir: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::orchestrator::service::mode_pr_review_accept::LAYER_SLUGS;
     use tempfile::TempDir;
 
     fn make_temp_run_dir() -> (TempDir, std::path::PathBuf) {
@@ -627,5 +628,85 @@ mod tests {
         fs::write(run_dir.join("changed-files.tsv"), "src/a.rs\nsrc/b.rs\n").unwrap();
         let files = read_changed_files(&run_dir).unwrap();
         assert_eq!(files, vec!["src/a.rs", "src/b.rs"]);
+    }
+
+    #[test]
+    fn verify_early_signal_gate_rejects_missing_findings_and_skip() {
+        let dir = TempDir::new().unwrap();
+        // Neither findings.json nor skip-metadata.json — should fail
+        let result = verify_early_signal_finalize_gate(dir.path());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Run prepare first"));
+    }
+
+    #[test]
+    fn verify_early_signal_gate_accepts_findings_json() {
+        let dir = TempDir::new().unwrap();
+        let es_dir = dir.path().join("early-signal");
+        fs::create_dir_all(&es_dir).unwrap();
+        fs::write(es_dir.join("findings.json"), "[]").unwrap();
+        assert!(verify_early_signal_finalize_gate(dir.path()).is_ok());
+    }
+
+    #[test]
+    fn verify_early_signal_gate_accepts_skip_with_valid_reason() {
+        let dir = TempDir::new().unwrap();
+        let es_dir = dir.path().join("early-signal");
+        fs::create_dir_all(&es_dir).unwrap();
+        let skip = serde_json::json!({
+            "early_signal_status": "skipped_with_reason",
+            "skip_reason": "debugging accept flow",
+            "source": "operator",
+            "confidence_impact": "medium",
+        });
+        fs::write(es_dir.join("skip-metadata.json"), skip.to_string()).unwrap();
+        assert!(verify_early_signal_finalize_gate(dir.path()).is_ok());
+    }
+
+    #[test]
+    fn write_coverage_accounting_produces_markdown() {
+        let dir = TempDir::new().unwrap();
+        let es_dir = dir.path().join("early-signal");
+        fs::create_dir_all(&es_dir).unwrap();
+        // Mark early signal as executed
+        fs::write(es_dir.join("findings.json"), "[]").unwrap();
+        // Create layers with output
+        let layers_dir = dir.path().join("layers");
+        for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
+            let ordinal = idx + 1;
+            let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+            fs::create_dir_all(&layer_dir).unwrap();
+            fs::write(layer_dir.join("output.md"), format!("# {} review\n\nDone.\n", slug))
+                .unwrap();
+        }
+        write_coverage_accounting(dir.path()).unwrap();
+        let content = fs::read_to_string(dir.path().join("coverage-accounting.md")).unwrap();
+        assert!(content.contains("Coverage Accounting"));
+        assert!(content.contains("Early Signal Pass"));
+        assert!(content.contains("Overall confidence"));
+    }
+
+    #[test]
+    fn write_coverage_accounting_caps_confidence_on_skip() {
+        let dir = TempDir::new().unwrap();
+        let es_dir = dir.path().join("early-signal");
+        fs::create_dir_all(&es_dir).unwrap();
+        let skip = serde_json::json!({
+            "skip_reason": "not needed for this PR",
+        });
+        fs::write(es_dir.join("skip-metadata.json"), skip.to_string()).unwrap();
+        let layers_dir = dir.path().join("layers");
+        for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
+            let ordinal = idx + 1;
+            let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+            fs::create_dir_all(&layer_dir).unwrap();
+            fs::write(layer_dir.join("output.md"), format!("# {} review\n\nDone.\n", slug))
+                .unwrap();
+        }
+        write_coverage_accounting(dir.path()).unwrap();
+        let content = fs::read_to_string(dir.path().join("coverage-accounting.md")).unwrap();
+        // Skipped early signal caps confidence at medium
+        assert!(content.contains("`medium`"));
+        assert!(content.contains("does **not** imply full early-risk coverage"));
     }
 }

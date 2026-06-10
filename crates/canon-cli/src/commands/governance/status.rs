@@ -304,3 +304,32 @@ pub(super) fn explicit_classification() -> ClassificationProvenance {
         ),
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use canon_engine::domain::run::RunState;
+
+    #[test]
+    fn awaiting_reviewer_output_maps_to_pending_selection() {
+        let status = normalized_status(RunState::AwaitingReviewerOutput, None);
+        assert_eq!(status, GovernanceStatus::PendingSelection);
+    }
+
+    #[test]
+    fn draft_maps_to_pending_selection() {
+        let status = normalized_status(RunState::Draft, None);
+        assert_eq!(status, GovernanceStatus::PendingSelection);
+    }
+
+    #[test]
+    fn completed_with_reusable_readiness_maps_to_governed_ready() {
+        let status = normalized_status(RunState::Completed, Some(PacketReadiness::Reusable));
+        assert_eq!(status, GovernanceStatus::GovernedReady);
+    }
+
+    #[test]
+    fn blocked_maps_to_blocked() {
+        let status = normalized_status(RunState::Blocked, None);
+        assert_eq!(status, GovernanceStatus::Blocked);
+    }
+}
