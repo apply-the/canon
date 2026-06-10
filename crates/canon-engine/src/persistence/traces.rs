@@ -82,6 +82,27 @@ pub fn parse_trace_events(contents: &str) -> Result<Vec<TraceEvent>, serde_json:
         .collect()
 }
 
+/// Appends a serializable event as one JSON line to the given file path.
+///
+/// Creates parent directories if needed. Each call appends one line
+/// followed by a newline. Used by the early signal pass for `trace.jsonl`
+/// and other structured event loggers.
+pub fn append_jsonl_event<T: serde::Serialize>(
+    path: &std::path::Path,
+    event: &T,
+) -> Result<(), std::io::Error> {
+    use std::io::Write;
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let line = serde_json::to_string(event).map_err(std::io::Error::other)?;
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
+    writeln!(file, "{}", line)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use time::OffsetDateTime;

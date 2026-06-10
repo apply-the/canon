@@ -32,6 +32,9 @@ impl EngineService {
             ));
         }
 
+        // ── Early signal status check (T034, T035, FR-006, FR-014) ──
+        verify_early_signal_finalize_gate(&run_dir)?;
+
         let canonical = build_canonical_comment_set(&run_dir)?;
         let packet = build_review_packet(&run_dir)?;
         let changed_files = read_changed_files(&run_dir)?;
@@ -51,6 +54,9 @@ impl EngineService {
         );
         let report =
             render::render_review_report(&canonical, recommendation, &packet, &changed_files);
+
+        // ── Coverage accounting (T041-T044, FR-008, FR-014) ──
+        write_coverage_accounting(&run_dir)?;
 
         // Write artifacts
         write_artifact(&run_dir, "01-review-summary.md", &summary)?;
@@ -393,6 +399,133 @@ fn write_run_state_finalize(run_dir: &Path, state: RunState) -> Result<(), Strin
         serde_json::to_string_pretty(&current).map_err(|e| format!("serialize run-state: {e}"))?;
     fs::write(&path, &content).map_err(|e| format!("write run-state.json: {e}"))?;
     Ok(())
+}
+
+/// Produces a `coverage-accounting.md` artifact listing all 7 layers
+/// with their status (reviewed/deferred/skipped) and explicit reasons.
+///
+/// If early signal was skipped, `overall_confidence` is capped at `medium`
+/// or lower (FR-014). Per FR-008 and FR-009, every deferred layer must
+/// carry a non-empty reason.
+fn write_coverage_accounting(run_dir: &Path) -> Result<(), String> {
+    let layers_dir = run_dir.join("layers");
+    let es_dir = run_dir.join("early-signal");
+    let skip_meta = es_dir.join("skip-metadata.json");
+
+    let early_signal_skipped = skip_meta.exists();
+    let mut overall_confidence = if early_signal_skipped { "medium" } else { "high" };
+
+    let mut content = String::from("# Coverage Accounting\n\n");
+    content.push_str("## Layer Disposition\n\n");
+    content.push_str("| Layer | Status | Reason |\n");
+    content.push_str("|---|---|---|\n");
+
+    let mut deferred_count = 0u32;
+
+    if layers_dir.exists() {
+        for (idx, slug) in
+            crate::orchestrator::service::mode_pr_review_accept::LAYER_SLUGS.iter().enumerate()
+        {
+            let ordinal = idx + 1;
+            let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+            let display = if *slug == "early-signal" {
+                "Early Signal Pass"
+            } else if *slug == "application-source" {
+                "Application-Source Review"
+            } else if *slug == "high-risk-surfaces" {
+                "High-Risk Surfaces Review"
+            } else if *slug == "related-context" {
+                "Related-Context Review"
+            } else if *slug == "logical-stress" {
+                "Logical Stress Review"
+            } else if *slug == "tests" {
+                "Tests Review"
+            } else {
+                "Coverage Accounting"
+            };
+
+            let (status, reason) = if ordinal == 1 && early_signal_skipped {
+                let reason = fs::read_to_string(&skip_meta)
+                    .ok()
+                    .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+                    .and_then(|v| v.get("skip_reason")?.as_str().map(String::from))
+                    .unwrap_or_else(|| "unspecified".to_string());
+                ("skipped", reason)
+            } else if layer_dir.join("deferral.toml").exists() {
+                deferred_count += 1;
+                let reason = fs::read_to_string(layer_dir.join("deferral.toml"))
+                    .unwrap_or_else(|_| "reason not recorded".to_string());
+                ("deferred", reason.trim().to_string())
+            } else if layer_dir.join("output.md").exists() {
+                ("reviewed", "—".to_string())
+            } else {
+                deferred_count += 1;
+                ("unreviewed", "no output or deferral".to_string())
+            };
+
+            content.push_str(&format!("| {ordinal}. {display} | {status} | {reason} |\n"));
+        }
+    }
+
+    if deferred_count > 1 {
+        overall_confidence = "low";
+    } else if deferred_count == 1 && !early_signal_skipped {
+        overall_confidence = "medium";
+    }
+
+    if early_signal_skipped {
+        content.push_str("\n## Early Signal Status\n\n");
+        content.push_str("⚠️ Early signal pass was **skipped**. ");
+        content.push_str("This review does **not** imply full early-risk coverage. ");
+        if let Ok(meta) = fs::read_to_string(&skip_meta)
+            && let Ok(v) = serde_json::from_str::<serde_json::Value>(&meta)
+            && let Some(reason) = v.get("skip_reason").and_then(|r| r.as_str())
+        {
+            content.push_str(&format!("Skip reason: _{reason}_."));
+        }
+        content.push('\n');
+    }
+
+    content.push_str(&format!("\n**Overall confidence**: `{overall_confidence}`\n"));
+
+    fs::write(run_dir.join("coverage-accounting.md"), content).map_err(|e| e.to_string())
+}
+
+/// Verifies that the early signal pass was either completed or explicitly
+/// skipped with a recorded reason before allowing finalization.
+///
+/// If early signal was skipped, the final report must not imply full
+/// early-risk coverage (FR-014). Per FR-006, Canon must NOT allow
+/// finalization after layer 1 alone unless all 7 layers are accounted for.
+fn verify_early_signal_finalize_gate(run_dir: &Path) -> Result<(), String> {
+    let es_dir = run_dir.join("early-signal");
+    let skip_meta = es_dir.join("skip-metadata.json");
+
+    if skip_meta.exists() {
+        // Early signal was skipped — verify skip reason is recorded
+        let content =
+            fs::read_to_string(&skip_meta).map_err(|e| format!("read skip metadata: {e}"))?;
+        let meta: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| format!("parse skip metadata: {e}"))?;
+        let reason = meta.get("skip_reason").and_then(|v| v.as_str()).unwrap_or("");
+        if reason.trim().is_empty() || reason == "unspecified" {
+            return Err(
+                "Cannot finalize: early signal was skipped without a valid recorded reason."
+                    .to_string(),
+            );
+        }
+        // Skipped early signal reduces confidence — record this in the final report
+        return Ok(());
+    }
+
+    // Early signal was not skipped — verify findings artifacts exist
+    if es_dir.join("findings.json").exists() || es_dir.join("summary.md").exists() {
+        return Ok(());
+    }
+
+    // Neither skipped nor executed — this is a gap
+    Err("Cannot finalize: early signal pass has no findings or skip metadata. Run prepare first."
+        .to_string())
 }
 
 #[cfg(test)]

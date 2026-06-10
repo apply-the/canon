@@ -1,8 +1,8 @@
 //! Orchestrator for the `pr-review accept` phase.
 //!
 //! Validates the LLM-authored `reviewer-output.md` against the review context,
-//! produces `canonical-review-output.json`, and updates the run state to
-//! `reviewer_output_accepted` or `reviewer_output_rejected`.
+//! enforces 7-layer coverage completeness, produces `canonical-review-output.json`,
+//! and updates the run state to `reviewer_output_accepted` or `reviewer_output_rejected`.
 
 use std::fs;
 use std::path::Path;
@@ -18,14 +18,29 @@ const REVIEWER_OUTPUT_FILE: &str = "reviewer-output.md";
 /// Filename for the canonical review output produced by accept.
 const CANONICAL_REVIEW_OUTPUT_FILE: &str = "canonical-review-output.json";
 
+/// The seven review layer slugs in order (from spec 075).
+pub(crate) const LAYER_SLUGS: &[&str] = &[
+    "early-signal",
+    "application-source",
+    "high-risk-surfaces",
+    "related-context",
+    "logical-stress",
+    "tests",
+    "coverage-accounting",
+];
+
 impl EngineService {
-    /// Runs the accept phase: validates reviewer output and persists results.
+    /// Runs the accept phase: validates reviewer output, enforces layer
+    /// coverage, and persists results.
     pub fn run_pr_review_accept(&self, run_id: &str) -> Result<(), String> {
         let run_dir = self.canon_runtime_dir().join("runs").join(run_id).join("pr-review");
         let reviewer_output_path = run_dir.join(REVIEWER_OUTPUT_FILE);
 
         let reviewer_output = fs::read_to_string(&reviewer_output_path)
             .map_err(|e| format!("read reviewer output: {e}"))?;
+
+        // ── 7-layer coverage validation (T032, T033, FR-027, FR-028) ──
+        check_layer_coverage(&run_dir)?;
 
         let changed_files = read_changed_files(&run_dir)?;
         let layer_states = read_layer_states(&run_dir)?;
@@ -43,6 +58,61 @@ impl EngineService {
 
         Ok(())
     }
+}
+
+/// Validates that all 7 layers have either a non-empty `output.md` with
+/// content, or a deferral with a non-empty reason recorded.
+///
+/// Layers with only `instructions.md` but no reviewer `output.md` are
+/// rejected. Per FR-027 and FR-028, Canon must not infer layer completion
+/// from instruction presence alone.
+fn check_layer_coverage(run_dir: &Path) -> Result<(), String> {
+    let layers_dir = run_dir.join("layers");
+    if !layers_dir.exists() {
+        return Ok(()); // No 7-layer structure — fall through to existing validation
+    }
+
+    let mut errors = Vec::new();
+
+    for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
+        let ordinal = idx + 1;
+        let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+        if !layer_dir.exists() {
+            errors.push(format!("Layer {ordinal} ({slug}): directory missing"));
+            continue;
+        }
+
+        let output_path = layer_dir.join("output.md");
+        let has_output = output_path.exists()
+            && fs::read_to_string(&output_path)
+                .map(|c| c.trim().len() > "# {slug} Output\n\n*No output yet.*\n".len())
+                .unwrap_or(false);
+
+        let deferred_path = layer_dir.join("deferral.toml");
+        let has_deferral = deferred_path.exists();
+
+        if !has_output && !has_deferral {
+            errors.push(format!(
+                "Layer {ordinal} ({slug}): missing output.md (non-placeholder) and no deferral recorded"
+            ));
+        } else if has_deferral {
+            let content = fs::read_to_string(&deferred_path).unwrap_or_default();
+            if !content.contains("reason") || content.trim().len() < 20 {
+                errors.push(format!(
+                    "Layer {ordinal} ({slug}): deferral present but reason is empty or missing"
+                ));
+            }
+        }
+    }
+
+    if !errors.is_empty() {
+        return Err(format!(
+            "Layer coverage validation failed:\n{}",
+            errors.iter().map(|e| format!("  - {e}")).collect::<Vec<_>>().join("\n")
+        ));
+    }
+
+    Ok(())
 }
 
 /// Reads the list of changed files from `changed-files.tsv`.

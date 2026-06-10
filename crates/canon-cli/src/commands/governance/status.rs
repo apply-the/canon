@@ -198,6 +198,7 @@ pub(super) fn normalized_status(
             _ => GovernanceStatus::Completed,
         },
         RunState::Failed | RunState::Aborted | RunState::Superseded => GovernanceStatus::Failed,
+        RunState::AwaitingReviewerOutput => GovernanceStatus::PendingSelection,
     }
 }
 

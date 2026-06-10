@@ -155,6 +155,38 @@ impl ProjectLayout {
         self.artifacts_dir().join(run_id).join(mode.as_str())
     }
 
+    // ── PR-Review specific paths ─────────────────────────────────────────
+
+    /// Returns the root directory for a PR review run.
+    pub fn pr_review_dir(&self, run_id: &str) -> PathBuf {
+        self.run_dir(run_id).join("pr-review")
+    }
+
+    /// Returns the early signal artifacts directory for a PR review run.
+    pub fn early_signal_dir(&self, run_id: &str) -> PathBuf {
+        self.pr_review_dir(run_id).join("early-signal")
+    }
+
+    /// Returns the traces directory for a PR review run.
+    pub fn pr_review_traces_dir(&self, run_id: &str) -> PathBuf {
+        self.pr_review_dir(run_id).join("traces")
+    }
+
+    /// Returns the path to the early signal trace JSONL file.
+    pub fn early_signal_trace_path(&self, run_id: &str) -> PathBuf {
+        self.pr_review_traces_dir(run_id).join("early-signal.jsonl")
+    }
+
+    /// Returns the layers directory for a PR review run.
+    pub fn layers_dir(&self, run_id: &str) -> PathBuf {
+        self.pr_review_dir(run_id).join("layers")
+    }
+
+    /// Returns the directory path for a specific review layer.
+    pub fn layer_dir(&self, run_id: &str, ordinal: u8, name: &str) -> PathBuf {
+        self.layers_dir(run_id).join(format!("{:02}-{}", ordinal, name))
+    }
+
     /// Returns the path to the `.agents/skills/` directory.
     pub fn skills_dir(&self) -> PathBuf {
         self.repo_root.join(".agents").join("skills")

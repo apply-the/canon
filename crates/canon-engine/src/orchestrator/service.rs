@@ -66,6 +66,7 @@ pub(crate) mod patch;
 pub(crate) mod summarizers;
 
 mod context_builder;
+mod early_signal;
 mod identity;
 mod input_handling;
 mod inspect;

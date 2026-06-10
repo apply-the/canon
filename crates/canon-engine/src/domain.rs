@@ -18,6 +18,8 @@ pub mod mode;
 pub mod policy;
 /// Publish profile, promotion state, and update strategy types.
 pub mod publish_profile;
+/// Review layer, early signal finding, and coverage accounting types.
+pub mod review;
 /// Run state, run context, and classification provenance types.
 pub mod run;
 /// Verification layer and verification record types.

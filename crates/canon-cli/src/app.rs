@@ -267,6 +267,15 @@ pub enum PrReviewCommand {
         /// Head ref to review (e.g. `HEAD`).
         #[arg(long)]
         head: String,
+        /// Skip the early signal pass (layer 1). Requires --skip-reason.
+        #[arg(long)]
+        skip_early_signal: bool,
+        /// Reason for skipping the early signal pass.
+        #[arg(long)]
+        skip_reason: Option<String>,
+        /// Output format for stdout events.
+        #[arg(long, default_value_t)]
+        output: OutputFormat,
     },
     /// Validate the LLM-authored reviewer output.
     Accept {

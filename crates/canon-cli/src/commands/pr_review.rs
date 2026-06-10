@@ -10,13 +10,26 @@ use crate::error::{CliError, CliResult};
 /// Dispatches a [`PrReviewCommand`] to the appropriate engine orchestrator.
 pub fn execute(service: &EngineService, command: PrReviewCommand) -> CliResult<i32> {
     match command {
-        PrReviewCommand::Prepare { run, base, head } => {
+        PrReviewCommand::Prepare { run, base, head, skip_early_signal, skip_reason, output } => {
+            // Validate skip-reason requirement (FR-015, T021)
+            if skip_early_signal && skip_reason.as_deref().is_none_or(|r| r.trim().is_empty()) {
+                return Err(CliError::InvalidInput(
+                    "--skip-early-signal requires a non-empty --skip-reason".to_string(),
+                ));
+            }
             let run_id = run.unwrap_or_else(generate_run_id);
-            service.run_pr_review_prepare(&run_id, &base, &head).map_err(CliError::InvalidInput)?;
-            println!("Prepare complete. Run ID: {run_id}");
-            println!(
-                "Next: submit reviewer-output.md and run `canon pr-review accept --run {run_id}`"
-            );
+            let skip_reason_ref = skip_reason.as_deref();
+            service
+                .run_pr_review_prepare(&run_id, &base, &head, skip_early_signal, skip_reason_ref)
+                .map_err(CliError::InvalidInput)?;
+            if output == crate::app::OutputFormat::Json {
+                println!(r#"{{"event":"prepare.completed","run_id":"{run_id}","status":"ready"}}"#);
+            } else {
+                println!("Prepare complete. Run ID: {run_id}");
+                println!(
+                    "Next: submit reviewer-output.md and run `canon pr-review accept --run {run_id}`"
+                );
+            }
             Ok(0)
         }
         PrReviewCommand::Accept { run } => {
