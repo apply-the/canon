@@ -82,6 +82,27 @@ pub fn parse_trace_events(contents: &str) -> Result<Vec<TraceEvent>, serde_json:
         .collect()
 }
 
+/// Appends a serializable event as one JSON line to the given file path.
+///
+/// Creates parent directories if needed. Each call appends one line
+/// followed by a newline. Used by the early signal pass for `trace.jsonl`
+/// and other structured event loggers.
+pub fn append_jsonl_event<T: serde::Serialize>(
+    path: &std::path::Path,
+    event: &T,
+) -> Result<(), std::io::Error> {
+    use std::io::Write;
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let line = serde_json::to_string(event).map_err(std::io::Error::other)?;
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path)?;
+    writeln!(file, "{}", line)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use time::OffsetDateTime;
@@ -157,5 +178,22 @@ mod tests {
         assert_eq!(events.len(), 2);
         assert_eq!(events[0].request_id.as_deref(), Some("req-1"));
         assert_eq!(events[1].request_id.as_deref(), Some("req-2"));
+    }
+
+    #[test]
+    fn append_jsonl_event_creates_file_and_appends_lines() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let path = dir.path().join("sub").join("trace.jsonl");
+        let event = serde_json::json!({"event": "test", "run_id": "prr-1"});
+        super::append_jsonl_event(&path, &event).unwrap();
+        assert!(path.exists());
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert!(contents.contains("\"event\":\"test\""));
+        assert!(contents.contains("prr-1"));
+        // Append a second event
+        super::append_jsonl_event(&path, &event).unwrap();
+        let lines: Vec<_> =
+            std::fs::read_to_string(&path).unwrap().lines().map(String::from).collect();
+        assert_eq!(lines.len(), 2);
     }
 }

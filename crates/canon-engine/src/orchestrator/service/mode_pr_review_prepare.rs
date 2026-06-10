@@ -9,12 +9,15 @@ use std::path::Path;
 use super::EngineService;
 
 impl EngineService {
-    /// Runs the prepare phase: collects diff, builds context, writes output files.
+    /// Runs the prepare phase: collects diff, runs early signal pass,
+    /// generates layer directories, builds context, and writes output files.
     pub fn run_pr_review_prepare(
         &self,
         run_id: &str,
         base_ref: &str,
         head_ref: &str,
+        skip_early_signal: bool,
+        skip_reason: Option<&str>,
     ) -> Result<(), String> {
         let run_dir = self.canon_runtime_dir().join("runs").join(run_id).join("pr-review");
         fs::create_dir_all(&run_dir).map_err(|e| format!("create run dir: {e}"))?;
@@ -24,6 +27,41 @@ impl EngineService {
             .git_diff(base_ref, head_ref, &self.repo_root)
             .map_err(|e| format!("collect diff: {e}"))?;
 
+        // ── Early signal pass ───────────────────────────────────────────────
+        let removed_files: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        let findings = if skip_early_signal {
+            // Write skip metadata
+            let es_dir = run_dir.join("early-signal");
+            fs::create_dir_all(&es_dir).map_err(|e| e.to_string())?;
+            let skip_json = serde_json::json!({
+                "early_signal_status": "skipped_with_reason",
+                "skip_reason": skip_reason.unwrap_or("unspecified"),
+                "source": "operator",
+                "confidence_impact": "medium",
+            });
+            fs::write(
+                es_dir.join("skip-metadata.json"),
+                serde_json::to_string_pretty(&skip_json).unwrap_or_default(),
+            )
+            .map_err(|e| e.to_string())?;
+            Vec::new()
+        } else {
+            let findings = crate::orchestrator::service::early_signal::execute_early_signal_pass(
+                run_id,
+                &diff_output.changed_files,
+                &removed_files,
+            );
+            // Persist artifacts
+            persist_early_signal_artifacts(&run_dir, &findings)?;
+            findings
+        };
+        let _findings = findings;
+
+        // ── 7-layer directory structure ─────────────────────────────────────
+        generate_layer_directories(&run_dir)?;
+        write_review_plan_md(&run_dir)?;
+
+        // ── Existing onion-layer logic ──────────────────────────────────────
         let index = crate::review::context::ContextIndex::build(
             &diff_output.changed_files,
             &diff_output.patch,
@@ -243,6 +281,131 @@ fn write_reviewer_schema(dir: &Path) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+// ── Early signal pass helpers (075-pr-review-early-signal-pass) ───────────────
+
+/// The seven review layers with their display names.
+const EARLY_SIGNAL_LAYERS: &[(&str, &str, bool)] = &[
+    ("early-signal", "Early Signal Pass", true),
+    ("application-source", "Application-Source Review", false),
+    ("high-risk-surfaces", "High-Risk Surfaces Review", false),
+    ("related-context", "Related-Context Review", false),
+    ("logical-stress", "Logical Stress Review", false),
+    ("tests", "Tests Review", false),
+    ("coverage-accounting", "Coverage Accounting & Final Recommendation", false),
+];
+
+/// Generates the 7-layer directory structure under `layers/`.
+///
+/// Each layer directory receives `instructions.md`, `required-context.tsv`,
+/// and an empty `output.md` placeholder.
+#[allow(dead_code)]
+pub(crate) fn generate_layer_directories(run_dir: &Path) -> Result<(), String> {
+    let layers_dir = run_dir.join("layers");
+    for (idx, (slug, display_name, canonical)) in EARLY_SIGNAL_LAYERS.iter().enumerate() {
+        let ordinal = idx + 1;
+        let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+        fs::create_dir_all(&layer_dir).map_err(|e| e.to_string())?;
+
+        let instructions = format!(
+            "# {display_name} (Layer {ordinal})\n\n\
+             ## Instructions\n\n\
+             Review the changed files according to the {display_name} methodology. \
+             See `required-context.tsv` for the list of files and context entries \
+             relevant to this layer.\n\n\
+             ## Executed By\n\n\
+             {}\n\n\
+             ## Output\n\n\
+             Write your findings to `output.md` in this directory.\n",
+            if *canonical { "Canon (deterministic)" } else { "LLM Agent (semantic review)" }
+        );
+        fs::write(layer_dir.join("instructions.md"), instructions).map_err(|e| e.to_string())?;
+
+        // Write a minimal required-context.tsv — populated by the full prepare flow
+        let tsv = "id\ttype\tpath\n";
+        fs::write(layer_dir.join("required-context.tsv"), tsv).map_err(|e| e.to_string())?;
+
+        // Write an empty output.md placeholder
+        fs::write(
+            layer_dir.join("output.md"),
+            format!("# {display_name} Output\n\n*No output yet.*\n"),
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Writes `review-plan.md` listing all seven layers in order with their status.
+#[allow(dead_code)]
+pub(crate) fn write_review_plan_md(run_dir: &Path) -> Result<(), String> {
+    let mut content = String::from("# Review Plan\n\n");
+    content.push_str("**Workflow**: prepare → accept → finalize\n\n");
+    content.push_str("## Layer Order\n\n");
+
+    for (idx, (slug, display_name, canonical)) in EARLY_SIGNAL_LAYERS.iter().enumerate() {
+        let ordinal = idx + 1;
+        let status = if *canonical { "Executed by Canon" } else { "Pending (LLM Agent)" };
+        content.push_str(&format!(
+            "### {ordinal}. {display_name}\n- **Slug**: `{slug}`\n- **Status**: {status}\n\n"
+        ));
+    }
+
+    fs::write(run_dir.join("review-plan.md"), content).map_err(|e| e.to_string())
+}
+
+/// Persists early signal findings as `findings.tsv`, `findings.json`, and `summary.md`.
+#[allow(dead_code)]
+pub(crate) fn persist_early_signal_artifacts(
+    run_dir: &Path,
+    findings: &[crate::domain::review::EarlySignalFinding],
+) -> Result<(), String> {
+    let es_dir = run_dir.join("early-signal");
+    fs::create_dir_all(&es_dir).map_err(|e| e.to_string())?;
+
+    // findings.tsv (tab-separated, LLM-scannable)
+    let mut tsv = String::from("finding_id\trule_id\tseverity\tcategory\tpath\tsummary\n");
+    for f in findings {
+        let sev = format!("{:?}", f.severity).to_lowercase();
+        tsv.push_str(&format!(
+            "{}\t{}\t{}\t{}\t{}\t{}\n",
+            f.finding_id, f.rule_id, sev, f.category, f.path, f.summary
+        ));
+    }
+    fs::write(es_dir.join("findings.tsv"), &tsv).map_err(|e| e.to_string())?;
+
+    // findings.json (Canon-validatable)
+    let json = serde_json::to_string_pretty(findings).map_err(|e| e.to_string())?;
+    fs::write(es_dir.join("findings.json"), &json).map_err(|e| e.to_string())?;
+
+    // summary.md (human-readable)
+    let mut sev_counts = std::collections::BTreeMap::new();
+    for f in findings {
+        let key = format!("{:?}", f.severity).to_lowercase();
+        *sev_counts.entry(key).or_insert(0u32) += 1;
+    }
+    let total = findings.len();
+    let summary = format!(
+        "# Early Signal Pass Summary\n\n\
+         **Total findings**: {total}\n\n\
+         **By severity**: \n\n{}\n",
+        sev_counts.iter().map(|(k, v)| format!("- {k}: {v}")).collect::<Vec<_>>().join("\n")
+    );
+    fs::write(es_dir.join("summary.md"), summary).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Writes the run state as `AwaitingReviewerOutput`.
+#[allow(dead_code)]
+pub(crate) fn write_awaiting_reviewer_output(dir: &Path) -> Result<(), String> {
+    let json = serde_json::json!({
+        "run_state": "AwaitingReviewerOutput",
+        "early_signal_status": "completed",
+        "layer_states": {},
+        "actionable_review_status": "governance_only",
+    });
+    fs::write(dir.join("run-state.json"), json.to_string()).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -300,5 +463,207 @@ mod tests {
         assert!(is_high_risk("src/boundary/router.rs"));
         assert!(is_high_risk("contracts/api.json"));
         assert!(!is_high_risk("src/lib.rs"));
+    }
+
+    #[test]
+    fn generate_layer_directories_creates_seven_layers() {
+        let dir = TempDir::new().unwrap();
+        generate_layer_directories(dir.path()).unwrap();
+        let layers = dir.path().join("layers");
+        assert!(layers.is_dir());
+        for (idx, (slug, _, _)) in EARLY_SIGNAL_LAYERS.iter().enumerate() {
+            let ordinal = idx + 1;
+            let layer_dir = layers.join(format!("{:02}-{}", ordinal, slug));
+            assert!(layer_dir.is_dir(), "missing {:02}-{}", ordinal, slug);
+            assert!(layer_dir.join("instructions.md").exists());
+            assert!(layer_dir.join("required-context.tsv").exists());
+            assert!(layer_dir.join("output.md").exists());
+        }
+    }
+
+    #[test]
+    fn write_review_plan_md_lists_all_seven_layers() {
+        let dir = TempDir::new().unwrap();
+        write_review_plan_md(dir.path()).unwrap();
+        let content = fs::read_to_string(dir.path().join("review-plan.md")).unwrap();
+        assert!(content.contains("Early Signal Pass"));
+        assert!(content.contains("Application-Source Review"));
+        assert!(content.contains("High-Risk Surfaces Review"));
+        assert!(content.contains("Related-Context Review"));
+        assert!(content.contains("Logical Stress Review"));
+        assert!(content.contains("Tests Review"));
+        assert!(content.contains("Coverage Accounting"));
+        assert!(content.contains("Executed by Canon"));
+        assert!(content.contains("Pending (LLM Agent)"));
+    }
+
+    #[test]
+    fn persist_early_signal_artifacts_writes_tsv_json_summary() {
+        use crate::domain::review::{EarlySignalFinding, EarlySignalSeverity};
+
+        let dir = TempDir::new().unwrap();
+        let findings = vec![EarlySignalFinding {
+            finding_id: "ES001".to_string(),
+            run_id: "prr-1".to_string(),
+            rule_id: "reference.dangling_import".to_string(),
+            severity: EarlySignalSeverity::Blocking,
+            category: "reference".to_string(),
+            path: "src/main.rs".to_string(),
+            start_line: None,
+            end_line: None,
+            summary: "dangling import".to_string(),
+            evidence_context_ids: vec![],
+            suggested_layer: "app-source".to_string(),
+            actionable_comment_candidate: true,
+        }];
+        persist_early_signal_artifacts(dir.path(), &findings).unwrap();
+
+        let es_dir = dir.path().join("early-signal");
+        assert!(es_dir.join("findings.tsv").exists());
+        assert!(es_dir.join("findings.json").exists());
+        assert!(es_dir.join("summary.md").exists());
+
+        let tsv = fs::read_to_string(es_dir.join("findings.tsv")).unwrap();
+        assert!(tsv.contains("ES001"));
+        assert!(tsv.contains("reference.dangling_import"));
+
+        let json = fs::read_to_string(es_dir.join("findings.json")).unwrap();
+        assert!(json.contains("ES001"));
+
+        let summary = fs::read_to_string(es_dir.join("summary.md")).unwrap();
+        assert!(summary.contains("Total findings"));
+    }
+
+    #[test]
+    fn write_awaiting_reviewer_output_sets_correct_state() {
+        let dir = TempDir::new().unwrap();
+        write_awaiting_reviewer_output(dir.path()).unwrap();
+        let content = fs::read_to_string(dir.path().join("run-state.json")).unwrap();
+        assert!(content.contains("AwaitingReviewerOutput"));
+        assert!(content.contains("completed"));
+    }
+
+    // ── run_pr_review_prepare integration tests ──────────────────────────
+
+    #[test]
+    fn run_pr_review_prepare_with_skip_early_signal_writes_skip_metadata() {
+        let workspace = TempDir::new().unwrap();
+        // Set up a minimal git repo
+        let status = std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git init");
+        assert!(status.status.success(), "git init failed: {:?}", status);
+
+        // Configure user for CI environments
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Canon Test"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "canon@example.com"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+
+        // Create an initial commit so there's a valid HEAD
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "init"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git commit");
+
+        let service = EngineService::new(workspace.path());
+        // diff HEAD HEAD is empty — prepare should still succeed
+        let result = service.run_pr_review_prepare(
+            "test-skip-flow",
+            "HEAD",
+            "HEAD",
+            true,
+            Some("integration test"),
+        );
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+
+        // Verify skip metadata was written
+        let skip_path = workspace
+            .path()
+            .join(".canon")
+            .join("runs")
+            .join("test-skip-flow")
+            .join("pr-review")
+            .join("early-signal")
+            .join("skip-metadata.json");
+        assert!(skip_path.exists(), "skip-metadata.json not written");
+        let meta = fs::read_to_string(&skip_path).unwrap();
+        assert!(meta.contains("skipped_with_reason"));
+    }
+
+    #[test]
+    fn run_pr_review_prepare_no_skip_runs_early_signal_pass() {
+        let workspace = TempDir::new().unwrap();
+        // Set up a minimal git repo with two commits so we have a real diff
+        std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git init");
+
+        // Configure user for CI environments
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Canon Test"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "canon@example.com"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+
+        // First commit
+        let test_file = workspace.path().join("src");
+        fs::create_dir_all(&test_file).unwrap();
+        fs::write(test_file.join("lib.rs"), "// initial\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "src/lib.rs"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git add");
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "-m", "first"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git commit 1");
+
+        // Second commit (modify the file)
+        fs::write(test_file.join("lib.rs"), "// modified\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "src/lib.rs"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git add 2");
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "-m", "second"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git commit 2");
+
+        let service = EngineService::new(workspace.path());
+        let result =
+            service.run_pr_review_prepare("test-no-skip-flow", "HEAD~1", "HEAD", false, None);
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+
+        // Verify early signal findings were written (not skip metadata)
+        let es_dir = workspace
+            .path()
+            .join(".canon")
+            .join("runs")
+            .join("test-no-skip-flow")
+            .join("pr-review")
+            .join("early-signal");
+        assert!(es_dir.join("findings.tsv").exists(), "findings.tsv not written");
+        assert!(es_dir.join("summary.md").exists(), "summary.md not written");
     }
 }

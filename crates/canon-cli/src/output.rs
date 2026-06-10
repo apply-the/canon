@@ -11,6 +11,7 @@ use crate::app::OutputFormat;
 use crate::error::CliResult;
 
 mod dispatch;
+mod early_signal;
 mod inspect;
 mod primitives;
 mod run;

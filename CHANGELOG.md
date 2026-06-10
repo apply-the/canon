@@ -15,6 +15,35 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.72.3] - 2026-06-10
+
+Delivered specs:
+
+- `specs/075-pr-review-early-signal-pass/`
+
+Highlights:
+
+- Replaced the informal "quick wins" layer with a named, governed **early signal pass**
+  as the first of seven ordered PR review layers. Canon executes this pass
+  deterministically during `pr-review prepare` and never treats it as complete
+  review coverage.
+- Seven ordered review layers: early signal → application-source →
+  high-risk-surfaces → related-context → logical-stress → tests →
+  coverage-accounting. Each layer produces structured output under
+  `layers/<NN>-<slug>/output.md`, with explicit deferral support.
+- Added `--skip-early-signal` and `--skip-reason` CLI flags with mandatory
+  skip-reason validation. Skipped early signal caps finalize confidence at
+  medium.
+- Added deterministic early signal check rules: broken builds (removed-file
+  references), stale manifests, schema drift, dangling imports, missing tests
+  for changed behavior, naming drift, and validation failures.
+- Added `AwaitingReviewerOutput` run state, finalize gate enforcement requiring
+  early signal findings or valid skip metadata, and coverage-accounting output
+  that honestly enumerates reviewed/deferred/skipped layers.
+- Generated seven layer directories with instructions, required context, and
+  output placeholders at `prepare` time; validation at `accept` rejects
+  incomplete layers.
+
 ## [0.72.2] - 2026-06-09
 
 - Fixed init procedure with nested git repos

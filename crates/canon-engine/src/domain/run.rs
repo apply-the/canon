@@ -131,6 +131,10 @@ pub enum RunState {
     Aborted,
     /// The run has been replaced by a newer run.
     Superseded,
+    /// Canon has completed deterministic preparation (early signal pass,
+    /// file classification, context indexes, layer instructions).
+    /// Waiting for the LLM agent to write layer outputs and invoke `accept`.
+    AwaitingReviewerOutput,
 }
 
 /// The captured runtime context for a Canon run.

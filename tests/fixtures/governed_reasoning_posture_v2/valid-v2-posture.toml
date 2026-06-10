@@ -9,7 +9,7 @@ publication_status = "active"
 [compatibility_window]
 boundline_min = "0.74.0"
 boundline_max_exclusive = "0.75.0"
-canon_min = "0.72.2"
+canon_min = "0.72.3"
 canon_max_exclusive = "0.73.0"
 contract_line = "governed_reasoning_posture_v2"
 

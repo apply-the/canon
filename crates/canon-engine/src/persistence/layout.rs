@@ -155,6 +155,38 @@ impl ProjectLayout {
         self.artifacts_dir().join(run_id).join(mode.as_str())
     }
 
+    // ── PR-Review specific paths ─────────────────────────────────────────
+
+    /// Returns the root directory for a PR review run.
+    pub fn pr_review_dir(&self, run_id: &str) -> PathBuf {
+        self.run_dir(run_id).join("pr-review")
+    }
+
+    /// Returns the early signal artifacts directory for a PR review run.
+    pub fn early_signal_dir(&self, run_id: &str) -> PathBuf {
+        self.pr_review_dir(run_id).join("early-signal")
+    }
+
+    /// Returns the traces directory for a PR review run.
+    pub fn pr_review_traces_dir(&self, run_id: &str) -> PathBuf {
+        self.pr_review_dir(run_id).join("traces")
+    }
+
+    /// Returns the path to the early signal trace JSONL file.
+    pub fn early_signal_trace_path(&self, run_id: &str) -> PathBuf {
+        self.pr_review_traces_dir(run_id).join("early-signal.jsonl")
+    }
+
+    /// Returns the layers directory for a PR review run.
+    pub fn layers_dir(&self, run_id: &str) -> PathBuf {
+        self.pr_review_dir(run_id).join("layers")
+    }
+
+    /// Returns the directory path for a specific review layer.
+    pub fn layer_dir(&self, run_id: &str, ordinal: u8, name: &str) -> PathBuf {
+        self.layers_dir(run_id).join(format!("{:02}-{}", ordinal, name))
+    }
+
     /// Returns the path to the `.agents/skills/` directory.
     pub fn skills_dir(&self) -> PathBuf {
         self.repo_root.join(".agents").join("skills")
@@ -271,5 +303,30 @@ mod tests {
         let layout = ProjectLayout::new("/tmp/canon-fixture");
         let p = layout.run_invocation_dir("R-20260413-6f2b8d4e", "req-01");
         assert!(p.to_string_lossy().contains("invocations/req-01"));
+    }
+
+    #[test]
+    fn pr_review_dir_paths() {
+        let layout = ProjectLayout::new("/tmp/canon-fixture");
+        let pr_dir = layout.pr_review_dir("R-20260413-6f2b8d4e");
+        assert!(pr_dir.to_string_lossy().contains("pr-review"));
+
+        let es_dir = layout.early_signal_dir("R-20260413-6f2b8d4e");
+        assert!(es_dir.to_string_lossy().contains("early-signal"));
+
+        let traces_dir = layout.pr_review_traces_dir("R-20260413-6f2b8d4e");
+        assert!(traces_dir.to_string_lossy().contains("traces"));
+
+        let trace_path = layout.early_signal_trace_path("R-20260413-6f2b8d4e");
+        assert!(trace_path.to_string_lossy().contains("early-signal.jsonl"));
+
+        let layers_dir = layout.layers_dir("R-20260413-6f2b8d4e");
+        assert!(layers_dir.to_string_lossy().contains("layers"));
+
+        let layer_dir = layout.layer_dir("R-20260413-6f2b8d4e", 1, "early-signal");
+        assert!(layer_dir.to_string_lossy().contains("01-early-signal"));
+
+        let layer_dir_7 = layout.layer_dir("R-20260413-6f2b8d4e", 7, "coverage-accounting");
+        assert!(layer_dir_7.to_string_lossy().contains("07-coverage-accounting"));
     }
 }
