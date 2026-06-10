@@ -90,8 +90,7 @@ fn build_bucket_coverage(
     let mut map: BTreeMap<&str, (usize, FileBucket)> = BTreeMap::new();
     for (_path, bucket) in classifications {
         let key = bucket_label(bucket);
-        map.entry(key).or_insert_with(|| (0, bucket.clone()));
-        map.get_mut(key).unwrap().0 += 1;
+        map.entry(key).or_insert_with(|| (0, bucket.clone())).0 += 1;
     }
 
     // For now, coverage status assignment is conservative: all files are
