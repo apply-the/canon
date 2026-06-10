@@ -542,4 +542,104 @@ mod tests {
         assert!(content.contains("AwaitingReviewerOutput"));
         assert!(content.contains("completed"));
     }
+
+    // ── run_pr_review_prepare integration tests ──────────────────────────
+
+    #[test]
+    fn run_pr_review_prepare_with_skip_early_signal_writes_skip_metadata() {
+        let workspace = TempDir::new().unwrap();
+        // Set up a minimal git repo
+        let status = std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git init");
+        assert!(status.status.success(), "git init failed: {:?}", status);
+
+        // Create an initial commit so there's a valid HEAD
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "init"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git commit");
+
+        let service = EngineService::new(workspace.path());
+        // diff HEAD HEAD is empty — prepare should still succeed
+        let result = service.run_pr_review_prepare(
+            "test-skip-flow",
+            "HEAD",
+            "HEAD",
+            true,
+            Some("integration test"),
+        );
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+
+        // Verify skip metadata was written
+        let skip_path = workspace
+            .path()
+            .join(".canon")
+            .join("runs")
+            .join("test-skip-flow")
+            .join("pr-review")
+            .join("early-signal")
+            .join("skip-metadata.json");
+        assert!(skip_path.exists(), "skip-metadata.json not written");
+        let meta = fs::read_to_string(&skip_path).unwrap();
+        assert!(meta.contains("skipped_with_reason"));
+    }
+
+    #[test]
+    fn run_pr_review_prepare_no_skip_runs_early_signal_pass() {
+        let workspace = TempDir::new().unwrap();
+        // Set up a minimal git repo with two commits so we have a real diff
+        std::process::Command::new("git")
+            .args(["init"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git init");
+
+        // First commit
+        let test_file = workspace.path().join("src");
+        fs::create_dir_all(&test_file).unwrap();
+        fs::write(test_file.join("lib.rs"), "// initial\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "src/lib.rs"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git add");
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "-m", "first"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git commit 1");
+
+        // Second commit (modify the file)
+        fs::write(test_file.join("lib.rs"), "// modified\n").unwrap();
+        std::process::Command::new("git")
+            .args(["add", "src/lib.rs"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git add 2");
+        std::process::Command::new("git")
+            .args(["-c", "commit.gpgsign=false", "commit", "-m", "second"])
+            .current_dir(workspace.path())
+            .output()
+            .expect("git commit 2");
+
+        let service = EngineService::new(workspace.path());
+        let result =
+            service.run_pr_review_prepare("test-no-skip-flow", "HEAD~1", "HEAD", false, None);
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+
+        // Verify early signal findings were written (not skip metadata)
+        let es_dir = workspace
+            .path()
+            .join(".canon")
+            .join("runs")
+            .join("test-no-skip-flow")
+            .join("pr-review")
+            .join("early-signal");
+        assert!(es_dir.join("findings.tsv").exists(), "findings.tsv not written");
+        assert!(es_dir.join("summary.md").exists(), "summary.md not written");
+    }
 }

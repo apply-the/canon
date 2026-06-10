@@ -709,4 +709,77 @@ mod tests {
         assert!(content.contains("`medium`"));
         assert!(content.contains("does **not** imply full early-risk coverage"));
     }
+
+    // ── run_pr_review_finalize integration test ──────────────────────────
+
+    #[test]
+    fn run_pr_review_finalize_succeeds_with_full_fixture() {
+        let workspace = TempDir::new().unwrap();
+        let run_id = "test-finalize-engine";
+        let run_dir = workspace.path().join(".canon").join("runs").join(run_id).join("pr-review");
+        fs::create_dir_all(&run_dir).unwrap();
+
+        // Run state: ReviewerOutputAccepted
+        let run_state = serde_json::json!({"state": "reviewer_output_accepted"});
+        fs::write(run_dir.join("run-state.json"), run_state.to_string()).unwrap();
+
+        // Early signal findings (already executed)
+        let es_dir = run_dir.join("early-signal");
+        fs::create_dir_all(&es_dir).unwrap();
+        fs::write(es_dir.join("findings.json"), "[]").unwrap();
+
+        // Reviewer output (needed for canonical comment set)
+        let reviewer_output = serde_json::json!({
+            "schema_version": "1.0",
+            "findings": [
+                {
+                    "id": "f1",
+                    "severity": "minor",
+                    "path": "src/a.rs",
+                    "line": 10,
+                    "comment_id": "c1",
+                    "layer": "early-signal"
+                }
+            ],
+            "recommendation": "Approve"
+        });
+        fs::write(run_dir.join("reviewer-output.md"), reviewer_output.to_string()).unwrap();
+
+        // Canonical review output
+        let canonical = serde_json::json!({
+            "valid": true,
+            "errors": [],
+            "downgrades": []
+        });
+        fs::write(run_dir.join("canonical-review-output.json"), canonical.to_string()).unwrap();
+
+        // Changed files
+        fs::write(run_dir.join("changed-files.tsv"), "src/a.rs\n").unwrap();
+
+        // Layer directories with output.md
+        let layers_dir = run_dir.join("layers");
+        for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
+            let ordinal = idx + 1;
+            let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+            fs::create_dir_all(&layer_dir).unwrap();
+            let output = format!(
+                "# {slug} Review\n\nDetailed findings for layer {ordinal}.\n\nReview complete.\n"
+            );
+            fs::write(layer_dir.join("output.md"), output).unwrap();
+        }
+
+        let service = EngineService::new(workspace.path());
+        let result = service.run_pr_review_finalize(run_id);
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+
+        // Verify key artifacts were written
+        assert!(run_dir.join("01-review-summary.md").exists(), "summary not written");
+        assert!(run_dir.join("06-review-report.md").exists(), "report not written");
+        assert!(run_dir.join("review-findings.json").exists(), "findings not written");
+        assert!(run_dir.join("coverage-accounting.md").exists(), "coverage accounting not written");
+
+        // Verify run state was updated to finalized
+        let state_content = fs::read_to_string(run_dir.join("run-state.json")).unwrap();
+        assert!(state_content.contains("finalized"), "state not finalized");
+    }
 }

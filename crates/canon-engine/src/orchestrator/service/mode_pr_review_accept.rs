@@ -352,4 +352,91 @@ mod tests {
         }
         assert!(check_layer_coverage(dir.path()).is_ok());
     }
+
+    // ── run_pr_review_accept integration tests ───────────────────────────
+
+    /// Helper: sets up a complete `.canon/runs/{run_id}/pr-review/` directory
+    /// for `run_pr_review_accept`.
+    fn setup_accept_run_dir(workspace: &std::path::Path, run_id: &str) {
+        let run_dir = workspace.join(".canon").join("runs").join(run_id).join("pr-review");
+        fs::create_dir_all(&run_dir).unwrap();
+
+        // Valid reviewer output JSON
+        let reviewer_output = serde_json::json!({
+            "schema_version": "1.0",
+            "findings": [
+                {
+                    "id": "f1",
+                    "severity": "minor",
+                    "path": "src/a.rs",
+                    "line": 10,
+                    "comment_id": "c1",
+                    "layer": "early-signal"
+                }
+            ],
+            "recommendation": "Approve"
+        });
+        fs::write(run_dir.join("reviewer-output.md"), reviewer_output.to_string()).unwrap();
+
+        // Changed files
+        fs::write(run_dir.join("changed-files.tsv"), "src/a.rs\n").unwrap();
+
+        // Run state with layers
+        let run_state = serde_json::json!({
+            "state": "prepared",
+            "layers": {
+                "early-signal": {"status": "completed"},
+                "application-source": {"status": "completed"},
+                "high-risk-surfaces": {"status": "completed"},
+                "related-context": {"status": "skipped"},
+                "logical-stress": {"status": "completed"},
+                "tests": {"status": "completed"},
+                "coverage-accounting": {"status": "completed"}
+            }
+        });
+        fs::write(run_dir.join("run-state.json"), run_state.to_string()).unwrap();
+
+        // 7 layer directories with output.md
+        for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
+            let ordinal = idx + 1;
+            let layer_dir = run_dir.join("layers").join(format!("{:02}-{}", ordinal, slug));
+            fs::create_dir_all(&layer_dir).unwrap();
+            let output = format!(
+                "# {slug} Review\n\nFindings for layer {ordinal}. All checks passed.\n\nDetailed analysis complete.\n"
+            );
+            fs::write(layer_dir.join("output.md"), output).unwrap();
+        }
+    }
+
+    #[test]
+    fn run_pr_review_accept_succeeds_with_full_fixture() {
+        let workspace = TempDir::new().unwrap();
+        setup_accept_run_dir(workspace.path(), "test-accept-engine");
+        let service = EngineService::new(workspace.path());
+        let result = service.run_pr_review_accept("test-accept-engine");
+        assert!(result.is_ok(), "expected ok, got {:?}", result.err());
+
+        // Verify canonical output was written
+        let output_path = workspace
+            .path()
+            .join(".canon")
+            .join("runs")
+            .join("test-accept-engine")
+            .join("pr-review")
+            .join("canonical-review-output.json");
+        assert!(output_path.exists(), "canonical output not written");
+    }
+
+    #[test]
+    fn run_pr_review_accept_fails_when_reviewer_output_missing() {
+        let workspace = TempDir::new().unwrap();
+        let run_dir =
+            workspace.path().join(".canon").join("runs").join("no-output").join("pr-review");
+        fs::create_dir_all(&run_dir).unwrap();
+        // No reviewer-output.md
+        let service = EngineService::new(workspace.path());
+        let result = service.run_pr_review_accept("no-output");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("read reviewer output"));
+    }
 }

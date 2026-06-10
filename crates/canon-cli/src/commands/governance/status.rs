@@ -309,6 +309,216 @@ mod tests {
     use super::*;
     use canon_engine::domain::run::RunState;
 
+    // ── authority_approval_state ─────────────────────────────────────────
+
+    #[test]
+    fn authority_approval_state_maps_all_variants() {
+        assert_eq!(
+            authority_approval_state(ApprovalState::NotNeeded),
+            AuthorityApprovalState::NotNeeded
+        );
+        assert_eq!(
+            authority_approval_state(ApprovalState::Requested),
+            AuthorityApprovalState::Requested
+        );
+        assert_eq!(
+            authority_approval_state(ApprovalState::Granted),
+            AuthorityApprovalState::Granted
+        );
+        assert_eq!(
+            authority_approval_state(ApprovalState::Rejected),
+            AuthorityApprovalState::Rejected
+        );
+        assert_eq!(
+            authority_approval_state(ApprovalState::Expired),
+            AuthorityApprovalState::Expired
+        );
+    }
+
+    // ── authority_packet_readiness ───────────────────────────────────────
+
+    #[test]
+    fn authority_packet_readiness_maps_all_variants() {
+        assert_eq!(
+            authority_packet_readiness(Some(PacketReadiness::Pending)),
+            AuthorityPacketReadiness::Pending
+        );
+        assert_eq!(
+            authority_packet_readiness(Some(PacketReadiness::Incomplete)),
+            AuthorityPacketReadiness::Incomplete
+        );
+        assert_eq!(
+            authority_packet_readiness(Some(PacketReadiness::Reusable)),
+            AuthorityPacketReadiness::Reusable
+        );
+        assert_eq!(
+            authority_packet_readiness(Some(PacketReadiness::Rejected)),
+            AuthorityPacketReadiness::Rejected
+        );
+        // None defaults to Pending
+        assert_eq!(authority_packet_readiness(None), AuthorityPacketReadiness::Pending);
+    }
+
+    // ── normalized_status ───────────────────────────────────────────────—
+
+    #[test]
+    fn completed_with_incomplete_readiness_maps_to_blocked() {
+        let status = normalized_status(RunState::Completed, Some(PacketReadiness::Incomplete));
+        assert_eq!(status, GovernanceStatus::Blocked);
+    }
+
+    #[test]
+    fn completed_with_rejected_readiness_maps_to_blocked() {
+        let status = normalized_status(RunState::Completed, Some(PacketReadiness::Rejected));
+        assert_eq!(status, GovernanceStatus::Blocked);
+    }
+
+    #[test]
+    fn completed_without_readiness_maps_to_completed() {
+        let status = normalized_status(RunState::Completed, None);
+        assert_eq!(status, GovernanceStatus::Completed);
+    }
+
+    #[test]
+    fn failed_maps_to_failed() {
+        let status = normalized_status(RunState::Failed, None);
+        assert_eq!(status, GovernanceStatus::Failed);
+    }
+
+    #[test]
+    fn aborted_maps_to_failed() {
+        let status = normalized_status(RunState::Aborted, None);
+        assert_eq!(status, GovernanceStatus::Failed);
+    }
+
+    #[test]
+    fn executing_maps_to_running() {
+        let status = normalized_status(RunState::Executing, None);
+        assert_eq!(status, GovernanceStatus::Running);
+    }
+
+    #[test]
+    fn awaiting_approval_maps_to_awaiting_approval() {
+        let status = normalized_status(RunState::AwaitingApproval, None);
+        assert_eq!(status, GovernanceStatus::AwaitingApproval);
+    }
+
+    // ── response_reason_code ─────────────────────────────────────────────
+
+    #[test]
+    fn response_reason_code_for_awaiting_approval() {
+        let code = response_reason_code(GovernanceStatus::AwaitingApproval, None);
+        assert_eq!(code, Some(GovernanceReasonCode::ApprovalRequired));
+    }
+
+    #[test]
+    fn response_reason_code_for_blocked_incomplete() {
+        let code =
+            response_reason_code(GovernanceStatus::Blocked, Some(PacketReadiness::Incomplete));
+        assert_eq!(code, Some(GovernanceReasonCode::IncompletePacket));
+    }
+
+    #[test]
+    fn response_reason_code_for_blocked_rejected() {
+        let code = response_reason_code(GovernanceStatus::Blocked, Some(PacketReadiness::Rejected));
+        assert_eq!(code, Some(GovernanceReasonCode::RejectedPacket));
+    }
+
+    #[test]
+    fn response_reason_code_for_blocked_default() {
+        let code = response_reason_code(GovernanceStatus::Blocked, None);
+        assert_eq!(code, Some(GovernanceReasonCode::BlockedByGovernance));
+    }
+
+    #[test]
+    fn response_reason_code_for_failed() {
+        let code = response_reason_code(GovernanceStatus::Failed, None);
+        assert_eq!(code, Some(GovernanceReasonCode::RunFailed));
+    }
+
+    #[test]
+    fn response_reason_code_for_completed_is_none() {
+        let code = response_reason_code(GovernanceStatus::Completed, None);
+        assert_eq!(code, None);
+    }
+
+    // ── default_headline ─────────────────────────────────────────────────
+
+    #[test]
+    fn default_headline_for_completed() {
+        let h = default_headline(GovernanceStatus::Completed, None);
+        assert_eq!(h, Some("Governance execution completed".to_string()));
+    }
+
+    #[test]
+    fn default_headline_for_running() {
+        let h = default_headline(GovernanceStatus::Running, None);
+        assert_eq!(h, Some("Governance execution is still running".to_string()));
+    }
+
+    #[test]
+    fn default_headline_for_failed() {
+        let h = default_headline(GovernanceStatus::Failed, None);
+        assert_eq!(h, Some("Governance execution failed".to_string()));
+    }
+
+    #[test]
+    fn default_headline_for_pending_selection() {
+        let h = default_headline(GovernanceStatus::PendingSelection, None);
+        assert_eq!(h, Some("Governance execution is still selecting the next action".to_string()));
+    }
+
+    // ── default_message ──────────────────────────────────────────────────
+
+    #[test]
+    fn default_message_for_completed() {
+        let msg = default_message(GovernanceStatus::Completed, "r1", None);
+        assert!(msg.contains("r1"));
+        assert!(msg.contains("completed"));
+    }
+
+    #[test]
+    fn default_message_for_running() {
+        let msg = default_message(GovernanceStatus::Running, "r1", None);
+        assert!(msg.contains("r1"));
+        assert!(msg.contains("still running"));
+    }
+
+    #[test]
+    fn default_message_for_failed() {
+        let msg = default_message(GovernanceStatus::Failed, "r1", None);
+        assert!(msg.contains("r1"));
+        assert!(msg.contains("failed"));
+    }
+
+    #[test]
+    fn default_message_for_pending_selection() {
+        let msg = default_message(GovernanceStatus::PendingSelection, "r1", None);
+        assert!(msg.contains("r1"));
+        assert!(msg.contains("selecting"));
+    }
+
+    #[test]
+    fn default_message_for_blocked_incomplete() {
+        let msg =
+            default_message(GovernanceStatus::Blocked, "r1", Some(PacketReadiness::Incomplete));
+        assert!(msg.contains("incomplete"));
+    }
+
+    #[test]
+    fn default_message_for_blocked_rejected() {
+        let msg = default_message(GovernanceStatus::Blocked, "r1", Some(PacketReadiness::Rejected));
+        assert!(msg.contains("not reusable"));
+    }
+
+    #[test]
+    fn default_message_for_governed_ready() {
+        let msg = default_message(GovernanceStatus::GovernedReady, "r1", None);
+        assert!(msg.contains("reusable"));
+    }
+
+    // ── existing tests ───────────────────────────────────────────────────
+
     #[test]
     fn awaiting_reviewer_output_maps_to_pending_selection() {
         let status = normalized_status(RunState::AwaitingReviewerOutput, None);
