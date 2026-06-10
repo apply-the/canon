@@ -4,6 +4,8 @@
 //! `03-github-comments.json`, `06-review-report.md`, `review-findings.json`,
 //! and `missing-tests.md` from the canonical comment set and governance findings.
 
+use crate::domain::review_coverage::{ApprovalReadiness, CoverageSummary};
+use crate::review::coverage::{generate_global_comment, generate_not_ready_statement};
 use crate::review::findings::{CanonicalCommentSet, GithubComment, ReviewPacket};
 
 /// The final review recommendation.
@@ -78,6 +80,7 @@ pub fn render_review_summary(
     packet: &ReviewPacket,
     changed_files: &[String],
     files_inspected: &[String],
+    coverage: &CoverageSummary,
 ) -> String {
     let mut out = String::new();
     out.push_str("# PR Review Summary\n\n");
@@ -93,11 +96,37 @@ pub fn render_review_summary(
     out.push_str("## Recommendation\n\n");
     out.push_str(&format!("**{}**\n\n", recommendation.as_str()));
 
-    out.push_str("## Review Status\n\n");
+    // ── Coverage-aware metadata ────────────────────────────────────────
+    out.push_str("## Review Type & Confidence\n\n");
+    out.push_str("| Field | Value |\n|---|---|\n");
+    out.push_str(&format!("| Review type | {} |\n", coverage.review_type_label()));
+    out.push_str(&format!("| Confidence | `{}` |\n", coverage.confidence_label()));
+    out.push_str(&format!("| Approval readiness | {} |\n", coverage.approval_readiness_label()));
+
+    out.push_str("\n## Review Status\n\n");
     out.push_str("| Field | Value |\n|---|---|\n");
     out.push_str(&format!("| Actionable review status | {} |\n", canonical.reviewer_status));
     out.push_str(&format!("| Changed files | {} |\n", changed_files.len()));
     out.push_str(&format!("| Files inspected deeply | {} |\n", files_inspected.len()));
+
+    // ── Coverage by bucket ─────────────────────────────────────────────
+    if !coverage.buckets.is_empty() {
+        out.push_str("\n## Coverage by Bucket\n\n");
+        out.push_str("| Bucket | Total | Deep Reviewed | Light Reviewed | Indexed | Skipped | Not Reviewed |\n");
+        out.push_str("|---|---|---|---|---|---|---|\n");
+        for bc in &coverage.buckets {
+            out.push_str(&format!(
+                "| {:?} | {} | {} | {} | {} | {} | {} |\n",
+                bc.bucket,
+                bc.total,
+                bc.deep_reviewed,
+                bc.light_reviewed,
+                bc.indexed_only,
+                bc.skipped,
+                bc.not_reviewed,
+            ));
+        }
+    }
 
     out.push_str("\n## Severity Summary\n\n");
     out.push_str("| Severity | Count |\n|---|---|\n");
@@ -128,6 +157,13 @@ pub fn render_review_summary(
         }
     }
 
+    // ── Global coverage comment (when coverage is partial) ─────────────
+    if coverage.approval_readiness == ApprovalReadiness::NotReady {
+        out.push_str("\n## Global Coverage Comment\n\n");
+        out.push_str(&generate_global_comment(coverage));
+        out.push('\n');
+    }
+
     // Final disposition for gate compatibility
     out.push_str("\n## Final Disposition\n\n");
     match recommendation {
@@ -144,6 +180,13 @@ pub fn render_review_summary(
         }
     }
     out.push_str(&format!("\nStatus: {status}\n", status = recommendation_status(recommendation)));
+
+    // ── Not-ready statement ─────────────────────────────────────────────
+    if coverage.approval_readiness == ApprovalReadiness::NotReady {
+        out.push_str("\n> ");
+        out.push_str(&generate_not_ready_statement(coverage));
+        out.push('\n');
+    }
 
     out
 }
@@ -170,6 +213,7 @@ pub fn render_review_report(
     recommendation: Recommendation,
     packet: &ReviewPacket,
     changed_files: &[String],
+    coverage: &CoverageSummary,
 ) -> String {
     let mut out = String::new();
     out.push_str("# PR Review Report\n\n");
@@ -182,6 +226,13 @@ pub fn render_review_report(
 
     out.push_str("## Recommendation\n\n");
     out.push_str(&format!("**{}**\n\n", recommendation.as_str()));
+
+    // ── Coverage-aware metadata ────────────────────────────────────────
+    out.push_str("## Review Type & Confidence\n\n");
+    out.push_str("| Field | Value |\n|---|---|\n");
+    out.push_str(&format!("| Review type | {} |\n", coverage.review_type_label()));
+    out.push_str(&format!("| Confidence | `{}` |\n", coverage.confidence_label()));
+    out.push_str(&format!("| Approval readiness | {} |\n", coverage.approval_readiness_label()));
 
     out.push_str("## Severity Summary\n\n");
     out.push_str("| Severity | Count |\n|---|---|\n");
@@ -204,6 +255,33 @@ pub fn render_review_report(
     out.push_str("| Field | Value |\n|---|---|\n");
     out.push_str(&format!("| Actionable review status | {} |\n", canonical.reviewer_status));
     out.push_str(&format!("| Files changed | {} |\n", changed_files.len()));
+    out.push_str(&format!("| Files deeply reviewed | {} |\n", coverage.total_deep_reviewed));
+    out.push_str(&format!("| Review type | {} |\n", coverage.review_type_label()));
+    out.push_str(&format!("| Confidence | `{}` |\n", coverage.confidence_label()));
+
+    // ── Coverage by bucket ─────────────────────────────────────────────
+    if !coverage.buckets.is_empty() {
+        out.push_str("\n## Coverage by Bucket\n\n");
+        out.push_str("| Bucket | Total | Deep Reviewed | Not Reviewed |\n");
+        out.push_str("|---|---|---|---|\n");
+        for bc in &coverage.buckets {
+            out.push_str(&format!(
+                "| {:?} | {} | {} | {} |\n",
+                bc.bucket, bc.total, bc.deep_reviewed, bc.not_reviewed,
+            ));
+        }
+    }
+
+    // ── Global comment when not ready ──────────────────────────────────
+    if coverage.approval_readiness == ApprovalReadiness::NotReady {
+        out.push_str("\n## Global Coverage Comment\n\n");
+        out.push_str(&generate_global_comment(coverage));
+        out.push('\n');
+
+        out.push_str("\n> ");
+        out.push_str(&generate_not_ready_statement(coverage));
+        out.push('\n');
+    }
 
     out.push_str("\n## Governance Observations\n\n");
     if packet.findings.is_empty() {
@@ -223,6 +301,9 @@ pub fn render_review_report(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::review_coverage::{
+        ApprovalReadiness, ConfidenceLevel, CoverageSummary, ReviewType,
+    };
     use crate::review::findings::{
         CanonicalCommentSet, ConventionalCommentScope, FindingCategory, FindingSeverity,
         ReviewFinding, ReviewPacket,
@@ -241,6 +322,22 @@ mod tests {
 
     fn empty_canonical() -> CanonicalCommentSet {
         CanonicalCommentSet { comments: vec![], reviewer_status: "governance_only".to_string() }
+    }
+
+    /// Returns a minimal complete-review CoverageSummary for tests that
+    /// don't need specific coverage data.
+    fn empty_coverage() -> CoverageSummary {
+        CoverageSummary {
+            buckets: Vec::new(),
+            review_type: ReviewType::CompleteReview,
+            confidence: ConfidenceLevel::High,
+            approval_readiness: ApprovalReadiness::Ready,
+            total_changed: 0,
+            total_deep_reviewed: 0,
+            total_skipped: 0,
+            early_signal_skipped: false,
+            deferred_layer_count: 0,
+        }
     }
 
     #[test]
@@ -342,6 +439,7 @@ mod tests {
             &empty_packet(),
             &changed,
             &changed,
+            &empty_coverage(),
         );
         assert!(summary.contains("## Recommendation"));
         assert!(summary.contains("**Approve**"));
@@ -365,8 +463,14 @@ mod tests {
             anchor: None,
             changed_surfaces: vec![],
         });
-        let summary =
-            render_review_summary(&canonical, Recommendation::RequestChanges, &packet, &[], &[]);
+        let summary = render_review_summary(
+            &canonical,
+            Recommendation::RequestChanges,
+            &packet,
+            &[],
+            &[],
+            &empty_coverage(),
+        );
         assert!(summary.contains("**Request changes**"));
         assert!(summary.contains("Status: awaiting-disposition"));
     }
@@ -377,8 +481,14 @@ mod tests {
             comments: vec![],
             reviewer_status: "actionable_review_not_configured".to_string(),
         };
-        let summary =
-            render_review_summary(&canonical, Recommendation::Comment, &empty_packet(), &[], &[]);
+        let summary = render_review_summary(
+            &canonical,
+            Recommendation::Comment,
+            &empty_packet(),
+            &[],
+            &[],
+            &empty_coverage(),
+        );
         assert!(summary.contains("**Comment**"));
         assert!(summary.contains("Status: ready-with-review-notes"));
     }
@@ -389,8 +499,13 @@ mod tests {
             comments: vec![],
             reviewer_status: "actionable_review_executed".to_string(),
         };
-        let report =
-            render_review_report(&canonical, Recommendation::Approve, &empty_packet(), &[]);
+        let report = render_review_report(
+            &canonical,
+            Recommendation::Approve,
+            &empty_packet(),
+            &[],
+            &empty_coverage(),
+        );
         assert!(report.contains("**Approve**"));
         assert!(report.contains("No governance observations"));
     }
@@ -411,7 +526,13 @@ mod tests {
             anchor: None,
             changed_surfaces: vec![],
         });
-        let report = render_review_report(&canonical, Recommendation::Comment, &packet, &[]);
+        let report = render_review_report(
+            &canonical,
+            Recommendation::Comment,
+            &packet,
+            &[],
+            &empty_coverage(),
+        );
         assert!(report.contains("Observed duplication"));
     }
 
@@ -501,6 +622,7 @@ mod tests {
             &empty_packet(),
             &changed,
             &changed,
+            &empty_coverage(),
         );
         assert!(summary.contains("**C001**"));
         assert!(summary.contains("Critical bug"));
@@ -533,6 +655,7 @@ mod tests {
             Recommendation::RequestChanges,
             &empty_packet(),
             &["src/a.rs".to_string()],
+            &empty_coverage(),
         );
         assert!(report.contains("**C001**"));
         assert!(report.contains("Critical bug"));

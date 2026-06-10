@@ -20,6 +20,9 @@ pub mod policy;
 pub mod publish_profile;
 /// Review layer, early signal finding, and coverage accounting types.
 pub mod review;
+/// Coverage-aware review types: file buckets, coverage status, review type,
+/// confidence level, and approval readiness.
+pub mod review_coverage;
 /// Run state, run context, and classification provenance types.
 pub mod run;
 /// Verification layer and verification record types.

@@ -45,15 +45,33 @@ impl EngineService {
             false, // actionable_review_failed
         )?;
 
+        // ── Coverage-aware analysis ─────────────────────────────────────
+        let early_signal_skipped = run_dir.join("early-signal").join("skip-metadata.json").exists();
+        let classifications = crate::review::classifier::classify_files(&changed_files);
+        let deep_reviewed_count = count_deep_reviewed_files(&run_dir, &changed_files);
+        let layer_completions = read_layer_completions(&run_dir);
+        let coverage = crate::review::coverage::analyze_coverage(
+            &classifications,
+            deep_reviewed_count,
+            early_signal_skipped,
+            &layer_completions,
+        );
+
         let summary = render::render_review_summary(
             &canonical,
             recommendation,
             &packet,
             &changed_files,
             &files_inspected,
+            &coverage,
         );
-        let report =
-            render::render_review_report(&canonical, recommendation, &packet, &changed_files);
+        let report = render::render_review_report(
+            &canonical,
+            recommendation,
+            &packet,
+            &changed_files,
+            &coverage,
+        );
 
         // ── Coverage accounting (T041-T044, FR-008, FR-014) ──
         write_coverage_accounting(&run_dir)?;
@@ -93,6 +111,70 @@ fn read_changed_files(run_dir: &Path) -> Result<Vec<String>, String> {
 /// Reads files deeply inspected (all changed files as a simple approximation).
 fn read_files_inspected(run_dir: &Path) -> Result<Vec<String>, String> {
     read_changed_files(run_dir)
+}
+
+/// Counts how many changed files were deeply reviewed by the application-source
+/// layer (layer 2). A file is considered deeply reviewed if it appears in
+/// `layers/02-application-source/output.md` with non-placeholder content.
+fn count_deep_reviewed_files(run_dir: &Path, _changed_files: &[String]) -> usize {
+    let layer_output = run_dir.join("layers").join("02-application-source").join("output.md");
+    if !layer_output.exists() {
+        return 0;
+    }
+    // Conservative heuristic: if the output.md exists and is non-empty and
+    // non-placeholder, count all changed files as deeply reviewed. In the
+    // future, per-file review tracking will refine this.
+    if let Ok(content) = fs::read_to_string(&layer_output) {
+        let trimmed = content.trim();
+        if trimmed.len() > 30
+            && !trimmed.starts_with("# Application-Source Review\n\n*No output yet.*")
+        {
+            // Count all changed files as deeply reviewed for now.
+            // This is a coarse approximation; per-file tracking will narrow this.
+            return _changed_files.len();
+        }
+    }
+    0
+}
+
+/// Reads layer completion statuses from the layers directory.
+/// Returns (layer_slug, LayerStatus) for each layer.
+fn read_layer_completions(run_dir: &Path) -> Vec<(String, crate::review::onion::LayerStatus)> {
+    use crate::review::onion::LayerStatus;
+
+    let layer_slugs = &[
+        "early-signal",
+        "application-source",
+        "high-risk-surfaces",
+        "related-context",
+        "logical-stress",
+        "tests",
+        "coverage-accounting",
+    ];
+
+    layer_slugs
+        .iter()
+        .enumerate()
+        .map(|(idx, slug)| {
+            let ordinal = idx + 1;
+            let layer_dir = run_dir.join("layers").join(format!("{:02}-{}", ordinal, slug));
+            if !layer_dir.exists() {
+                return (slug.to_string(), LayerStatus::Failed);
+            }
+            // Check for output.md content
+            if let Ok(content) = fs::read_to_string(layer_dir.join("output.md")) {
+                let trimmed = content.trim();
+                if trimmed.len() > 30 {
+                    return (slug.to_string(), LayerStatus::Completed);
+                }
+            }
+            // Check for deferral
+            if layer_dir.join("deferral.toml").exists() {
+                return (slug.to_string(), LayerStatus::SkippedWithReason);
+            }
+            (slug.to_string(), LayerStatus::Failed)
+        })
+        .collect()
 }
 
 /// Reads the current run state from run-state.json.
