@@ -85,18 +85,41 @@ pub fn render_review_summary(
     let mut out = String::new();
     out.push_str("# PR Review Summary\n\n");
 
-    out.push_str("## Summary\n\n");
+    append_summary_header(&mut out, packet);
+    append_recommendation(&mut out, recommendation);
+    append_metadata_table(&mut out, coverage, canonical, changed_files, files_inspected);
+    append_coverage_bucket_table(&mut out, coverage);
+    append_severity_summary(&mut out, canonical);
+    append_must_fix_section(&mut out, canonical, packet);
+    append_governance_observations(&mut out, packet);
+    append_global_comment(&mut out, coverage);
+    append_final_disposition(&mut out, recommendation);
+    append_not_ready_statement(&mut out, coverage);
+
+    out
+}
+
+fn append_summary_header(out: &mut String, packet: &ReviewPacket) {
     out.push_str(&format!(
-        "Review of `{}` against `{}` across {} changed surface(s).\n\n",
+        "## Summary\n\nReview of `{}` against `{}` across {} changed surface(s).\n\n",
         packet.head_ref,
         packet.base_ref,
         packet.changed_surfaces.len(),
     ));
+}
 
+fn append_recommendation(out: &mut String, recommendation: Recommendation) {
     out.push_str("## Recommendation\n\n");
     out.push_str(&format!("**{}**\n\n", recommendation.as_str()));
+}
 
-    // ── Coverage-aware metadata ────────────────────────────────────────
+fn append_metadata_table(
+    out: &mut String,
+    coverage: &CoverageSummary,
+    canonical: &CanonicalCommentSet,
+    changed_files: &[String],
+    files_inspected: &[String],
+) {
     out.push_str("## Review Type & Confidence\n\n");
     out.push_str("| Field | Value |\n|---|---|\n");
     out.push_str(&format!("| Review type | {} |\n", coverage.review_type_label()));
@@ -108,63 +131,80 @@ pub fn render_review_summary(
     out.push_str(&format!("| Actionable review status | {} |\n", canonical.reviewer_status));
     out.push_str(&format!("| Changed files | {} |\n", changed_files.len()));
     out.push_str(&format!("| Files inspected deeply | {} |\n", files_inspected.len()));
+}
 
-    // ── Coverage by bucket ─────────────────────────────────────────────
-    if !coverage.buckets.is_empty() {
-        out.push_str("\n## Coverage by Bucket\n\n");
-        out.push_str("| Bucket | Total | Deep Reviewed | Light Reviewed | Indexed | Skipped | Not Reviewed |\n");
-        out.push_str("|---|---|---|---|---|---|---|\n");
-        for bc in &coverage.buckets {
-            out.push_str(&format!(
-                "| {:?} | {} | {} | {} | {} | {} | {} |\n",
-                bc.bucket,
-                bc.total,
-                bc.deep_reviewed,
-                bc.light_reviewed,
-                bc.indexed_only,
-                bc.skipped,
-                bc.not_reviewed,
-            ));
-        }
+fn append_coverage_bucket_table(out: &mut String, coverage: &CoverageSummary) {
+    if coverage.buckets.is_empty() {
+        return;
     }
+    out.push_str("\n## Coverage by Bucket\n\n");
+    out.push_str(
+        "| Bucket | Total | Deep Reviewed | Light Reviewed | Indexed | Skipped | Not Reviewed |\n",
+    );
+    out.push_str("|---|---|---|---|---|---|---|\n");
+    for bc in &coverage.buckets {
+        out.push_str(&format!(
+            "| {:?} | {} | {} | {} | {} | {} | {} |\n",
+            bc.bucket,
+            bc.total,
+            bc.deep_reviewed,
+            bc.light_reviewed,
+            bc.indexed_only,
+            bc.skipped,
+            bc.not_reviewed,
+        ));
+    }
+}
 
+fn append_severity_summary(out: &mut String, canonical: &CanonicalCommentSet) {
     out.push_str("\n## Severity Summary\n\n");
     out.push_str("| Severity | Count |\n|---|---|\n");
     for sev in &["blocking", "major", "minor", "question", "nitpick"] {
         out.push_str(&format!("| {sev} | {} |\n", canonical.count_by_severity(sev)));
     }
+}
 
+fn append_must_fix_section(
+    out: &mut String,
+    canonical: &CanonicalCommentSet,
+    packet: &ReviewPacket,
+) {
     out.push_str("\n## Must Fix\n\n");
     let blocking_cmts: Vec<_> = canonical.comments.iter().filter(|c| c.blocking).collect();
     if blocking_cmts.is_empty() && packet.must_fix_findings().is_empty() {
         out.push_str("- No must-fix findings.\n");
-    } else {
-        for c in &blocking_cmts {
-            let loc = comment_location(c);
-            out.push_str(&format!("- **{id}** — {loc}: {body}\n", id = c.id, body = c.body));
-        }
-        for f in packet.must_fix_findings() {
-            out.push_str(&format!("- [governance] {}: {}\n", f.title, f.details));
-        }
+        return;
     }
+    for c in &blocking_cmts {
+        let loc = comment_location(c);
+        out.push_str(&format!("- **{id}** — {loc}: {body}\n", id = c.id, body = c.body));
+    }
+    for f in packet.must_fix_findings() {
+        out.push_str(&format!("- [governance] {}: {}\n", f.title, f.details));
+    }
+}
 
+fn append_governance_observations(out: &mut String, packet: &ReviewPacket) {
     out.push_str("\n## Governance Observations\n\n");
     if packet.findings.is_empty() {
         out.push_str("- No governance observations.\n");
-    } else {
-        for f in &packet.findings {
-            out.push_str(&format!("- {}: {}\n", f.title, f.details));
-        }
+        return;
     }
-
-    // ── Global coverage comment (when coverage is partial) ─────────────
-    if coverage.approval_readiness == ApprovalReadiness::NotReady {
-        out.push_str("\n## Global Coverage Comment\n\n");
-        out.push_str(&generate_global_comment(coverage));
-        out.push('\n');
+    for f in &packet.findings {
+        out.push_str(&format!("- {}: {}\n", f.title, f.details));
     }
+}
 
-    // Final disposition for gate compatibility
+fn append_global_comment(out: &mut String, coverage: &CoverageSummary) {
+    if coverage.approval_readiness != ApprovalReadiness::NotReady {
+        return;
+    }
+    out.push_str("\n## Global Coverage Comment\n\n");
+    out.push_str(&generate_global_comment(coverage));
+    out.push('\n');
+}
+
+fn append_final_disposition(out: &mut String, recommendation: Recommendation) {
     out.push_str("\n## Final Disposition\n\n");
     match recommendation {
         Recommendation::Approve => {
@@ -180,15 +220,15 @@ pub fn render_review_summary(
         }
     }
     out.push_str(&format!("\nStatus: {status}\n", status = recommendation_status(recommendation)));
+}
 
-    // ── Not-ready statement ─────────────────────────────────────────────
-    if coverage.approval_readiness == ApprovalReadiness::NotReady {
-        out.push_str("\n> ");
-        out.push_str(&generate_not_ready_statement(coverage));
-        out.push('\n');
+fn append_not_ready_statement(out: &mut String, coverage: &CoverageSummary) {
+    if coverage.approval_readiness != ApprovalReadiness::NotReady {
+        return;
     }
-
-    out
+    out.push_str("\n> ");
+    out.push_str(&generate_not_ready_statement(coverage));
+    out.push('\n');
 }
 
 fn recommendation_status(rec: Recommendation) -> &'static str {

@@ -69,48 +69,14 @@ impl EngineService {
 fn check_layer_coverage(run_dir: &Path) -> Result<(), String> {
     let layers_dir = run_dir.join("layers");
     if !layers_dir.exists() {
-        return Ok(()); // No 7-layer structure — fall through to existing validation
+        return Ok(());
     }
 
-    let mut errors = Vec::new();
-
-    for (idx, slug) in LAYER_SLUGS.iter().enumerate() {
-        let ordinal = idx + 1;
-        let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
-        if !layer_dir.exists() {
-            errors.push(format!("Layer {ordinal} ({slug}): directory missing"));
-            continue;
-        }
-
-        let output_path = layer_dir.join("output.md");
-        let output_content = fs::read_to_string(&output_path).ok();
-        let has_output = output_path.exists()
-            && output_content
-                .as_ref()
-                .map(|c| c.trim().len() > "# {slug} Output\n\n*No output yet.*\n".len())
-                .unwrap_or(false);
-
-        let deferred_path = layer_dir.join("deferral.toml");
-        let has_deferral = deferred_path.exists();
-
-        if !has_output && !has_deferral {
-            errors.push(format!(
-                "Layer {ordinal} ({slug}): missing output.md (non-placeholder) and no deferral recorded"
-            ));
-        } else if has_deferral {
-            let content = fs::read_to_string(&deferred_path).unwrap_or_default();
-            if !content.contains("reason") || content.trim().len() < 20 {
-                errors.push(format!(
-                    "Layer {ordinal} ({slug}): deferral present but reason is empty or missing"
-                ));
-            }
-        } else if let Some(ref content) = output_content {
-            // ── Enhanced validation: check output references concrete targets ──
-            if let Err(rejection) = validate_layer_output_quality(slug, ordinal, content) {
-                errors.push(rejection);
-            }
-        }
-    }
+    let errors: Vec<String> = LAYER_SLUGS
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, slug)| validate_single_layer(&layers_dir, slug, idx + 1))
+        .collect();
 
     if !errors.is_empty() {
         return Err(format!(
@@ -118,9 +84,53 @@ fn check_layer_coverage(run_dir: &Path) -> Result<(), String> {
             errors.iter().map(|e| format!("  - {e}")).collect::<Vec<_>>().join("\n")
         ));
     }
-
     Ok(())
 }
+
+/// Validates a single layer directory, returning an error string if the
+/// layer is incomplete, or `None` if it passes.
+fn validate_single_layer(layers_dir: &Path, slug: &str, ordinal: usize) -> Option<String> {
+    let layer_dir = layers_dir.join(format!("{:02}-{}", ordinal, slug));
+    if !layer_dir.exists() {
+        return Some(format!("Layer {ordinal} ({slug}): directory missing"));
+    }
+
+    let output_path = layer_dir.join("output.md");
+    let output_content = fs::read_to_string(&output_path).ok();
+    let has_output =
+        output_content.as_ref().map(|c| c.trim().len() > PLACEHOLDER_MIN_LEN).unwrap_or(false);
+
+    let deferred_path = layer_dir.join("deferral.toml");
+    let has_deferral = deferred_path.exists();
+
+    if !has_output && !has_deferral {
+        return Some(format!(
+            "Layer {ordinal} ({slug}): missing output.md (non-placeholder) and no deferral recorded"
+        ));
+    }
+
+    if has_deferral {
+        let content = fs::read_to_string(&deferred_path).unwrap_or_default();
+        if !content.contains("reason") || content.trim().len() < 20 {
+            return Some(format!(
+                "Layer {ordinal} ({slug}): deferral present but reason is empty or missing"
+            ));
+        }
+        return None;
+    }
+
+    if let Some(ref content) = output_content
+        && let Err(rejection) = validate_layer_output_quality(slug, ordinal, content)
+    {
+        return Some(rejection);
+    }
+
+    None
+}
+
+/// Minimum length of a non-placeholder output.md to distinguish from the
+/// empty placeholder that defaults to `"# {slug} Output\n\n*No output yet.*\n"`.
+const PLACEHOLDER_MIN_LEN: usize = 30;
 
 /// Validates that a layer's output meets quality standards beyond mere
 /// existence. Returns `Err(reason)` if the output is too generic or does

@@ -57,66 +57,78 @@ const ASSET_EXTENSIONS: &[&str] = &[
 /// 10. Everything else → `Unknown`
 pub fn classify_file(path: &str) -> FileBucket {
     let lower = path.to_ascii_lowercase();
-
-    // 1. Generated/vendor
-    if GENERATED_DIRS.iter().any(|d| lower.starts_with(d)) {
-        return FileBucket::GeneratedOrVendor;
-    }
-
-    // 2. Asset extensions (check before doc/rust to avoid false matches)
     let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
-    if ASSET_EXTENSIONS.contains(&ext.as_str()) {
-        return FileBucket::Assets;
+    let file_name = path.rsplit('/').next().unwrap_or(path);
+
+    // Steps 1-4: early-stage buckets (generated, assets, build-ci, docs)
+    if let Some(bucket) = classify_early_bucket(&lower, &ext, file_name) {
+        return bucket;
     }
 
-    // 3. CI/Build
-    if CI_DIRS.iter().any(|d| lower.starts_with(d)) {
-        return FileBucket::BuildCi;
+    // Steps 5-7: source-related buckets (tests, app source, migrations)
+    if let Some(bucket) = classify_source_bucket(&lower, &ext) {
+        return bucket;
     }
-    let file_name = path.rsplit('/').next().unwrap_or(path);
+
+    // Steps 8-9: tail buckets (api contracts, configuration)
+    if let Some(bucket) = classify_tail_bucket(&lower, &ext) {
+        return bucket;
+    }
+
+    FileBucket::Unknown
+}
+
+/// Checks bucket categories 1-4: generated/vendor, assets, build/CI, documentation.
+fn classify_early_bucket(lower: &str, ext: &str, file_name: &str) -> Option<FileBucket> {
+    if GENERATED_DIRS.iter().any(|d| lower.starts_with(d)) {
+        return Some(FileBucket::GeneratedOrVendor);
+    }
+    if ASSET_EXTENSIONS.contains(&ext) {
+        return Some(FileBucket::Assets);
+    }
+    if CI_DIRS.iter().any(|d| lower.starts_with(d)) {
+        return Some(FileBucket::BuildCi);
+    }
     if CI_FILES.contains(&file_name) {
-        return FileBucket::BuildCi;
+        return Some(FileBucket::BuildCi);
     }
     if ext == "lock" {
-        return FileBucket::BuildCi;
+        return Some(FileBucket::BuildCi);
     }
-
-    // 4. Documentation
-    if DOC_EXTENSIONS.contains(&ext.as_str()) {
-        return FileBucket::Documentation;
+    if DOC_EXTENSIONS.contains(&ext) {
+        return Some(FileBucket::Documentation);
     }
+    None
+}
 
-    // 5. Test files
+/// Checks bucket categories 5-7: tests, application source, database migrations.
+fn classify_source_bucket(lower: &str, ext: &str) -> Option<FileBucket> {
     if ext == RUST_EXT && TEST_DIRS.iter().any(|d| lower.starts_with(d)) {
-        return FileBucket::Tests;
+        return Some(FileBucket::Tests);
     }
-
-    // 6. Application source (Rust)
     if ext == RUST_EXT {
-        return FileBucket::ApplicationSource;
+        return Some(FileBucket::ApplicationSource);
     }
-
-    // 7. Database migrations
     if ext == SQL_EXT || MIGRATION_DIRS.iter().any(|d| lower.starts_with(d)) {
-        return FileBucket::DatabaseMigrations;
+        return Some(FileBucket::DatabaseMigrations);
     }
+    None
+}
 
-    // 8. API contracts
+/// Checks bucket categories 8-9: API contracts, configuration.
+fn classify_tail_bucket(lower: &str, ext: &str) -> Option<FileBucket> {
     if API_CONTRACT_DIRS.iter().any(|d| lower.starts_with(d)) {
-        return FileBucket::ApiContracts;
+        return Some(FileBucket::ApiContracts);
     }
-    // JSON/YAML with contract-like paths
-    if matches!(ext.as_str(), "json" | "yaml" | "yml")
+    if matches!(ext, "json" | "yaml" | "yml")
         && (lower.contains("/api/") || lower.contains("/contract"))
     {
-        return FileBucket::ApiContracts;
+        return Some(FileBucket::ApiContracts);
     }
-
-    // 9. Configuration
-    if matches!(ext.as_str(), "toml" | "env") {
-        return FileBucket::Configuration;
+    if matches!(ext, "toml" | "env") {
+        return Some(FileBucket::Configuration);
     }
-    if matches!(ext.as_str(), "json" | "yaml" | "yml")
+    if matches!(ext, "json" | "yaml" | "yml")
         && (lower.starts_with("config/")
             || lower.starts_with("config.")
             || lower == "config.json"
@@ -124,11 +136,9 @@ pub fn classify_file(path: &str) -> FileBucket {
             || lower == "config.yml"
             || !lower.contains('/'))
     {
-        return FileBucket::Configuration;
+        return Some(FileBucket::Configuration);
     }
-
-    // 10. Unknown
-    FileBucket::Unknown
+    None
 }
 
 /// Classifies a list of file paths, returning `(path, bucket)` pairs.
