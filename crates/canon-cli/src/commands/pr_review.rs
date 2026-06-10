@@ -101,6 +101,16 @@ mod tests {
             .output()
             .ok();
         std::process::Command::new("git")
+            .args(["config", "user.name", "Canon Test"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "canon@example.com"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
             .args(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "init"])
             .current_dir(workspace.path())
             .output()
@@ -285,6 +295,16 @@ mod tests {
         // Init a minimal git repo
         std::process::Command::new("git")
             .args(["init"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Canon Test"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "canon@example.com"])
             .current_dir(workspace.path())
             .output()
             .ok();

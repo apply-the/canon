@@ -556,6 +556,18 @@ mod tests {
             .expect("git init");
         assert!(status.status.success(), "git init failed: {:?}", status);
 
+        // Configure user for CI environments
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Canon Test"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "canon@example.com"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+
         // Create an initial commit so there's a valid HEAD
         std::process::Command::new("git")
             .args(["-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "init"])
@@ -597,6 +609,18 @@ mod tests {
             .current_dir(workspace.path())
             .output()
             .expect("git init");
+
+        // Configure user for CI environments
+        std::process::Command::new("git")
+            .args(["config", "user.name", "Canon Test"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
+        std::process::Command::new("git")
+            .args(["config", "user.email", "canon@example.com"])
+            .current_dir(workspace.path())
+            .output()
+            .ok();
 
         // First commit
         let test_file = workspace.path().join("src");
