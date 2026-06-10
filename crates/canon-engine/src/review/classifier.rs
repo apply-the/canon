@@ -254,4 +254,38 @@ mod tests {
         assert_eq!(classified[1].1, FileBucket::Tests);
         assert_eq!(classified[2].1, FileBucket::Documentation);
     }
+
+    // ── Edge cases for new helper extraction ─────────────────────────────
+
+    #[test]
+    fn classify_lock_file_is_build_ci() {
+        assert_eq!(classify_file("Cargo.lock"), FileBucket::BuildCi);
+    }
+
+    #[test]
+    fn classify_justfile_is_build_ci() {
+        assert_eq!(classify_file("Justfile"), FileBucket::BuildCi);
+    }
+
+    #[test]
+    fn classify_root_config_json_is_configuration() {
+        assert_eq!(classify_file("config.json"), FileBucket::Configuration);
+    }
+
+    #[test]
+    fn classify_dotenv_is_configuration() {
+        assert_eq!(classify_file(".env"), FileBucket::Configuration);
+    }
+
+    #[test]
+    fn classify_json_in_api_path_is_contract() {
+        assert_eq!(classify_file("src/api/openapi.json"), FileBucket::ApiContracts);
+    }
+
+    #[test]
+    fn classify_no_extension_is_unknown() {
+        assert_eq!(classify_file("Dockerfile"), FileBucket::BuildCi);
+        // Actually a file with no recognizable extension and no matching dir
+        assert_eq!(classify_file("Makefile"), FileBucket::BuildCi);
+    }
 }

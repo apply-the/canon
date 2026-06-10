@@ -481,4 +481,64 @@ mod tests {
         assert!(statement.contains("261"));
         assert!(statement.contains("Additional review is required"));
     }
+
+    // ── Edge case tests for uncovered branches ───────────────────────────
+
+    #[test]
+    fn test_focused_risk_with_high_coverage_but_not_complete_is_not_ready() {
+        let classifications = mock_classifications(90, 5, 5);
+        // 70 deep / 100 total = 70% → FocusedRiskReview, medium confidence
+        let layers = mock_layers(&[("application-source", LayerStatus::Completed)]);
+        let summary = analyze_coverage(&classifications, 70, false, &layers);
+        assert_eq!(summary.review_type, ReviewType::FocusedRiskReview);
+        assert_eq!(summary.confidence, ConfidenceLevel::Medium);
+        assert_eq!(summary.approval_readiness, ApprovalReadiness::NotReady);
+    }
+
+    #[test]
+    fn test_complete_review_with_high_is_ready_for_approval() {
+        let classifications = mock_classifications(95, 2, 3);
+        // 85 deep / 100 total = 85% → CompleteReview, high confidence
+        let layers = mock_layers(&[("application-source", LayerStatus::Completed)]);
+        let summary = analyze_coverage(&classifications, 85, false, &layers);
+        assert_eq!(summary.review_type, ReviewType::CompleteReview);
+        assert_eq!(summary.confidence, ConfidenceLevel::High);
+        assert_eq!(summary.approval_readiness, ApprovalReadiness::Ready);
+    }
+
+    #[test]
+    fn test_count_deferred_layers_counts_only_deferred() {
+        let layers = mock_layers(&[
+            ("application-source", LayerStatus::SkippedWithReason),
+            ("high-risk-surfaces", LayerStatus::Completed),
+            ("related-context", LayerStatus::SkippedWithReason),
+        ]);
+        let count = count_deferred_layers(&layers);
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_is_semantic_layer_identifies_all_five() {
+        assert!(is_semantic_layer("application-source"));
+        assert!(is_semantic_layer("high-risk-surfaces"));
+        assert!(is_semantic_layer("related-context"));
+        assert!(is_semantic_layer("logical-stress"));
+        assert!(is_semantic_layer("tests"));
+        assert!(!is_semantic_layer("early-signal"));
+        assert!(!is_semantic_layer("coverage-accounting"));
+    }
+
+    #[test]
+    fn test_bucket_label_returns_expected_values() {
+        assert_eq!(bucket_label(&FileBucket::ApplicationSource), "application_source");
+        assert_eq!(bucket_label(&FileBucket::Tests), "tests");
+        assert_eq!(bucket_label(&FileBucket::ApiContracts), "api_contracts");
+        assert_eq!(bucket_label(&FileBucket::DatabaseMigrations), "database_migrations");
+        assert_eq!(bucket_label(&FileBucket::Configuration), "configuration");
+        assert_eq!(bucket_label(&FileBucket::BuildCi), "build_ci");
+        assert_eq!(bucket_label(&FileBucket::Documentation), "documentation");
+        assert_eq!(bucket_label(&FileBucket::GeneratedOrVendor), "generated_or_vendor");
+        assert_eq!(bucket_label(&FileBucket::Assets), "assets");
+        assert_eq!(bucket_label(&FileBucket::Unknown), "unknown");
+    }
 }
