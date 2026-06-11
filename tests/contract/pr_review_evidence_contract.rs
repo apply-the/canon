@@ -2,6 +2,7 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use predicates::str::contains;
 use tempfile::TempDir;
 
 fn cli_command() -> Command {
@@ -73,12 +74,12 @@ fn add_high_impact_diff(workspace: &TempDir) {
 }
 
 #[test]
-fn pr_review_attempts_retain_payload_refs_and_artifact_provenance() {
+fn pr_review_run_mode_is_removed() {
     let workspace = TempDir::new().expect("temp dir");
     init_review_repo(&workspace);
     add_high_impact_diff(&workspace);
 
-    let output = cli_command()
+    cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
@@ -94,66 +95,8 @@ fn pr_review_attempts_retain_payload_refs_and_artifact_provenance() {
             "refs/heads/main",
             "--input",
             "HEAD",
-            "--output",
-            "json",
         ])
         .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
-    let run_id = json["run_id"].as_str().expect("run id");
-
-    let invocations = cli_command()
-        .current_dir(workspace.path())
-        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let invocation_json: serde_json::Value = serde_json::from_slice(&invocations).expect("json");
-    let diff_request_id = invocation_json["entries"]
-        .as_array()
-        .and_then(|entries| {
-            entries.iter().find_map(|entry| {
-                if entry["capability"] == "InspectDiff" {
-                    entry["request_id"].as_str().map(ToString::to_string)
-                } else {
-                    None
-                }
-            })
-        })
-        .expect("inspect diff request");
-
-    let attempt = fs::read_to_string(
-        canon_engine::persistence::layout::ProjectLayout::new(workspace.path())
-            .run_dir(run_id)
-            .join("invocations")
-            .join(&diff_request_id)
-            .join("attempt-01.toml"),
-    )
-    .expect("attempt manifest");
-    assert!(attempt.contains("payload_refs"), "attempt manifests should retain payload refs");
-    assert!(
-        attempt.contains("payload/diff.patch"),
-        "diff inspection should retain a bounded patch payload reference"
-    );
-
-    let manifest = fs::read_to_string(
-        workspace
-            .path()
-            .join(".canon")
-            .join("artifacts")
-            .join(run_id)
-            .join("pr-review")
-            .join("manifest.toml"),
-    )
-    .expect("artifact manifest");
-    assert!(manifest.contains("provenance"), "pr-review artifacts should carry provenance");
-    assert!(
-        manifest.contains(&format!("runs/{run_id}/evidence.toml")),
-        "pr-review artifact provenance should link back to the evidence bundle"
-    );
+        .failure()
+        .stderr(contains("canon run --mode pr-review has been removed"));
 }

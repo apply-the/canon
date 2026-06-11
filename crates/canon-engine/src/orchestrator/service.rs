@@ -16,7 +16,7 @@ use crate::artifacts::contract::contract_for_mode;
 use crate::artifacts::markdown::{
     render_architecture_artifact, render_change_artifact, render_domain_language_artifact,
     render_domain_model_artifact, render_implementation_artifact, render_incident_artifact,
-    render_migration_artifact, render_pr_review_artifact, render_refactor_artifact,
+    render_migration_artifact, render_refactor_artifact,
     render_requirements_artifact_from_evidence, render_review_artifact,
     render_security_assessment_artifact, render_supply_chain_analysis_artifact,
     render_system_assessment_artifact, render_system_shaping_artifact,
@@ -54,8 +54,6 @@ use crate::persistence::store::{
     InitSummary as StoreInitSummary, PersistedArtifact, PersistedRunBundle,
     SkillMaterializationTarget, SkillsSummary as StoreSkillsSummary, WorkspaceStore,
 };
-use crate::review::findings::ReviewPacket;
-use crate::review::summary::ReviewSummary;
 
 pub(crate) mod clarity;
 pub(crate) mod context_parse;

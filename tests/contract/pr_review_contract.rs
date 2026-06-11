@@ -75,11 +75,6 @@ fn add_high_impact_diff(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "change public response contract"]);
 }
 
-fn parse_run_id(output: &[u8]) -> String {
-    let json: serde_json::Value = serde_json::from_slice(output).expect("json output");
-    json["run_id"].as_str().expect("run id").to_string()
-}
-
 #[test]
 fn pr_review_contract_includes_conventional_comments_artifact() {
     let contract = contract_for_mode(Mode::PrReview);
@@ -93,12 +88,12 @@ fn pr_review_contract_includes_conventional_comments_artifact() {
 }
 
 #[test]
-fn pr_review_requires_disposition_for_high_impact_findings() {
+fn pr_review_run_mode_is_removed() {
     let workspace = TempDir::new().expect("temp dir");
     init_review_repo(&workspace);
     add_high_impact_diff(&workspace);
 
-    let run_output = cli_command()
+    cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
@@ -114,114 +109,9 @@ fn pr_review_requires_disposition_for_high_impact_findings() {
             "refs/heads/main",
             "--input",
             "HEAD",
-            "--output",
-            "json",
         ])
         .assert()
-        .code(3)
-        .stdout(contains("\"state\": \"AwaitingApproval\""))
-        .get_output()
-        .stdout
-        .clone();
-    let run_id = parse_run_id(&run_output);
-    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
-    assert_eq!(run_json["mode_result"]["primary_artifact_title"], "Review Summary");
-    assert_eq!(
-        run_json["mode_result"]["primary_artifact_path"],
-        format!(".canon/artifacts/{run_id}/pr-review/01-review-summary.md")
-    );
-    assert!(
-        run_json["mode_result"]["headline"]
-            .as_str()
-            .is_some_and(|headline| headline.contains("waiting for explicit disposition"))
-    );
-    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
-    assert!(
-        run_json["artifact_paths"].as_array().is_some_and(|paths| paths.len() >= 10),
-        "approval-gated pr-review runs should expose the review artifacts"
-    );
-
-    let review_summary = workspace
-        .path()
-        .join(".canon")
-        .join("artifacts")
-        .join(&run_id)
-        .join("pr-review")
-        .join("01-review-summary.md");
-    let review_summary_text = fs::read_to_string(review_summary).expect("review summary");
-    assert!(
-        review_summary_text.contains("Status: awaiting-disposition"),
-        "review-summary should signal awaiting-disposition when must-fix findings exist"
-    );
-    assert!(
-        review_summary_text.contains("contracts/public-api.md"),
-        "review-summary should name the changed high-impact surface"
-    );
-
-    // Governance findings are now in governance notes, not as conventional comments
-    let conventional_comments = workspace
-        .path()
-        .join(".canon")
-        .join("artifacts")
-        .join(&run_id)
-        .join("pr-review")
-        .join("02-conventional-comments.md");
-    let conventional_comments_text =
-        fs::read_to_string(conventional_comments).expect("conventional comments artifact");
-    assert!(
-        conventional_comments_text.contains("## Empty Comment Set"),
-        "conventional-comments should have an Empty Comment Set section when no reviewer findings exist"
-    );
-
-    let status_output = cli_command()
-        .current_dir(workspace.path())
-        .args(["status", "--run", &run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let status_json: serde_json::Value =
-        serde_json::from_slice(&status_output).expect("status json");
-    assert_eq!(status_json["state"], "AwaitingApproval");
-    assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Review Summary");
-    assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
-
-    cli_command()
-        .current_dir(workspace.path())
-        .args(["status", "--run", &run_id, "--output", "markdown"])
-        .assert()
-        .success()
-        .stdout(contains("## Result"))
-        .stdout(contains("review-summary.md"))
-        .stdout(contains("waiting for explicit disposition"));
-
-    cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "approve",
-            "--run",
-            &run_id,
-            "--gate",
-            "review-disposition",
-            "--by",
-            "principal-engineer",
-            "--decision",
-            "approve",
-            "--rationale",
-            "Accept the contract drift with explicit downstream coordination.",
-        ])
-        .assert()
-        .success()
-        .stdout(contains(&run_id))
-        .stdout(contains("Completed"));
-
-    cli_command()
-        .current_dir(workspace.path())
-        .args(["status", "--run", &run_id, "--output", "json"])
-        .assert()
-        .success()
-        .stdout(contains("\"state\": \"Completed\""))
-        .stdout(contains("\"primary_artifact_title\": \"Review Summary\""))
-        .stdout(contains("\"recommended_next_action\": null"));
+        .failure()
+        .stderr(contains("canon run --mode pr-review has been removed"))
+        .stderr(contains("canon pr-review prepare"));
 }

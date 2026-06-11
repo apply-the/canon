@@ -29,6 +29,9 @@ pub enum ReviewerStatus {
     Failed,
     /// No reviewer adapter is configured.
     NotConfigured,
+    /// The run explicitly performed governance-only inspection;
+    /// no actionable code review was attempted.
+    GovernanceOnly,
 }
 
 impl ReviewerStatus {
@@ -37,6 +40,7 @@ impl ReviewerStatus {
             Self::Executed => "actionable_review_executed",
             Self::Failed => "actionable_review_failed",
             Self::NotConfigured => "actionable_review_not_configured",
+            Self::GovernanceOnly => "governance_only",
         }
     }
 }
@@ -139,6 +143,7 @@ mod tests {
         assert_eq!(ReviewerStatus::Executed.as_str(), "actionable_review_executed");
         assert_eq!(ReviewerStatus::Failed.as_str(), "actionable_review_failed");
         assert_eq!(ReviewerStatus::NotConfigured.as_str(), "actionable_review_not_configured");
+        assert_eq!(ReviewerStatus::GovernanceOnly.as_str(), "governance_only");
     }
 
     #[test]

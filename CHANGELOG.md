@@ -15,7 +15,29 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
-## [0.72.4] - 2026-06-10
+## [0.72.5] - 2026-06-11
+
+Delivered changes:
+
+- Patch-only removal; no new `specs/` directory.
+
+Highlights:
+
+- Removed the legacy `canon run --mode pr-review` governed-run path. The
+  command now returns a clear error directing users to the onion-layer
+  actionable review workflow (`canon pr-review prepare` → `accept` →
+  `finalize`). In 0.x, no backward compatibility is owed.
+- Added `GovernanceOnly` variant to `ReviewerStatus` and a
+  `ReviewFindingsDocument` wrapper that carries explicit `review_type`,
+  `actionable_review_status`, and `approval_readiness` metadata in
+  `04-review-findings.json`.
+- Hardened `conventional-comments.md` and `review-summary.md` generators so
+  governance-only or not-configured status surfaces an unambiguous warning
+  ("No actionable code review was configured or executed. Do NOT treat this
+  packet as PR approval evidence.") instead of a misleading empty-comment-set
+  message.
+- Updated the `canon-pr-review` skill and embedded source to document the
+  `prepare` → `accept` → `finalize` workflow as the sole recommended path.## [0.72.4] - 2026-06-10
 
 Delivered specs:
 

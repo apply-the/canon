@@ -3,10 +3,6 @@ set -eu
 
 hook_name=${1:-hook}
 
-cleanup_llvm_cov_artifacts() {
-  cargo llvm-cov clean --workspace >/dev/null 2>&1 || true
-}
-
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 cd "$repo_root"
 
@@ -24,7 +20,7 @@ case "$hook_name" in
     step_total=1
     ;;
   pre-push)
-    step_total=5
+    step_total=4
     ;;
   *)
     step_total=5
@@ -57,9 +53,6 @@ run_step \
   cargo fmt --all -- --check
 
 if [ "$hook_name" != "pre-commit" ]; then
-  # Keep profiling artifacts ephemeral for hook-driven coverage runs.
-  trap cleanup_llvm_cov_artifacts EXIT INT TERM
-
   run_step \
     "sh scripts/check-rust-no-panic.sh" \
     "Run 'sh scripts/check-rust-no-panic.sh' and replace the reported panic-prone calls outside main.rs and test code." \
@@ -71,14 +64,9 @@ if [ "$hook_name" != "pre-commit" ]; then
     cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   run_step \
-    "cargo nextest run --workspace --all-features" \
-    "Install cargo-nextest if needed with 'cargo install cargo-nextest', then rerun 'cargo nextest run --workspace --all-features'." \
-    cargo nextest run --workspace --all-features
-
-  run_step \
-    "cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info" \
-    "Install cargo-llvm-cov if needed with 'cargo install cargo-llvm-cov', then rerun 'cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info'." \
-    cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+    "sh scripts/test.sh" \
+    "Run 'scripts/test.sh' locally, fix the failing tests, then retry." \
+    sh scripts/test.sh
 fi
 
 printf '%s\n' "[$hook_name] All Rust quality checks passed."

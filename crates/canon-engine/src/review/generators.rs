@@ -11,6 +11,7 @@ pub fn generate_review_summary(
     let mut out = String::new();
     append_title(&mut out);
     append_summary(&mut out, packet);
+    append_review_type(&mut out, canonical);
     append_decision(&mut out, decision);
     append_executive_summary(&mut out, canonical, missing_tests, decision, packet);
     append_must_fix(&mut out, canonical);
@@ -39,6 +40,28 @@ fn append_summary(out: &mut String, packet: &ReviewPacket) {
         head_ref = packet.head_ref,
         surface_count = packet.changed_surfaces.len(),
     ));
+}
+
+fn append_review_type(out: &mut String, canonical: &CanonicalCommentSet) {
+    out.push_str("## Review Type\n\n");
+    let (review_type, readiness) = if canonical.reviewer_status == "actionable_review_executed" {
+        ("actionable_pr_review", "ready_for_disposition")
+    } else if canonical.reviewer_status == "governance_only"
+        || canonical.reviewer_status == "actionable_review_not_configured"
+    {
+        ("governance_only_review", "not_ready_for_pr_approval")
+    } else {
+        ("partial_review", "not_ready_for_pr_approval")
+    };
+    out.push_str(&format!("- **Review type**: {review_type}\n"));
+    out.push_str(&format!("- **Actionable review status**: {}\n", canonical.reviewer_status));
+    out.push_str(&format!("- **Approval readiness**: {readiness}\n"));
+    if review_type == "governance_only_review" {
+        out.push_str("\n> ⚠️ This packet contains **governance findings only**. ");
+        out.push_str("No actionable code review was configured or executed. ");
+        out.push_str("Do NOT treat this packet as PR approval evidence.\n");
+    }
+    out.push('\n');
 }
 
 fn append_decision(out: &mut String, decision: &Decision) {
@@ -330,9 +353,21 @@ fn render_empty_comment_set(out: &mut String, canonical: &CanonicalCommentSet) {
     if !canonical.comments.is_empty() {
         return;
     }
+    let reason = empty_comment_reason(canonical);
+    let is_governance_only =
+        reason == "governance_only" || reason == "actionable_review_not_configured";
+
     out.push_str("\n## Empty Comment Set\n\n");
-    out.push_str("No actionable comments were emitted.\n\n");
-    out.push_str(&format!("Reason: {}\n\n", empty_comment_reason(canonical)));
+    if is_governance_only {
+        out.push_str(
+            "No actionable code review was configured or executed. \
+             This packet contains governance findings only. \
+             Do NOT treat this packet as PR approval evidence.\n\n",
+        );
+    } else {
+        out.push_str("No actionable comments were emitted.\n\n");
+    }
+    out.push_str(&format!("Reason: {reason}\n\n"));
     out.push_str(&format!("Actionable review status: {}\n", canonical.reviewer_status));
 }
 
@@ -410,9 +445,9 @@ pub fn generate_github_comments_json(canonical: &CanonicalCommentSet) -> String 
     serde_json::to_string_pretty(&canonical.comments).unwrap_or_default()
 }
 
-/// Generates `review-findings.json` from findings entries.
-pub fn generate_review_findings_json(findings: &[super::findings::ReviewFindingEntry]) -> String {
-    serde_json::to_string_pretty(&findings).unwrap_or_default()
+/// Generates `review-findings.json` from a [`ReviewFindingsDocument`].
+pub fn generate_review_findings_json(doc: &super::findings::ReviewFindingsDocument) -> String {
+    serde_json::to_string_pretty(&doc).unwrap_or_default()
 }
 
 /// Generates `review-report.md` — template-compliant severity-oriented report.
@@ -512,15 +547,16 @@ fn rationale_for(decision: &Decision, canonical: &CanonicalCommentSet) -> String
         Decision::Approve => {
             "No blocking findings, sufficient coverage, no unresolved gates.".to_string()
         }
-        Decision::Comment => format!(
-            "{} non-blocking finding(s). {}",
-            canonical.non_blocking_count(),
-            if canonical.reviewer_status == "actionable_review_not_configured" {
+        Decision::Comment => {
+            let reviewer_note = if canonical.reviewer_status == "governance_only" {
+                "Governance-only inspection performed; no actionable code review was executed."
+            } else if canonical.reviewer_status == "actionable_review_not_configured" {
                 "Actionable reviewer not configured; governance-only inspection performed."
             } else {
                 "Review completed with notes."
-            }
-        ),
+            };
+            format!("{} non-blocking finding(s). {}", canonical.non_blocking_count(), reviewer_note,)
+        }
         Decision::RequestChanges => format!(
             "{} blocking comment(s) require resolution before approval.",
             canonical.blocking_count(),
