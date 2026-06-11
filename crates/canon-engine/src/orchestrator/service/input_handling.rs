@@ -562,6 +562,8 @@ impl EngineService {
         Vec::new()
     }
 
+    /// Extracts base and head refs from pr-review inputs.
+    #[allow(dead_code)]
     pub(super) fn load_pr_review_refs(
         &self,
         inputs: &[String],

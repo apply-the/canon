@@ -560,7 +560,17 @@ pub struct CanonicalCommentSet {
 
 impl CanonicalCommentSet {
     /// Builds a canonical comment set from evaluated GitHub comments.
+    ///
+    /// The reviewer status defaults to `"actionable_review_not_configured"`.
+    /// Prefer [`from_evaluated_with_status`](Self::from_evaluated_with_status)
+    /// when the actual reviewer status is known.
     pub fn from_evaluated(comments: Vec<GithubComment>) -> Self {
+        Self::from_evaluated_with_status(comments, "actionable_review_not_configured")
+    }
+
+    /// Builds a canonical comment set from evaluated GitHub comments
+    /// with an explicit reviewer status string.
+    pub fn from_evaluated_with_status(comments: Vec<GithubComment>, status: &str) -> Self {
         let actionable: Vec<GithubComment> = comments
             .into_iter()
             .filter(|c| c.path.is_some() || c.hunk_header.is_some())
@@ -570,10 +580,7 @@ impl CanonicalCommentSet {
                 c
             })
             .collect();
-        Self {
-            comments: actionable,
-            reviewer_status: "actionable_review_not_configured".to_string(),
-        }
+        Self { comments: actionable, reviewer_status: status.to_string() }
     }
 
     /// Builds from reviewer adapter output, converting findings to comments.
@@ -655,7 +662,35 @@ fn severity_order(severity: &str) -> u8 {
     }
 }
 
-/// Builds normalized review findings from canonical comments and governance context.
+/// A top-level review findings document that carries metadata about the
+/// review type and approval readiness alongside the individual findings.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReviewFindingsDocument {
+    /// The kind of review that produced these findings.
+    pub review_type: String,
+    /// Status of the actionable reviewer adapter.
+    pub actionable_review_status: String,
+    /// Whether this packet is ready for PR approval.
+    pub approval_readiness: String,
+    /// The individual review findings.
+    pub findings: Vec<ReviewFindingEntry>,
+}
+
+impl ReviewFindingsDocument {
+    /// Derives metadata from the canonical comment set's reviewer status.
+    pub fn derive_metadata(reviewer_status: &str) -> (&'static str, &'static str) {
+        match reviewer_status {
+            "governance_only" | "actionable_review_not_configured" => {
+                ("governance_only_review", "not_ready_for_pr_approval")
+            }
+            "actionable_review_executed" => ("actionable_pr_review", "ready_for_disposition"),
+            "actionable_review_failed" => ("partial_review", "not_ready_for_pr_approval"),
+            _ => ("partial_review", "not_ready_for_pr_approval"),
+        }
+    }
+}
+
+/// Builds a [`ReviewFindingsDocument`] from canonical comments and governance context.
 ///
 /// Each actionable GitHub comment produces a corresponding finding with
 /// `kind = "code"`. Governance-only signals from the review packet are emitted
@@ -663,7 +698,7 @@ fn severity_order(severity: &str) -> u8 {
 pub fn build_review_findings(
     canonical: &CanonicalCommentSet,
     packet: &ReviewPacket,
-) -> Vec<ReviewFindingEntry> {
+) -> ReviewFindingsDocument {
     let mut findings = Vec::new();
 
     // Map canonical comments to code findings
@@ -723,7 +758,15 @@ pub fn build_review_findings(
         });
     }
 
-    findings
+    let (review_type, approval_readiness) =
+        ReviewFindingsDocument::derive_metadata(&canonical.reviewer_status);
+
+    ReviewFindingsDocument {
+        review_type: review_type.to_string(),
+        actionable_review_status: canonical.reviewer_status.clone(),
+        approval_readiness: approval_readiness.to_string(),
+        findings,
+    }
 }
 
 #[cfg(test)]

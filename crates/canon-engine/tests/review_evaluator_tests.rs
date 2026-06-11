@@ -1,7 +1,7 @@
 use canon_engine::review::evaluator::{Decision, derive_decision, evaluate_diff};
 use canon_engine::review::findings::{
     CanonicalCommentSet, ConventionalCommentScope, FindingCategory, FindingSeverity, GithubComment,
-    MissingTest, ReviewFinding, ReviewPacket,
+    MissingTest, ReviewFinding, ReviewFindingsDocument, ReviewPacket,
 };
 use canon_engine::review::generators::{
     generate_conventional_comments, generate_github_comments_json, generate_missing_tests,
@@ -368,10 +368,11 @@ fn test_review_findings_json_with_governance_entries() {
     }];
     let findings = canon_engine::review::findings::build_review_findings(&canonical, &packet);
     // Code finding + governance finding
-    assert_eq!(findings.len(), 2);
-    let code = findings.iter().find(|f| f.kind == "code").expect("code finding");
+    assert_eq!(findings.findings.len(), 2);
+    let code = findings.findings.iter().find(|f| f.kind == "code").expect("code finding");
     assert_eq!(code.github_comment_id, Some("C001".to_string()));
-    let gov = findings.iter().find(|f| f.kind == "governance").expect("governance finding");
+    let gov =
+        findings.findings.iter().find(|f| f.kind == "governance").expect("governance finding");
     assert!(gov.summary.contains("Boundary change"));
     assert!(gov.github_comment_id.is_none());
 }
@@ -513,7 +514,7 @@ fn test_generate_conventional_comments_with_empty_set() {
     let canonical = CanonicalCommentSet::from_evaluated(vec![]);
     let out = generate_conventional_comments(&canonical);
     assert!(out.contains("## Empty Comment Set"));
-    assert!(out.contains("No actionable comments were emitted"));
+    assert!(out.contains("governance findings only"));
 }
 
 #[test]
@@ -559,4 +560,144 @@ fn test_generate_review_report_skipped_files_section() {
         generate_review_report(&canonical, &Decision::Comment, &packet, &empty, &empty, &empty);
     assert!(report.contains("Governance issue"));
     assert!(report.contains("Requires attention"));
+}
+
+// ── Governance-only / derived metadata coverage ──────────────────────────
+
+#[test]
+fn test_derive_metadata_governance_only() {
+    let (review_type, readiness) = ReviewFindingsDocument::derive_metadata("governance_only");
+    assert_eq!(review_type, "governance_only_review");
+    assert_eq!(readiness, "not_ready_for_pr_approval");
+}
+
+#[test]
+fn test_derive_metadata_actionable_review_not_configured() {
+    let (review_type, readiness) =
+        ReviewFindingsDocument::derive_metadata("actionable_review_not_configured");
+    assert_eq!(review_type, "governance_only_review");
+    assert_eq!(readiness, "not_ready_for_pr_approval");
+}
+
+#[test]
+fn test_derive_metadata_actionable_review_executed() {
+    let (review_type, readiness) =
+        ReviewFindingsDocument::derive_metadata("actionable_review_executed");
+    assert_eq!(review_type, "actionable_pr_review");
+    assert_eq!(readiness, "ready_for_disposition");
+}
+
+#[test]
+fn test_derive_metadata_actionable_review_failed() {
+    let (review_type, readiness) =
+        ReviewFindingsDocument::derive_metadata("actionable_review_failed");
+    assert_eq!(review_type, "partial_review");
+    assert_eq!(readiness, "not_ready_for_pr_approval");
+}
+
+#[test]
+fn test_derive_metadata_unknown_status() {
+    let (review_type, readiness) = ReviewFindingsDocument::derive_metadata("unknown_status");
+    assert_eq!(review_type, "partial_review");
+    assert_eq!(readiness, "not_ready_for_pr_approval");
+}
+
+#[test]
+fn test_from_evaluated_with_status_governance_only() {
+    let c = comment("src/a.rs", Some(5), true, "Bug.");
+    let canonical =
+        CanonicalCommentSet::from_evaluated_with_status(vec![c.clone()], "governance_only");
+    assert_eq!(canonical.reviewer_status, "governance_only");
+    assert_eq!(canonical.comments.len(), 1);
+    assert_eq!(canonical.comments[0].id, "C001");
+}
+
+#[test]
+fn test_from_evaluated_with_status_actionable_review_executed() {
+    let c = comment("src/a.rs", Some(5), true, "Bug.");
+    let canonical = CanonicalCommentSet::from_evaluated_with_status(
+        vec![c.clone()],
+        "actionable_review_executed",
+    );
+    assert_eq!(canonical.reviewer_status, "actionable_review_executed");
+    assert_eq!(canonical.comments.len(), 1);
+}
+
+#[test]
+fn test_review_findings_json_with_governance_only_document() {
+    let doc = ReviewFindingsDocument {
+        review_type: "governance_only_review".to_string(),
+        actionable_review_status: "governance_only".to_string(),
+        approval_readiness: "not_ready_for_pr_approval".to_string(),
+        findings: Vec::new(),
+    };
+    let json = generate_review_findings_json(&doc);
+    assert!(json.contains("\"review_type\": \"governance_only_review\""));
+    assert!(json.contains("\"actionable_review_status\": \"governance_only\""));
+    assert!(json.contains("\"approval_readiness\": \"not_ready_for_pr_approval\""));
+    assert!(json.contains("\"findings\": []"));
+}
+
+#[test]
+fn test_review_findings_json_with_actionable_document() {
+    let doc = ReviewFindingsDocument {
+        review_type: "actionable_pr_review".to_string(),
+        actionable_review_status: "actionable_review_executed".to_string(),
+        approval_readiness: "ready_for_disposition".to_string(),
+        findings: Vec::new(),
+    };
+    let json = generate_review_findings_json(&doc);
+    assert!(json.contains("\"review_type\": \"actionable_pr_review\""));
+    assert!(json.contains("\"actionable_review_status\": \"actionable_review_executed\""));
+    assert!(json.contains("\"approval_readiness\": \"ready_for_disposition\""));
+}
+
+#[test]
+fn test_generate_conventional_comments_with_explicit_governance_only() {
+    let mut canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    canonical.reviewer_status = "governance_only".to_string();
+    let out = generate_conventional_comments(&canonical);
+    assert!(out.contains("## Empty Comment Set"));
+    assert!(out.contains("governance findings only"));
+    assert!(out.contains("Reason: governance_only"));
+    assert!(out.contains("Actionable review status: governance_only"));
+}
+
+#[test]
+fn test_generate_review_report_with_comment_and_governance_only() {
+    let mut canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    canonical.reviewer_status = "governance_only".to_string();
+    let changed: Vec<String> = vec!["src/a.rs".to_string()];
+    let empty: Vec<String> = vec![];
+    let skipped: Vec<String> = vec!["src/a.rs".to_string()];
+    let packet = empty_packet();
+    let report =
+        generate_review_report(&canonical, &Decision::Comment, &packet, &changed, &empty, &skipped);
+    assert!(report.contains("**Comment**"));
+    assert!(report.contains("Governance-only inspection performed"));
+    assert!(report.contains("no actionable code review was executed"));
+}
+
+#[test]
+fn test_build_review_findings_with_governance_only_metadata() {
+    let canonical = CanonicalCommentSet::from_evaluated_with_status(vec![], "governance_only");
+    let packet = empty_packet();
+    let doc = canon_engine::review::findings::build_review_findings(&canonical, &packet);
+    assert_eq!(doc.review_type, "governance_only_review");
+    assert_eq!(doc.actionable_review_status, "governance_only");
+    assert_eq!(doc.approval_readiness, "not_ready_for_pr_approval");
+    assert!(doc.findings.is_empty());
+}
+
+#[test]
+fn test_generate_review_summary_with_governance_only_review_type() {
+    let mut canonical = CanonicalCommentSet::from_evaluated(vec![]);
+    canonical.reviewer_status = "governance_only".to_string();
+    let packet = empty_packet();
+    let summary = generate_review_summary(&canonical, &[], &Decision::Comment, &packet);
+    assert!(summary.contains("## Review Type"));
+    assert!(summary.contains("governance_only_review"));
+    assert!(summary.contains("not_ready_for_pr_approval"));
+    assert!(summary.contains("governance findings only"));
+    assert!(summary.contains("Do NOT treat this packet as PR approval evidence"));
 }

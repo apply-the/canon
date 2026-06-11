@@ -2,6 +2,7 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use predicates::str::contains;
 use tempfile::TempDir;
 
 fn cli_command() -> Command {
@@ -75,17 +76,13 @@ fn add_completed_review_diff(workspace: &TempDir) {
     git(workspace, &["commit", "-m", "uppercase review labels"]);
 }
 
-fn default_publish_leaf(run_id: &str, descriptor: &str) -> String {
-    format!("{}-{}-{}-{descriptor}", &run_id[2..6], &run_id[6..8], &run_id[8..10])
-}
-
 #[test]
-fn published_pr_review_packet_includes_conventional_comments_artifact() {
+fn pr_review_run_mode_is_removed() {
     let workspace = TempDir::new().expect("temp dir");
     init_review_repo(&workspace);
     add_completed_review_diff(&workspace);
 
-    let output = cli_command()
+    cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
@@ -101,39 +98,8 @@ fn published_pr_review_packet_includes_conventional_comments_artifact() {
             "refs/heads/main",
             "--input",
             "HEAD",
-            "--output",
-            "json",
         ])
         .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-    let run_id = json["run_id"].as_str().expect("run id");
-
-    cli_command().current_dir(workspace.path()).args(["publish", run_id]).assert().success();
-
-    let published = workspace
-        .path()
-        .join("tech-docs")
-        .join("reviews")
-        .join("prs")
-        .join(default_publish_leaf(run_id, "pr-review"))
-        .join("02-conventional-comments.md");
-    let published_text = fs::read_to_string(published).expect("published conventional comments");
-    assert!(
-        workspace
-            .path()
-            .join("tech-docs")
-            .join("reviews")
-            .join("prs")
-            .join(default_publish_leaf(run_id, "pr-review"))
-            .join("packet-metadata.json")
-            .exists()
-    );
-
-    assert!(published_text.contains("## Empty Comment Set"));
-    assert!(published_text.contains("No actionable comments were emitted"));
+        .failure()
+        .stderr(contains("canon run --mode pr-review has been removed"));
 }

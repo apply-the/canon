@@ -2,6 +2,7 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use predicates::str::contains;
 use tempfile::TempDir;
 
 fn cli_command() -> Command {
@@ -73,12 +74,12 @@ fn add_high_impact_diff(workspace: &TempDir) {
 }
 
 #[test]
-fn pr_review_run_persists_invocation_evidence_and_independent_validation_paths() {
+fn pr_review_run_mode_is_removed() {
     let workspace = TempDir::new().expect("temp dir");
     init_review_repo(&workspace);
     add_high_impact_diff(&workspace);
 
-    let output = cli_command()
+    cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
@@ -94,107 +95,8 @@ fn pr_review_run_persists_invocation_evidence_and_independent_validation_paths()
             "refs/heads/main",
             "--input",
             "HEAD",
-            "--output",
-            "json",
         ])
         .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
-    let run_id = json["run_id"].as_str().expect("run id");
-
-    assert_eq!(json["state"], "AwaitingApproval");
-    assert_eq!(json["invocations_total"], 2);
-    assert_eq!(json["invocations_denied"], 0);
-    assert_eq!(json["invocations_pending_approval"], 0);
-    assert!(
-        json.get("evidence_bundle").is_none(),
-        "run JSON should not expose internal evidence bundle paths"
-    );
-
-    let status = cli_command()
-        .current_dir(workspace.path())
-        .args(["status", "--run", run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let status_json: serde_json::Value = serde_json::from_slice(&status).expect("json");
-    assert_eq!(status_json["validation_independence_satisfied"], true);
-    assert!(
-        status_json.get("evidence_bundle").is_none(),
-        "status JSON should not expose internal evidence bundle paths"
-    );
-
-    let invocations = cli_command()
-        .current_dir(workspace.path())
-        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let invocation_json: serde_json::Value = serde_json::from_slice(&invocations).expect("json");
-    let entries = invocation_json["entries"].as_array().expect("entries");
-    assert_eq!(entries.len(), 2, "pr-review should persist diff and critique requests");
-    assert!(
-        entries.iter().any(|entry| entry["capability"] == "InspectDiff"),
-        "pr-review should persist the diff inspection request"
-    );
-    assert!(
-        entries.iter().any(|entry| entry["capability"] == "CritiqueContent"),
-        "pr-review should persist the critique request"
-    );
-
-    let evidence = cli_command()
-        .current_dir(workspace.path())
-        .args(["inspect", "evidence", "--run", run_id, "--output", "json"])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let evidence_json: serde_json::Value = serde_json::from_slice(&evidence).expect("json");
-    let entry = evidence_json["entries"]
-        .as_array()
-        .and_then(|entries| entries.first())
-        .expect("evidence entry");
-    assert!(
-        entry["generation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "pr-review should expose a generation path for critique output"
-    );
-    assert!(
-        entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "pr-review should expose a validation path for deterministic diff inspection"
-    );
-    assert!(
-        entry["artifact_provenance_links"].as_array().is_some_and(|paths| !paths.is_empty()),
-        "evidence should link back to review artifacts"
-    );
-
-    let evidence_markdown = cli_command()
-        .current_dir(workspace.path())
-        .args(["inspect", "evidence", "--run", run_id])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let evidence_markdown = String::from_utf8(evidence_markdown).expect("utf8 markdown");
-    let review_summary_path = format!(".canon/artifacts/{run_id}/pr-review/01-review-summary.md");
-    assert!(
-        evidence_markdown.contains("## Readable Artifacts"),
-        "markdown evidence output should foreground readable review artifacts"
-    );
-    assert!(
-        evidence_markdown.contains(&review_summary_path),
-        "markdown evidence output should point to review-summary.md"
-    );
-    assert!(
-        !evidence_markdown.contains(".canon/runs/"),
-        "markdown evidence output should not expose internal run-state paths"
-    );
+        .failure()
+        .stderr(contains("canon run --mode pr-review has been removed"));
 }

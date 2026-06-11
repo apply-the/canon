@@ -847,7 +847,7 @@ fn pr_review_direct_run_handles_committed_and_worktree_diffs() {
     add_completed_review_diff(&workspace);
 
     let service = EngineService::new(workspace.path());
-    let committed = service
+    let committed_err = service
         .run(request(
             Mode::PrReview,
             RiskClass::BoundedImpact,
@@ -855,22 +855,20 @@ fn pr_review_direct_run_handles_committed_and_worktree_diffs() {
             "reviewer",
             vec!["refs/heads/main", "HEAD"],
         ))
-        .expect("committed review run");
+        .expect_err("canon run --mode pr-review should have been removed");
 
-    assert_eq!(committed.state, "Completed");
-    assert_eq!(committed.artifact_count, 12);
-    assert!(committed.artifact_paths.iter().any(|path| path.ends_with("pr-analysis.md")));
+    let err_msg = format!("{committed_err}");
+    assert!(
+        err_msg.contains("canon run --mode pr-review has been removed"),
+        "error should direct to canon pr-review prepare, got: {err_msg}"
+    );
+    assert!(
+        err_msg.contains("canon pr-review prepare"),
+        "error should mention canon pr-review prepare, got: {err_msg}"
+    );
 
-    let committed_status = service.status(&committed.run_id).expect("committed status");
-    assert_eq!(committed_status.state, "Completed");
-
-    fs::write(
-        workspace.path().join("src/reviewer.rs"),
-        "pub fn format_review(label: &str) -> String {\n    format!(\"review:{}\", label.to_uppercase())\n}\n",
-    )
-    .expect("worktree change");
-
-    let worktree = service
+    // WORKTREE variant also removed
+    let worktree_err = service
         .run(request(
             Mode::PrReview,
             RiskClass::LowImpact,
@@ -878,10 +876,13 @@ fn pr_review_direct_run_handles_committed_and_worktree_diffs() {
             "reviewer",
             vec!["refs/heads/main", "WORKTREE"],
         ))
-        .expect("worktree review run");
+        .expect_err("canon run --mode pr-review with WORKTREE should have been removed");
 
-    assert_eq!(worktree.state, "Completed");
-    assert!(worktree.artifact_paths.iter().any(|path| path.ends_with("review-summary.md")));
+    let worktree_msg = format!("{worktree_err}");
+    assert!(
+        worktree_msg.contains("canon run --mode pr-review has been removed"),
+        "WORKTREE variant should also fail with removed message, got: {worktree_msg}"
+    );
 }
 
 #[test]

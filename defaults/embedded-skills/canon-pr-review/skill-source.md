@@ -12,8 +12,7 @@ description: Use when you need a governed Canon review of a real diff or pull-re
 
 ## Purpose
 
-Expose the delivered Canon pr-review workflow as a governed run started from
-your AI assistant.
+Expose the delivered Canon pr-review workflow as a governed run started from your AI assistant.
 
 ## When To Trigger
 
@@ -59,9 +58,21 @@ Optional:
 
 ## Canon Command Contract
 
-- Canon command: `canon run --mode pr-review --risk <RISK> --zone <ZONE> [--owner <OWNER>] --input <BASE_REF> --input <HEAD_REF>`
-- When reviewing uncommitted changes, use `WORKTREE` as the head ref: `canon run --mode pr-review --risk <RISK> --zone <ZONE> [--owner <OWNER>] --input <BASE_REF> --input WORKTREE`
-- Return the real Canon run id, state, and any review-disposition gate Canon emits.
+The pr-review workflow uses the onion-layer actionable review pipeline:
+
+```bash
+canon pr-review prepare --base <BASE_REF> --head <HEAD_REF>
+# → LLM agent fills the 7 layer outputs under .canon/runs/<RUN_ID>/pr-review/layers/
+canon pr-review accept --run <RUN_ID>
+# → validates reviewer output, enforces layer coverage
+canon pr-review finalize --run <RUN_ID>
+# → renders final artifacts, derives recommendation, enforces coverage accounting
+```
+
+When reviewing uncommitted changes, use `WORKTREE` as the head ref.
+
+`canon run --mode pr-review` is no longer supported.
+Use `canon pr-review prepare` instead.
 
 ### Packet Shape And Persona
 
@@ -77,38 +88,27 @@ for maintainers.
 
 ## AI Companion Operating Model
 
-After preflight succeeds and the real Canon run exists, the assistant is
-responsible for turning the pr-review packet from templated stubs into a
-grounded, reviewable artifact set.
+The recommended pr-review workflow is `prepare` → LLM fills layers → `accept` → `finalize`.
+After `prepare` succeeds, the assistant is responsible for turning the layer
+instructions into grounded, reviewable output files.
 
 ### Run Boundary
 
 - Read the full diff between `BASE_REF` and `HEAD_REF` (or between `BASE_REF` and the working tree when `WORKTREE` is the head ref) before generation.
-- Start the real Canon run before artifact writing so `.canon/artifacts/<RUN_ID>/pr-review/` exists and the packet stays attached to a real run id.
+- Run `canon pr-review prepare --base <BASE_REF> --head <HEAD_REF>` first so `.canon/runs/<RUN_ID>/pr-review/` exists with all layer directories and instructions.
+- Fill in each layer's `output.md` under `.canon/runs/<RUN_ID>/pr-review/layers/<NN>-<slug>/output.md` following the corresponding `instructions.md`.
 - Treat `review-summary.md` as the primary status artifact and `conventional-comments.md` as the reviewer-facing companion artifact.
-- Each entry in `conventional-comments.md` carries an explicit `scope` annotation derived deterministically from the finding's changed surfaces:
-  - `scope:pr` — no specific surfaces; the comment applies at the whole-PR level.
-  - `scope:surface` — all changed surfaces for this finding belong to the same functional group (test files, source files, contract files, or boundary files).
-  - `scope:file` — surfaces span two or more functional groups.
-  - Scope is always derived; do not fabricate or override it.
-  - When persisted diff evidence resolves to one changed surface and one contiguous interval, emit one host-agnostic anchor using `surface:start` or `surface:start-end`.
-  - When evidence is cross-surface, ambiguous, stale, or absent, omit the anchor and keep scope-only output.
+- Each entry in `conventional-comments.md` carries an explicit `scope` annotation derived deterministically from the finding's changed surfaces.
 - Treat the source files in the diff and the working tree as read-only during the review. Do not modify, refactor, format, or rewrite any source file as part of producing the review.
-- Write generated content only into Canon-managed files under `.canon/artifacts/<RUN_ID>/pr-review/`.
-- Keep unanswered ambiguity explicit in the generated packet or provenance sidecar instead of quietly guessing.
 
 ### Generation Loop
 
 1. Read the diff and the touched files in their post-change state, then extract the changed surfaces, behavioral changes, declared invariants, and any TODO, FIXME, or open questions present in the diff.
-2. Start the Canon run and inspect the generated pr-review stubs under `.canon/artifacts/<RUN_ID>/pr-review/`.
-3. If the diff is self-explanatory, generate the review directly. If it is structurally bounded but materially ambiguous, run the clarification loop before final generation.
-4. Draft each finding, verdict, and recommendation so it is grounded in the actual diff content, in an explicit user clarification, or in a clearly marked open question.
-5. Run a critique pass that challenges uncritical acceptance, hallucinated bugs not present in the diff, missing review of nontrivial change surfaces, and unsupported verdicts on changed code.
-6. The critique MUST output exactly one JSON object matching the internal schema `EvaluatorPayload`, containing:
-   - `github_comments`: Array of review comments. Each comment MUST have `id`, `path`, `line`, `side`, `area`, `type`, `blocking`, `severity`, `category`, `body`, `why_it_matters`, `suggested_remediation`, and `suggested_change`.
-   - `missing_tests`: Array of missing test coverage findings. Each finding MUST have an explicit `affected_behavior`.
-   - `review_coverage`: (Required for diffs >20 files or >500 lines).
-7. Overwrite the templated stubs with the revised review packet and write the provenance sidecar.
+2. Run `canon pr-review prepare --base <BASE> --head <HEAD>`. This generates the 7 layer directories under `.canon/runs/<RUN_ID>/pr-review/layers/` with per-layer `instructions.md` files.
+3. For each layer (early-signal, application-source, high-risk-surfaces, related-context, logical-stress, tests, coverage-accounting), read the `instructions.md`, perform the review, and write findings into `output.md`.
+4. If a layer cannot be completed, record a deferral with explicit reason in `deferral.toml` inside the layer directory.
+5. Run `canon pr-review accept --run <RUN_ID>` to validate layer coverage and output quality.
+6. Run `canon pr-review finalize --run <RUN_ID>` to render final artifacts and derive the recommendation.
 
 ### Clarification Loop
 
