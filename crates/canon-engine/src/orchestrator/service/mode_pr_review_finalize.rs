@@ -90,6 +90,9 @@ impl EngineService {
 
         write_run_state_finalize(&run_dir, RunState::Finalized)?;
 
+        // ── Publish artifacts to .canon/artifacts/<RUN_ID>/pr-review/ ──
+        publish_artifacts(self, run_id, &run_dir)?;
+
         Ok(())
     }
 }
@@ -483,6 +486,36 @@ fn write_run_state_finalize(run_dir: &Path, state: RunState) -> Result<(), Strin
     Ok(())
 }
 
+/// Copies the finalized review artifacts from the run directory to
+/// `.canon/artifacts/<RUN_ID>/pr-review/` so they are discoverable
+/// as governed review packet outputs.
+fn publish_artifacts(service: &EngineService, run_id: &str, run_dir: &Path) -> Result<(), String> {
+    let artifacts_dir = service.project_layout().artifacts_dir().join(run_id).join("pr-review");
+    fs::create_dir_all(&artifacts_dir).map_err(|e| format!("create artifacts directory: {e}"))?;
+
+    // Artifacts that constitute the published pr-review packet.
+    const PUBLISHABLE_ARTIFACTS: &[&str] = &[
+        "01-review-summary.md",
+        "06-review-report.md",
+        "review-findings.json",
+        "missing-tests.md",
+        "manifest.toml",
+        "canonical-review-output.json",
+        "packet-metadata.json",
+        "coverage-accounting.md",
+    ];
+
+    for filename in PUBLISHABLE_ARTIFACTS {
+        let src = run_dir.join(filename);
+        if src.exists() {
+            fs::copy(&src, artifacts_dir.join(filename))
+                .map_err(|e| format!("copy artifact `{filename}`: {e}"))?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Produces a `coverage-accounting.md` artifact listing all 7 layers
 /// with their status (reviewed/deferred/skipped) and explicit reasons.
 ///
@@ -863,5 +896,89 @@ mod tests {
         // Verify run state was updated to finalized
         let state_content = fs::read_to_string(run_dir.join("run-state.json")).unwrap();
         assert!(state_content.contains("finalized"), "state not finalized");
+
+        // Verify artifacts were published to .canon/artifacts/
+        let artifacts_dir =
+            workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
+        assert!(
+            artifacts_dir.join("01-review-summary.md").exists(),
+            "summary not published to artifacts"
+        );
+        assert!(
+            artifacts_dir.join("06-review-report.md").exists(),
+            "report not published to artifacts"
+        );
+        assert!(
+            artifacts_dir.join("review-findings.json").exists(),
+            "findings not published to artifacts"
+        );
+        assert!(
+            artifacts_dir.join("manifest.toml").exists(),
+            "manifest not published to artifacts"
+        );
+        assert!(
+            artifacts_dir.join("coverage-accounting.md").exists(),
+            "coverage accounting not published to artifacts"
+        );
+    }
+
+    // ── publish_artifacts unit tests ─────────────────────────────────────
+
+    #[test]
+    fn publish_artifacts_copies_all_expected_files() {
+        let workspace = TempDir::new().unwrap();
+        let run_id = "test-publish-artifacts";
+        let run_dir = workspace.path().join(".canon").join("runs").join(run_id).join("pr-review");
+        fs::create_dir_all(&run_dir).unwrap();
+
+        // Create each expected artifact in the run directory
+        let artifact_files = [
+            "01-review-summary.md",
+            "06-review-report.md",
+            "review-findings.json",
+            "missing-tests.md",
+            "manifest.toml",
+            "canonical-review-output.json",
+            "packet-metadata.json",
+            "coverage-accounting.md",
+        ];
+        for file in &artifact_files {
+            fs::write(run_dir.join(file), format!("content of {file}")).unwrap();
+        }
+
+        let service = EngineService::new(workspace.path());
+        publish_artifacts(&service, run_id, &run_dir).unwrap();
+
+        let artifacts_dir =
+            workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
+        for file in &artifact_files {
+            let dest = artifacts_dir.join(file);
+            assert!(dest.exists(), "artifact {file} was not published");
+            let content = fs::read_to_string(&dest).unwrap();
+            assert_eq!(content, format!("content of {file}"));
+        }
+    }
+
+    #[test]
+    fn publish_artifacts_skips_missing_source_files() {
+        let workspace = TempDir::new().unwrap();
+        let run_id = "test-publish-missing";
+        let run_dir = workspace.path().join(".canon").join("runs").join(run_id).join("pr-review");
+        fs::create_dir_all(&run_dir).unwrap();
+
+        // Only create a subset of artifacts; missing files should be skipped
+        fs::write(run_dir.join("01-review-summary.md"), "summary").unwrap();
+        fs::write(run_dir.join("manifest.toml"), "manifest").unwrap();
+
+        let service = EngineService::new(workspace.path());
+        let result = publish_artifacts(&service, run_id, &run_dir);
+        assert!(result.is_ok(), "publish should succeed even with missing source files");
+
+        let artifacts_dir =
+            workspace.path().join(".canon").join("artifacts").join(run_id).join("pr-review");
+        assert!(artifacts_dir.join("01-review-summary.md").exists());
+        assert!(artifacts_dir.join("manifest.toml").exists());
+        // Missing files should not be created
+        assert!(!artifacts_dir.join("06-review-report.md").exists());
     }
 }

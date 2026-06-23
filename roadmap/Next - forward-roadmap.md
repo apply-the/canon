@@ -2,7 +2,7 @@
 
 ## Where Canon Is Today
 
-Canon 0.64.0 governs packet-based workflows across 18 first-class modes
+Canon 0.72.6 governs packet-based workflows across 18 first-class modes
 covering the full lifecycle from discovery through operations. What the runtime
 does well: bounded packet authoring, evidence-linked approval, fail-closed
 validation surfaces, and release-aware contract publication.

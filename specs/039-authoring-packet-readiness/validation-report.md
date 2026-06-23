@@ -75,4 +75,4 @@
 
 ## Final Commit Message
 
-- `feat: deliver authoring packet readiness as Canon 0.39.0`
+- `feat: deliver authoring packet readiness as Canon 0.72.6`

@@ -75,7 +75,7 @@ runtime authority; do not require Boundline-specific code paths to understand
 Canon-owned semantics  
 **Scale/Scope**: 1 stable contract path, 1 feature-local contract bundle, 4
 shared contract shapes, and existing publish-policy surfaces already shipped in
-Canon 0.48.0+
+Canon 0.72.6+
 
 `specs/048-project-memory-promotion-policy/contracts/` is treated as prior design
 context. The canonical contract for this slice is owned by

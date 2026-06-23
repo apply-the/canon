@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Create a hard, contract-line-evolving redesign of Canon's governed reasoning posture producer contract that introduces a new Canon-owned contract line, strengthens the producer shape with typed subcontracts, defines fail-closed migration and incompatibility rules, publishes machine-checkable examples, and aligns the release on Canon 0.64.0 with the required validation and documentation updates."
+**Input**: User description: "Create a hard, contract-line-evolving redesign of Canon's governed reasoning posture producer contract that introduces a new Canon-owned contract line, strengthens the producer shape with typed subcontracts, defines fail-closed migration and incompatibility rules, publishes machine-checkable examples, and aligns the release on Canon 0.72.6 with the required validation and documentation updates."
 
 ## Governance Context
 
