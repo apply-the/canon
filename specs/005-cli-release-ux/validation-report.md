@@ -55,7 +55,7 @@ Planned validation for this feature covers:
 | Surface | Expected Version | Observed | Result | Notes |
 | --- | --- | --- | --- | --- |
 | `Cargo.toml` workspace version | `0.5.0` | `0.5.0` | PASS | verified during structural validation and local dry run metadata render |
-| Rendered release notes | `0.5.0` | `Canon 0.5.0` and `Tag: v0.5.0` | PASS | rendered into `.canon/tmp/release-dry-run/release-notes.md` |
+| Rendered release notes | `0.5.0` | `Canon 0.72.6` and `Tag: v0.5.0` | PASS | rendered into `.canon/tmp/release-dry-run/release-notes.md` |
 | Archive names | `0.5.0` | all six release-surface files are versioned `0.5.0` | PASS | verified by `scripts/release/verify-release-surface.sh` |
 | Checksum manifest name and entries | `0.5.0` | `canon-0.5.0-SHA256SUMS.txt` with one entry per archive | PASS | verified by `scripts/release/verify-release-surface.sh` |
 | `canon --version` output per built binary | `0.5.0` | `canon 0.5.0` | PASS | native host binary executed locally; release workflow enforces per-artifact version sidecars |

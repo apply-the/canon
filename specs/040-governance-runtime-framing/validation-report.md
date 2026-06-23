@@ -42,4 +42,4 @@
 
 - All planned tasks in `tasks.md` are complete.
 - The feature invariants still hold: Canon remains local-first and governed, the human CLI and governance adapter are documented as one runtime, and no governance adapter schema or lifecycle semantics were changed.
-- Proposed commit message: `feat: deliver governance runtime framing as Canon 0.40.0`
+- Proposed commit message: `feat: deliver governance runtime framing as Canon 0.72.6`

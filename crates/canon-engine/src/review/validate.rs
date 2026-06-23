@@ -7,7 +7,7 @@
 
 use serde::Deserialize;
 
-use crate::review::onion::{CANONICAL_LAYERS, LayerStatus};
+use crate::review::onion::LayerStatus;
 
 /// Result of validating a reviewer output.
 #[derive(Debug, Clone)]
@@ -71,11 +71,13 @@ struct RawFinding {
 
 /// Validates a reviewer output JSON string against the review context.
 ///
-/// Checks schema, severities, recommendation, comment IDs, paths, lines, and layer coverage.
+/// Checks schema, severities, recommendation, comment IDs, paths, and lines.
+/// Layer coverage validation is delegated to the filesystem-based check in
+/// `mode_pr_review_accept::check_layer_coverage`.
 pub fn validate_reviewer_output(
     json: &str,
     changed_files: &[String],
-    layer_states: &[(String, LayerStatus)],
+    _layer_states: &[(String, LayerStatus)],
 ) -> ValidationResult {
     let mut errors = Vec::new();
     let mut downgrades = Vec::new();
@@ -89,7 +91,6 @@ pub fn validate_reviewer_output(
     check_comment_id_uniqueness(&output, &mut errors);
     check_severities(&output, &mut errors);
     check_paths_and_lines(&output, changed_files, &mut downgrades);
-    check_layer_coverage(layer_states, &mut errors);
 
     ValidationResult { valid: errors.is_empty(), errors, downgrades }
 }
@@ -160,17 +161,6 @@ fn check_paths_and_lines(
                 new_level: "hunk".to_string(),
                 reason: format!("Path '{path}' not in changed files; downgraded to hunk-level"),
             });
-        }
-    }
-}
-
-fn check_layer_coverage(layer_states: &[(String, LayerStatus)], errors: &mut Vec<String>) {
-    for layer in CANONICAL_LAYERS {
-        if *layer == "global" {
-            continue;
-        }
-        if !layer_states.iter().any(|(name, _)| name == *layer) {
-            errors.push(format!("Layer '{layer}' is missing from layer coverage"));
         }
     }
 }
@@ -259,17 +249,23 @@ mod tests {
     }
 
     #[test]
-    fn test_missing_layer_coverage_blocks() {
+    fn test_layer_coverage_delegated_to_filesystem_check() {
+        // Layer coverage is validated by the filesystem-based check in
+        // mode_pr_review_accept.rs, not by validate_reviewer_output.
+        // Passing a partial layer state should NOT cause validation failure.
         let json = r#"{
             "schema_version": "1.0",
             "findings": [],
             "recommendation": "Comment",
             "layer_coverage": {}
         }"#;
-        let partial = vec![("diff".to_string(), LayerStatus::Completed)];
+        let partial = vec![("early-signal".to_string(), LayerStatus::Completed)];
         let result = validate_reviewer_output(json, &[], &partial);
-        assert!(!result.valid);
-        assert!(result.errors.iter().any(|e| e.contains("whole_file")));
+        assert!(
+            result.valid,
+            "Layer coverage validation is delegated to filesystem check; partial layer_states should not block here. Errors: {:?}",
+            result.errors
+        );
     }
 
     #[test]
@@ -283,5 +279,22 @@ mod tests {
         let result = validate_reviewer_output(json, &[], &completed_layers());
         assert!(!result.valid);
         assert!(result.errors.iter().any(|e| e.contains("Invalid recommendation")));
+    }
+
+    #[test]
+    fn test_unsupported_schema_version_rejected() {
+        let json = r#"{
+            "schema_version": "0.9",
+            "findings": [],
+            "recommendation": "Comment",
+            "layer_coverage": {}
+        }"#;
+        let result = validate_reviewer_output(json, &[], &completed_layers());
+        assert!(!result.valid);
+        assert!(
+            result.errors.iter().any(|e| e.contains("Unsupported schema version")),
+            "Errors: {:?}",
+            result.errors
+        );
     }
 }

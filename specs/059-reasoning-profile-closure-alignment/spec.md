@@ -3,7 +3,7 @@
 **Feature Branch**: `059-reasoning-profile-closure-alignment`  
 **Created**: 2026-05-18  
 **Status**: Draft  
-**Input**: User description: "Publish the Canon 0.58.0 companion alignment for Boundline 0.62.0 reasoning profile closure by updating the governed reasoning posture contract window, contract tests, changelog, and release-facing docs without changing Canon runtime behavior."
+**Input**: User description: "Publish the Canon 0.72.6 companion alignment for Boundline 0.72.6 reasoning profile closure by updating the governed reasoning posture contract window, contract tests, changelog, and release-facing docs without changing Canon runtime behavior."
 
 ## Governance Context *(mandatory)*
 
