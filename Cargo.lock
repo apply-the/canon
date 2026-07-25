@@ -160,6 +160,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "canon-contracts"
+version = "0.72.6"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "canon-engine"
 version = "0.72.6"
 dependencies = [
