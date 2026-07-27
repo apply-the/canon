@@ -1,3 +1,19 @@
+//! Policy-shaping helper plus the repository-local Canon 0.72.6 state bridge.
+
+mod bridge;
+mod bridge_model;
+
+pub use bridge::{
+    apply_migration, apply_migration_with_control, inspect_legacy_state, plan_migration,
+    recover_migration,
+};
+pub use bridge_model::{
+    BridgeMigrationPlan, CanonicalVerificationResult, ConversionReport, LegacyStateItem,
+    MigrationAction, MigrationBoundary, MigrationControl, MigrationError, MigrationInspection,
+    MigrationOutcome, MigrationReasonCode, MigrationSource, MigrationStatus, SemanticLossRecord,
+    UnsupportedStateRecord,
+};
+
 use crate::policy::models::{DraftPolicy, ImpactReport, MigrationPlan};
 
 pub fn generate_migration(_policy: &DraftPolicy, report: &ImpactReport) -> MigrationPlan {

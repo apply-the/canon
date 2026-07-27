@@ -1,0 +1,11 @@
+source_product = "canon"
+source_version = "0.72.6"
+source_commit = "d13f494ba17f8a56b146a27054d5a6eb35750e4a"
+source_schema = "canon-workspace-state-0.72.6"
+fixture_digest = "b514fd7bddf9d86c94a07d9d9d8dff25c1a12cc306c6d9450f7abff04c87ce42"
+fixture_digest_algorithm = "canon-tree-sha256-v1"
+creation_method = "Hand-authored from the tagged ProjectLayout, RunManifest, RunStateManifest, LinkManifest, approval, verification, and evidence types."
+generated_by_new_migrator = false
+expected_runs = 2
+expected_implementation_runs = 1
+expected_terminal_runs = 2
