@@ -15,6 +15,17 @@ The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
 
+## [0.90.0] - 2026-07-27
+
+Delivered changes:
+
+- Prepared the governed 1.0 prerelease package train at `0.90.0`, including
+  exact registry-compatible internal dependency requirements and the public
+  `canon-contracts` package metadata.
+- Aligned assistant package and embedded skill compatibility metadata with the
+  prerelease train. Public registry publication and the matching signed tag
+  remain gated by T020 and were not performed by this change.
+
 ## [0.72.5] - 2026-06-11
 
 Delivered changes:

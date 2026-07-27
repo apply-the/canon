@@ -22,7 +22,7 @@ resolver = "2"
 edition = "2024"
 license = "MIT"
 rust-version = "1.96.0"
-version = "0.72.6"
+version = "0.90.0"
 
 [workspace.dependencies]
 assert_cmd = "2"
@@ -44,15 +44,17 @@ toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 uuid = { version = "1", features = ["serde", "v7"] }
-canon-contracts = { path = "crates/canon-contracts" }
+canon-adapters = { version = "=0.90.0", path = "crates/canon-adapters" }
+canon-contracts = { version = "=0.90.0", path = "crates/canon-contracts" }
+canon-engine = { version = "=0.90.0", path = "crates/canon-engine" }
 
 [dependencies]
 serde_json.workspace = true
 toml.workspace = true
 
 [dev-dependencies]
-canon-adapters = { path = "crates/canon-adapters" }
-canon-engine = { path = "crates/canon-engine" }
+canon-adapters.workspace = true
+canon-engine.workspace = true
 assert_cmd.workspace = true
 predicates.workspace = true
 tempfile.workspace = true

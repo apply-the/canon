@@ -22,7 +22,7 @@ assets = [
 ]
 
 [dependencies]
-canon-engine = { path = "../canon-engine" }
+canon-engine.workspace = true
 clap.workspace = true
 crossterm.workspace = true
 ratatui.workspace = true

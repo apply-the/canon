@@ -30,10 +30,10 @@ const FIXTURE_ROOT: &str =
 const SUPPORTED_BOUNDLINE_VERSION: &str = "0.74.0";
 const SUPPORTED_BOUNDLINE_WINDOW: &str = "0.74.x";
 const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.75.0";
-const SUPPORTED_CANON_VERSION: &str = "0.72.6";
 const SUPPORTED_CANON_WINDOW: &str = "0.72.x";
 const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.73.0";
 const SUPPORTED_CONTRACT_LINE: &str = "governed_reasoning_posture_v2";
+const RELEASE_TRAIN_VERSION: &str = "0.90.0";
 
 const REQUIRED_TOP_LEVEL_FIELDS: [&str; 8] = [
     "contract_line",
@@ -323,10 +323,10 @@ fn governed_reasoning_posture_release_surfaces_align_on_v2_workspace_version()
     let runtime_compatibility = read_text(RUNTIME_COMPATIBILITY_PATH)?;
     let plugin_metadata = read_text(ASSISTANT_PLUGIN_METADATA_PATH)?;
 
-    let manifest_version_entry = format!("version = \"{SUPPORTED_CANON_VERSION}\"");
+    let manifest_version_entry = format!("version = \"{RELEASE_TRAIN_VERSION}\"");
     let expected_workspace_version_entry =
-        format!("expected_workspace_version = \"{SUPPORTED_CANON_VERSION}\"");
-    let plugin_version_entry = format!("\"version\": \"{SUPPORTED_CANON_VERSION}\"");
+        format!("expected_workspace_version = \"{RELEASE_TRAIN_VERSION}\"");
+    let plugin_version_entry = format!("\"version\": \"{RELEASE_TRAIN_VERSION}\"");
 
     assert_contains(
         &manifest,

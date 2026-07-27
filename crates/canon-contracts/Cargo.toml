@@ -5,6 +5,7 @@ license.workspace = true
 rust-version.workspace = true
 version.workspace = true
 description = "Stable deterministic governance contracts for Canon."
+repository = "https://github.com/apply-the/canon"
 
 [dependencies]
 serde.workspace = true
