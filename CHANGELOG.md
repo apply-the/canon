@@ -25,6 +25,11 @@ Delivered changes:
 - Aligned assistant package and embedded skill compatibility metadata with the
   prerelease train. Public registry publication and the matching signed tag
   remain gated by T020 and were not performed by this change.
+- Qualified a reproducible `canon-contracts-0.90.0.crate` candidate from source
+  commit `bd361d7e2ad112e5e0d599267e8024e748293605`, including
+  extracted-package tests and clean registry-shaped consumers. T020 is
+  `READY_TO_PUBLISH`, but the package and signed `0.90.0` tag do not yet exist
+  on the public release surfaces.
 
 ## [0.72.5] - 2026-06-11
 
