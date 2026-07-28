@@ -61,3 +61,10 @@ cargo nextest run --workspace --all-features
 
 `README.md` and `CHANGELOG.md` are still manual readback surfaces; there is no
 dedicated contract test that updates those entries for you.
+
+## Contract-package provenance
+
+The immutable record for the public `canon-contracts 0.90.0` package is
+`tech-docs/release-evidence/0.90.0-contract-package-provenance.md`. Future
+contract-package publications must retain equivalent source, registry,
+consumer, signed-tag, and remote-verification evidence.

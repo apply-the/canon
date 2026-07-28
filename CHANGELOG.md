@@ -23,13 +23,14 @@ Delivered changes:
   exact registry-compatible internal dependency requirements and the public
   `canon-contracts` package metadata.
 - Aligned assistant package and embedded skill compatibility metadata with the
-  prerelease train. Public registry publication and the matching signed tag
-  remain gated by T020 and were not performed by this change.
+  prerelease train.
 - Qualified a reproducible `canon-contracts-0.90.0.crate` candidate from source
   commit `bd361d7e2ad112e5e0d599267e8024e748293605`, including
-  extracted-package tests and clean registry-shaped consumers. T020 is
-  `READY_TO_PUBLISH`, but the package and signed `0.90.0` tag do not yet exist
-  on the public release surfaces.
+  extracted-package tests and clean registry-shaped consumers.
+- Published `canon-contracts 0.90.0` to crates.io on 2026-07-28, verified its
+  exact registry checksum through clean online and offline consumers, and
+  pushed the signed annotated `0.90.0` source tag after independent remote
+  object, target, and signature verification.
 
 ## [0.72.5] - 2026-06-11
 
