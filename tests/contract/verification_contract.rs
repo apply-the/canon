@@ -29,7 +29,7 @@ fn blocked_verification_brief() -> &'static str {
 }
 
 #[test]
-fn verification_run_returns_completed_result_for_supported_claims() {
+fn authored_supported_labels_remain_blocked_without_external_semantic_evidence() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("verification.md");
     fs::write(&brief_path, ready_verification_brief()).expect("brief file");
@@ -52,18 +52,18 @@ fn verification_run_returns_completed_result_for_supported_claims() {
             "json",
         ])
         .assert()
-        .success()
+        .code(2)
         .get_output()
         .stdout
         .clone();
 
     let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
     let run_id = run_json["run_id"].as_str().expect("run id");
-    assert_eq!(run_json["state"], "Completed");
-    assert!(run_json["blocking_classification"].is_null());
+    assert_eq!(run_json["state"], "Blocked");
+    assert_eq!(run_json["blocking_classification"], "artifact-blocked");
     assert!(
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
-        "completed verification runs should not advertise approval targets"
+        "externally unverified packets should not advertise approval targets"
     );
     assert_eq!(run_json["artifact_count"], 6);
     assert!(
@@ -76,18 +76,19 @@ fn verification_run_returns_completed_result_for_supported_claims() {
         format!(".canon/artifacts/{run_id}/verification/01-invariants-checklist.md")
     );
     assert!(run_json["mode_result"]["headline"].as_str().is_some_and(|headline| {
-        headline.contains("supported") && headline.contains("2 claim set(s)")
+        headline.contains("authored packet")
+            && headline.contains("has not accepted that semantic judgment")
     }));
     assert!(
         run_json["mode_result"]["artifact_packet_summary"]
             .as_str()
-            .is_some_and(|summary| summary.contains("2 claim set(s) under test")
-                && summary.contains("0 unresolved finding set(s)"))
+            .is_some_and(|summary| summary.contains("Authored, unverified labels")
+                && summary.contains("external semantic evidence remains required"))
     );
     assert!(run_json["mode_result"]["result_excerpt"].as_str().is_some_and(|excerpt| {
-        excerpt.contains("Status: supported") && excerpt.contains("Rationale:")
+        excerpt.contains("Authored label only") && excerpt.contains("Status: supported")
     }));
-    assert!(run_json["recommended_next_action"].is_null());
+    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
 
     let status_output = cli_command()
         .current_dir(workspace.path())
@@ -98,9 +99,9 @@ fn verification_run_returns_completed_result_for_supported_claims() {
         .stdout
         .clone();
     let status_json: serde_json::Value = serde_json::from_slice(&status_output).expect("status");
-    assert_eq!(status_json["state"], "Completed");
+    assert_eq!(status_json["state"], "Blocked");
     assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Invariants Checklist");
-    assert!(status_json["recommended_next_action"].is_null());
+    assert_eq!(status_json["recommended_next_action"]["action"], "inspect-artifacts");
 }
 
 #[test]
@@ -155,7 +156,8 @@ fn verification_run_blocks_when_unresolved_findings_remain() {
     assert!(
         run_json["mode_result"]["artifact_packet_summary"]
             .as_str()
-            .is_some_and(|summary| summary.contains("2 claim set(s) under test"))
+            .is_some_and(|summary| summary.contains("2 claim set(s)")
+                && summary.contains("external semantic evidence remains required"))
     );
     assert!(run_json["mode_result"]["result_excerpt"].as_str().is_some_and(|excerpt| {
         excerpt.contains("Status: unsupported") && excerpt.contains("Rationale:")

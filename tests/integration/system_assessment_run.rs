@@ -2,7 +2,13 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -82,32 +88,17 @@ fn run_system_assessment_emits_an_as_is_packet_and_publishes_after_risk_approval
     init_repo(&workspace);
     fs::write(workspace.path().join("system-assessment.md"), complete_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "system-assessment",
-            "--system-context",
-            "existing",
-            "--risk",
-            "systemic-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architecture-lead",
-            "--input",
-            "system-assessment.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SystemAssessment,
+        RiskClass::SystemicImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "architecture-lead",
+        "system-assessment.md",
+    )
+    .expect("internal historical system-assessment run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("system-assessment");
@@ -180,32 +171,17 @@ fn run_system_assessment_blocks_when_a_required_authored_section_is_missing() {
     fs::write(workspace.path().join("system-assessment.md"), incomplete_brief())
         .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "system-assessment",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architecture-lead",
-            "--input",
-            "system-assessment.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SystemAssessment,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "architecture-lead",
+        "system-assessment.md",
+    )
+    .expect("internal historical system-assessment run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("system-assessment");

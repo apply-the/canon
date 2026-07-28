@@ -28,7 +28,7 @@ fn blocked_verification_brief() -> &'static str {
 }
 
 #[test]
-fn run_verification_persists_verification_packet_and_evidence_bundle() {
+fn run_verification_preserves_authored_packet_without_executing_semantic_review() {
     let workspace = TempDir::new().expect("temp dir");
     let brief_path = workspace.path().join("verification.md");
     fs::write(&brief_path, ready_verification_brief()).expect("brief file");
@@ -51,7 +51,7 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
             "json",
         ])
         .assert()
-        .success()
+        .code(2)
         .get_output()
         .stdout
         .clone();
@@ -125,6 +125,34 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
     assert!(entry["validation_paths"].as_array().is_some_and(|paths| !paths.is_empty()));
     assert!(entry["artifact_provenance_links"].as_array().is_some_and(|paths| !paths.is_empty()));
 
+    let invocation_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["inspect", "invocations", "--run", run_id, "--output", "json"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let invocation_json: serde_json::Value =
+        serde_json::from_slice(&invocation_output).expect("invocation json");
+    let invocations = invocation_json["entries"].as_array().expect("invocation entries");
+    assert!(invocations.iter().all(|entry| entry["adapter"] != "CopilotCli"));
+    assert!(invocations.iter().any(|entry| entry["latest_outcome"] == "Denied"));
+
+    let verify_output = cli_command()
+        .current_dir(workspace.path())
+        .args(["verify", "--run", run_id])
+        .assert()
+        .failure()
+        .code(5)
+        .get_output()
+        .stdout
+        .clone();
+    let verify_json: serde_json::Value =
+        serde_json::from_slice(&verify_output).expect("verify json");
+    assert_eq!(verify_json["deterministic_status"], "deterministic_structure_valid");
+    assert_eq!(verify_json["external_semantic_judgment"], "required_missing");
+
     let status_output = cli_command()
         .current_dir(workspace.path())
         .args(["status", "--run", run_id, "--output", "json"])
@@ -135,8 +163,8 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
         .clone();
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json");
-    assert_eq!(status_json["state"], "Completed");
-    assert_eq!(status_json["validation_independence_satisfied"], true);
+    assert_eq!(status_json["state"], "Blocked");
+    assert_eq!(status_json["validation_independence_satisfied"], false);
     assert_eq!(
         status_json["mode_result"]["primary_artifact_title"].as_str(),
         Some("Invariants Checklist")
@@ -144,7 +172,7 @@ fn run_verification_persists_verification_packet_and_evidence_bundle() {
     assert!(
         status_json["mode_result"]["headline"]
             .as_str()
-            .is_some_and(|headline| headline.contains("2 claim set(s)"))
+            .is_some_and(|headline| headline.contains("has not accepted that semantic judgment"))
     );
 }
 

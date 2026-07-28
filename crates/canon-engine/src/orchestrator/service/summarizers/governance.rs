@@ -157,7 +157,7 @@ pub(super) fn summarize_review_mode_result(
         ],
     );
 
-    let headline = if missing_context_markers == 0 {
+    let authored_headline = if missing_context_markers == 0 {
         match disposition_status.as_str() {
             "awaiting-disposition" => {
                 "Review packet requires explicit disposition before release-readiness can pass."
@@ -179,7 +179,7 @@ pub(super) fn summarize_review_mode_result(
             "Review packet completed with {missing_context_markers} explicit missing-context marker(s)."
         )
     };
-    let artifact_packet_summary = if missing_context_markers == 0 {
+    let authored_packet_summary = if missing_context_markers == 0 {
         if no_boundary_expansion {
             format!(
                 "Review packet records `{disposition_status}` disposition with `{missing_evidence_status}` evidence posture, no boundary expansion beyond the authored review target, and {accepted_risk_count} accepted-risk or review-note set(s)."
@@ -196,8 +196,12 @@ pub(super) fn summarize_review_mode_result(
     };
 
     Some(ModeResultSummary {
-        headline,
-        artifact_packet_summary,
+        headline: format!(
+            "Authored review packet only; no external semantic judgment accepted. {authored_headline}"
+        ),
+        artifact_packet_summary: format!(
+            "{authored_packet_summary} Canon has not accepted this authored posture as external semantic evidence."
+        ),
         execution_posture: None,
         primary_artifact_title: "Review Brief".to_string(),
         primary_artifact_path: format!(".canon/{}", primary_artifact.record.relative_path),
@@ -205,7 +209,10 @@ pub(super) fn summarize_review_mode_result(
             ".canon/{}",
             primary_artifact.record.relative_path
         )),
-        result_excerpt: truncate_context_excerpt(&rationale, 320),
+        result_excerpt: format!(
+            "Authored rationale only; no semantic judgment accepted: {}",
+            truncate_context_excerpt(&rationale, 320)
+        ),
         action_chips: Vec::new(),
     })
 }
@@ -279,30 +286,30 @@ pub(super) fn summarize_verification_mode_result(
     let headline = if missing_context_markers == 0 {
         if open_findings_status == "unresolved-findings-open" {
             format!(
-                "Verification found {open_finding_count} unresolved finding(s) and blocked release readiness."
+                "The authored verification packet declares {open_finding_count} unresolved finding(s); Canon has not executed semantic review."
             )
         } else if no_direct_contradiction {
             format!(
-                "Verification completed with `{verdict_status}` verdict, no direct contradictions, and {claim_count} claim set(s) under test."
+                "The authored packet declares a `{verdict_status}` verdict and {claim_count} claim set(s); Canon has not accepted that semantic judgment."
             )
         } else {
             format!(
-                "Verification packet completed with `{verdict_status}` verdict across {claim_count} claim set(s) and {contradiction_count} contradiction set(s)."
+                "The authored packet declares a `{verdict_status}` verdict across {claim_count} claim set(s) and {contradiction_count} contradiction set(s); Canon has not accepted that semantic judgment."
             )
         }
     } else {
         format!(
-            "Verification packet completed with {missing_context_markers} explicit missing-context marker(s)."
+            "The authored verification packet carries {missing_context_markers} explicit missing-context marker(s)."
         )
     };
     let artifact_packet_summary = if missing_context_markers == 0 {
         if no_direct_contradiction {
             format!(
-                "Verification packet records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and explicit no-direct-contradiction posture."
+                "Authored, unverified labels record `{verdict_status}` with {claim_count} claim set(s) under test and {open_finding_count} unresolved finding set(s); external semantic evidence remains required."
             )
         } else {
             format!(
-                "Verification packet records `{verdict_status}` verdict with {claim_count} claim set(s) under test, {open_finding_count} unresolved finding set(s), and {contradiction_count} contradiction set(s)."
+                "Authored, unverified labels record `{verdict_status}` with {claim_count} claim set(s), {open_finding_count} unresolved finding set(s), and {contradiction_count} contradiction set(s); external semantic evidence remains required."
             )
         }
     } else {
@@ -321,7 +328,10 @@ pub(super) fn summarize_verification_mode_result(
             ".canon/{}",
             primary_artifact.record.relative_path
         )),
-        result_excerpt: truncate_context_excerpt(&overall_verdict, 320),
+        result_excerpt: format!(
+            "Authored label only; no semantic judgment accepted:\n{}",
+            truncate_context_excerpt(&overall_verdict, 280)
+        ),
         action_chips: Vec::new(),
     })
 }

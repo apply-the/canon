@@ -2,7 +2,13 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -85,32 +91,17 @@ fn run_supply_chain_analysis_emits_a_reviewable_packet_and_publishes_while_appro
     fs::write(workspace.path().join("supply-chain-analysis.md"), complete_brief())
         .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "supply-chain-analysis",
-            "--system-context",
-            "existing",
-            "--risk",
-            "systemic-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "release-engineer",
-            "--input",
-            "supply-chain-analysis.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SupplyChainAnalysis,
+        RiskClass::SystemicImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "release-engineer",
+        "supply-chain-analysis.md",
+    )
+    .expect("internal historical supply-chain run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root = workspace
         .path()
@@ -189,32 +180,17 @@ fn run_supply_chain_analysis_blocks_when_required_authored_sections_are_missing(
     fs::write(workspace.path().join("supply-chain-analysis.md"), incomplete_brief())
         .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "supply-chain-analysis",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "release-engineer",
-            "--input",
-            "supply-chain-analysis.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SupplyChainAnalysis,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "release-engineer",
+        "supply-chain-analysis.md",
+    )
+    .expect("internal historical supply-chain run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root = workspace
         .path()
@@ -239,32 +215,17 @@ fn run_supply_chain_analysis_records_a_derived_coverage_gap_for_skipped_scanners
     fs::write(workspace.path().join("supply-chain-analysis.md"), skipped_scanner_brief())
         .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "supply-chain-analysis",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "release-engineer",
-            "--input",
-            "supply-chain-analysis.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SupplyChainAnalysis,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "release-engineer",
+        "supply-chain-analysis.md",
+    )
+    .expect("internal historical supply-chain run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let policy = fs::read_to_string(
         workspace

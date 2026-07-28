@@ -1318,7 +1318,7 @@ fn resolve_profile_destination_routes_by_promotion_state() {
 }
 
 #[test]
-fn canonical_project_memory_surface_map_covers_all_modes() {
+fn historical_project_memory_surface_map_remains_inspectable() {
     let expected = [
         (
             Mode::Discovery,
@@ -1447,8 +1447,6 @@ fn canonical_project_memory_surface_map_covers_all_modes() {
             "tech-docs/project/audit-log.md",
         ),
     ];
-
-    assert_eq!(expected.len(), Mode::all().len());
 
     for (mode, stable, pending, evidence) in expected {
         assert_eq!(

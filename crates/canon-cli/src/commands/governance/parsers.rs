@@ -20,13 +20,15 @@ fn path_outside_workspace(reference: &str) -> GovernanceFailure {
 /// Returns a [`GovernanceReasonCode::UnsupportedMode`] blocked response when
 /// the value does not correspond to any known Canon mode.
 pub(super) fn parse_mode(value: &str) -> Result<Mode, GovernanceFailure> {
-    value.parse::<Mode>().map_err(|_| {
-        Box::new(GovernanceResponse::blocked(
-            GovernanceReasonCode::UnsupportedMode,
-            format!("mode `{value}` is not supported by Canon governance"),
-            vec!["mode".to_string()],
-        ))
-    })
+    canon_engine::modes::stable_profile_registry().parse(value).map(|entry| entry.mode()).map_err(
+        |_| {
+            Box::new(GovernanceResponse::blocked(
+                GovernanceReasonCode::UnsupportedMode,
+                format!("stable profile `{value}` is not supported by Canon governance"),
+                vec!["mode".to_string()],
+            ))
+        },
+    )
 }
 
 /// Parses a `system_context` string into a [`SystemContext`].

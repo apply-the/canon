@@ -2,7 +2,13 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -77,32 +83,17 @@ fn run_security_assessment_emits_a_recommendation_only_packet_and_publishes_afte
     fs::write(workspace.path().join("security-assessment.md"), complete_brief())
         .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "security-assessment",
-            "--system-context",
-            "existing",
-            "--risk",
-            "systemic-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "security-lead",
-            "--input",
-            "security-assessment.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SecurityAssessment,
+        RiskClass::SystemicImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "security-lead",
+        "security-assessment.md",
+    )
+    .expect("internal historical security-assessment run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("security-assessment");
@@ -187,32 +178,17 @@ fn run_security_assessment_blocks_when_a_required_authored_section_is_missing() 
     fs::write(workspace.path().join("security-assessment.md"), incomplete_brief())
         .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "security-assessment",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "security-lead",
-            "--input",
-            "security-assessment.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SecurityAssessment,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "security-lead",
+        "security-assessment.md",
+    )
+    .expect("internal historical security-assessment run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("security-assessment");

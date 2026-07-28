@@ -4,7 +4,13 @@ use std::process::Command as ProcessCommand;
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     if let Some(binary) = std::env::var_os("CARGO_BIN_EXE_canon") {
@@ -299,31 +305,17 @@ fn recommendation_only_implementation_runs_remain_resolvable_via_last_alias() {
     )
     .expect("implementation brief");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "systemic-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "implementation.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("run json");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::SystemicImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "implementation.md",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("run json");
     let run_id = json["run_id"].as_str().expect("run_id");
 
     cli_command()

@@ -17,7 +17,7 @@ fn cli_command() -> Command {
 }
 
 #[test]
-fn inspect_modes_returns_the_full_mode_taxonomy() {
+fn inspect_modes_returns_the_frozen_stable_profile_registry() {
     let output = cli_command()
         .args(["inspect", "modes", "--output", "json"])
         .assert()
@@ -33,51 +33,35 @@ fn inspect_modes_returns_the_full_mode_taxonomy() {
         serde_json::json!([
             "discovery",
             "requirements",
-            "system-shaping",
             "architecture",
-            "system-assessment",
-            "change",
             "backlog",
-            "pr-review",
-            "implementation",
+            "change",
             "refactor",
             "verification",
-            "review",
+            "pr-review",
             "incident",
-            "security-assessment",
-            "migration",
-            "supply-chain-analysis",
-            "domain-language",
-            "domain-model",
-            "debugging",
-            "brainstorming",
-            "policy-shaping",
         ])
     );
 }
 
 #[test]
-fn inspect_modes_text_output_keeps_execution_heavy_modes_visible() {
+fn inspect_modes_text_output_excludes_nonstable_and_implementation_modes() {
     let output =
         cli_command().args(["inspect", "modes"]).assert().success().get_output().stdout.clone();
 
     let text = String::from_utf8(output).expect("utf8 output");
 
     assert!(text.contains("backlog"));
-    assert!(text.contains("implementation"));
     assert!(text.contains("refactor"));
     assert!(text.contains("incident"));
-    assert!(text.contains("system-assessment"));
-    assert!(text.contains("migration"));
-    assert!(text.contains("security-assessment"));
-    assert!(text.contains("supply-chain-analysis"));
-    assert!(text.contains("debugging"));
-    assert!(text.contains("brainstorming"));
+    assert!(text.contains("verification"));
+    assert!(text.contains("pr-review"));
+    assert!(!text.contains("implementation"));
+    assert!(!text.contains("system-assessment"));
+    assert!(!text.contains("migration"));
+    assert!(!text.contains("security-assessment"));
+    assert!(!text.contains("supply-chain-analysis"));
+    assert!(!text.contains("debugging"));
+    assert!(!text.contains("brainstorming"));
     assert_eq!(text.matches("incident").count(), 1);
-    assert_eq!(text.matches("system-assessment").count(), 1);
-    assert_eq!(text.matches("security-assessment").count(), 1);
-    assert_eq!(text.matches("migration").count(), 1);
-    assert_eq!(text.matches("supply-chain-analysis").count(), 1);
-    assert_eq!(text.matches("debugging").count(), 1);
-    assert_eq!(text.matches("brainstorming").count(), 1);
 }

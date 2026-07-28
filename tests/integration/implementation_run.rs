@@ -2,7 +2,13 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -184,32 +190,17 @@ fn run_implementation_completes_with_recommendation_only_execution_posture() {
     let brief_path = workspace.path().join("implementation.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "implementation.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "implementation.md",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("json summary");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("implementation");
@@ -430,32 +421,17 @@ fn implementation_run_emits_missing_body_marker_for_absent_canonical_heading() {
     let brief_path = workspace.path().join("implementation.md");
     fs::write(&brief_path, incomplete_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "implementation.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "implementation.md",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("json summary");
     let run_id = json["run_id"].as_str().expect("run id");
     let rollback_notes = fs::read_to_string(
         workspace
@@ -491,32 +467,17 @@ fn systemic_implementation_run_remains_recommendation_only_and_publishable() {
     let brief_path = workspace.path().join("implementation.md");
     fs::write(&brief_path, complete_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "systemic-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "implementation.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::SystemicImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "implementation.md",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("json summary");
     let run_id = json["run_id"].as_str().expect("run id");
 
     assert_eq!(json["state"], "AwaitingApproval");
@@ -574,32 +535,17 @@ fn approved_implementation_resume_applies_bounded_patch_to_workspace() {
     fs::write(packet_dir.join("brief.md"), complete_brief()).expect("brief file");
     fs::write(packet_dir.join("patch.diff"), implementation_patch()).expect("patch file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "canon-input/implementation",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "canon-input/implementation",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("json summary");
     let run_id = json["run_id"].as_str().expect("run id");
     let original = fs::read_to_string(workspace.path().join("src/auth/session.rs"))
         .expect("original session contents");

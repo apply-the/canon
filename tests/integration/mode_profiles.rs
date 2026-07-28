@@ -2,19 +2,20 @@ use canon_engine::domain::gate::GateKind;
 use canon_engine::domain::mode::{ImplementationDepth, Mode, all_mode_profiles};
 
 #[test]
-fn system_shaping_mode_parses_through_the_public_name() {
-    assert_eq!("system-shaping".parse::<Mode>(), Ok(Mode::SystemShaping));
+fn system_shaping_mode_is_available_only_through_historical_parsing() {
+    assert!("system-shaping".parse::<Mode>().is_err());
+    assert_eq!(Mode::parse_historical("system-shaping"), Ok(Mode::SystemShaping));
 }
 
 #[test]
 fn legacy_public_mode_names_fail_with_generic_unsupported_mode_errors() {
     for legacy_name in ["brownfield-change", "brownfield", "greenfield"] {
-        assert_eq!(legacy_name.parse::<Mode>(), Err(format!("unsupported mode: {legacy_name}")));
+        assert!(legacy_name.parse::<Mode>().is_err());
     }
 }
 
 #[test]
-fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
+fn all_stable_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
     let profiles = all_mode_profiles();
     assert_eq!(profiles.len(), Mode::all().len(), "every mode should have a profile");
 
@@ -26,15 +27,9 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    for mode in [
-        Mode::Incident,
-        Mode::SecurityAssessment,
-        Mode::SystemAssessment,
-        Mode::Migration,
-        Mode::SupplyChainAnalysis,
-    ] {
+    for mode in Mode::all() {
         let profile =
-            profiles.iter().find(|profile| profile.mode == mode).expect("profile should exist");
+            profiles.iter().find(|profile| profile.mode == *mode).expect("profile should exist");
         assert!(
             matches!(profile.implementation_depth, ImplementationDepth::Full),
             "operational mode `{}` should be fully implemented once High-Risk Operational Programs lands",
@@ -57,27 +52,10 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
         );
     }
 
-    for mode in [
-        Mode::Requirements,
-        Mode::Discovery,
-        Mode::SystemShaping,
-        Mode::Change,
-        Mode::Backlog,
-        Mode::Architecture,
-        Mode::Implementation,
-        Mode::Refactor,
-        Mode::Verification,
-        Mode::Review,
-        Mode::PrReview,
-        Mode::Incident,
-        Mode::SecurityAssessment,
-        Mode::SystemAssessment,
-        Mode::Migration,
-        Mode::SupplyChainAnalysis,
-    ] {
+    for mode in Mode::all() {
         let profile = profiles
             .iter()
-            .find(|profile| profile.mode == mode)
+            .find(|profile| profile.mode == *mode)
             .expect("deep mode profile should exist");
         assert!(
             matches!(profile.implementation_depth, ImplementationDepth::Full),
@@ -88,7 +66,7 @@ fn all_modes_have_typed_profiles_and_supported_depths_match_runtime_truth() {
 }
 
 #[test]
-fn promoted_execution_modes_advertise_distinct_artifact_families() {
+fn stable_profiles_advertise_distinct_governance_artifact_families() {
     let profiles = all_mode_profiles();
 
     let backlog =
@@ -108,22 +86,10 @@ fn promoted_execution_modes_advertise_distinct_artifact_families() {
     );
     assert!(matches!(backlog.implementation_depth, ImplementationDepth::Full));
 
-    let implementation = profiles
-        .iter()
-        .find(|profile| profile.mode == Mode::Implementation)
-        .expect("implementation profile");
-    assert_eq!(
-        implementation.artifact_families,
-        vec![
-            "task mapping",
-            "mutation bounds",
-            "implementation notes",
-            "completion evidence",
-            "validation hooks",
-            "rollback notes",
-        ]
+    assert!(
+        profiles.iter().all(|profile| profile.mode != Mode::Implementation),
+        "implementation must not have a stable Canon profile"
     );
-    assert!(matches!(implementation.implementation_depth, ImplementationDepth::Full));
 
     let refactor =
         profiles.iter().find(|profile| profile.mode == Mode::Refactor).expect("refactor profile");
@@ -163,94 +129,4 @@ fn promoted_execution_modes_advertise_distinct_artifact_families() {
         ]
     );
     assert!(matches!(incident.implementation_depth, ImplementationDepth::Full));
-
-    let migration =
-        profiles.iter().find(|profile| profile.mode == Mode::Migration).expect("migration profile");
-    assert_eq!(
-        migration.artifact_families,
-        vec![
-            "source-target map",
-            "compatibility matrix",
-            "sequencing plan",
-            "fallback plan",
-            "migration verification report",
-            "decision record",
-        ]
-    );
-    assert_eq!(
-        migration.gate_profile,
-        vec![
-            GateKind::Exploration,
-            GateKind::Architecture,
-            GateKind::MigrationSafety,
-            GateKind::Risk,
-            GateKind::ReleaseReadiness,
-        ]
-    );
-    assert!(matches!(migration.implementation_depth, ImplementationDepth::Full));
-
-    let security_assessment = profiles
-        .iter()
-        .find(|profile| profile.mode == Mode::SecurityAssessment)
-        .expect("security-assessment profile");
-    assert_eq!(
-        security_assessment.artifact_families,
-        vec![
-            "assessment overview",
-            "threat model",
-            "risk register",
-            "mitigations",
-            "assumptions and gaps",
-            "assessment evidence",
-        ]
-    );
-    assert_eq!(
-        security_assessment.gate_profile,
-        vec![GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness,]
-    );
-    assert!(matches!(security_assessment.implementation_depth, ImplementationDepth::Full));
-
-    let system_assessment = profiles
-        .iter()
-        .find(|profile| profile.mode == Mode::SystemAssessment)
-        .expect("system-assessment profile");
-    assert_eq!(
-        system_assessment.artifact_families,
-        vec![
-            "assessment overview",
-            "coverage map",
-            "asset inventory",
-            "functional view",
-            "component view",
-            "deployment view",
-            "technology view",
-            "integration view",
-            "risk register",
-            "assessment evidence",
-        ]
-    );
-    assert_eq!(
-        system_assessment.gate_profile,
-        vec![GateKind::Risk, GateKind::Architecture, GateKind::ReleaseReadiness,]
-    );
-    assert!(matches!(system_assessment.implementation_depth, ImplementationDepth::Full));
-
-    let supply_chain = profiles
-        .iter()
-        .find(|profile| profile.mode == Mode::SupplyChainAnalysis)
-        .expect("supply-chain-analysis profile");
-    assert_eq!(
-        supply_chain.artifact_families,
-        vec![
-            "analysis overview",
-            "sbom bundle",
-            "vulnerability triage",
-            "license compliance",
-            "legacy posture",
-            "policy decisions",
-            "analysis evidence",
-        ]
-    );
-    assert_eq!(supply_chain.gate_profile, vec![GateKind::Risk, GateKind::ReleaseReadiness]);
-    assert!(matches!(supply_chain.implementation_depth, ImplementationDepth::Full));
 }

@@ -162,50 +162,19 @@ impl Mode {
         }
     }
 
-    /// Returns all defined modes in display order.
+    /// Returns all stable governance modes in the frozen registry order.
+    ///
+    /// Other enum variants exist only for explicit historical and internal
+    /// compatibility boundaries and do not expand stable admission.
     pub fn all() -> &'static [Mode] {
-        &[
-            Self::Discovery,
-            Self::Requirements,
-            Self::SystemShaping,
-            Self::Architecture,
-            Self::SystemAssessment,
-            Self::Change,
-            Self::Backlog,
-            Self::PrReview,
-            Self::Implementation,
-            Self::Refactor,
-            Self::Verification,
-            Self::Review,
-            Self::Incident,
-            Self::SecurityAssessment,
-            Self::Migration,
-            Self::SupplyChainAnalysis,
-            Self::DomainLanguage,
-            Self::DomainModel,
-            Self::Debugging,
-            Self::Brainstorming,
-            Self::PolicyShaping,
-        ]
+        crate::modes::stable_modes()
     }
-}
 
-impl fmt::Display for Mode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl fmt::Display for GovernedExpertiseKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl std::str::FromStr for Mode {
-    type Err = String;
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
+    /// Parses a persisted legacy mode for read-only historical compatibility.
+    ///
+    /// New admission must use [`std::str::FromStr`], which accepts only the
+    /// stable profile registry. This method must not be used to start a run.
+    pub fn parse_historical(value: &str) -> Result<Self, String> {
         match value {
             "requirements" => Ok(Self::Requirements),
             "discovery" => Ok(Self::Discovery),
@@ -228,8 +197,31 @@ impl std::str::FromStr for Mode {
             "debugging" => Ok(Self::Debugging),
             "brainstorming" => Ok(Self::Brainstorming),
             "policy-shaping" => Ok(Self::PolicyShaping),
-            other => Err(format!("unsupported mode: {other}")),
+            other => Err(format!("unsupported historical mode: {other}")),
         }
+    }
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl fmt::Display for GovernedExpertiseKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for Mode {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        crate::modes::stable_profile_registry()
+            .parse(value)
+            .map(|entry| entry.mode())
+            .map_err(|error| error.to_string())
     }
 }
 
@@ -429,7 +421,7 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
     };
     use ModeEmphasis::{AnalysisHeavy, ExecutionHeavy, ReviewHeavy};
 
-    vec![
+    let historical_and_stable_profiles = vec![
         ModeProfile {
             mode: Discovery,
             purpose: "Explore unknowns without turning exploration into solution drift.",
@@ -781,7 +773,12 @@ pub fn all_mode_profiles() -> Vec<ModeProfile> {
             ],
             allowed_adapters: vec![Filesystem, Shell, CopilotCli, McpStdio],
         },
-    ]
+    ];
+
+    historical_and_stable_profiles
+        .into_iter()
+        .filter(|profile| crate::modes::stable_profile_registry().for_mode(profile.mode).is_some())
+        .collect()
 }
 
 #[cfg(test)]
@@ -819,36 +816,34 @@ mod tests {
             &[
                 Mode::Discovery,
                 Mode::Requirements,
-                Mode::SystemShaping,
                 Mode::Architecture,
-                Mode::SystemAssessment,
-                Mode::Change,
                 Mode::Backlog,
-                Mode::PrReview,
-                Mode::Implementation,
+                Mode::Change,
                 Mode::Refactor,
                 Mode::Verification,
-                Mode::Review,
+                Mode::PrReview,
                 Mode::Incident,
-                Mode::SecurityAssessment,
-                Mode::Migration,
-                Mode::SupplyChainAnalysis,
-                Mode::DomainLanguage,
-                Mode::DomainModel,
-                Mode::Debugging,
-                Mode::Brainstorming,
-                Mode::PolicyShaping,
             ]
         );
 
         for (mode, expected, expertise_kind) in cases {
             assert_eq!(mode.as_str(), expected);
             assert_eq!(mode.to_string(), expected);
-            assert_eq!(expected.parse::<Mode>().unwrap(), mode);
+            assert_eq!(Mode::parse_historical(expected).unwrap(), mode);
             assert_eq!(mode.governed_expertise_kind(), expertise_kind);
         }
 
-        assert_eq!("unknown-mode".parse::<Mode>().unwrap_err(), "unsupported mode: unknown-mode");
+        for mode in Mode::all() {
+            assert_eq!(mode.as_str().parse::<Mode>().unwrap(), *mode);
+        }
+        assert_eq!(
+            "implementation".parse::<Mode>().unwrap_err(),
+            "unsupported stable profile: implementation"
+        );
+        assert_eq!(
+            Mode::parse_historical("unknown-mode").unwrap_err(),
+            "unsupported historical mode: unknown-mode"
+        );
     }
 
     #[test]

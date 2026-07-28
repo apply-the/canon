@@ -535,8 +535,8 @@ mod tests {
 
         let summary =
             summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
-        assert!(summary.headline.contains("no direct contradictions"));
-        assert!(summary.artifact_packet_summary.contains("no-direct-contradiction"));
+        assert!(summary.headline.contains("has not accepted that semantic judgment"));
+        assert!(summary.artifact_packet_summary.contains("Authored, unverified labels"));
     }
 
     #[test]
@@ -562,8 +562,8 @@ mod tests {
 
         let summary =
             summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
-        assert!(summary.headline.contains("no direct contradictions"));
-        assert!(summary.artifact_packet_summary.contains("no-direct-contradiction"));
+        assert!(summary.headline.contains("has not accepted that semantic judgment"));
+        assert!(summary.artifact_packet_summary.contains("Authored, unverified labels"));
     }
 
     #[test]
@@ -586,8 +586,10 @@ mod tests {
 
         let summary =
             summarize_mode_result(Mode::Verification, &artifacts).expect("verification summary");
-        assert!(summary.headline.contains("blocked release readiness"));
-        assert!(summary.artifact_packet_summary.contains("unresolved finding set(s)"));
+        assert!(summary.headline.contains("authored verification packet declares"));
+        assert!(
+            summary.artifact_packet_summary.contains("external semantic evidence remains required")
+        );
     }
 
     #[test]

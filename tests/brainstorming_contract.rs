@@ -1,14 +1,17 @@
 use std::fs;
 
 use assert_cmd::Command;
+use canon_engine::EngineService;
 use canon_engine::artifacts::contract::contract_for_mode;
 use canon_engine::domain::artifact::{ArtifactContract, ArtifactRequirement};
 use canon_engine::domain::gate::{GateKind, GateStatus};
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::{ClassificationProvenance, SystemContext};
 use canon_engine::orchestrator::gatekeeper::{
     BrainstormingGateContext, evaluate_brainstorming_gates,
 };
+use canon_engine::orchestrator::service::RunRequest;
 use predicates::str::contains;
 use tempfile::TempDir;
 
@@ -28,53 +31,31 @@ fn cli_command() -> Command {
     command
 }
 
-fn run_brainstorming_flow(workspace: &TempDir) -> String {
+fn run_brainstorming_flow(workspace: &TempDir) -> Result<String, Box<dyn std::error::Error>> {
     fs::write(
         workspace.path().join("brainstorming.md"),
         "# Brainstorming Brief\n\nIntent: define options and spikes.\nConstraint: do not converge.\n\n## Summary\nSummary content.\n\n## Context\nSome context.\n\n## Options\nOption A.\nOption B.\nOption C.\n\n## Tradeoffs\nTradeoffs.\n\n## Open Questions\nQuestions.\n\n## Spikes\nSpike 1.\n",
-    )
-    .expect("brief file");
+    )?;
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "brainstorming",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architect",
-            "--input",
-            "brainstorming.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-    let run_id = json["run_id"].as_str().expect("run id").to_string();
+    // Historical modes remain readable and testable through the internal
+    // engine, but cannot be admitted through the frozen stable CLI registry.
+    let service = EngineService::new(workspace.path());
+    let summary = service.run(RunRequest {
+        mode: Mode::Brainstorming,
+        risk: RiskClass::BoundedImpact,
+        zone: UsageZone::Yellow,
+        system_context: Some(SystemContext::Existing),
+        classification: ClassificationProvenance::explicit(),
+        owner: "architect".to_string(),
+        inputs: vec!["brainstorming.md".to_string()],
+        inline_inputs: Vec::new(),
+        excluded_paths: Vec::new(),
+        policy_root: None,
+        method_root: None,
+    })?;
+    let resumed = service.resume(&summary.run_id)?;
 
-    let resume_output = cli_command()
-        .current_dir(workspace.path())
-        .args(["resume", "--run", &run_id])
-        .output()
-        .expect("resume brainstorming run");
-    let resume_code = resume_output.status.code().expect("resume exit code");
-    if !matches!(resume_code, 0 | 2) {
-        let stdout = String::from_utf8_lossy(&resume_output.stdout);
-        let stderr = String::from_utf8_lossy(&resume_output.stderr);
-        panic!(
-            "expected brainstorming resume to materialize follow-up artifacts, got exit code {resume_code}\nstdout:\n{stdout}\nstderr:\n{stderr}"
-        );
-    }
-
-    run_id
+    Ok(resumed.run_id)
 }
 
 fn render_artifact(requirement: &ArtifactRequirement) -> String {
@@ -182,9 +163,10 @@ fn brainstorming_exploration_gate_blocks_when_required_artifacts_are_missing() {
 }
 
 #[test]
-fn brainstorming_contract_exposes_artifacts_invocations_and_evidence() {
+fn brainstorming_contract_exposes_artifacts_invocations_and_evidence()
+-> Result<(), Box<dyn std::error::Error>> {
     let workspace = TempDir::new().expect("temp dir");
-    let run_id = run_brainstorming_flow(&workspace);
+    let run_id = run_brainstorming_flow(&workspace)?;
 
     cli_command()
         .current_dir(workspace.path())
@@ -229,4 +211,6 @@ fn brainstorming_contract_exposes_artifacts_invocations_and_evidence() {
     assert!(contract_toml.contains("context.md"));
     assert!(contract_toml.contains("options.md"));
     assert!(contract_toml.contains("spikes.md"));
+
+    Ok(())
 }

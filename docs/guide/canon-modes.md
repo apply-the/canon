@@ -1,43 +1,41 @@
-# Canon Modes
+# Canon Stable Profiles
 
-Modes dictate the structural requirements, required metadata, and expected evidence for packets. Canon supports a wide variety of modes out-of-the-box, ensuring you can govern virtually any type of engineering knowledge.
+Profiles define the structural requirements, authority, and expected evidence
+for governed packets. Canon has exactly nine stable profiles, in this order:
 
-## Available Modes
+1. `discovery`
+2. `requirements`
+3. `architecture`
+4. `backlog`
+5. `change`
+6. `refactor`
+7. `verification`
+8. `pr-review`
+9. `incident`
 
-Below is a list of the primary modes available in Canon, based on the default templates:
+The same registry drives stable parsing, `canon inspect modes`, and machine
+capabilities. Identifiers are exact; aliases, case changes, surrounding
+whitespace, and unknown values fail closed.
 
-### Architecture & Domain
-- **`brainstorming`**: Explore lateral thinking, evaluate multiple conceptual approaches, and map trade-offs.
-- **`architecture`**: Capture structural decisions, architectural boundaries, and system-level trade-offs.
-- **`domain-language`**: Define the ubiquitous language and terms used across the project to maintain semantic consistency.
-- **`domain-model`**: Document entities, relationships, invariants, and boundaries for a specific bounded context.
+## Change and implementation
 
-### Delivery & Engineering
-- **`requirements`**: Structure product or technical requirements before execution begins.
-- **`backlog`**: Formulate backlog items with explicit acceptance criteria and lineage to requirements.
-- **`discovery`**: Log investigative work, spikes, or feasibility studies.
-- **`implementation`**: Record the implementation plan, logic design, or completed code structure.
-- **`verification`**: Track test plans, coverage goals, and verification outcomes.
+`change` governs intent, scope, risks, invariants, acceptance criteria,
+authority, and required evidence. It does not execute implementation.
+`implementation` is not a stable Canon profile and is not mapped to `change`
+or `refactor`. Boundline or a bounded adapter owns execution. Canon can still
+read historical records whose persisted mode predates this boundary.
 
-### Evolution & Maintenance
-- **`change`**: Govern standard operational changes or configuration updates.
-- **`refactor`**: Propose and document internal structural improvements without altering external behavior.
-- **`migration`**: Track data, system, or library migrations, including rollback strategies.
+## Verification
 
-### Quality & Review
-- **`pr-review`**: Structure peer review or AI-assisted review findings for Pull Requests.
-- **`review`**: Generic review artifacts for designs, documents, or processes.
-- **`security-assessment`**: Document threat models, risk surfaces, and security review outcomes.
-- **`system-assessment`**: Evaluate system health, performance, or compliance.
-- **`supply-chain-analysis`**: Assess dependencies, licensing, and third-party risks.
+`verification` governs evidence requirements. Canon can run deterministic
+checks and validate the structure, binding, freshness, terminality, challenge
+tier, and lineage of externally supplied semantic evidence. Structural
+acceptance does not assert that the external judgment is true.
 
-### Operations
-- **`incident`**: Capture incident reports, root cause analyses, and remediation actions.
-- **`debugging`**: Systematic troubleshooting and root cause isolation with red-to-green verification.
-- **`system-shaping`**: Govern broad, cross-cutting structural adjustments or organizational engineering alignments.
-
-## Choosing a Mode
-
-Pick a mode based on the *intent* of your work, not just the file you happen to have open. If you are defining terms, use `domain-language`. If you are planning how a feature will be built, use `implementation`.
-
-Each mode defines its own required `evidence` and `readiness` criteria. You can run `canon init --mode <mode-name>` to generate a skeleton packet that contains the specific requirements for that mode.
+Canon does not execute a semantic reviewer, invoke Copilot or another model to
+manufacture review, read provider credentials, use the network for review, or
+turn authored status labels into proof. A verification packet remains blocked
+until its required external evidence is supplied through a qualified boundary.
+`canon verify --run <RUN_ID>` validates only the persisted deterministic
+evidence projection and exits nonzero while required external semantic
+evidence is missing.

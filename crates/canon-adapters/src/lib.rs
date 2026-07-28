@@ -1,8 +1,9 @@
 //! Adapter crate for Canon.
 //!
-//! Provides the concrete adapter implementations (filesystem, shell, Copilot CLI,
-//! MCP stdio) and the shared capability classification types used by the engine
-//! to enforce governance policy on all tool invocations.
+//! Provides the concrete filesystem, shell, and Copilot CLI adapters plus the
+//! shared capability classification types used by the engine to enforce
+//! governance policy. MCP remains a classified but runtime-disabled capability;
+//! no MCP transport or handler is registered in this crate.
 
 /// Filesystem adapter: reads and writes local files.
 pub mod capability;
@@ -12,12 +13,8 @@ pub mod copilot_cli;
 pub mod dispatcher;
 /// Filesystem adapter implementation.
 pub mod filesystem;
-/// MCP stdio adapter: invokes structured tools via the Model Context Protocol.
-pub mod mcp_stdio;
 /// Provider-neutral reviewer adapter contract for actionable pr-review.
 pub mod reviewer;
-/// Deterministic stub reviewer adapter for testing.
-pub mod reviewer_stub;
 /// Shell adapter: executes arbitrary local shell commands.
 pub mod shell;
 

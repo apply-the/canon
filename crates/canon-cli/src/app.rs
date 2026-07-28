@@ -406,7 +406,7 @@ fn dispatch_command(service: &EngineService, command: Command) -> CliResult<i32>
         Command::Approve(ApproveCommand { run, target, gate, by, decision, rationale }) => {
             commands::approve::execute(service, &run, target, gate, by, decision, rationale)
         }
-        Command::Verify { .. } => commands::verify::execute(),
+        Command::Verify { run } => commands::verify::execute(service, &run),
         Command::Inspect { command } => commands::inspect::execute(service, command),
         Command::Skills { command } => commands::skills::execute(service, command),
         Command::Governance { command } => commands::governance::execute(service, command),

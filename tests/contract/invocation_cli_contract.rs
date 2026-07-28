@@ -2,8 +2,14 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use predicates::str::contains;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -75,31 +81,17 @@ fn inspect_invocations_and_evidence_are_user_visible_and_populated() {
     )
     .expect("implementation brief");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "implementation.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "implementation.md",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
 
     let invocations = cli_command()
@@ -159,31 +151,17 @@ fn inspect_evidence_surfaces_upstream_context_from_folder_packet() {
     )
     .expect("source map");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "implementation",
-            "--system-context",
-            "existing",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "maintainer",
-            "--input",
-            "canon-input/implementation",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Implementation,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "maintainer",
+        "canon-input/implementation",
+    )
+    .expect("internal historical implementation run");
+    let json = serde_json::to_value(summary).expect("json");
     let run_id = json["run_id"].as_str().expect("run id");
 
     let evidence = cli_command()

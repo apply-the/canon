@@ -13,7 +13,7 @@ impl WorkspaceStore {
         let mut entries = Vec::new();
         for mode_dir in mode_dirs {
             let mode_name = mode_dir.file_name().to_string_lossy().into_owned();
-            let mode = mode_name.parse::<Mode>().map_err(|error| {
+            let mode = Mode::parse_historical(&mode_name).map_err(|error| {
                 Error::new(
                     ErrorKind::InvalidData,
                     format!(

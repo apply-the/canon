@@ -1,6 +1,19 @@
 use super::EngineService;
 use super::*;
-use crate::domain::artifact::RUNTIME_PACKET_METADATA_FILE_NAME;
+use crate::domain::{
+    artifact::RUNTIME_PACKET_METADATA_FILE_NAME, execution::ValidationIndependenceAssessment,
+};
+
+const DETERMINISTIC_PROJECTION_EXECUTOR: &str = "canon-deterministic-projection";
+const EXTERNAL_REVIEW_UNSUPPORTED_EXECUTOR: &str = "canon-external-review-unsupported";
+const EXTERNAL_REVIEW_UNSUPPORTED_SUMMARY: &str =
+    "Canon does not execute semantic reviewers; submit independently produced external evidence.";
+
+struct ReviewProjection {
+    summary: String,
+    executor: String,
+    outcome: ToolOutcomeKind,
+}
 
 /// Render a single artifact for a `review`-family mode (`review`, `verification`).
 ///
@@ -158,24 +171,24 @@ impl EngineService {
             zone: request.zone,
             system_context: request.system_context,
             owner: &request.owner,
-            adapter: canon_adapters::AdapterKind::CopilotCli,
-            capability: CapabilityKind::GenerateContent,
+            adapter: canon_adapters::AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
             summary: generation_request_summary,
             scope: input_scope.clone(),
         });
         let generation_decision =
             invocation_runtime::evaluate_request_policy(&generation_request, &policy_set);
-        let copilot = CopilotCliAdapter;
-        let generation_output = match review_mode {
-            ReviewLikeMode::Review => copilot.generate_review(&context_summary),
-            ReviewLikeMode::Verification => copilot.generate_verification(&context_summary),
+        let generation_output = ReviewProjection {
+            summary: context_summary.clone(),
+            executor: DETERMINISTIC_PROJECTION_EXECUTOR.to_string(),
+            outcome: ToolOutcomeKind::Succeeded,
         };
         let generation_attempt = self.completed_attempt(
             &generation_request,
             1,
             &generation_output.executor,
             ToolOutcome {
-                kind: ToolOutcomeKind::Succeeded,
+                kind: generation_output.outcome,
                 summary: generation_output.summary.clone(),
                 exit_code: Some(0),
                 payload_refs: Vec::new(),
@@ -195,27 +208,26 @@ impl EngineService {
             zone: request.zone,
             system_context: request.system_context,
             owner: &request.owner,
-            adapter: canon_adapters::AdapterKind::CopilotCli,
-            capability: CapabilityKind::CritiqueContent,
+            adapter: canon_adapters::AdapterKind::Filesystem,
+            capability: CapabilityKind::ReadRepository,
             summary: critique_request_summary,
             scope: input_scope.clone(),
         });
         let critique_decision =
             invocation_runtime::evaluate_request_policy(&critique_request, &policy_set);
-        let critique_output = match review_mode {
-            ReviewLikeMode::Review => copilot.critique_review(&generation_output.summary),
-            ReviewLikeMode::Verification => {
-                copilot.critique_verification(&generation_output.summary)
-            }
+        let critique_output = ReviewProjection {
+            summary: EXTERNAL_REVIEW_UNSUPPORTED_SUMMARY.to_string(),
+            executor: EXTERNAL_REVIEW_UNSUPPORTED_EXECUTOR.to_string(),
+            outcome: ToolOutcomeKind::Denied,
         };
         let critique_attempt = self.completed_attempt(
             &critique_request,
             1,
             &critique_output.executor,
             ToolOutcome {
-                kind: ToolOutcomeKind::Succeeded,
+                kind: critique_output.outcome,
                 summary: critique_output.summary.clone(),
-                exit_code: Some(0),
+                exit_code: None,
                 payload_refs: Vec::new(),
                 candidate_artifacts: Vec::new(),
                 recorded_at: OffsetDateTime::now_utc(),
@@ -249,10 +261,10 @@ impl EngineService {
         let generation_path = GenerationPath {
             path_id: format!("generation:{}", generation_request.request_id),
             request_ids: vec![generation_request.request_id.clone()],
-            lineage_classes: vec![LineageClass::AiVendorFamily],
+            lineage_classes: vec![LineageClass::NonGenerative],
             derived_artifacts: artifact_paths.clone(),
         };
-        let validation_path = ValidationPath {
+        let mut validation_path = ValidationPath {
             path_id: format!("validation:{}", validation_request.request_id),
             request_ids: vec![validation_request.request_id.clone()],
             lineage_classes: vec![LineageClass::NonGenerative],
@@ -260,19 +272,13 @@ impl EngineService {
                 "runs/{run_id}/invocations/{}/attempt-01.toml",
                 validation_request.request_id
             )],
-            independence: evidence_builder::assess_validation_independence(
-                &generation_path,
-                &ValidationPath {
-                    path_id: format!("validation:{}", validation_request.request_id),
-                    request_ids: vec![validation_request.request_id.clone()],
-                    lineage_classes: vec![LineageClass::NonGenerative],
-                    verification_refs: vec![format!(
-                        "runs/{run_id}/invocations/{}/attempt-01.toml",
-                        validation_request.request_id
-                    )],
-                    independence: evidence_builder::default_independence(&generation_path.path_id),
-                },
-            ),
+            independence: evidence_builder::default_independence(&generation_path.path_id),
+        };
+        validation_path.independence = ValidationIndependenceAssessment {
+            target_id: generation_path.path_id.clone(),
+            sufficient: false,
+            rationale: EXTERNAL_REVIEW_UNSUPPORTED_SUMMARY.to_string(),
+            supporting_refs: Vec::new(),
         };
 
         let packet_metadata_contents = self.build_runtime_packet_metadata(
@@ -347,7 +353,7 @@ impl EngineService {
                         risk: request.risk,
                         zone: request.zone,
                         approvals: &approvals,
-                        evidence_complete: true,
+                        evidence_complete: false,
                     },
                 );
                 let state = run_state_from_gates(&gates);
@@ -362,8 +368,8 @@ impl EngineService {
                         risk: request.risk,
                         zone: request.zone,
                         approvals: &approvals,
-                        validation_independence_satisfied: validation_path.independence.sufficient,
-                        evidence_complete: true,
+                        validation_independence_satisfied: false,
+                        evidence_complete: false,
                     },
                 );
                 let state = run_state_from_gates(&gates);

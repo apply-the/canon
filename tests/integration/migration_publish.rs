@@ -2,7 +2,13 @@ use std::fs;
 use std::process::Command as ProcessCommand;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -66,32 +72,17 @@ fn blocked_migration_packet_is_publishable_with_honest_fallback_gaps() {
     init_repo(&workspace);
     fs::write(workspace.path().join("migration.md"), incomplete_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "migration",
-            "--system-context",
-            "existing",
-            "--risk",
-            "low-impact",
-            "--zone",
-            "green",
-            "--owner",
-            "migration-lead",
-            "--input",
-            "migration.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Migration,
+        RiskClass::LowImpact,
+        UsageZone::Green,
+        SystemContext::Existing,
+        "migration-lead",
+        "migration.md",
+    )
+    .expect("internal historical migration run");
+    let json = serde_json::to_value(summary).expect("json summary");
     let run_id = json["run_id"].as_str().expect("run id");
     assert_eq!(json["state"], "Blocked");
 

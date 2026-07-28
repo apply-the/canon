@@ -130,6 +130,7 @@ checksum = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 name = "canon-adapters"
 version = "0.90.0"
 dependencies = [
+ "canon-contracts",
  "serde",
  "serde_json",
  "tempfile",
@@ -172,6 +173,7 @@ name = "canon-engine"
 version = "0.90.0"
 dependencies = [
  "canon-adapters",
+ "canon-contracts",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -192,6 +194,7 @@ version = "0.90.0"
 dependencies = [
  "assert_cmd",
  "canon-adapters",
+ "canon-contracts",
  "canon-engine",
  "predicates",
  "serde_json",

@@ -1,8 +1,14 @@
 use std::fs;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use predicates::str::contains;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -35,40 +41,27 @@ fn write_review_brief(workspace: &TempDir, contents: &str) {
 }
 
 #[test]
-fn review_run_returns_completed_result_for_evidence_bounded_package() {
+fn review_run_blocks_authored_ready_label_without_external_evidence() {
     let workspace = TempDir::new().expect("temp dir");
     write_review_brief(&workspace, ready_review_brief());
 
-    let run_output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "review",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "reviewer",
-            "--input",
-            "canon-input/review.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Review,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "reviewer",
+        "canon-input/review.md",
+    )
+    .expect("internal historical review run");
+    let run_json = serde_json::to_value(summary).expect("run json");
     let run_id = run_json["run_id"].as_str().expect("run id");
-    assert_eq!(run_json["state"], "Completed");
-    assert!(run_json["blocking_classification"].is_null());
+    assert_eq!(run_json["state"], "Blocked");
+    assert_eq!(run_json["blocking_classification"], "artifact-blocked");
     assert!(
         run_json["approval_targets"].as_array().is_some_and(|targets| targets.is_empty()),
-        "completed review runs should not advertise approval targets"
+        "evidence-blocked review runs should not invent approval targets"
     );
     assert_eq!(run_json["artifact_count"], 6);
     assert!(
@@ -83,7 +76,7 @@ fn review_run_returns_completed_result_for_evidence_bounded_package() {
     assert!(run_json["mode_result"]["headline"].as_str().is_some_and(|headline| {
         headline.contains("ready-with-review-notes") && headline.contains("evidence-bounded")
     }));
-    assert!(run_json["recommended_next_action"].is_null());
+    assert_eq!(run_json["recommended_next_action"]["action"], "inspect-artifacts");
 
     let status_output = cli_command()
         .current_dir(workspace.path())
@@ -94,9 +87,14 @@ fn review_run_returns_completed_result_for_evidence_bounded_package() {
         .stdout
         .clone();
     let status_json: serde_json::Value = serde_json::from_slice(&status_output).expect("status");
-    assert_eq!(status_json["state"], "Completed");
+    assert_eq!(status_json["state"], "Blocked");
     assert_eq!(status_json["mode_result"]["primary_artifact_title"], "Review Brief");
-    assert!(status_json["recommended_next_action"].is_null());
+    assert_eq!(status_json["validation_independence_satisfied"], false);
+    assert!(
+        status_json["mode_result"]["headline"]
+            .as_str()
+            .is_some_and(|headline| headline.contains("no external semantic judgment accepted"))
+    );
 }
 
 #[test]
@@ -104,31 +102,17 @@ fn review_run_requires_explicit_disposition_for_evidence_gaps() {
     let workspace = TempDir::new().expect("temp dir");
     write_review_brief(&workspace, gated_review_brief());
 
-    let run_output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "review",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "reviewer",
-            "--input",
-            "canon-input/review.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .stdout(contains("\"state\": \"AwaitingApproval\""))
-        .get_output()
-        .stdout
-        .clone();
-
-    let run_json: serde_json::Value = serde_json::from_slice(&run_output).expect("run json");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Review,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "reviewer",
+        "canon-input/review.md",
+    )
+    .expect("internal historical review run");
+    let run_json = serde_json::to_value(summary).expect("run json");
     let run_id = run_json["run_id"].as_str().expect("run id");
     assert_eq!(run_json["state"], "AwaitingApproval");
     assert_eq!(run_json["blocking_classification"], "approval-gated");
@@ -168,22 +152,19 @@ fn review_run_rejects_noncanonical_input_paths() {
     let workspace = TempDir::new().expect("temp dir");
     fs::write(workspace.path().join("review.md"), ready_review_brief()).expect("brief file");
 
-    cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "review",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "reviewer",
-            "--input",
-            "review.md",
-        ])
-        .assert()
-        .failure()
-        .stderr(contains("review accepts only canon-input/review.md or canon-input/review/"));
+    let error = historical_run::start(
+        workspace.path(),
+        Mode::Review,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "reviewer",
+        "review.md",
+    )
+    .expect_err("noncanonical review input must fail");
+    assert!(
+        error
+            .to_string()
+            .contains("review accepts only canon-input/review.md or canon-input/review/")
+    );
 }

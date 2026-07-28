@@ -39,29 +39,42 @@ defines typed selector, `minimum_independence`, `confidence_handoff`,
 | Rollout Profile | `governed` | Full governance maturity label. |
 | Rollout Profile | `strict` | Highest level of strictness maturity. |
 
-## Mode Reference
+## Stable Profile Reference
 
-| Mode | Primary Use |
+`canon inspect modes`, the machine capabilities projection, and stable run
+admission share one ordered registry. Identifiers are exact and case-sensitive.
+
+| Profile | Primary Use |
 | --- | --- |
 | `discovery` | Explore ambiguous problem space. |
 | `requirements` | Define bounded scope, outcomes, and acceptance. |
-| `domain-language` | Stabilize vocabulary and term status. |
-| `domain-model` | Model concepts, relationships, invariants, and contexts. |
-| `system-shaping` | Explore capability boundaries and structural options. |
 | `architecture` | Capture bounded structural decisions. |
 | `backlog` | Decompose approved upstream knowledge into delivery slices. |
-| `change` | Frame bounded modification in an existing system. |
-| `debugging` | Systematic troubleshooting and root cause isolation with red-to-green verification. |
-| `implementation` | Guide execution for an approved delivery slice. |
+| `change` | Govern change intent, scope, risk, invariants, and required evidence. |
 | `refactor` | Improve structure without expanding feature scope. |
-| `review` | Assess non-PR artifacts with findings-first posture. |
-| `verification` | Challenge claims, evidence, and quality signals. |
+| `verification` | Govern evidence requirements and validate supplied evidence deterministically. |
 | `pr-review` | Review a real diff or worktree. |
 | `incident` | Capture incident impact, containment, and follow-up. |
-| `security-assessment` | Assess threats, risks, mitigations, and gaps. |
-| `system-assessment` | Evaluate current system state and findings. |
-| `migration` | Plan a bounded source-to-target move. |
-| `supply-chain-analysis` | Examine dependencies, SBOM, vulnerabilities, licenses, and legacy risk. |
+
+`implementation` and the prior extended mode taxonomy are not stable profiles.
+Persisted legacy records remain inspectable, but their names are not aliases
+and do not admit new runs.
+
+### Verification boundary
+
+`canon verify --run <RUN_ID>` checks that the persisted typed evidence
+projection is readable. The command reports
+`deterministic_structure_valid` and `external_semantic_judgment:
+required_missing`, then exits nonzero until required external semantic evidence
+has been supplied through a qualified boundary. Deterministic structural
+success is not a semantic approval.
+
+Canon validates externally supplied semantic evidence only for structural
+completeness, exact claims and immutable references, freshness, terminality,
+challenge tier, and independent lineage. It does not start a reviewer, invoke
+Copilot or a model API, read provider credentials, use the network, or create
+semantic evidence. Requests for Canon-owned semantic execution are explicitly
+unsupported.
 
 ## Packet Document Reference
 

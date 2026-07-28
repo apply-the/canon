@@ -1,7 +1,7 @@
 use canon_engine::{
     EngineService, InspectTarget,
-    domain::mode::Mode,
     domain::policy::{RiskClass, UsageZone},
+    modes::stable_profile_registry,
 };
 
 use crate::app::InspectCommand;
@@ -15,7 +15,10 @@ pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i3
         InspectCommand::Policies { output } => (InspectTarget::Policies, "policies", None, output),
         InspectCommand::RiskZone { mode, risk, zone, inputs, inline_inputs, output } => (
             InspectTarget::RiskZone {
-                mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
+                mode: stable_profile_registry()
+                    .parse(&mode)
+                    .map_err(|error| CliError::InvalidInput(error.to_string()))?
+                    .mode(),
                 risk: risk
                     .as_deref()
                     .map(str::parse::<RiskClass>)
@@ -35,7 +38,10 @@ pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i3
         ),
         InspectCommand::Clarity { mode, inputs, output } => (
             InspectTarget::Clarity {
-                mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
+                mode: stable_profile_registry()
+                    .parse(&mode)
+                    .map_err(|error| CliError::InvalidInput(error.to_string()))?
+                    .mode(),
                 inputs,
             },
             "clarity",

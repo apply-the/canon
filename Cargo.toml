@@ -54,6 +54,7 @@ toml.workspace = true
 
 [dev-dependencies]
 canon-adapters.workspace = true
+canon-contracts.workspace = true
 canon-engine.workspace = true
 assert_cmd.workspace = true
 predicates.workspace = true

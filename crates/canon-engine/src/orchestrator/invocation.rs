@@ -278,7 +278,7 @@ fn bounded_execution_scope_rationale(mode: Option<Mode>, scope: &[String]) -> St
 }
 
 fn parsed_request_mode(mode: &str) -> Option<Mode> {
-    mode.parse::<Mode>().ok()
+    Mode::parse_historical(mode).ok()
 }
 
 fn classify_change_mutation_scope(scope: &[String]) -> ChangeMutationScopeStatus {

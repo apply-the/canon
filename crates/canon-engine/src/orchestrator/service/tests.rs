@@ -964,7 +964,7 @@ fn run_verification_direct_runtime_covers_verification_branching() {
         .expect("verification run");
 
     assert_eq!(summary.mode, "verification");
-    assert_eq!(summary.state, "Completed");
+    assert_eq!(summary.state, "Blocked");
     assert!(!summary.artifact_paths.is_empty());
     assert!(summary.mode_result.is_some());
 }

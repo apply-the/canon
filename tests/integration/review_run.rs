@@ -1,7 +1,13 @@
 use std::fs;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -38,30 +44,17 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
     let workspace = TempDir::new().expect("temp dir");
     write_review_brief(&workspace, ready_review_brief());
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "review",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "reviewer",
-            "--input",
-            "canon-input/review.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Review,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "reviewer",
+        "canon-input/review.md",
+    )
+    .expect("internal historical review run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("review");
@@ -139,9 +132,14 @@ fn run_review_persists_review_packet_and_evidence_bundle() {
         .clone();
     let status_json: serde_json::Value =
         serde_json::from_slice(&status_output).expect("status json");
-    assert_eq!(status_json["state"], "Completed");
-    assert_eq!(status_json["validation_independence_satisfied"], true);
+    assert_eq!(status_json["state"], "Blocked");
+    assert_eq!(status_json["validation_independence_satisfied"], false);
     assert_eq!(status_json["mode_result"]["primary_artifact_title"].as_str(), Some("Review Brief"));
+    assert!(
+        status_json["mode_result"]["headline"]
+            .as_str()
+            .is_some_and(|headline| headline.contains("no external semantic judgment accepted"))
+    );
 }
 
 #[test]
@@ -149,30 +147,17 @@ fn run_review_preserves_gate_target_and_packet_when_disposition_is_pending() {
     let workspace = TempDir::new().expect("temp dir");
     write_review_brief(&workspace, gated_review_brief());
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "review",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "reviewer",
-            "--input",
-            "canon-input/review.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(3)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Review,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::Existing,
+        "reviewer",
+        "canon-input/review.md",
+    )
+    .expect("internal historical review run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
     let artifact_root =
         workspace.path().join(".canon").join("artifacts").join(run_id).join("review");

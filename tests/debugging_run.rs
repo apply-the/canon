@@ -1,24 +1,13 @@
 use std::fs;
 use std::process::Command as ProcessCommand;
 
-use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
 
-fn cli_command() -> Command {
-    let mut command = Command::new("cargo");
-    command.args([
-        "run",
-        "--quiet",
-        "--manifest-path",
-        concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"),
-        "-p",
-        "canon-cli",
-        "--bin",
-        "canon",
-        "--",
-    ]);
-    command
-}
+#[path = "support/historical_run.rs"]
+mod historical_run;
 
 fn git(workspace: &TempDir, args: &[&str]) {
     let output = ProcessCommand::new("git")
@@ -60,33 +49,17 @@ fn run_debugging_completes_when_context_is_fully_described() {
     let brief_path = workspace.path().join("debugging.md");
     fs::write(&brief_path, debugging_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "debugging",
-            "--system-context",
-            "existing",
-            "--risk",
-            "low-impact",
-            "--zone",
-            "green",
-            "--owner",
-            "maintainer",
-            "--input",
-            brief_path.file_name().expect("file name").to_str().expect("utf8"),
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let text = String::from_utf8(output).expect("utf8 stdout");
-    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Debugging,
+        RiskClass::LowImpact,
+        UsageZone::Green,
+        SystemContext::Existing,
+        "maintainer",
+        "debugging.md",
+    )
+    .expect("internal historical debugging run");
+    let json = serde_json::to_value(summary).expect("json output");
     assert_eq!(json["state"], "Completed");
 }
 
@@ -99,33 +72,17 @@ fn run_debugging_blocks_when_required_sections_are_missing() {
     let bad_brief = "# Debugging Brief\n\n## Context Map\n\nDefect in validation.\n\n## Defect Description\n\n## Stakeholder Impact\n\nUser can't login.\n\n## Reproduction Harness\n\nSteps:\n1. Run with null.\n2. Crash.\n\n## Red State Verification\n\nVerified it fails.\n\n## Root Cause Isolation\n\nMissing null check.\n\n## Fault Chain\n\nNull passed to unwrap.\n\n## Isolation Proof\n\nStack trace shows it.\n\n## Fix Application\n\nAdd if null.\n\n## Bounded Changes\n\nOnly in validator.rs.\n\n## Invariant Preservation\n\nNo other changes.\n\n## Verification Summary\n\nTests pass.\n\n## Green State\n\nWorks with null.\n\n## No Regression Evidence\n\nAll existing tests pass.\n\nOwner: maintainer\nRisk Level: low-impact\nZone: green\n";
     fs::write(&brief_path, bad_brief).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "debugging",
-            "--system-context",
-            "existing",
-            "--risk",
-            "low-impact",
-            "--zone",
-            "green",
-            "--owner",
-            "maintainer",
-            "--input",
-            brief_path.file_name().expect("file name").to_str().expect("utf8"),
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let text = String::from_utf8(output).expect("utf8 stdout");
-    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Debugging,
+        RiskClass::LowImpact,
+        UsageZone::Green,
+        SystemContext::Existing,
+        "maintainer",
+        "debugging.md",
+    )
+    .expect("internal historical debugging run");
+    let json = serde_json::to_value(summary).expect("json output");
     assert_eq!(json["state"], "Blocked");
 }
 
@@ -138,32 +95,16 @@ fn run_debugging_blocks_when_missing_other_artifacts() {
     let bad_brief = "# Debugging Brief\n\n## Context Map\n\nDefect in validation.\n\n## Defect Description\n\nApp crashes on null input.\n\n## Stakeholder Impact\n\nUser can't login.\n\nOwner: maintainer\nRisk Level: low-impact\nZone: green\n";
     fs::write(&brief_path, bad_brief).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "debugging",
-            "--system-context",
-            "existing",
-            "--risk",
-            "low-impact",
-            "--zone",
-            "green",
-            "--owner",
-            "maintainer",
-            "--input",
-            brief_path.file_name().expect("file name").to_str().expect("utf8"),
-            "--output",
-            "json",
-        ])
-        .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let text = String::from_utf8(output).expect("utf8 stdout");
-    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::Debugging,
+        RiskClass::LowImpact,
+        UsageZone::Green,
+        SystemContext::Existing,
+        "maintainer",
+        "debugging.md",
+    )
+    .expect("internal historical debugging run");
+    let json = serde_json::to_value(summary).expect("json output");
     assert_eq!(json["state"], "Blocked");
 }

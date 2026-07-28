@@ -1,7 +1,13 @@
 use std::fs;
 
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
+use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -181,32 +187,17 @@ fn run_system_shaping_starts_draft_and_blocks_follow_up_without_generated_artifa
     let brief_path = workspace.path().join("system-shaping.md");
     fs::write(&brief_path, complete_system_shaping_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "system-shaping",
-            "--system-context",
-            "new",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architect",
-            "--input",
-            brief_path.file_name().expect("file name").to_str().expect("utf8"),
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SystemShaping,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::New,
+        "architect",
+        "system-shaping.md",
+    )
+    .expect("internal historical system-shaping run");
+    let json = serde_json::to_value(summary).expect("json output");
     let run_id = json["run_id"].as_str().expect("run id");
 
     assert_eq!(json["state"], "Draft");
@@ -292,32 +283,17 @@ fn run_system_shaping_preserves_incomplete_sections_in_the_working_brief() {
     let brief_path = workspace.path().join("system-shaping.md");
     fs::write(&brief_path, incomplete_system_shaping_brief()).expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "system-shaping",
-            "--system-context",
-            "new",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architect",
-            "--input",
-            brief_path.file_name().expect("file name").to_str().expect("utf8"),
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SystemShaping,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::New,
+        "architect",
+        "system-shaping.md",
+    )
+    .expect("internal historical system-shaping run");
+    let json = serde_json::to_value(summary).expect("json output");
     let working_brief_path =
         json["refinement_state"]["working_brief_path"].as_str().expect("working brief path");
     let working_brief =
@@ -345,32 +321,17 @@ fn run_system_shaping_surfaces_missing_context_in_refinement_readiness() {
     )
     .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "system-shaping",
-            "--system-context",
-            "new",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architect",
-            "--input",
-            brief_path.file_name().expect("file name").to_str().expect("utf8"),
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SystemShaping,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::New,
+        "architect",
+        "system-shaping.md",
+    )
+    .expect("internal historical system-shaping run");
+    let json = serde_json::to_value(summary).expect("json output");
     assert_eq!(json["state"], "Draft");
     assert!(json["blocking_classification"].is_null());
 

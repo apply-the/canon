@@ -1,8 +1,12 @@
 use assert_cmd::Command;
+use canon_engine::domain::mode::Mode;
 use predicates::str::contains;
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
+
+#[path = "../support/historical_inspect.rs"]
+mod historical_inspect;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -143,25 +147,14 @@ fn inspect_clarity_keeps_ambiguous_directory_packets_explicit() {
     )
     .expect("notes");
 
-    let output = workspace_cli_command(&workspace)
-        .args([
-            "inspect",
-            "clarity",
-            "--mode",
-            "implementation",
-            "--input",
-            "canon-input/implementation",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let text = String::from_utf8(output).expect("utf8 stdout");
-    let json: serde_json::Value = serde_json::from_str(&text).expect("json output");
+    let response = historical_inspect::clarity(
+        workspace.path(),
+        Mode::Implementation,
+        vec!["canon-input/implementation".to_string()],
+    )
+    .expect("internal historical implementation clarity");
+    let json = serde_json::to_value(response).expect("json output");
+    let text = serde_json::to_string(&json).expect("json text");
 
     assert_eq!(
         json["entries"][0]["authoring_lifecycle"]["authority_status"].as_str(),
@@ -184,46 +177,30 @@ fn inspect_clarity_surfaces_targeted_questions_for_supply_chain_inputs() {
     )
     .expect("supply-chain brief");
 
-    workspace_cli_command(&workspace)
-        .args([
-            "inspect",
-            "clarity",
-            "--mode",
-            "supply-chain-analysis",
-            "--input",
-            "supply-chain-analysis.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .stdout(contains("\"target\": \"clarity\""))
-        .stdout(contains("\"mode\": \"supply-chain-analysis\""))
-        .stdout(contains("\"requires_clarification\": true"))
-        .stdout(contains("What licensing posture governs this repository surface"))
-        .stdout(contains("Are non-OSS scanner proposals allowed"));
+    let response = historical_inspect::clarity(
+        workspace.path(),
+        Mode::SupplyChainAnalysis,
+        vec!["supply-chain-analysis.md".to_string()],
+    )
+    .expect("internal historical supply-chain clarity");
+    let text = serde_json::to_string(&response).expect("json output");
+    assert!(text.contains("\"target\":\"clarity\""));
+    assert!(text.contains("\"mode\":\"supply-chain-analysis\""));
+    assert!(text.contains("\"requires_clarification\":true"));
+    assert!(text.contains("What licensing posture governs this repository surface"));
+    assert!(text.contains("Are non-OSS scanner proposals allowed"));
 }
 
 fn representative_mode_input(mode: &str) -> &'static str {
     match mode {
-        "system-shaping" => "tech-docs/examples/canon-input/system-shaping-billing.md",
+        "discovery" => "tech-docs/examples/canon-input/discovery-legacy-migration.md",
+        "requirements" => "tech-docs/examples/canon-input/requirements-api-v2.md",
         "architecture" => "tech-docs/examples/canon-input/architecture-state-management.md",
         "change" => "tech-docs/examples/canon-input/change-add-caching.md",
         "backlog" => "tech-docs/examples/canon-input/backlog-auth-session-hardening.md",
-        "implementation" => {
-            "tech-docs/examples/canon-input/implementation-auth-session-revocation.md"
-        }
         "refactor" => "tech-docs/examples/canon-input/refactor-auth-session-cleanup.md",
-        "migration" => "tech-docs/examples/canon-input/migration-platform-consolidation.md",
-        "review" => "canon-input/review.md",
         "verification" => "tech-docs/examples/canon-input/verification-e2e-flakiness.md",
         "incident" => "tech-docs/examples/canon-input/incident/brief.md",
-        "security-assessment" => {
-            "tech-docs/examples/canon-input/security-assessment-webhook-platform.md"
-        }
-        "system-assessment" => {
-            "tech-docs/examples/canon-input/system-assessment-commerce-platform.md"
-        }
         other => panic!("unexpected mode {other}"),
     }
 }
@@ -241,20 +218,16 @@ fn stage_representative_mode_input(workspace: &TempDir, mode: &str) -> String {
 }
 
 #[test]
-fn inspect_clarity_supports_all_file_backed_governed_modes_with_reasoning_signals() {
+fn inspect_clarity_supports_all_authored_file_stable_profiles_with_reasoning_signals() {
     let modes = [
-        "system-shaping",
+        "discovery",
+        "requirements",
         "architecture",
         "change",
         "backlog",
-        "implementation",
         "refactor",
-        "migration",
-        "review",
         "verification",
         "incident",
-        "security-assessment",
-        "system-assessment",
     ];
 
     for mode in modes {

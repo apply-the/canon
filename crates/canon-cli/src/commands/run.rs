@@ -1,11 +1,11 @@
 use canon_engine::{
     EngineService, RunRequest,
-    domain::mode::Mode,
     domain::policy::{RiskClass, UsageZone},
     domain::run::{
         ClassificationFieldProvenance, ClassificationProvenance, ClassificationSource,
         SystemContext,
     },
+    modes::stable_profile_registry,
 };
 
 use crate::app::OutputFormat;
@@ -45,7 +45,10 @@ pub fn execute(
         .parse::<ClassificationSource>()
         .map_err(CliError::InvalidInput)?;
     let request = RunRequest {
-        mode: mode.parse::<Mode>().map_err(CliError::InvalidInput)?,
+        mode: stable_profile_registry()
+            .parse(&mode)
+            .map_err(|error| CliError::InvalidInput(error.to_string()))?
+            .mode(),
         risk: risk.parse::<RiskClass>().map_err(CliError::InvalidInput)?,
         zone: zone.parse::<UsageZone>().map_err(CliError::InvalidInput)?,
         system_context: system_context
@@ -206,7 +209,7 @@ mod tests {
         )
         .expect_err("invalid mode should fail");
 
-        assert!(error.to_string().contains("unsupported mode: not-a-mode"));
+        assert!(error.to_string().contains("unsupported stable profile: not-a-mode"));
     }
 
     #[test]

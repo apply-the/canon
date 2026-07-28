@@ -5,8 +5,6 @@ use crate::{
     LineageClass, SideEffectClass, TrustBoundaryKind,
 };
 
-mod verification;
-
 /// The result of a Copilot CLI adapter call: generated content plus the audit record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CopilotCliOutput {
@@ -160,38 +158,6 @@ impl CopilotCliAdapter {
             normalized
         );
         self.output(CapabilityKind::CritiqueContent, "copilot-cli critique", summary)
-    }
-
-    /// Generates a review packet output for a bounded non-PR artifact bundle.
-    pub fn generate_review(&self, context: &str) -> CopilotCliOutput {
-        let normalized = normalize_multiline_context(context);
-        let summary = format!(
-            "Review the bounded non-PR change package or artifact bundle. Preserve explicit evidence basis, boundary findings, decision impact, and disposition cues for: {}",
-            normalized
-        );
-        self.output(CapabilityKind::GenerateContent, "copilot-cli review generation", summary)
-    }
-
-    /// Generates an adversarial critique of a proposed review packet.
-    pub fn critique_review(&self, generated: &str) -> CopilotCliOutput {
-        let normalized = normalize_multiline_context(generated);
-        let summary = format!(
-            "Challenge the proposed review packet for evidence coverage, hidden scope growth, ownership clarity, and acceptance rationale. Review target: {}",
-            normalized
-        );
-        self.output(CapabilityKind::CritiqueContent, "copilot-cli review critique", summary)
-    }
-
-    /// Generates a structured verification packet output from a verification context.
-    pub fn generate_verification(&self, context: &str) -> CopilotCliOutput {
-        let summary = verification::generate_verification_summary(context);
-        self.output(CapabilityKind::GenerateContent, "copilot-cli verification generation", summary)
-    }
-
-    /// Produces a critique of a generated verification packet, challenging its claims and evidence.
-    pub fn critique_verification(&self, generated: &str) -> CopilotCliOutput {
-        let summary = verification::critique_verification_summary(generated);
-        self.output(CapabilityKind::CritiqueContent, "copilot-cli verification critique", summary)
     }
 
     /// Produces a critique of generated requirements artifacts against the captured intake inputs.
@@ -403,113 +369,5 @@ mod tests {
         assert!(output.summary.contains("## Scope Cuts"));
         assert!(output.summary.contains("## Open Questions"));
         assert!(output.summary.contains("canon-input/requirements/project-brief.md"));
-    }
-
-    #[test]
-    fn verification_generation_preserves_authored_sections() {
-        let adapter = CopilotCliAdapter;
-
-        let output = adapter.generate_verification(
-            "# Verification Brief\n\n## Claims Under Test\n- rollback remains bounded and auditable\n\n## Evidence Basis\n- repository checks\n- operator logs\n\n## Contract Surface\n- rollback metadata must remain explicit\n\n## Challenge Focus\n- look for unsupported rollback jumps\n",
-        );
-
-        assert!(output.summary.contains("## Claims Under Test"));
-        assert!(output.summary.contains("rollback remains bounded and auditable"));
-        assert!(output.summary.contains("## Evidence Basis"));
-        assert!(output.summary.contains("## Contract Assumptions"));
-        assert!(output.summary.contains("rollback metadata must remain explicit"));
-        assert!(output.summary.contains("## Challenge Focus"));
-    }
-
-    #[test]
-    fn verification_critique_emits_structured_findings_and_verdict() {
-        let adapter = CopilotCliAdapter;
-
-        let output = adapter.critique_verification(
-            "## Claims Under Test\n\n- the rollback guarantee is fully proven without any additional evidence\n\n## Evidence Basis\n\n- an unsupported rollback guarantee still lacks concrete proof\n\n## Contract Assumptions\n\n- rollback metadata must remain explicit\n\n## Risk Boundary\n\n- contradiction or missing evidence should block readiness\n\n## Challenge Focus\n\n- look for contradictions between the rollback claim and the runtime contract",
-        );
-
-        assert!(output.summary.contains("## Challenge Findings"));
-        assert!(output.summary.contains("## Open Findings"));
-        assert!(output.summary.contains("Status: unresolved-findings-open"));
-        assert!(output.summary.contains("## Overall Verdict"));
-        assert!(output.summary.contains("Status: unsupported"));
-        assert!(output.summary.contains("Still unsupported from the current packet"));
-    }
-
-    #[test]
-    fn verification_critique_ignores_placeholder_challenge_focus_when_none_authored() {
-        let adapter = CopilotCliAdapter;
-
-        let generated = adapter.generate_verification(
-            "# Verification Brief\n\n## Claims Under Test\n- rollback remains bounded and auditable\n- operator evidence remains tied to the rollback boundary\n\n## Evidence Basis\n- current contract notes\n- repository checks\n- operator logs\n\n## Contract Surface\n- rollback metadata must remain explicit\n\n## Risk Boundary\n- contradictions or missing evidence on rollback scope should block readiness\n",
-        );
-        let critique = adapter.critique_verification(&generated.summary);
-
-        assert!(critique.summary.contains("Status: no-open-findings"));
-        assert!(critique.summary.contains("Status: supported"));
-        assert!(!critique.summary.contains("Answer this authored challenge focus"));
-    }
-
-    #[test]
-    fn verification_critique_surfaces_mixed_verdict_for_open_focus_without_contradictions() {
-        let adapter = CopilotCliAdapter;
-
-        let output = adapter.critique_verification(
-            "## Claims Under Test\n\n- rollback boundary stays explicit\n\n## Contract Assumptions\n\n## Challenge Focus\n\n- inspect rollback boundary drift\n",
-        );
-
-        assert!(output.summary.contains("Status: mixed"));
-        assert!(output.summary.contains("Status: unresolved-findings-open"));
-        assert!(output.summary.contains(
-            "Only the packet boundaries were captured; the claims themselves remain under challenge."
-        ));
-        assert!(output.summary.contains(
-            "The packet does not yet close this authored challenge focus: inspect rollback boundary drift"
-        ));
-        assert!(output.summary.contains(
-            "Some verification concerns remain open and need follow-up before the packet can be treated as fully trusted."
-        ));
-    }
-
-    #[test]
-    fn verification_critique_handles_numbered_claims_star_focus_and_paragraph_evidence() {
-        let adapter = CopilotCliAdapter;
-
-        let output = adapter.critique_verification(
-            "## Claims Under Test\n\n1. unsupported rollback proof\n\n2. guarantee the recovery path\n\n## Evidence Basis\n\nlacks proof for rollback handoff\n\n## Challenge Focus\n\n* contradiction review\n",
-        );
-
-        assert!(output.summary.contains("Status: unsupported"));
-        assert!(output.summary.contains(
-            "The authored claim already signals a contradiction or missing-evidence path: unsupported rollback proof"
-        ));
-        assert!(output.summary.contains(
-            "The authored claim under test already records a contradiction or unresolved support gap: unsupported rollback proof"
-        ));
-        assert!(
-            output
-                .summary
-                .contains("Still unsupported from the current packet: unsupported rollback proof")
-        );
-        assert!(output.summary.contains(
-            "The evidence basis still names a proof gap or unsupported path: lacks proof for rollback handoff"
-        ));
-    }
-
-    #[test]
-    fn verification_generation_supports_inline_markers_and_contract_fallbacks() {
-        let adapter = CopilotCliAdapter;
-
-        let output = adapter.generate_verification(
-            "Claims Under Test: rollback stays bounded\nEvidence Basis: repository notes\nContract Assumptions:\nOut of Scope: no runtime patching\n",
-        );
-
-        assert!(output.summary.contains("## Claims Under Test\n\n- rollback stays bounded"));
-        assert!(output.summary.contains("## Evidence Basis\n\n- repository notes"));
-        assert!(output.summary.contains(
-            "## Contract Assumptions\n\n- The verification packet relies on the authored claims staying bounded to the named evidence basis."
-        ));
-        assert!(output.summary.contains("## Out of Scope\n\n- no runtime patching"));
     }
 }

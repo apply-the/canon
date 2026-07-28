@@ -6,11 +6,15 @@ use canon_engine::domain::artifact::{ArtifactContract, ArtifactRequirement};
 use canon_engine::domain::gate::{GateKind, GateStatus};
 use canon_engine::domain::mode::Mode;
 use canon_engine::domain::policy::{RiskClass, UsageZone};
+use canon_engine::domain::run::SystemContext;
 use canon_engine::orchestrator::gatekeeper::{
     SystemShapingGateContext, evaluate_system_shaping_gates,
 };
 use predicates::str::contains;
 use tempfile::TempDir;
+
+#[path = "../support/historical_run.rs"]
+mod historical_run;
 
 fn cli_command() -> Command {
     let mut command = Command::new("cargo");
@@ -35,32 +39,17 @@ fn run_system_shaping_flow(workspace: &TempDir) -> String {
     )
     .expect("brief file");
 
-    let output = cli_command()
-        .current_dir(workspace.path())
-        .args([
-            "run",
-            "--mode",
-            "system-shaping",
-            "--system-context",
-            "new",
-            "--risk",
-            "bounded-impact",
-            "--zone",
-            "yellow",
-            "--owner",
-            "architect",
-            "--input",
-            "system-shaping.md",
-            "--output",
-            "json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-    let run_id = json["run_id"].as_str().expect("run id").to_string();
+    let summary = historical_run::start(
+        workspace.path(),
+        Mode::SystemShaping,
+        RiskClass::BoundedImpact,
+        UsageZone::Yellow,
+        SystemContext::New,
+        "architect",
+        "system-shaping.md",
+    )
+    .expect("internal historical system-shaping run");
+    let run_id = summary.run_id;
 
     let resume_output = cli_command()
         .current_dir(workspace.path())

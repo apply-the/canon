@@ -184,7 +184,7 @@ fn status_text_uses_the_refinement_renderer_for_targeted_drafts() {
 }
 
 #[test]
-fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() {
+fn run_implementation_is_rejected_before_runtime_state_is_created() {
     let workspace = tempfile::TempDir::new().expect("temp dir");
     init_existing_repo(&workspace);
     std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
@@ -194,7 +194,7 @@ fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() 
     )
     .expect("implementation brief");
 
-    let output = cli_command()
+    cli_command()
         .current_dir(workspace.path())
         .args([
             "run",
@@ -212,17 +212,9 @@ fn run_implementation_auto_binds_canonical_input_before_runtime_support_check() 
             "json",
         ])
         .assert()
-        .code(2)
-        .get_output()
-        .stdout
-        .clone();
-
-    let json: serde_json::Value = serde_json::from_slice(&output).expect("json output");
-
-    assert_eq!(json["state"].as_str(), Some("Blocked"));
-    assert_eq!(json["mode"].as_str(), Some("implementation"));
-    assert_eq!(json["mode_result"]["execution_posture"].as_str(), Some("recommendation-only"));
-    assert_eq!(json["blocking_classification"].as_str(), Some("artifact-blocked"));
+        .failure()
+        .stderr(predicates::str::contains("unsupported stable profile: implementation"));
+    assert!(!workspace.path().join(".canon").exists());
 }
 
 #[test]
@@ -305,7 +297,7 @@ fn inspect_risk_zone_supports_inline_authored_input() {
 }
 
 #[test]
-fn inspect_risk_zone_supports_review_mode_inputs() {
+fn inspect_risk_zone_supports_pr_review_profile_inputs() {
     let workspace = tempfile::TempDir::new().expect("temp dir");
     std::fs::create_dir_all(workspace.path().join("canon-input")).expect("canon-input dir");
     std::fs::write(
@@ -313,6 +305,11 @@ fn inspect_risk_zone_supports_review_mode_inputs() {
         "# Review Brief\n\nReview Target: bounded service boundary.\nEvidence Basis: owned interfaces and current tests.\n",
     )
     .expect("brief file");
+    std::fs::write(
+        workspace.path().join("canon-input").join("review-target.md"),
+        "# Review Target\n\nCurrent bounded service boundary implementation.\n",
+    )
+    .expect("review target");
 
     let output = cli_command()
         .current_dir(workspace.path())
@@ -320,9 +317,11 @@ fn inspect_risk_zone_supports_review_mode_inputs() {
             "inspect",
             "risk-zone",
             "--mode",
-            "review",
+            "pr-review",
             "--input",
             "canon-input/review.md",
+            "--input",
+            "canon-input/review-target.md",
             "--output",
             "json",
         ])
@@ -338,14 +337,14 @@ fn inspect_risk_zone_supports_review_mode_inputs() {
         .and_then(|entries| entries.first())
         .expect("classification entry");
 
-    assert_eq!(entry["mode"].as_str(), Some("review"));
+    assert_eq!(entry["mode"].as_str(), Some("pr-review"));
     assert!(entry["risk"].as_str().is_some());
     assert!(entry["zone"].as_str().is_some());
     assert_eq!(entry["requires_confirmation"].as_bool(), Some(true));
 }
 
 #[test]
-fn inspect_risk_zone_rejects_noncanonical_review_inputs() {
+fn inspect_risk_zone_rejects_removed_review_mode() {
     let workspace = tempfile::TempDir::new().expect("temp dir");
     std::fs::write(
         workspace.path().join("review.md"),
@@ -358,7 +357,7 @@ fn inspect_risk_zone_rejects_noncanonical_review_inputs() {
         .args(["inspect", "risk-zone", "--mode", "review", "--input", "review.md"])
         .assert()
         .failure()
-        .stderr(contains("review accepts only canon-input/review.md or canon-input/review/"));
+        .stderr(contains("unsupported stable profile: review"));
 }
 
 #[test]

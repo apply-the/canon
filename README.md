@@ -102,11 +102,18 @@ These are the commands you'll actually use every day:
 
 | Command | What it does |
 |---|---|
-| `canon run` | Start a new governed session with explicit boundaries. Available modes include `requirements`, `architecture`, `backlog`, `brainstorming`, `debugging`, `change`, `incident`, and more. |
+| `canon run` | Start a governed session using one of the nine stable profiles: `discovery`, `requirements`, `architecture`, `backlog`, `change`, `refactor`, `verification`, `pr-review`, or `incident`. |
 | `canon status` | See exactly what the agent is doing right now. |
 | `canon inspect` | Review generated evidence and artifacts. |
+| `canon verify` | Validate a persisted evidence projection deterministically and fail closed while required external semantic evidence is missing. |
 | `canon approve` | Unblock a session that hit a governance gate. |
 | `canon publish` | Commit the final work into your repository. |
+
+`implementation` is not a stable Canon profile. Canon governs change intent,
+scope, risk, invariants, authority, and required evidence; Boundline or a
+bounded adapter owns implementation execution. Existing legacy mode records
+remain readable through the historical persistence boundary, but cannot be
+admitted as new stable runs.
 
 ## 📚 Deep Dive Documentation
 
