@@ -177,7 +177,7 @@ fn stable_run_help_does_not_advertise_implementation_or_legacy_profiles() -> Tes
     let stdout = String::from_utf8(output.stdout)?;
 
     require(output.status.success(), "stable run help failed")?;
-    for forbidden in ["implementation", "system-shaping", "migration", "review"] {
+    for forbidden in ["implementation", "system-shaping", "migration"] {
         require(!stdout.contains(forbidden), "stable run help advertised a nonstable profile")?;
     }
     Ok(())

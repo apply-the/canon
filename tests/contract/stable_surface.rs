@@ -7,6 +7,9 @@ use canon_contracts::OneShotOperation;
 use serde_json::{Value, json};
 use tempfile::tempdir;
 
+#[path = "stable_surface/fixture.rs"]
+mod fixture;
+
 const STABLE_COMMANDS: [&str; 9] =
     ["init", "run", "resume", "status", "approve", "inspect", "publish", "assistant", "rpc"];
 const STABLE_PROFILES: [&str; 9] = [
@@ -135,6 +138,17 @@ fn run_help_freezes_profile_spelling_and_excludes_implementation() -> TestResult
 }
 
 #[test]
+fn assistant_help_exposes_only_install() -> TestResult {
+    let output = run(&["assistant", "--help"])?;
+    require(output.status.success(), "assistant help failed")?;
+    let stdout = utf8(output.stdout, "stdout")?;
+    require(
+        root_help_commands(&stdout) == ["install"],
+        format!("stable assistant command inventory drifted:\n{stdout}"),
+    )
+}
+
+#[test]
 fn published_one_shot_registry_is_exact_and_independently_golden() -> TestResult {
     let actual = ONE_SHOT_OPERATIONS
         .iter()
@@ -200,10 +214,12 @@ fn rpc_framing_failures_are_one_typed_response_without_state_success() -> TestRe
             response["result"]["status"] == "rejected",
             format!("{label} framing did not return a typed rejection"),
         )?;
-        require(
-            !utf8(output.stderr, "stderr")?.contains(input.escape_ascii().to_string().as_str()),
-            format!("{label} diagnostics echoed the request"),
-        )?;
+        if !input.is_empty() {
+            require(
+                !utf8(output.stderr, "stderr")?.contains(input.escape_ascii().to_string().as_str()),
+                format!("{label} diagnostics echoed the request"),
+            )?;
+        }
     }
     Ok(())
 }
@@ -216,5 +232,228 @@ fn mcp_transport_is_not_registered_by_t056() -> TestResult {
     require(
         stderr.contains("unrecognized subcommand"),
         "MCP absence did not use the deterministic parser rejection",
+    )
+}
+
+#[test]
+fn all_six_rpc_operations_dispatch_real_deterministic_handlers() -> TestResult {
+    let fixture = fixture::RpcFixture::new()?;
+    let draft = fixture::governance_draft("bundle-rpc-six", 1);
+
+    let capabilities = fixture.invoke("req-capabilities", "capabilities", json!({}))?;
+    require(
+        capabilities["result"]["operations"]
+            == json!(["capabilities", "start", "refresh", "approve", "inspect", "publish"]),
+        "capabilities did not expose the exact six-operation registry",
+    )?;
+
+    let started = fixture.invoke(
+        "bundle-rpc-six",
+        "start",
+        json!({"bundle": serde_json::to_value(&draft)?}),
+    )?;
+    require(started["result"]["terminal_status"] == "accepted", "start was not accepted")?;
+    require(
+        started["result"]["execution_audit"]
+            == json!({
+                "process_invocations": 0,
+                "network_invocations": 0,
+                "provider_credential_reads": 0,
+                "model_calls": 0,
+                "semantic_evidence_created": 0
+            }),
+        "start violated the zero-execution audit",
+    )?;
+
+    let snapshot_before_reads = fixture.snapshot_bytes()?;
+    for operation in ["refresh", "inspect", "publish"] {
+        let response = fixture.invoke(&format!("req-{operation}"), operation, json!({}))?;
+        require(
+            response["result"]["terminal_status"] == "accepted",
+            format!("{operation} did not return the accepted terminal projection"),
+        )?;
+        require(
+            fixture.snapshot_bytes()? == snapshot_before_reads,
+            format!("read-only operation `{operation}` mutated decision memory"),
+        )?;
+    }
+
+    let approval_fixture = fixture::RpcFixture::new()?;
+    let approved = approval_fixture.invoke(
+        "bundle-rpc-approve",
+        "approve",
+        json!({"bundle": fixture::governance_draft("bundle-rpc-approve", 1)}),
+    )?;
+    require(approved["result"]["terminal_status"] == "accepted", "approve was not accepted")
+}
+
+#[test]
+fn mutation_replay_is_idempotent_and_digest_conflict_fails_closed() -> TestResult {
+    let fixture = fixture::RpcFixture::new()?;
+    let draft = fixture::governance_draft("bundle-rpc-replay", 1);
+    let payload = json!({"bundle": serde_json::to_value(&draft)?});
+
+    let first = fixture.invoke("bundle-rpc-replay", "start", payload.clone())?;
+    let snapshot = fixture.snapshot_bytes()?;
+    let replay = fixture.invoke("bundle-rpc-replay", "start", payload)?;
+    require(first["result"]["graph_digest"] == replay["result"]["graph_digest"], "replay drifted")?;
+    require(replay["result"]["replayed"] == true, "matching retry was not marked replayed")?;
+    require(fixture.snapshot_bytes()? == snapshot, "matching retry rewrote decision memory")?;
+
+    let changed = fixture::governance_draft("bundle-rpc-replay", 2);
+    let conflict =
+        fixture.invoke_rejected("bundle-rpc-replay", "start", json!({"bundle": changed}))?;
+    require(
+        conflict["result"]["reason_code"] == "identity_digest_conflict",
+        "changed digest did not fail with identity_digest_conflict",
+    )?;
+    require(fixture.snapshot_bytes()? == snapshot, "conflict changed the original state")
+}
+
+#[test]
+fn rpc_rejects_unknown_fields_operations_and_request_identity_mismatch() -> TestResult {
+    let fixture = fixture::RpcFixture::new()?;
+    let unknown = fixture.invoke_rejected("req-unknown", "execute", json!({}))?;
+    require(
+        unknown["result"]["reason_code"] == "unsupported_operation",
+        "unknown operation did not use the stable unsupported reason",
+    )?;
+
+    let extra = fixture.invoke_raw_rejected(json!({
+        "contract_version": "1.0",
+        "request_id": "req-extra",
+        "operation": "capabilities",
+        "payload": {},
+        "authority": "inferred"
+    }))?;
+    require(
+        extra["result"]["reason_code"] == "invalid_input",
+        "unknown envelope field did not fail strict decoding",
+    )?;
+
+    let mismatched = fixture.invoke_rejected(
+        "different-request-id",
+        "start",
+        json!({"bundle": fixture::governance_draft("bundle-identity", 1)}),
+    )?;
+    require(
+        mismatched["result"]["reason_code"] == "identity_digest_conflict",
+        "mutation request identity was not bound to its bundle",
+    )
+}
+
+#[test]
+fn cli_and_rpc_share_terminal_and_decision_memory_projections() -> TestResult {
+    let cli_first = fixture::RpcFixture::new()?;
+    let draft = fixture::governance_draft("bundle-cli-first", 1);
+    let cli_result = cli_first.cli_run(&draft)?;
+    let rpc_inspect = cli_first.invoke("req-inspect-cli-first", "inspect", json!({}))?;
+    require(
+        cli_result["terminal_status"] == rpc_inspect["result"]["terminal_status"],
+        "CLI and RPC terminal status diverged",
+    )?;
+    require(
+        cli_result["graph_digest"] == rpc_inspect["result"]["graph_digest"],
+        "CLI and RPC graph digest diverged",
+    )?;
+    require(
+        cli_result["decision_memory"] == rpc_inspect["result"]["decision_memory"],
+        "CLI and RPC decision-memory projections diverged",
+    )?;
+
+    let rpc_first = fixture::RpcFixture::new()?;
+    let rpc_result = rpc_first.invoke(
+        "bundle-rpc-first",
+        "start",
+        json!({"bundle": fixture::governance_draft("bundle-rpc-first", 1)}),
+    )?;
+    let cli_inspect = rpc_first.cli_inspect()?;
+    require(
+        rpc_result["result"]["graph_digest"] == cli_inspect["graph_digest"],
+        "RPC mutation was not visible to CLI inspect",
+    )
+}
+
+#[test]
+fn rpc_rejects_oversized_invalid_utf8_and_semantic_execution_requests() -> TestResult {
+    let oversized = vec![b'x'; 1_048_577];
+    let output = run_with_stdin(&["rpc", "--stdio"], &oversized)?;
+    require(!output.status.success(), "oversized input unexpectedly succeeded")?;
+    require(
+        parse_single_json(&output.stdout)?["result"]["reason_code"] == "invalid_input",
+        "oversized input did not use invalid_input",
+    )?;
+
+    let invalid_utf8 = [0xff, 0xfe, 0xfd];
+    let output = run_with_stdin(&["rpc", "--stdio"], &invalid_utf8)?;
+    require(!output.status.success(), "invalid UTF-8 unexpectedly succeeded")?;
+    require(
+        parse_single_json(&output.stdout)?["result"]["reason_code"] == "invalid_input",
+        "invalid UTF-8 did not use invalid_input",
+    )?;
+
+    let fixture = fixture::RpcFixture::new()?;
+    let rejected = fixture.invoke_raw_rejected(json!({
+        "contract_version": "1.0",
+        "request_id": "req-semantic",
+        "operation": "start",
+        "payload": {
+            "semantic_execution": true,
+            "bundle": fixture::governance_draft("req-semantic", 1)
+        }
+    }))?;
+    require(
+        rejected["result"]["reason_code"] == "invalid_input",
+        "semantic execution request did not fail strict decoding",
+    )
+}
+
+#[test]
+fn terminal_governance_failures_use_frozen_non_success_exit_codes() -> TestResult {
+    let authority_fixture = fixture::RpcFixture::new()?;
+    let mut missing_authority = fixture::governance_draft("bundle-no-authority", 1);
+    missing_authority.approvals.clear();
+    missing_authority.risk_acceptances.clear();
+    let (success, blocked) = authority_fixture.invoke_with_status(
+        "bundle-no-authority",
+        "start",
+        json!({"bundle": missing_authority}),
+    )?;
+    require(!success, "authority-denied governance returned process success")?;
+    require(
+        blocked["result"]["terminal_status"] == "blocked",
+        "authority denial did not preserve the kernel status",
+    )?;
+
+    let evidence_fixture = fixture::RpcFixture::new()?;
+    let mut missing_evidence = fixture::governance_draft("bundle-no-evidence", 1);
+    if let Some(evidence) = missing_evidence.provided_evidence.first_mut() {
+        evidence.challenge_tier = canon_contracts::ChallengeTier::Tier1;
+    }
+    let (success, required_missing) = evidence_fixture.invoke_with_status(
+        "bundle-no-evidence",
+        "start",
+        json!({"bundle": missing_evidence}),
+    )?;
+    require(!success, "missing evidence returned process success")?;
+    require(
+        required_missing["result"]["terminal_status"] == "required_missing",
+        format!("missing evidence did not preserve the kernel status: {required_missing}"),
+    )
+}
+
+#[test]
+fn persistence_failure_is_typed_and_records_no_terminal_success() -> TestResult {
+    let fixture = fixture::RpcFixture::new()?;
+    fixture.obstruct_state_root()?;
+    let (success, response) = fixture.invoke_with_status(
+        "bundle-persistence-failure",
+        "start",
+        json!({"bundle": fixture::governance_draft("bundle-persistence-failure", 1)}),
+    )?;
+    require(!success, "persistence failure returned process success")?;
+    require(
+        response["result"]["reason_code"] == "persistence_failure",
+        format!("persistence failure reason drifted: {response}"),
     )
 }

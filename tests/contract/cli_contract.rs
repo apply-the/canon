@@ -64,10 +64,10 @@ fn help_lists_the_expected_top_level_commands() {
         .stdout(contains("resume"))
         .stdout(contains("status"))
         .stdout(contains("approve"))
-        .stdout(contains("verify"))
         .stdout(contains("inspect"))
         .stdout(contains("publish"))
-        .stdout(contains("skills"));
+        .stdout(contains("assistant"))
+        .stdout(contains("rpc"));
 }
 
 #[test]
