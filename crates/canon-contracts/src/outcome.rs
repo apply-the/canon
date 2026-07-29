@@ -1,12 +1,13 @@
 //! Terminal outcome DTOs provide a public, deterministic Boundline-to-Canon boundary.
 
-use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Value;
 use sha2::{Digest, Sha256};
+
+mod digest;
+mod validation;
 
 use crate::{
     ApprovalDecision, BundleDigest, BundleId, ChallengeTier, Claim, EvidenceReference, Revision,
@@ -390,7 +391,7 @@ impl RecordOutcomeRequest {
 
     /// Computes the domain-separated digest without trusting the supplied digest.
     pub fn canonical_event_digest(&self) -> Result<OutcomeEventDigest, RecordOutcomeContractError> {
-        let canonical = canonical_digest_input(self)?;
+        let canonical = digest::canonical_digest_input(self)?;
         let mut hasher = Sha256::new();
         hasher.update(OUTCOME_CANONICALIZATION_DOMAIN.as_bytes());
         hasher.update([DOMAIN_SEPARATOR]);
@@ -409,13 +410,13 @@ impl RecordOutcomeRequest {
 
     /// Validates all closed request invariants and the supplied digest.
     pub fn validate(&self) -> Result<(), RecordOutcomeContractError> {
-        validate_identity(self)?;
-        validate_terminal_status(self)?;
-        validate_set_bindings(self)?;
-        validate_authority(self)?;
-        validate_challenge_and_lineage(self)?;
-        validate_portability(self)?;
-        validate_digest_shape(&self.event_digest)?;
+        validation::validate_identity(self)?;
+        validation::validate_terminal_status(self)?;
+        validation::validate_set_bindings(self)?;
+        validation::validate_authority(self)?;
+        validation::validate_challenge_and_lineage(self)?;
+        validation::validate_portability(self)?;
+        validation::validate_digest_shape(&self.event_digest)?;
         if self.canonical_event_digest()? != self.event_digest {
             return Err(RecordOutcomeContractError::new(
                 RecordOutcomeRejectionReason::InvalidOutcome,
@@ -488,11 +489,14 @@ impl RecordOutcomeResponse {
                 RecordOutcomeRejectionReason::InvalidOutcome,
             ));
         }
-        validate_digest_shape(&self.event_digest)?;
+        validation::validate_digest_shape(&self.event_digest)?;
         if let Some(digest) = &self.decision_memory_digest {
-            validate_sha256_wire(digest.as_str())?;
+            validation::validate_sha256_wire(digest.as_str())?;
         }
-        ensure_unique(&self.next_actions, RecordOutcomeRejectionReason::InvalidOutcome)?;
+        validation::ensure_unique(
+            &self.next_actions,
+            RecordOutcomeRejectionReason::InvalidOutcome,
+        )?;
         match self.disposition {
             RecordOutcomeDisposition::Recorded | RecordOutcomeDisposition::Replayed
                 if self.decision_memory_revision.is_some()
@@ -537,411 +541,3 @@ impl Display for RecordOutcomeContractError {
 }
 
 impl std::error::Error for RecordOutcomeContractError {}
-
-#[derive(Serialize)]
-struct CanonicalOutcomeRequest<'a> {
-    source_product: OutcomeSourceProduct,
-    event_id: &'a OutcomeEventId,
-    source_repository_identity: &'a RepositoryIdentity,
-    governance_bundle_id: &'a BundleId,
-    governance_bundle_digest: &'a BundleDigest,
-    session_id: &'a OutcomeSessionId,
-    final_transaction_revision: Revision,
-    terminal_status: TerminalOutcomeStatus,
-    published_commit: &'a Option<CommitIdentity>,
-    final_fingerprint: &'a Option<FinalFingerprint>,
-    proof_references: Vec<&'a EvidenceReference>,
-    deviations: Vec<&'a Deviation>,
-    terminal_claims: Vec<&'a Claim>,
-    authority_binding: CanonicalAuthorityBinding<'a>,
-    approval_binding: Option<CanonicalApprovalBinding<'a>>,
-    challenge_binding: CanonicalChallengeBinding<'a>,
-    lineage: &'a OutcomeLineage,
-    occurred_at: &'a Option<AuthoritativeTimestamp>,
-}
-
-#[derive(Serialize)]
-struct CanonicalAuthorityBinding<'a> {
-    authority_identity: &'a str,
-    final_transaction_revision: Revision,
-    claims: Vec<&'a Claim>,
-}
-
-#[derive(Serialize)]
-struct CanonicalApprovalBinding<'a> {
-    approver_identity: &'a str,
-    decision: ApprovalDecision,
-    final_transaction_revision: Revision,
-    claims: Vec<&'a Claim>,
-}
-
-#[derive(Serialize)]
-struct CanonicalChallengeBinding<'a> {
-    tier: ChallengeTier,
-    challenger_identity: &'a Option<String>,
-    challenger_invocation_id: &'a Option<String>,
-    independent_context_identity: &'a Option<String>,
-    claims: Vec<&'a Claim>,
-    evidence_references: Vec<&'a EvidenceReference>,
-    named_override: &'a Option<String>,
-}
-
-fn canonical_digest_input(
-    request: &RecordOutcomeRequest,
-) -> Result<String, RecordOutcomeContractError> {
-    let input = CanonicalOutcomeRequest {
-        source_product: request.source_product,
-        event_id: &request.event_id,
-        source_repository_identity: &request.source_repository_identity,
-        governance_bundle_id: &request.governance_bundle_id,
-        governance_bundle_digest: &request.governance_bundle_digest,
-        session_id: &request.session_id,
-        final_transaction_revision: request.final_transaction_revision,
-        terminal_status: request.terminal_status,
-        published_commit: &request.published_commit,
-        final_fingerprint: &request.final_fingerprint,
-        proof_references: sorted(&request.proof_references),
-        deviations: sorted(&request.deviations),
-        terminal_claims: sorted(&request.terminal_claims),
-        authority_binding: CanonicalAuthorityBinding {
-            authority_identity: request.authority_binding.authority_identity.as_str(),
-            final_transaction_revision: request.authority_binding.final_transaction_revision,
-            claims: sorted(&request.authority_binding.claims),
-        },
-        approval_binding: request.approval_binding.as_ref().map(|approval| {
-            CanonicalApprovalBinding {
-                approver_identity: approval.approver_identity.as_str(),
-                decision: approval.decision,
-                final_transaction_revision: approval.final_transaction_revision,
-                claims: sorted(&approval.claims),
-            }
-        }),
-        challenge_binding: CanonicalChallengeBinding {
-            tier: request.challenge_binding.tier,
-            challenger_identity: &request.challenge_binding.challenger_identity,
-            challenger_invocation_id: &request.challenge_binding.challenger_invocation_id,
-            independent_context_identity: &request.challenge_binding.independent_context_identity,
-            claims: sorted(&request.challenge_binding.claims),
-            evidence_references: sorted(&request.challenge_binding.evidence_references),
-            named_override: &request.challenge_binding.named_override,
-        },
-        lineage: &request.lineage,
-        occurred_at: &request.occurred_at,
-    };
-    let value = serde_json::to_value(input).map_err(|_| {
-        RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome)
-    })?;
-    canonical_json(&value)
-}
-
-fn canonical_json(value: &Value) -> Result<String, RecordOutcomeContractError> {
-    match value {
-        Value::Null | Value::Bool(_) | Value::String(_) => {
-            serde_json::to_string(value).map_err(|_| {
-                RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome)
-            })
-        }
-        Value::Number(number) if number.is_i64() || number.is_u64() => Ok(number.to_string()),
-        Value::Number(_) => {
-            Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome))
-        }
-        Value::Array(values) => {
-            let items = values.iter().map(canonical_json).collect::<Result<Vec<_>, _>>()?;
-            Ok(format!("[{}]", items.join(",")))
-        }
-        Value::Object(entries) => {
-            let mut keys = entries.keys().collect::<Vec<_>>();
-            keys.sort_unstable();
-            let fields = keys
-                .into_iter()
-                .map(|key| {
-                    let encoded_key = serde_json::to_string(key).map_err(|_| {
-                        RecordOutcomeContractError::new(
-                            RecordOutcomeRejectionReason::InvalidOutcome,
-                        )
-                    })?;
-                    let field = entries.get(key).ok_or_else(|| {
-                        RecordOutcomeContractError::new(
-                            RecordOutcomeRejectionReason::InvalidOutcome,
-                        )
-                    })?;
-                    Ok(format!("{encoded_key}:{}", canonical_json(field)?))
-                })
-                .collect::<Result<Vec<_>, RecordOutcomeContractError>>()?;
-            Ok(format!("{{{}}}", fields.join(",")))
-        }
-    }
-}
-
-fn validate_identity(request: &RecordOutcomeRequest) -> Result<(), RecordOutcomeContractError> {
-    for identity in [
-        request.event_id.as_str(),
-        request.source_repository_identity.as_str(),
-        request.session_id.as_str(),
-    ] {
-        if identity.trim().is_empty() || contains_forbidden_path(identity) {
-            return Err(RecordOutcomeContractError::new(
-                RecordOutcomeRejectionReason::InvalidOutcome,
-            ));
-        }
-    }
-    for identity in [
-        request.authority_binding.authority_identity.as_str(),
-        request.lineage.producer_identity.as_str(),
-        request.lineage.producer_invocation_id.as_str(),
-    ] {
-        if identity.trim().is_empty() {
-            return Err(RecordOutcomeContractError::new(
-                RecordOutcomeRejectionReason::InvalidOutcome,
-            ));
-        }
-    }
-    if request.occurred_at.as_ref().is_some_and(|value| value.as_str().trim().is_empty()) {
-        return Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome));
-    }
-    Ok(())
-}
-
-fn validate_portability(request: &RecordOutcomeRequest) -> Result<(), RecordOutcomeContractError> {
-    let value = serde_json::to_value(request).map_err(|_| {
-        RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome)
-    })?;
-    if contains_private_value(&value) {
-        Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome))
-    } else {
-        Ok(())
-    }
-}
-
-fn contains_private_value(value: &Value) -> bool {
-    match value {
-        Value::String(candidate) => is_forbidden_portable_value(candidate),
-        Value::Array(values) => values.iter().any(contains_private_value),
-        Value::Object(entries) => entries.values().any(contains_private_value),
-        Value::Null | Value::Bool(_) | Value::Number(_) => false,
-    }
-}
-
-fn is_forbidden_portable_value(value: &str) -> bool {
-    let normalized = value.to_ascii_lowercase();
-    contains_forbidden_path(value)
-        || value.starts_with("file://")
-        || PRIVATE_VALUE_MARKERS.iter().any(|marker| normalized.contains(marker))
-}
-
-fn validate_terminal_status(
-    request: &RecordOutcomeRequest,
-) -> Result<(), RecordOutcomeContractError> {
-    if !request.terminal_status.is_terminal() {
-        return Err(RecordOutcomeContractError::new(
-            RecordOutcomeRejectionReason::NonterminalOutcome,
-        ));
-    }
-    match request.terminal_status {
-        TerminalOutcomeStatus::Published
-            if request.published_commit.is_some() && request.final_fingerprint.is_some() =>
-        {
-            Ok(())
-        }
-        TerminalOutcomeStatus::NoChange
-            if request.published_commit.is_none() && request.final_fingerprint.is_some() =>
-        {
-            Ok(())
-        }
-        TerminalOutcomeStatus::Failed
-        | TerminalOutcomeStatus::Cancelled
-        | TerminalOutcomeStatus::Rejected
-            if request.published_commit.is_none() =>
-        {
-            Ok(())
-        }
-        _ => Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome)),
-    }
-}
-
-fn validate_set_bindings(request: &RecordOutcomeRequest) -> Result<(), RecordOutcomeContractError> {
-    ensure_unique(&request.proof_references, RecordOutcomeRejectionReason::EvidenceBindingInvalid)?;
-    ensure_unique(&request.deviations, RecordOutcomeRejectionReason::InvalidOutcome)?;
-    ensure_unique(&request.terminal_claims, RecordOutcomeRejectionReason::EvidenceBindingInvalid)?;
-    ensure_unique(
-        &request.authority_binding.claims,
-        RecordOutcomeRejectionReason::AuthorityBindingInvalid,
-    )?;
-    ensure_unique(
-        &request.challenge_binding.claims,
-        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
-    )?;
-    ensure_unique(
-        &request.challenge_binding.evidence_references,
-        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
-    )?;
-    if let Some(approval) = &request.approval_binding {
-        ensure_unique(&approval.claims, RecordOutcomeRejectionReason::ApprovalBindingInvalid)?;
-        ensure_subset(
-            &approval.claims,
-            &request.terminal_claims,
-            RecordOutcomeRejectionReason::ApprovalBindingInvalid,
-        )?;
-    }
-    ensure_subset(
-        &request.authority_binding.claims,
-        &request.terminal_claims,
-        RecordOutcomeRejectionReason::AuthorityBindingInvalid,
-    )?;
-    ensure_subset(
-        &request.challenge_binding.claims,
-        &request.terminal_claims,
-        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
-    )?;
-    Ok(())
-}
-
-fn validate_authority(request: &RecordOutcomeRequest) -> Result<(), RecordOutcomeContractError> {
-    if request.authority_binding.authority_identity.trim().is_empty()
-        || request.authority_binding.final_transaction_revision
-            != request.final_transaction_revision
-        || request.authority_binding.claims.is_empty()
-    {
-        return Err(RecordOutcomeContractError::new(
-            RecordOutcomeRejectionReason::AuthorityBindingInvalid,
-        ));
-    }
-    let approval_required =
-        matches!(request.challenge_binding.tier, ChallengeTier::Tier2 | ChallengeTier::Tier3);
-    match (&request.approval_binding, approval_required) {
-        (Some(approval), _)
-            if !approval.approver_identity.trim().is_empty()
-                && approval.decision == ApprovalDecision::Approved
-                && approval.final_transaction_revision == request.final_transaction_revision
-                && !approval.claims.is_empty() =>
-        {
-            Ok(())
-        }
-        (None, false) => Ok(()),
-        _ => Err(RecordOutcomeContractError::new(
-            RecordOutcomeRejectionReason::ApprovalBindingInvalid,
-        )),
-    }
-}
-
-fn validate_challenge_and_lineage(
-    request: &RecordOutcomeRequest,
-) -> Result<(), RecordOutcomeContractError> {
-    let producer = &request.lineage;
-    let verifier_pair = match (&producer.verifier_identity, &producer.verifier_invocation_id) {
-        (Some(identity), Some(invocation))
-            if !identity.trim().is_empty() && !invocation.trim().is_empty() =>
-        {
-            Some((identity, invocation))
-        }
-        (None, None) => None,
-        _ => {
-            return Err(RecordOutcomeContractError::new(
-                RecordOutcomeRejectionReason::LineageInvalid,
-            ));
-        }
-    };
-    let independent_challenge = match request.challenge_binding.tier {
-        ChallengeTier::Tier0
-            if verifier_pair.is_none()
-                && request.challenge_binding.challenger_identity.is_none()
-                && request.challenge_binding.challenger_invocation_id.is_none()
-                && request.challenge_binding.independent_context_identity.is_none()
-                && request.challenge_binding.named_override.is_none() =>
-        {
-            return Ok(());
-        }
-        ChallengeTier::Tier0 => {
-            return Err(RecordOutcomeContractError::new(
-                RecordOutcomeRejectionReason::LineageInvalid,
-            ));
-        }
-        ChallengeTier::Tier1 | ChallengeTier::Tier2 | ChallengeTier::Tier3 => {
-            challenge_identity(&request.challenge_binding)?
-        }
-    };
-    let (verifier_identity, verifier_invocation) = verifier_pair.ok_or_else(|| {
-        RecordOutcomeContractError::new(RecordOutcomeRejectionReason::LineageInvalid)
-    })?;
-    if verifier_identity != independent_challenge.0
-        || verifier_invocation != independent_challenge.1
-        || (verifier_identity == &producer.producer_identity
-            && verifier_invocation == &producer.producer_invocation_id)
-    {
-        return Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::LineageInvalid));
-    }
-    Ok(())
-}
-
-fn challenge_identity(
-    challenge: &OutcomeChallengeBinding,
-) -> Result<(&String, &String), RecordOutcomeContractError> {
-    let identity = challenge.challenger_identity.as_ref().ok_or_else(|| {
-        RecordOutcomeContractError::new(RecordOutcomeRejectionReason::EvidenceBindingInvalid)
-    })?;
-    let invocation = challenge.challenger_invocation_id.as_ref().ok_or_else(|| {
-        RecordOutcomeContractError::new(RecordOutcomeRejectionReason::EvidenceBindingInvalid)
-    })?;
-    let context = challenge.independent_context_identity.as_ref().ok_or_else(|| {
-        RecordOutcomeContractError::new(RecordOutcomeRejectionReason::EvidenceBindingInvalid)
-    })?;
-    if identity.trim().is_empty()
-        || invocation.trim().is_empty()
-        || context.trim().is_empty()
-        || challenge.claims.is_empty()
-        || challenge.evidence_references.is_empty()
-        || challenge.named_override.as_ref().is_some_and(|value| value.trim().is_empty())
-    {
-        return Err(RecordOutcomeContractError::new(
-            RecordOutcomeRejectionReason::EvidenceBindingInvalid,
-        ));
-    }
-    Ok((identity, invocation))
-}
-
-fn validate_digest_shape(digest: &OutcomeEventDigest) -> Result<(), RecordOutcomeContractError> {
-    validate_sha256_wire(digest.as_str())
-}
-
-fn validate_sha256_wire(digest: &str) -> Result<(), RecordOutcomeContractError> {
-    let Some(hex) = digest.strip_prefix(SHA256_PREFIX) else {
-        return Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome));
-    };
-    if hex.len() != SHA256_HEX_LENGTH
-        || !hex.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-    {
-        return Err(RecordOutcomeContractError::new(RecordOutcomeRejectionReason::InvalidOutcome));
-    }
-    Ok(())
-}
-
-fn ensure_unique<T: Ord>(
-    values: &[T],
-    reason: RecordOutcomeRejectionReason,
-) -> Result<(), RecordOutcomeContractError> {
-    let unique = values.iter().collect::<BTreeSet<_>>();
-    if unique.len() == values.len() { Ok(()) } else { Err(RecordOutcomeContractError::new(reason)) }
-}
-
-fn ensure_subset<T: Ord>(
-    values: &[T],
-    allowed: &[T],
-    reason: RecordOutcomeRejectionReason,
-) -> Result<(), RecordOutcomeContractError> {
-    let allowed = allowed.iter().collect::<BTreeSet<_>>();
-    if values.iter().all(|value| allowed.contains(value)) {
-        Ok(())
-    } else {
-        Err(RecordOutcomeContractError::new(reason))
-    }
-}
-
-fn sorted<T: Ord>(values: &[T]) -> Vec<&T> {
-    let mut sorted = values.iter().collect::<Vec<_>>();
-    sorted.sort_unstable();
-    sorted
-}
-
-fn contains_forbidden_path(value: &str) -> bool {
-    value.starts_with('/') || value.contains(":/") || value.contains(r":\")
-}
