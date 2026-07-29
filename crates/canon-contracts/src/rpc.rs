@@ -26,6 +26,8 @@ pub enum OneShotOperation {
     Inspect,
     /// Publish governance, decision-memory, and evidence projections.
     Publish,
+    /// Record a terminal Boundline outcome through the additive 0.91 contract.
+    RecordOutcome,
 }
 
 /// Typed one-shot request envelope.

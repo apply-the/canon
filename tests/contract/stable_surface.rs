@@ -3,7 +3,7 @@
 use std::io::Write;
 use std::process::{Command, Output, Stdio};
 
-use canon_contracts::OneShotOperation;
+use canon_contracts::{OneShotOperation, RecordOutcomeResponse};
 use serde_json::{Value, json};
 use tempfile::tempdir;
 
@@ -23,13 +23,22 @@ const STABLE_PROFILES: [&str; 9] = [
     "pr-review",
     "incident",
 ];
-const ONE_SHOT_OPERATIONS: [(OneShotOperation, &str); 6] = [
+const HISTORICAL_ONE_SHOT_OPERATIONS: [(OneShotOperation, &str); 6] = [
     (OneShotOperation::Capabilities, "capabilities"),
     (OneShotOperation::Start, "start"),
     (OneShotOperation::Refresh, "refresh"),
     (OneShotOperation::Approve, "approve"),
     (OneShotOperation::Inspect, "inspect"),
     (OneShotOperation::Publish, "publish"),
+];
+const ONE_SHOT_OPERATIONS: [(OneShotOperation, &str); 7] = [
+    (OneShotOperation::Capabilities, "capabilities"),
+    (OneShotOperation::Start, "start"),
+    (OneShotOperation::Refresh, "refresh"),
+    (OneShotOperation::Approve, "approve"),
+    (OneShotOperation::Inspect, "inspect"),
+    (OneShotOperation::Publish, "publish"),
+    (OneShotOperation::RecordOutcome, "record_outcome"),
 ];
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -155,13 +164,18 @@ fn published_one_shot_registry_is_exact_and_independently_golden() -> TestResult
         .map(|(operation, _)| serde_json::to_value(operation))
         .collect::<Result<Vec<_>, _>>()?;
     let expected = serde_json::from_str::<Vec<Value>>(
-        r#"["capabilities","start","refresh","approve","inspect","publish"]"#,
+        r#"["capabilities","start","refresh","approve","inspect","publish","record_outcome"]"#,
     )?;
     require(actual == expected, "published one-shot operation registry drifted")?;
     require(
         ONE_SHOT_OPERATIONS.iter().map(|(_, wire)| *wire).collect::<Vec<_>>()
             == expected.iter().filter_map(Value::as_str).collect::<Vec<_>>(),
         "independent one-shot golden fixture drifted",
+    )?;
+    require(
+        HISTORICAL_ONE_SHOT_OPERATIONS.iter().map(|(_, wire)| *wire).collect::<Vec<_>>()
+            == ["capabilities", "start", "refresh", "approve", "inspect", "publish"],
+        "historical 0.90 operation inventory drifted",
     )
 }
 
@@ -181,8 +195,33 @@ fn rpc_capabilities_emits_one_clean_response_and_terminates() -> TestResult {
     require(response["request_id"] == "req-capabilities", "request identity was not preserved")?;
     require(
         response["result"]["operations"]
-            == json!(["capabilities", "start", "refresh", "approve", "inspect", "publish"]),
+            == json!([
+                "capabilities",
+                "start",
+                "refresh",
+                "approve",
+                "inspect",
+                "publish",
+                "record_outcome"
+            ]),
         "capabilities operation inventory drifted",
+    )?;
+    require(
+        response["result"]["operation_capabilities"]
+            == json!([
+                {"operation": "capabilities", "available": true, "reason_code": null},
+                {"operation": "start", "available": true, "reason_code": null},
+                {"operation": "refresh", "available": true, "reason_code": null},
+                {"operation": "approve", "available": true, "reason_code": null},
+                {"operation": "inspect", "available": true, "reason_code": null},
+                {"operation": "publish", "available": true, "reason_code": null},
+                {
+                    "operation": "record_outcome",
+                    "available": false,
+                    "reason_code": "unsupported_operation"
+                }
+            ]),
+        "capabilities did not expose typed record_outcome readiness",
     )?;
     let stdout = utf8(output.stdout, "stdout")?;
     for forbidden in ["\u{1b}[", "Debug", "/Users/", "token", "secret"] {
@@ -236,15 +275,23 @@ fn mcp_transport_is_not_registered_by_t056() -> TestResult {
 }
 
 #[test]
-fn all_six_rpc_operations_dispatch_real_deterministic_handlers() -> TestResult {
+fn historical_six_rpc_operations_keep_their_deterministic_handlers() -> TestResult {
     let fixture = fixture::RpcFixture::new()?;
     let draft = fixture::governance_draft("bundle-rpc-six", 1);
 
     let capabilities = fixture.invoke("req-capabilities", "capabilities", json!({}))?;
     require(
         capabilities["result"]["operations"]
-            == json!(["capabilities", "start", "refresh", "approve", "inspect", "publish"]),
-        "capabilities did not expose the exact six-operation registry",
+            == json!([
+                "capabilities",
+                "start",
+                "refresh",
+                "approve",
+                "inspect",
+                "publish",
+                "record_outcome"
+            ]),
+        "capabilities did not expose the additive seven-operation registry",
     )?;
 
     let started = fixture.invoke(
@@ -285,6 +332,37 @@ fn all_six_rpc_operations_dispatch_real_deterministic_handlers() -> TestResult {
         json!({"bundle": fixture::governance_draft("bundle-rpc-approve", 1)}),
     )?;
     require(approved["result"]["terminal_status"] == "accepted", "approve was not accepted")
+}
+
+#[test]
+fn record_outcome_is_discoverable_but_typed_unavailable_before_t059() -> TestResult {
+    let fixture = fixture::RpcFixture::new()?;
+    let request = fixture::record_outcome_request()?;
+    let event_id = request.event_id.clone();
+    let event_digest = request.event_digest.clone();
+    let (success, response) = fixture.invoke_with_status(
+        event_id.as_str(),
+        "record_outcome",
+        json!({"outcome": request}),
+    )?;
+    require(!success, "pre-T059 record_outcome returned process success")?;
+    let typed = serde_json::from_value::<RecordOutcomeResponse>(response["result"].clone())?;
+    require(typed.event_id == event_id, "typed rejection changed event identity")?;
+    require(typed.event_digest == event_digest, "typed rejection changed event digest")?;
+    require(
+        typed.disposition == canon_contracts::RecordOutcomeDisposition::Rejected,
+        "pre-T059 disposition was not rejected",
+    )?;
+    require(
+        typed.reason_code
+            == Some(canon_contracts::RecordOutcomeRejectionReason::UnsupportedOperation),
+        "pre-T059 rejection reason drifted",
+    )?;
+    require(
+        typed.decision_memory_revision.is_none() && typed.decision_memory_digest.is_none(),
+        "pre-T059 rejection invented decision memory",
+    )?;
+    require(!fixture.has_snapshot(), "pre-T059 rejection created a decision-memory snapshot")
 }
 
 #[test]

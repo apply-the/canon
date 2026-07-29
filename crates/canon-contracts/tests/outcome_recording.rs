@@ -170,7 +170,9 @@ fn request_and_all_response_dispositions_round_trip() -> TestResult {
             event_digest: request.event_digest.clone(),
             disposition,
             decision_memory_revision: Some(Revision::new(CANON_REVISION)),
-            decision_memory_digest: Some(DecisionMemoryDigest::new("sha256:decision-memory-019")),
+            decision_memory_digest: Some(DecisionMemoryDigest::new(
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            )),
             reason_code: None,
             next_actions: Vec::new(),
         };
@@ -229,7 +231,9 @@ fn recorded_replayed_and_rejected_response_invariants_fail_closed() -> TestResul
         event_digest: request.event_digest.clone(),
         disposition: RecordOutcomeDisposition::Recorded,
         decision_memory_revision: Some(Revision::new(CANON_REVISION)),
-        decision_memory_digest: Some(DecisionMemoryDigest::new("sha256:decision-memory-019")),
+        decision_memory_digest: Some(DecisionMemoryDigest::new(
+            "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        )),
         reason_code: None,
         next_actions: Vec::new(),
     };
@@ -237,6 +241,7 @@ fn recorded_replayed_and_rejected_response_invariants_fail_closed() -> TestResul
     for (label, mutation) in [
         ("recorded-without-revision", json!({"decision_memory_revision": null})),
         ("recorded-with-reason", json!({"reason_code": "persistence_failed"})),
+        ("recorded-with-invalid-digest", json!({"decision_memory_digest": "not-a-digest"})),
     ] {
         let mut value = serde_json::to_value(&successful)?;
         let patch = mutation.as_object().ok_or("response mutation was not an object")?;
@@ -350,8 +355,61 @@ fn lineage_cannot_self_attest_independence() -> TestResult {
 }
 
 #[test]
+fn tier_zero_cannot_carry_verifier_lineage_or_independence_claims() -> TestResult {
+    let mut request = base_request(TerminalOutcomeStatus::Failed)?;
+    request.challenge_binding.tier = ChallengeTier::Tier0;
+    request.challenge_binding.challenger_identity = None;
+    request.challenge_binding.challenger_invocation_id = None;
+    request.challenge_binding.independent_context_identity = None;
+    request.lineage.verifier_identity = Some(request.lineage.producer_identity.clone());
+    request.lineage.verifier_invocation_id = Some(request.lineage.producer_invocation_id.clone());
+    request.approval_binding = None;
+    request.recompute_event_digest()?;
+    let error = decode_request(&request).expect_err("Tier 0 verifier lineage was accepted");
+    require(
+        error.to_string().contains("lineage_invalid"),
+        "Tier 0 verifier lineage did not use the lineage reason",
+    )
+}
+
+#[test]
+fn authority_approval_and_challenge_bind_only_terminal_claims() -> TestResult {
+    for (label, mut request) in [
+        ("authority", base_request(TerminalOutcomeStatus::Published)?),
+        ("approval", base_request(TerminalOutcomeStatus::Published)?),
+        ("challenge", base_request(TerminalOutcomeStatus::Published)?),
+    ] {
+        let unbound = Claim::new("claim:not-terminal");
+        match label {
+            "authority" => request.authority_binding.claims.push(unbound),
+            "approval" => request
+                .approval_binding
+                .as_mut()
+                .ok_or("approval fixture missing")?
+                .claims
+                .push(unbound),
+            "challenge" => request.challenge_binding.claims.push(unbound),
+            _ => return Err("unknown binding fixture".into()),
+        }
+        request.recompute_event_digest()?;
+        require(
+            decode_request(&request).is_err(),
+            format!("{label} accepted a claim absent from terminal_claims"),
+        )?;
+    }
+    Ok(())
+}
+
+#[test]
 fn canonical_digest_is_invariant_to_set_insertion_order() -> TestResult {
     let first = base_request(TerminalOutcomeStatus::Published)?;
+    require_eq(
+        first.event_digest.clone(),
+        OutcomeEventDigest::new(
+            "sha256:eb492104900410462528226f5fca56a758ef13b940d8a0c5d962110d5de2bafa",
+        ),
+        "independently calculated canonical digest fixture",
+    )?;
     let mut reordered = first.clone();
     reordered.proof_references.reverse();
     reordered.terminal_claims.reverse();
@@ -363,6 +421,33 @@ fn canonical_digest_is_invariant_to_set_insertion_order() -> TestResult {
         first.event_digest,
         "set insertion order changed the canonical digest",
     )
+}
+
+#[test]
+fn rejection_reason_inventory_has_exact_wire_values() -> TestResult {
+    let reasons = [
+        (RecordOutcomeRejectionReason::UnsupportedContractLine, "unsupported_contract_line"),
+        (RecordOutcomeRejectionReason::InvalidOutcome, "invalid_outcome"),
+        (RecordOutcomeRejectionReason::NonterminalOutcome, "nonterminal_outcome"),
+        (RecordOutcomeRejectionReason::IdentityDigestConflict, "identity_digest_conflict"),
+        (RecordOutcomeRejectionReason::AuthorityBindingInvalid, "authority_binding_invalid"),
+        (RecordOutcomeRejectionReason::ApprovalBindingInvalid, "approval_binding_invalid"),
+        (RecordOutcomeRejectionReason::EvidenceBindingInvalid, "evidence_binding_invalid"),
+        (RecordOutcomeRejectionReason::LineageInvalid, "lineage_invalid"),
+        (RecordOutcomeRejectionReason::StaleOutcome, "stale_outcome"),
+        (RecordOutcomeRejectionReason::DecisionMemoryConflict, "decision_memory_conflict"),
+        (RecordOutcomeRejectionReason::PersistenceFailed, "persistence_failed"),
+        (RecordOutcomeRejectionReason::UnsupportedOperation, "unsupported_operation"),
+    ];
+    for (reason, wire_value) in reasons {
+        require_eq(
+            serde_json::to_value(reason)?,
+            json!(wire_value),
+            "rejection reason wire value",
+        )?;
+        require_eq(reason.as_str(), wire_value, "rejection reason display value")?;
+    }
+    Ok(())
 }
 
 #[test]
@@ -378,6 +463,48 @@ fn same_identity_with_different_authoritative_content_has_a_different_digest() -
     require(
         first.event_id == changed.event_id && first.event_digest != changed.event_digest,
         "same identity with changed authoritative content shared a digest",
+    )
+}
+
+#[test]
+fn portable_request_rejects_paths_secrets_raw_prompts_and_private_conversations() -> TestResult {
+    let absolute_path = ["artifact:", "/", "private", "/", "proof.json"].concat();
+    for (label, deviation) in [
+        ("absolute-path", absolute_path.as_str()),
+        ("provider-token", "provider_token:credential-material"),
+        ("raw-prompt", "raw_prompt:private-instruction"),
+        ("private-conversation", "private_conversation:transcript"),
+    ] {
+        let mut request = base_request(TerminalOutcomeStatus::Published)?;
+        request.deviations = vec![Deviation::new(deviation)];
+        request.recompute_event_digest()?;
+        require(
+            decode_request(&request).is_err(),
+            format!("{label} content was accepted into a portable outcome"),
+        )?;
+    }
+    Ok(())
+}
+
+#[test]
+fn duplicate_json_keys_and_floating_point_revisions_fail_closed() -> TestResult {
+    let request = base_request(TerminalOutcomeStatus::Published)?;
+    let encoded = serde_json::to_string(&request)?;
+    let duplicate = encoded.replacen(
+        r#""event_id":"outcome-event-001","#,
+        r#""event_id":"outcome-event-001","event_id":"outcome-event-002","#,
+        1,
+    );
+    require(
+        serde_json::from_str::<RecordOutcomeRequest>(&duplicate).is_err(),
+        "duplicate JSON key was accepted",
+    )?;
+
+    let mut floating_revision = serde_json::to_value(&request)?;
+    floating_revision["final_transaction_revision"] = json!(42.5);
+    require(
+        serde_json::from_value::<RecordOutcomeRequest>(floating_revision).is_err(),
+        "floating-point revision was accepted",
     )
 }
 

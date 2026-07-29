@@ -4,7 +4,13 @@ use std::fs;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-use canon_contracts::{ChallengeTier, Profile, VerificationKind};
+use canon_contracts::{
+    ApprovalDecision, AuthoritativeTimestamp, BundleDigest, BundleId, ChallengeTier, Claim,
+    CommitIdentity, Deviation, EvidenceReference, FinalFingerprint, OutcomeApprovalBinding,
+    OutcomeAuthorityBinding, OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId,
+    OutcomeLineage, OutcomeSessionId, OutcomeSourceProduct, Profile, RecordOutcomeRequest,
+    RepositoryIdentity, Revision, TerminalOutcomeStatus, VerificationKind,
+};
 use canon_engine::decision_memory::{
     ApprovalContent, ArtifactContent, EvidenceContent, GovernanceBundleDraft,
     GovernancePacketDraft, NodeId, RiskAcceptanceContent, SubjectArtifactBinding,
@@ -89,6 +95,11 @@ impl RpcFixture {
     /// Reads the exact durable snapshot for mutation checks.
     pub(super) fn snapshot_bytes(&self) -> FixtureResult<Vec<u8>> {
         Ok(fs::read(self.workspace.path().join(".canon/decision-memory/state.json"))?)
+    }
+
+    /// Reports whether the deterministic decision-memory snapshot exists.
+    pub(super) fn has_snapshot(&self) -> bool {
+        self.workspace.path().join(".canon/decision-memory/state.json").exists()
     }
 
     /// Admits a draft through the stable human CLI and returns its JSON projection.
@@ -182,6 +193,56 @@ impl RpcFixture {
         let response = serde_json::from_slice(&output.stdout)?;
         Ok((output.status.success(), response))
     }
+}
+
+/// Complete terminal outcome accepted by the 0.91 public DTO decoder.
+pub(super) fn record_outcome_request() -> FixtureResult<RecordOutcomeRequest> {
+    let final_revision = Revision::new(42);
+    let mut request = RecordOutcomeRequest {
+        event_id: OutcomeEventId::new("outcome-event-stable-surface"),
+        event_digest: OutcomeEventDigest::placeholder(),
+        source_product: OutcomeSourceProduct::Boundline,
+        source_repository_identity: RepositoryIdentity::new("git-common-dir:stable-fixture"),
+        governance_bundle_id: BundleId::new("bundle-stable-outcome"),
+        governance_bundle_digest: BundleDigest::new("sha256:bundle-stable-outcome"),
+        session_id: OutcomeSessionId::new("session-stable-outcome"),
+        final_transaction_revision: final_revision,
+        terminal_status: TerminalOutcomeStatus::Published,
+        published_commit: Some(CommitIdentity::new("6b4d8ac1d1644cbd88f78d57f66aeb78550d3f42")),
+        final_fingerprint: Some(FinalFingerprint::new("sha256:stable-fixture-fingerprint")),
+        proof_references: vec![EvidenceReference::new("proof:stable-fixture")],
+        deviations: vec![Deviation::new("deviation:none")],
+        terminal_claims: vec![Claim::new("claim:stable-outcome")],
+        authority_binding: OutcomeAuthorityBinding {
+            authority_identity: "release-owner".to_owned(),
+            final_transaction_revision: final_revision,
+            claims: vec![Claim::new("claim:stable-outcome")],
+        },
+        approval_binding: Some(OutcomeApprovalBinding {
+            approver_identity: "release-owner".to_owned(),
+            decision: ApprovalDecision::Approved,
+            final_transaction_revision: final_revision,
+            claims: vec![Claim::new("claim:stable-outcome")],
+        }),
+        challenge_binding: OutcomeChallengeBinding {
+            tier: ChallengeTier::Tier2,
+            challenger_identity: Some("independent-reviewer".to_owned()),
+            challenger_invocation_id: Some("review-invocation-stable".to_owned()),
+            independent_context_identity: Some("context:stable-independent".to_owned()),
+            claims: vec![Claim::new("claim:stable-outcome")],
+            evidence_references: vec![EvidenceReference::new("proof:stable-review")],
+            named_override: None,
+        },
+        lineage: OutcomeLineage {
+            producer_identity: "boundline-executor".to_owned(),
+            producer_invocation_id: "boundline-invocation-stable".to_owned(),
+            verifier_identity: Some("independent-reviewer".to_owned()),
+            verifier_invocation_id: Some("review-invocation-stable".to_owned()),
+        },
+        occurred_at: Some(AuthoritativeTimestamp::new("2026-07-29T11:00:00Z")),
+    };
+    request.recompute_event_digest()?;
+    Ok(request)
 }
 
 fn profile_wire(profile: Profile) -> &'static str {

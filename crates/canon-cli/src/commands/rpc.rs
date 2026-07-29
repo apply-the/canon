@@ -6,7 +6,11 @@
 
 use std::io::{Read, Write};
 
-use canon_contracts::{CanonContractVersion, OneShotOperation, OneShotResponse};
+use canon_contracts::{
+    CanonContractVersion, OneShotOperation, OneShotResponse, OutcomeNextAction,
+    RecordOutcomeDisposition, RecordOutcomeRejectionReason, RecordOutcomeRequest,
+    RecordOutcomeResponse,
+};
 use canon_engine::EngineService;
 use canon_engine::decision_memory::GovernanceBundleDraft;
 use canon_engine::modes::stable_profile_registry;
@@ -36,16 +40,26 @@ struct RequestEnvelope {
 struct OperationPayload {
     #[serde(default)]
     bundle: Option<GovernanceBundleDraft>,
+    #[serde(default)]
+    outcome: Option<RecordOutcomeRequest>,
 }
 
 #[derive(Debug, Serialize)]
 struct CapabilitiesResult {
-    operations: [OneShotOperation; 6],
+    operations: [OneShotOperation; 7],
+    operation_capabilities: [OperationCapability; 7],
     profiles: Vec<&'static str>,
     exactly_one_request: bool,
     max_request_bytes: usize,
     semantic_review_execution: bool,
     background_work: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+struct OperationCapability {
+    operation: OneShotOperation,
+    available: bool,
+    reason_code: Option<RecordOutcomeRejectionReason>,
 }
 
 #[derive(Debug, Serialize)]
@@ -60,6 +74,7 @@ struct RejectionResult {
 enum RpcResult {
     Capabilities(CapabilitiesResult),
     Governance(StableGovernanceResult),
+    Outcome(RecordOutcomeResponse),
     Rejection(RejectionResult),
 }
 
@@ -68,6 +83,10 @@ impl RpcResult {
         match self {
             Self::Capabilities(_) => 0,
             Self::Governance(result) => stable_governance::exit_code(result.terminal_status),
+            Self::Outcome(result) => match result.disposition {
+                RecordOutcomeDisposition::Recorded | RecordOutcomeDisposition::Replayed => 0,
+                RecordOutcomeDisposition::Rejected => 8,
+            },
             Self::Rejection(_) => 1,
         }
     }
@@ -118,10 +137,10 @@ fn dispatch(service: &EngineService, request: RequestEnvelope) -> Result<RpcResu
     if request.contract_version != CanonContractVersion::V1 {
         return Err(RequestError::Invalid("unsupported contract version".to_string()));
     }
-    let empty = request.payload.bundle.is_none();
+    let empty = request.payload.bundle.is_none() && request.payload.outcome.is_none();
     match request.operation.as_str() {
         "capabilities" if empty => Ok(RpcResult::Capabilities(capabilities())),
-        "start" | "approve" => {
+        "start" | "approve" if request.payload.outcome.is_none() => {
             let bundle = request.payload.bundle.ok_or_else(|| {
                 RequestError::Invalid("mutation payload requires `bundle`".to_string())
             })?;
@@ -132,8 +151,17 @@ fn dispatch(service: &EngineService, request: RequestEnvelope) -> Result<RpcResu
         "refresh" | "inspect" | "publish" if empty => stable_governance::inspect(service)
             .map(RpcResult::Governance)
             .map_err(RequestError::Governance),
-        "capabilities" | "refresh" | "inspect" | "publish" => {
+        "record_outcome" if request.payload.bundle.is_none() => {
+            let outcome = request.payload.outcome.ok_or_else(|| {
+                RequestError::Invalid("record_outcome payload requires `outcome`".to_string())
+            })?;
+            Ok(RpcResult::Outcome(unavailable_outcome(&request.request_id, outcome)))
+        }
+        "capabilities" | "refresh" | "inspect" | "publish" | "record_outcome" => {
             Err(RequestError::Invalid("operation payload must be an empty object".to_string()))
+        }
+        "start" | "approve" => {
+            Err(RequestError::Invalid("mutation payload accepts only `bundle`".to_string()))
         }
         operation => Err(RequestError::Unsupported(operation.to_string())),
     }
@@ -156,20 +184,58 @@ fn read_bounded(input: &mut impl Read) -> Result<Vec<u8>, RequestError> {
 }
 
 fn capabilities() -> CapabilitiesResult {
+    let operations = [
+        OneShotOperation::Capabilities,
+        OneShotOperation::Start,
+        OneShotOperation::Refresh,
+        OneShotOperation::Approve,
+        OneShotOperation::Inspect,
+        OneShotOperation::Publish,
+        OneShotOperation::RecordOutcome,
+    ];
     CapabilitiesResult {
-        operations: [
-            OneShotOperation::Capabilities,
-            OneShotOperation::Start,
-            OneShotOperation::Refresh,
-            OneShotOperation::Approve,
-            OneShotOperation::Inspect,
-            OneShotOperation::Publish,
-        ],
+        operations,
+        operation_capabilities: operations.map(operation_capability),
         profiles: stable_profile_registry().iter().map(|entry| entry.id()).collect(),
         exactly_one_request: true,
         max_request_bytes: MAX_REQUEST_BYTES,
         semantic_review_execution: false,
         background_work: false,
+    }
+}
+
+const fn operation_capability(operation: OneShotOperation) -> OperationCapability {
+    match operation {
+        OneShotOperation::RecordOutcome => OperationCapability {
+            operation,
+            available: false,
+            reason_code: Some(RecordOutcomeRejectionReason::UnsupportedOperation),
+        },
+        OneShotOperation::Capabilities
+        | OneShotOperation::Start
+        | OneShotOperation::Refresh
+        | OneShotOperation::Approve
+        | OneShotOperation::Inspect
+        | OneShotOperation::Publish => {
+            OperationCapability { operation, available: true, reason_code: None }
+        }
+    }
+}
+
+fn unavailable_outcome(request_id: &str, outcome: RecordOutcomeRequest) -> RecordOutcomeResponse {
+    let reason_code = if request_id == outcome.event_id.as_str() {
+        RecordOutcomeRejectionReason::UnsupportedOperation
+    } else {
+        RecordOutcomeRejectionReason::IdentityDigestConflict
+    };
+    RecordOutcomeResponse {
+        event_id: outcome.event_id,
+        event_digest: outcome.event_digest,
+        disposition: RecordOutcomeDisposition::Rejected,
+        decision_memory_revision: None,
+        decision_memory_digest: None,
+        reason_code: Some(reason_code),
+        next_actions: vec![OutcomeNextAction::Retry],
     }
 }
 
@@ -262,7 +328,7 @@ mod tests {
         )?;
         require(code == 0, "capabilities exit code drifted")?;
         require(
-            capabilities["result"]["operations"].as_array().is_some_and(|items| items.len() == 6),
+            capabilities["result"]["operations"].as_array().is_some_and(|items| items.len() == 7),
             "capabilities registry drifted",
         )?;
 
