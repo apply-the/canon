@@ -2,6 +2,8 @@
 
 /// Artifact rendering and contract types.
 pub mod artifacts;
+/// Deterministic governance validation and repository-local decision memory.
+pub mod decision_memory;
 /// Core domain model types.
 pub mod domain;
 /// Mode-specific execution logic.
