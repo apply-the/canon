@@ -291,6 +291,12 @@ fn write_response(output: &mut impl Write, response: &impl Serialize) -> CliResu
 
 #[cfg(test)]
 mod tests {
+    use canon_contracts::{
+        BundleDigest, BundleId, ChallengeTier, Claim, EvidenceReference, FinalFingerprint,
+        OutcomeAuthorityBinding, OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId,
+        OutcomeLineage, OutcomeSessionId, OutcomeSourceProduct, RecordOutcomeRequest,
+        RepositoryIdentity, Revision, TerminalOutcomeStatus,
+    };
     use canon_engine::EngineService;
     use serde_json::Value;
 
@@ -457,5 +463,78 @@ mod tests {
             )? == 6,
             "persistence failure exit code drifted",
         )
+    }
+
+    #[test]
+    fn direct_dispatch_covers_pending_outcome_and_identity_conflict() -> TestResult {
+        let revision = Revision::new(7);
+        let claim = Claim::new("claim:no-change");
+        let evidence = EvidenceReference::new("proof:direct-rpc");
+        let mut outcome = RecordOutcomeRequest {
+            event_id: OutcomeEventId::new("outcome-direct-rpc"),
+            event_digest: OutcomeEventDigest::placeholder(),
+            source_product: OutcomeSourceProduct::Boundline,
+            source_repository_identity: RepositoryIdentity::new("git-common-dir:direct-rpc"),
+            governance_bundle_id: BundleId::new("bundle-direct-rpc"),
+            governance_bundle_digest: BundleDigest::new("sha256:bundle-direct-rpc"),
+            session_id: OutcomeSessionId::new("session-direct-rpc"),
+            final_transaction_revision: revision,
+            terminal_status: TerminalOutcomeStatus::NoChange,
+            published_commit: None,
+            final_fingerprint: Some(FinalFingerprint::new("sha256:direct-rpc")),
+            proof_references: vec![evidence.clone()],
+            deviations: Vec::new(),
+            terminal_claims: vec![claim.clone()],
+            authority_binding: OutcomeAuthorityBinding {
+                authority_identity: "release-owner".to_owned(),
+                final_transaction_revision: revision,
+                claims: vec![claim.clone()],
+            },
+            approval_binding: None,
+            challenge_binding: OutcomeChallengeBinding {
+                tier: ChallengeTier::Tier0,
+                challenger_identity: None,
+                challenger_invocation_id: None,
+                independent_context_identity: None,
+                claims: vec![claim],
+                evidence_references: vec![evidence],
+                named_override: None,
+            },
+            lineage: OutcomeLineage {
+                producer_identity: "boundline".to_owned(),
+                producer_invocation_id: "invocation-direct-rpc".to_owned(),
+                verifier_identity: None,
+                verifier_invocation_id: None,
+            },
+            occurred_at: None,
+        };
+        outcome.recompute_event_digest()?;
+
+        for (request_id, expected_reason) in [
+            ("outcome-direct-rpc", "unsupported_operation"),
+            ("different-event", "identity_digest_conflict"),
+        ] {
+            let request = serde_json::to_vec(&serde_json::json!({
+                "contract_version": "1.0",
+                "request_id": request_id,
+                "operation": "record_outcome",
+                "payload": {"outcome": &outcome}
+            }))?;
+            let (code, response) = invoke(&request)?;
+            require(code == 8, "pending outcome did not use unsupported exit code")?;
+            require(
+                response["result"]["reason_code"] == expected_reason,
+                "pending outcome reason drifted",
+            )?;
+        }
+
+        let invalid = serde_json::to_vec(&serde_json::json!({
+            "contract_version": "1.0",
+            "request_id": "invalid-outcome",
+            "operation": "record_outcome",
+            "payload": {"bundle": draft("bundle-invalid-outcome", 1)}
+        }))?;
+        let (code, _) = invoke(&invalid)?;
+        require(code == 1, "record_outcome accepted a governance bundle")
     }
 }

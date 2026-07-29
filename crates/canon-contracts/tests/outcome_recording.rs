@@ -264,6 +264,51 @@ fn recorded_replayed_and_rejected_response_invariants_fail_closed() -> TestResul
 }
 
 #[test]
+fn response_identity_actions_and_error_reason_fail_closed() -> TestResult {
+    let request = base_request(TerminalOutcomeStatus::Published)?;
+    let response = RecordOutcomeResponse {
+        event_id: request.event_id,
+        event_digest: request.event_digest,
+        disposition: RecordOutcomeDisposition::Rejected,
+        decision_memory_revision: None,
+        decision_memory_digest: None,
+        reason_code: Some(RecordOutcomeRejectionReason::InvalidOutcome),
+        next_actions: vec![OutcomeNextAction::RepairEvidence],
+    };
+
+    let mut empty_identity = serde_json::to_value(&response)?;
+    empty_identity["event_id"] = json!("");
+    let error = match serde_json::from_value::<RecordOutcomeResponse>(empty_identity) {
+        Ok(_) => return Err("empty response identity was accepted".into()),
+        Err(error) => error,
+    };
+    require(
+        error.to_string().contains("invalid_outcome"),
+        "response rejection did not preserve the stable reason",
+    )?;
+
+    let mut duplicate_actions = serde_json::to_value(&response)?;
+    duplicate_actions["next_actions"] = json!(["repair_evidence", "repair_evidence"]);
+    require(
+        serde_json::from_value::<RecordOutcomeResponse>(duplicate_actions).is_err(),
+        "duplicate next actions were accepted",
+    )?;
+
+    let mut invalid_request = base_request(TerminalOutcomeStatus::Published)?;
+    invalid_request.lineage.producer_identity.clear();
+    invalid_request.recompute_event_digest()?;
+    let contract_error = match invalid_request.validate() {
+        Ok(()) => return Err("empty producer identity was accepted".into()),
+        Err(error) => error,
+    };
+    require_eq(
+        contract_error.reason_code(),
+        RecordOutcomeRejectionReason::InvalidOutcome,
+        "contract error reason accessor",
+    )
+}
+
+#[test]
 fn missing_identity_and_duplicate_sets_are_rejected() -> TestResult {
     let mut missing_identity = base_request(TerminalOutcomeStatus::Published)?;
     missing_identity.event_id = OutcomeEventId::new("");
