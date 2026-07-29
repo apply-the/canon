@@ -33,7 +33,7 @@ const SUPPORTED_BOUNDLINE_MAX_EXCLUSIVE: &str = "0.75.0";
 const SUPPORTED_CANON_WINDOW: &str = "0.72.x";
 const SUPPORTED_CANON_MAX_EXCLUSIVE: &str = "0.73.0";
 const SUPPORTED_CONTRACT_LINE: &str = "governed_reasoning_posture_v2";
-const RELEASE_TRAIN_VERSION: &str = "0.90.0";
+const RELEASE_TRAIN_VERSION: &str = "0.91.0";
 
 const REQUIRED_TOP_LEVEL_FIELDS: [&str; 8] = [
     "contract_line",
