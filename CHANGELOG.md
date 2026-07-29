@@ -11,6 +11,21 @@ bump and the previous one.
 Canon follows Semantic Versioning. Before `1.0.0`, breaking changes may occur in
 minor releases.
 
+## [0.91.0] - Unreleased
+
+Contract amendment:
+
+- Added the discoverable one-shot `record_outcome` operation without changing
+  the six operations published in `0.90.0` or the `"1.0"` wire envelope.
+- Added typed terminal Boundline outcome request and response DTOs, closed
+  status, disposition, reason-code, and next-action vocabularies, and
+  `canon-boundline-outcome-c14n-v1` domain-separated canonical digests.
+- Kept the operation unavailable until transactional ingestion lands in T059.
+  Canon returns a typed rejected response with no decision-memory revision and
+  creates no durable state.
+- Moved the workspace coherently to `0.91.0` because workspace version
+  inheritance prevents an honest isolated package-version bump.
+
 The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
 recorded workspace version.
