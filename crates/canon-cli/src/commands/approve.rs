@@ -49,6 +49,7 @@ mod tests {
     fn git(workspace: &std::path::Path, args: &[&str]) {
         let output = Command::new("git")
             .current_dir(workspace)
+            .args(["-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"])
             .args(args)
             .output()
             .expect("run git command");
