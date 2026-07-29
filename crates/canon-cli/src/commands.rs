@@ -9,6 +9,7 @@ pub mod policy_shaping;
 pub mod pr_review;
 pub mod publish;
 pub mod resume;
+pub mod rpc;
 pub mod run;
 pub mod skills;
 pub mod stable_cli;

@@ -273,6 +273,10 @@ pub enum Command {
         #[command(subcommand)]
         command: SkillsCommand,
     },
+    Rpc {
+        #[arg(long, required = true)]
+        stdio: bool,
+    },
     #[command(hide = true)]
     PolicyShaping(commands::policy_shaping::PolicyShapingArgs),
     #[command(hide = true)]
@@ -475,6 +479,7 @@ fn dispatch_command(service: &EngineService, command: Command) -> CliResult<i32>
         Command::PrReview { command } => commands::pr_review::execute(service, command),
         Command::List { command } => commands::list::execute(service, command),
         Command::Publish(cmd) => commands::publish::execute(service, cmd),
+        Command::Rpc { stdio: _ } => commands::rpc::execute(service),
         Command::PolicyShaping(args) => commands::policy_shaping::handle(&args)
             .map(|_| 0)
             .map_err(|e| crate::error::CliError::InvalidInput(e.to_string())),
