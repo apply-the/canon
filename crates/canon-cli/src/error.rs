@@ -14,4 +14,6 @@ pub enum CliError {
     Yaml(#[from] serde_yaml::Error),
     #[error("{0}")]
     InvalidInput(String),
+    #[error("identity_digest_conflict: {0}")]
+    IdentityDigestConflict(String),
 }

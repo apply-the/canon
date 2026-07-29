@@ -11,6 +11,8 @@ pub mod publish;
 pub mod resume;
 pub mod run;
 pub mod skills;
+pub mod stable_cli;
+pub mod stable_governance;
 pub mod status;
 pub mod verify;
 

@@ -8,6 +8,18 @@ use crate::commands;
 use crate::error::CliResult;
 use crate::workspace;
 
+const STABLE_PROFILE_IDS: [&str; 9] = [
+    "discovery",
+    "requirements",
+    "architecture",
+    "backlog",
+    "change",
+    "refactor",
+    "verification",
+    "pr-review",
+    "incident",
+];
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum, Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum OutputFormat {
@@ -20,6 +32,10 @@ pub enum OutputFormat {
 
 #[derive(Debug, Subcommand, Clone)]
 pub enum InspectCommand {
+    DecisionMemory {
+        #[arg(long, default_value_t = OutputFormat::Json)]
+        output: OutputFormat,
+    },
     Modes {
         #[arg(long, default_value_t = OutputFormat::Markdown)]
         output: OutputFormat,
@@ -88,12 +104,14 @@ pub enum SkillsCommand {
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
+    #[command(hide = true)]
     Update {
         #[arg(long, value_enum)]
         ai: AiTarget,
         #[arg(long, default_value_t)]
         output: OutputFormat,
     },
+    #[command(hide = true)]
     List {
         #[arg(long, default_value_t)]
         output: OutputFormat,
@@ -139,14 +157,18 @@ impl From<AiTarget> for AiTool {
 
 #[derive(Debug, Clone, Args)]
 pub struct RunCommand {
+    #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(STABLE_PROFILE_IDS))]
+    profile: Option<String>,
+    #[arg(long, hide = true)]
+    mode: Option<String>,
     #[arg(long)]
-    mode: String,
-    #[arg(long = "system-context")]
+    bundle: Option<PathBuf>,
+    #[arg(long = "system-context", hide = true)]
     system_context: Option<String>,
-    #[arg(long)]
-    risk: String,
-    #[arg(long)]
-    zone: String,
+    #[arg(long, hide = true)]
+    risk: Option<String>,
+    #[arg(long, hide = true)]
+    zone: Option<String>,
     #[arg(long, hide = true)]
     risk_source: Option<String>,
     #[arg(long, hide = true)]
@@ -159,20 +181,17 @@ pub struct RunCommand {
     zone_rationale: Option<String>,
     #[arg(long = "zone-signal", hide = true)]
     zone_signals: Vec<String>,
-    #[arg(
-        long,
-        help = "Human owner for the run. If omitted, Canon tries git user.name and user.email."
-    )]
+    #[arg(long, hide = true)]
     owner: Option<String>,
     #[arg(long = "input", num_args = 1..)]
     inputs: Vec<String>,
     #[arg(long = "input-text")]
     inline_inputs: Vec<String>,
-    #[arg(long = "exclude")]
+    #[arg(long = "exclude", hide = true)]
     excluded_paths: Vec<String>,
-    #[arg(long)]
+    #[arg(long, hide = true)]
     policy_root: Option<String>,
-    #[arg(long)]
+    #[arg(long, hide = true)]
     method_root: Option<String>,
     #[arg(long, default_value_t)]
     output: OutputFormat,
@@ -219,6 +238,7 @@ pub enum Command {
         output: OutputFormat,
     },
     Approve(ApproveCommand),
+    #[command(hide = true)]
     Verify {
         #[arg(long)]
         run: String,
@@ -227,26 +247,37 @@ pub enum Command {
         #[command(subcommand)]
         command: InspectCommand,
     },
+    #[command(hide = true)]
     Skills {
         #[command(subcommand)]
         command: SkillsCommand,
     },
+    #[command(hide = true)]
     Governance {
         #[command(subcommand)]
         command: GovernanceCommand,
     },
+    #[command(hide = true)]
     /// Onion-layer PR review: prepare, accept, and finalize phases.
     PrReview {
         #[command(subcommand)]
         command: PrReviewCommand,
     },
+    #[command(hide = true)]
     List {
         #[command(subcommand)]
         command: ListCommand,
     },
     Publish(PublishCommand),
+    Assistant {
+        #[command(subcommand)]
+        command: SkillsCommand,
+    },
+    #[command(hide = true)]
     PolicyShaping(commands::policy_shaping::PolicyShapingArgs),
+    #[command(hide = true)]
     ObservabilityDesign(commands::observability_design::ObservabilityDesignArgs),
+    #[command(hide = true)]
     HelpNext {
         #[arg(long, default_value_t)]
         output: OutputFormat,
@@ -361,7 +392,9 @@ fn dispatch_command(service: &EngineService, command: Command) -> CliResult<i32>
         }
         Command::Run(run_command) => {
             let RunCommand {
+                profile,
                 mode,
+                bundle,
                 system_context,
                 risk,
                 zone,
@@ -379,27 +412,52 @@ fn dispatch_command(service: &EngineService, command: Command) -> CliResult<i32>
                 method_root,
                 output,
             } = *run_command;
-
-            commands::run::execute(
-                service,
-                mode,
-                system_context,
-                risk,
-                zone,
-                risk_source,
-                risk_rationale,
-                risk_signals,
-                zone_source,
-                zone_rationale,
-                zone_signals,
-                owner,
-                inputs,
-                inline_inputs,
-                excluded_paths,
-                policy_root,
-                method_root,
-                output,
-            )
+            if let Some(selected_profile) = profile {
+                commands::stable_cli::run(
+                    service,
+                    &selected_profile,
+                    bundle,
+                    inputs,
+                    inline_inputs,
+                    output,
+                )
+            } else {
+                let selected_mode = mode.ok_or_else(|| {
+                    crate::error::CliError::InvalidInput(
+                        "run requires one stable --profile value".to_string(),
+                    )
+                })?;
+                let risk = risk.ok_or_else(|| {
+                    crate::error::CliError::InvalidInput(
+                        "legacy run requires an explicit --risk".to_string(),
+                    )
+                })?;
+                let zone = zone.ok_or_else(|| {
+                    crate::error::CliError::InvalidInput(
+                        "legacy run requires an explicit --zone".to_string(),
+                    )
+                })?;
+                commands::run::execute(
+                    service,
+                    selected_mode,
+                    system_context,
+                    risk,
+                    zone,
+                    risk_source,
+                    risk_rationale,
+                    risk_signals,
+                    zone_source,
+                    zone_rationale,
+                    zone_signals,
+                    owner,
+                    inputs,
+                    inline_inputs,
+                    excluded_paths,
+                    policy_root,
+                    method_root,
+                    output,
+                )
+            }
         }
         Command::Resume { run } => commands::resume::execute(service, &run),
         Command::Status { run, output } => commands::status::execute(service, &run, output),
@@ -407,7 +465,11 @@ fn dispatch_command(service: &EngineService, command: Command) -> CliResult<i32>
             commands::approve::execute(service, &run, target, gate, by, decision, rationale)
         }
         Command::Verify { run } => commands::verify::execute(service, &run),
+        Command::Inspect { command: InspectCommand::DecisionMemory { output } } => {
+            commands::stable_cli::inspect(service, output)
+        }
         Command::Inspect { command } => commands::inspect::execute(service, command),
+        Command::Assistant { command } => commands::skills::execute(service, command),
         Command::Skills { command } => commands::skills::execute(service, command),
         Command::Governance { command } => commands::governance::execute(service, command),
         Command::PrReview { command } => commands::pr_review::execute(service, command),
@@ -546,10 +608,10 @@ mod tests {
         assert_command!(
             cli.command,
             Command::Run(run)
-                if run.mode == "requirements"
+                if run.mode.as_deref() == Some("requirements")
                     && run.system_context.is_none()
-                    && run.risk == "low-impact"
-                    && run.zone == "green"
+                    && run.risk.as_deref() == Some("low-impact")
+                    && run.zone.as_deref() == Some("green")
                     && run.risk_source.as_deref() == Some("inferred-confirmed")
                     && run.risk_rationale.as_deref() == Some("Production boundary detected")
                     && run.risk_signals == vec!["Detected boundary keyword"]
@@ -580,7 +642,7 @@ mod tests {
         assert_command!(
             cli.command,
             Command::Run(run)
-                if run.mode == "implementation"
+                if run.mode.as_deref() == Some("implementation")
                     && run.system_context.as_deref() == Some("existing")
                     && run.inputs.is_empty()
                     && run.inline_inputs.is_empty()
@@ -892,6 +954,70 @@ mod tests {
     }
 
     #[test]
+    fn stable_dispatch_arms_fail_closed_or_reach_their_real_handler()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let workspace = tempdir()?;
+        let repo_root = workspace.path().to_path_buf();
+        let roots = || resolved_roots(repo_root.clone());
+        let run = |profile, mode, risk, zone, inline_inputs| {
+            Command::Run(Box::new(RunCommand {
+                profile,
+                mode,
+                bundle: None,
+                system_context: None,
+                risk,
+                zone,
+                risk_source: None,
+                risk_rationale: None,
+                risk_signals: Vec::new(),
+                zone_source: None,
+                zone_rationale: None,
+                zone_signals: Vec::new(),
+                owner: None,
+                inputs: Vec::new(),
+                inline_inputs,
+                excluded_paths: Vec::new(),
+                policy_root: None,
+                method_root: None,
+                output: OutputFormat::Json,
+            }))
+        };
+        for command in [
+            run(Some("discovery".to_string()), None, None, None, vec!["{}".to_string()]),
+            run(None, None, None, None, Vec::new()),
+            run(None, Some("requirements".to_string()), None, None, Vec::new()),
+            run(
+                None,
+                Some("requirements".to_string()),
+                Some("low-impact".to_string()),
+                None,
+                Vec::new(),
+            ),
+            Command::Inspect {
+                command: InspectCommand::DecisionMemory { output: OutputFormat::Json },
+            },
+        ] {
+            if run_with(Cli { canon_root: None, repo_root: None, command }, roots()).is_ok() {
+                return Err("fail-closed stable dispatch unexpectedly succeeded".into());
+            }
+        }
+        let assistant_result = run_with(
+            Cli {
+                canon_root: None,
+                repo_root: None,
+                command: Command::Assistant {
+                    command: SkillsCommand::List { output: OutputFormat::Json },
+                },
+            },
+            roots(),
+        )?;
+        if assistant_result != 0 {
+            return Err("assistant handler returned non-zero".into());
+        }
+        Ok(())
+    }
+
+    #[test]
     fn policy_shaping_parses_args_correctly() {
         let cli = Cli::parse_from([
             "canon",
@@ -935,10 +1061,12 @@ mod tests {
                     canon_root: None,
                     repo_root: None,
                     command: Command::Run(Box::new(RunCommand {
-                        mode: "not-a-mode".to_string(),
+                        profile: None,
+                        mode: Some("not-a-mode".to_string()),
+                        bundle: None,
                         system_context: None,
-                        risk: "low-impact".to_string(),
-                        zone: "green".to_string(),
+                        risk: Some("low-impact".to_string()),
+                        zone: Some("green".to_string()),
                         risk_source: None,
                         risk_rationale: None,
                         risk_signals: Vec::new(),

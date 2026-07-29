@@ -10,6 +10,11 @@ use crate::output;
 
 pub fn execute(service: &EngineService, command: InspectCommand) -> CliResult<i32> {
     let (target, target_name, run_id, format) = match command {
+        InspectCommand::DecisionMemory { .. } => {
+            return Err(CliError::InvalidInput(
+                "decision-memory inspection is dispatched by the stable CLI boundary".to_string(),
+            ));
+        }
         InspectCommand::Modes { output } => (InspectTarget::Modes, "modes", None, output),
         InspectCommand::Methods { output } => (InspectTarget::Methods, "methods", None, output),
         InspectCommand::Policies { output } => (InspectTarget::Policies, "policies", None, output),

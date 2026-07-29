@@ -12,6 +12,7 @@ fn exit_code_for_error(error: &CliError) -> i32 {
     match error {
         CliError::Engine(canon_engine::EngineError::Validation(_)) => 5,
         CliError::Engine(canon_engine::EngineError::Io(_)) | CliError::Io(_) => 6,
+        CliError::IdentityDigestConflict(_) => 7,
         _ => 1,
     }
 }

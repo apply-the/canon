@@ -143,6 +143,7 @@ dependencies = [
 name = "canon-cli"
 version = "0.90.0"
 dependencies = [
+ "canon-contracts",
  "canon-engine",
  "clap",
  "crossterm",
