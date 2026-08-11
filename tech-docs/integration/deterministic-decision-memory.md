@@ -6,7 +6,8 @@ clients, or subprocesses.
 
 ## Boundary
 
-The public `canon-contracts 0.90.0` types remain the exchange format.
+The public governance exchange remains `canon-contracts 0.90.0`; the additive
+terminal-outcome exchange is the immutable `canon-contracts 0.91.0` package.
 Repository-local metadata binds the public bundle to packet digests, packet
 and decision-memory revisions, exact subject-artifact revisions and digests,
 claims, evidence, approvals,
@@ -92,4 +93,27 @@ non-decision node, every base and terminal dependency edge, supersession,
 dangling references, dependency cycles, and the recorded terminal decision.
 It also rejects terminal records that claim semantic truth, external
 execution, non-canonical phase order, or incoherent findings. This adds no
-second state root and performs no outcome ingestion.
+second state root.
+
+## Boundline terminal outcomes
+
+An admitted governance bundle may receive one portable terminal outcome from
+Boundline through the frozen `record_outcome` contract. Canon validates the
+event identity, canonical digest, terminal status, repository and session
+bindings, published commit and fingerprint rules, proof and claim bindings,
+authority, approval, challenge, and independent lineage deterministically.
+It neither runs the publication nor creates the supplied evidence.
+
+An accepted request appends one typed `OutcomeRecorded` event containing the
+complete request, assigned revision, deterministic decision digest, complete
+validation-phase trace, and zero external-execution counters. The event is
+part of the existing graph journal and atomic snapshot. Replay therefore
+reconstructs the governance bundle, outcome event, graph revision, terminal
+projection, and digest together.
+
+Envelope identity is checked before the idempotency lookup. Exact
+event/digest retries return the original revision and digest without rewriting
+the snapshot; changed content under an existing event identity fails closed.
+Fault injection demonstrates that pre-persistence failures leave no event and
+that a lost response after durable commit converges by replaying exactly the
+one committed event.

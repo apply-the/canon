@@ -33,12 +33,10 @@ The existing six semantics do not change. `start` and `approve` accept a typed
 payload. `publish` remains read-only and returns governance, evidence, and
 decision-memory projections only.
 
-Before T059, capabilities lists `record_outcome` with `available = false` and
-`reason_code = unsupported_operation`. A valid invocation accepts the public
-`RecordOutcomeRequest` payload but returns a typed rejected
-`RecordOutcomeResponse`, no decision-memory revision or digest, exit code 8,
-and no durable state. This is an unavailable service boundary, not a
-successful stub.
+The historical T098 readiness state listed `record_outcome` with
+`available = false`. T059 promotes it to `available = true` only with a real
+transactional handler. A valid invocation returns a typed recorded, replayed,
+or rejected `RecordOutcomeResponse`; there is no synthetic-success path.
 
 The request limit remains 1,048,576 bytes. Empty, malformed, trailing,
 concatenated, array, oversized, invalid-UTF-8, unknown-field, and
@@ -73,6 +71,14 @@ fingerprint and forbids a commit; `failed`, `cancelled`, and `rejected` forbid a
 commit. `blocked` and `stale` decode as closed candidate values but are rejected
 as nonterminal.
 
+Canon validates envelope identity before idempotency lookup. An exact
+event/digest retry returns `replayed` with the original decision-memory
+revision and digest and does not rewrite the snapshot. Reusing an event
+identity for different authoritative content returns
+`identity_digest_conflict`. A new accepted event appends exactly one
+`outcome_recorded` graph event in the same atomic decision-memory snapshot;
+no separate outcome database exists.
+
 The decoder recomputes `event_digest` as SHA-256 over:
 
 ```text
@@ -94,5 +100,6 @@ wire semantics and capability discovery advertises the addition.
 These surfaces execute no provider, model, network call, semantic reviewer, or
 background process. Semantic review remains externally supplied evidence.
 `publish` cannot modify an authoritative workspace. MCP is not registered by
-this milestone because T056 freezes only the JSON one-shot transport.
-T057-T059 are not implemented by the 0.91 readiness amendment.
+this milestone because T056 freezes only the JSON one-shot transport. T059
+changes only the advertised availability and handler for the already-frozen
+0.91 `record_outcome` operation; the six historical operations remain exact.
