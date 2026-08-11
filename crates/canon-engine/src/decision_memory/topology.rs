@@ -67,6 +67,18 @@ pub(crate) fn reconstruct_repository(
                 expected.supersede(&previous, &successor, reason)?;
                 last_result = None;
             }
+            DecisionMemoryEvent::OutcomeRecorded { outcome } => {
+                let replayed = expected.record_publication_outcome(
+                    outcome.request,
+                    outcome.validation_phases,
+                    outcome.execution_audit,
+                );
+                if replayed.decision_memory_revision != outcome.decision_memory_revision {
+                    return Err(DecisionMemoryError::invalid_structure(
+                        "outcome event revision diverges during journal replay",
+                    ));
+                }
+            }
         }
     }
     let expected_order = bundles.iter().map(bundle_identity).collect::<Result<Vec<_>, _>>()?;
@@ -75,11 +87,12 @@ pub(crate) fn reconstruct_repository(
             "bundle roots do not match ordered admission events",
         ));
     }
-    let terminal = last_result.ok_or_else(|| {
+    let mut terminal = last_result.ok_or_else(|| {
         DecisionMemoryError::invalid_structure(
             "operation journal does not end in deterministic validation",
         )
     })?;
+    terminal.graph_digest = expected.digest()?.sha256;
     Ok((expected, terminal))
 }
 

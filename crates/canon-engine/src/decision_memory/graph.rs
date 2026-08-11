@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use canon_contracts::Profile;
+use canon_contracts::{Profile, RecordOutcomeRequest};
 use serde::{Deserialize, Serialize};
 
 use super::digest::is_sha256;
@@ -515,6 +515,11 @@ pub(crate) enum DecisionMemoryEvent {
         /// Stable supersession reason.
         reason: String,
     },
+    /// One exact Boundline terminal outcome was admitted.
+    OutcomeRecorded {
+        /// Complete typed event and assigned revision.
+        outcome: Box<PublicationOutcomeEvent>,
+    },
 }
 
 impl DependencyEdge {
@@ -538,6 +543,19 @@ pub enum InsertOutcome {
     Inserted,
     /// The same ID and digest was already recorded.
     Replayed,
+}
+
+/// One terminal Boundline outcome retained in the ordered decision-memory journal.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PublicationOutcomeEvent {
+    /// Complete frozen public request that was admitted.
+    pub request: RecordOutcomeRequest,
+    /// Monotonic decision-memory revision assigned to this event.
+    pub decision_memory_revision: u64,
+    /// Complete ordered deterministic validation trace.
+    pub validation_phases: Vec<super::OutcomeValidationPhase>,
+    /// Proof that Canon created no semantic or provider side effects.
+    pub execution_audit: super::ExecutionAuditCounters,
 }
 
 /// Repository-local typed decision-memory graph.
@@ -677,6 +695,35 @@ impl DecisionMemoryGraph {
     /// Computes the deterministic graph digest.
     pub fn digest(&self) -> Result<ContentDigest, DecisionMemoryError> {
         ContentDigest::compute("decision-memory-graph", self)
+    }
+
+    /// Returns terminal publication outcomes in journal order.
+    pub fn publication_outcomes(&self) -> impl Iterator<Item = &PublicationOutcomeEvent> {
+        self.events.iter().filter_map(|event| match event {
+            DecisionMemoryEvent::OutcomeRecorded { outcome } => Some(outcome.as_ref()),
+            DecisionMemoryEvent::BundleAdmission { .. }
+            | DecisionMemoryEvent::Validation { .. }
+            | DecisionMemoryEvent::StalePropagation { .. }
+            | DecisionMemoryEvent::Supersession { .. } => None,
+        })
+    }
+
+    pub(crate) fn record_publication_outcome(
+        &mut self,
+        request: RecordOutcomeRequest,
+        validation_phases: Vec<super::OutcomeValidationPhase>,
+        execution_audit: super::ExecutionAuditCounters,
+    ) -> PublicationOutcomeEvent {
+        self.revision = self.revision.saturating_add(1);
+        let outcome = PublicationOutcomeEvent {
+            request,
+            decision_memory_revision: self.revision,
+            validation_phases,
+            execution_audit,
+        };
+        self.events
+            .push(DecisionMemoryEvent::OutcomeRecorded { outcome: Box::new(outcome.clone()) });
+        outcome
     }
 
     pub(crate) fn node_mut(

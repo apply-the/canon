@@ -217,8 +217,8 @@ fn rpc_capabilities_emits_one_clean_response_and_terminates() -> TestResult {
                 {"operation": "publish", "available": true, "reason_code": null},
                 {
                     "operation": "record_outcome",
-                    "available": false,
-                    "reason_code": "unsupported_operation"
+                    "available": true,
+                    "reason_code": null
                 }
             ]),
         "capabilities did not expose typed record_outcome readiness",
@@ -335,8 +335,13 @@ fn historical_six_rpc_operations_keep_their_deterministic_handlers() -> TestResu
 }
 
 #[test]
-fn record_outcome_is_discoverable_but_typed_unavailable_before_t059() -> TestResult {
+fn record_outcome_records_once_and_replays_the_same_revision() -> TestResult {
     let fixture = fixture::RpcFixture::new()?;
+    fixture.invoke(
+        "bundle-stable-outcome",
+        "start",
+        json!({"bundle": fixture::governance_draft("bundle-stable-outcome", 1)}),
+    )?;
     let request = fixture::record_outcome_request()?;
     let event_id = request.event_id.clone();
     let event_digest = request.event_digest.clone();
@@ -345,24 +350,87 @@ fn record_outcome_is_discoverable_but_typed_unavailable_before_t059() -> TestRes
         "record_outcome",
         json!({"outcome": request}),
     )?;
-    require(!success, "pre-T059 record_outcome returned process success")?;
+    require(success, "T059 record_outcome returned process failure")?;
     let typed = serde_json::from_value::<RecordOutcomeResponse>(response["result"].clone())?;
     require(typed.event_id == event_id, "typed rejection changed event identity")?;
     require(typed.event_digest == event_digest, "typed rejection changed event digest")?;
     require(
-        typed.disposition == canon_contracts::RecordOutcomeDisposition::Rejected,
-        "pre-T059 disposition was not rejected",
+        typed.disposition == canon_contracts::RecordOutcomeDisposition::Recorded,
+        "first outcome was not recorded",
+    )?;
+    require(typed.reason_code.is_none(), "recorded outcome carried a rejection reason")?;
+    require(
+        typed.decision_memory_revision.is_some() && typed.decision_memory_digest.is_some(),
+        "recorded outcome omitted decision memory",
+    )?;
+    let snapshot = fixture.snapshot_bytes()?;
+    let replay = fixture.invoke(
+        event_id.as_str(),
+        "record_outcome",
+        json!({"outcome": fixture::record_outcome_request()?}),
+    )?;
+    let replayed = serde_json::from_value::<RecordOutcomeResponse>(replay["result"].clone())?;
+    require(
+        replayed.disposition == canon_contracts::RecordOutcomeDisposition::Replayed,
+        "exact retry was not replayed",
     )?;
     require(
-        typed.reason_code
-            == Some(canon_contracts::RecordOutcomeRejectionReason::UnsupportedOperation),
-        "pre-T059 rejection reason drifted",
+        replayed.decision_memory_revision == typed.decision_memory_revision
+            && replayed.decision_memory_digest == typed.decision_memory_digest,
+        "replay changed decision identity",
     )?;
-    require(
-        typed.decision_memory_revision.is_none() && typed.decision_memory_digest.is_none(),
-        "pre-T059 rejection invented decision memory",
-    )?;
-    require(!fixture.has_snapshot(), "pre-T059 rejection created a decision-memory snapshot")
+    require(fixture.snapshot_bytes()? == snapshot, "replay rewrote decision memory")
+}
+
+#[test]
+fn record_outcome_contract_rejections_are_typed_and_non_mutating() -> TestResult {
+    let cases = [
+        ("terminal_status", json!("blocked"), "nonterminal_outcome"),
+        ("published_commit", Value::Null, "invalid_outcome"),
+        ("authority_binding.claims", json!([]), "authority_binding_invalid"),
+        ("approval_binding", Value::Null, "approval_binding_invalid"),
+        ("challenge_binding.evidence_references", json!([]), "evidence_binding_invalid"),
+        (
+            "lineage",
+            json!({
+                "producer_identity": "boundline-executor",
+                "producer_invocation_id": "boundline-invocation-stable",
+                "verifier_identity": "boundline-executor",
+                "verifier_invocation_id": "boundline-invocation-stable"
+            }),
+            "lineage_invalid",
+        ),
+    ];
+    for (path, replacement, expected_reason) in cases {
+        let fixture = fixture::RpcFixture::new()?;
+        let mut outcome = serde_json::to_value(fixture::record_outcome_request()?)?;
+        replace_json_path(&mut outcome, path, replacement)?;
+        let response = fixture.invoke_raw_rejected(json!({
+            "contract_version": "1.0",
+            "request_id": "outcome-event-stable-surface",
+            "operation": "record_outcome",
+            "payload": {"outcome": outcome}
+        }))?;
+        require(
+            response["result"]["reason_code"] == expected_reason,
+            format!("{path} did not return {expected_reason}"),
+        )?;
+        require(fixture.snapshot_bytes().is_err(), "contract rejection created decision memory")?;
+    }
+    Ok(())
+}
+
+fn replace_json_path(value: &mut Value, path: &str, replacement: Value) -> TestResult {
+    let mut current = value;
+    let mut segments = path.split('.').peekable();
+    while let Some(segment) = segments.next() {
+        if segments.peek().is_none() {
+            current[segment] = replacement;
+            return Ok(());
+        }
+        current = current.get_mut(segment).ok_or_else(|| format!("missing fixture path {path}"))?;
+    }
+    Err(format!("empty fixture path {path}").into())
 }
 
 #[test]

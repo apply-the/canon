@@ -9,6 +9,7 @@ mod digest;
 mod error;
 mod freshness;
 mod graph;
+mod outcome;
 mod projection;
 mod store;
 mod topology;
@@ -25,7 +26,11 @@ pub use freshness::{StalePropagation, propagate_stale};
 pub use graph::{
     AlternativeContent, ArtifactContent, AssumptionContent, ClaimContent, DecisionContent,
     DecisionMemoryGraph, DecisionMemoryNode, DependencyEdge, DependencyKind, FreshnessState,
-    InsertOutcome, NodeEnvelope, NodeId, PacketContent, TriggerContent,
+    InsertOutcome, NodeEnvelope, NodeId, PacketContent, PublicationOutcomeEvent, TriggerContent,
+};
+pub use outcome::{
+    OutcomeFaultPoint, OutcomeIngestionError, OutcomeValidationPhase, record_outcome,
+    record_outcome_with_fault,
 };
 pub use projection::project_decision_memory;
 pub use store::{DecisionMemoryStore, DecisionMemoryStoreSnapshot};

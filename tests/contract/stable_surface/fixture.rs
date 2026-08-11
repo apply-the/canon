@@ -5,11 +5,11 @@ use std::io::Write;
 use std::process::{Command, Stdio};
 
 use canon_contracts::{
-    ApprovalDecision, AuthoritativeTimestamp, BundleDigest, BundleId, ChallengeTier, Claim,
-    CommitIdentity, Deviation, EvidenceReference, FinalFingerprint, OutcomeApprovalBinding,
-    OutcomeAuthorityBinding, OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId,
-    OutcomeLineage, OutcomeSessionId, OutcomeSourceProduct, Profile, RecordOutcomeRequest,
-    RepositoryIdentity, Revision, TerminalOutcomeStatus, VerificationKind,
+    ApprovalDecision, AuthoritativeTimestamp, ChallengeTier, Claim, CommitIdentity, Deviation,
+    EvidenceReference, FinalFingerprint, OutcomeApprovalBinding, OutcomeAuthorityBinding,
+    OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId, OutcomeLineage, OutcomeSessionId,
+    OutcomeSourceProduct, Profile, RecordOutcomeRequest, RepositoryIdentity, Revision,
+    TerminalOutcomeStatus, VerificationKind,
 };
 use canon_engine::decision_memory::{
     ApprovalContent, ArtifactContent, EvidenceContent, GovernanceBundleDraft,
@@ -95,11 +95,6 @@ impl RpcFixture {
     /// Reads the exact durable snapshot for mutation checks.
     pub(super) fn snapshot_bytes(&self) -> FixtureResult<Vec<u8>> {
         Ok(fs::read(self.workspace.path().join(".canon/decision-memory/state.json"))?)
-    }
-
-    /// Reports whether the deterministic decision-memory snapshot exists.
-    pub(super) fn has_snapshot(&self) -> bool {
-        self.workspace.path().join(".canon/decision-memory/state.json").exists()
     }
 
     /// Admits a draft through the stable human CLI and returns its JSON projection.
@@ -197,14 +192,18 @@ impl RpcFixture {
 
 /// Complete terminal outcome accepted by the 0.91 public DTO decoder.
 pub(super) fn record_outcome_request() -> FixtureResult<RecordOutcomeRequest> {
+    let bundle = canon_engine::decision_memory::build_governance_bundle(governance_draft(
+        "bundle-stable-outcome",
+        1,
+    ))?;
     let final_revision = Revision::new(42);
     let mut request = RecordOutcomeRequest {
         event_id: OutcomeEventId::new("outcome-event-stable-surface"),
         event_digest: OutcomeEventDigest::placeholder(),
         source_product: OutcomeSourceProduct::Boundline,
         source_repository_identity: RepositoryIdentity::new("git-common-dir:stable-fixture"),
-        governance_bundle_id: BundleId::new("bundle-stable-outcome"),
-        governance_bundle_digest: BundleDigest::new("sha256:bundle-stable-outcome"),
+        governance_bundle_id: bundle.contract.bundle_id,
+        governance_bundle_digest: bundle.contract.bundle_digest,
         session_id: OutcomeSessionId::new("session-stable-outcome"),
         final_transaction_revision: final_revision,
         terminal_status: TerminalOutcomeStatus::Published,

@@ -50,6 +50,11 @@ impl DecisionMemoryStore {
         }
     }
 
+    /// Returns the durable snapshot path for diagnostics and qualification.
+    pub fn snapshot_path(&self) -> &Path {
+        &self.snapshot_path
+    }
+
     /// Atomically persists graph and terminal result as one crash-consistent file.
     pub fn persist(
         &self,
@@ -116,6 +121,14 @@ fn validate_snapshot(snapshot: &DecisionMemoryStoreSnapshot) -> Result<(), Decis
     if !snapshot.graph.dangling_edges().is_empty() {
         return Err(DecisionMemoryError::InvalidSnapshot {
             message: "graph contains a dangling reference".to_string(),
+        });
+    }
+    if snapshot.graph.publication_outcomes().any(|outcome| {
+        !super::OutcomeValidationPhase::is_complete_trace(&outcome.validation_phases)
+            || outcome.execution_audit != ExecutionAuditCounters::default()
+    }) {
+        return Err(DecisionMemoryError::InvalidSnapshot {
+            message: "outcome event violates deterministic validation audit".to_string(),
         });
     }
     validate_terminal_result(&snapshot.terminal_result)?;

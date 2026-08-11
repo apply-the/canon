@@ -7,12 +7,12 @@
 use std::io::{Read, Write};
 
 use canon_contracts::{
-    CanonContractVersion, OneShotOperation, OneShotResponse, OutcomeNextAction,
-    RecordOutcomeDisposition, RecordOutcomeRejectionReason, RecordOutcomeRequest,
-    RecordOutcomeResponse,
+    CanonContractVersion, OneShotOperation, OneShotResponse, OutcomeEventDigest, OutcomeEventId,
+    OutcomeNextAction, RecordOutcomeDisposition, RecordOutcomeRejectionReason,
+    RecordOutcomeRequest, RecordOutcomeResponse,
 };
 use canon_engine::EngineService;
-use canon_engine::decision_memory::GovernanceBundleDraft;
+use canon_engine::decision_memory::{DecisionMemoryStore, GovernanceBundleDraft, record_outcome};
 use canon_engine::modes::stable_profile_registry;
 use serde::{Deserialize, Serialize};
 
@@ -85,7 +85,7 @@ impl RpcResult {
             Self::Governance(result) => stable_governance::exit_code(result.terminal_status),
             Self::Outcome(result) => match result.disposition {
                 RecordOutcomeDisposition::Recorded | RecordOutcomeDisposition::Replayed => 0,
-                RecordOutcomeDisposition::Rejected => 8,
+                RecordOutcomeDisposition::Rejected => outcome_rejection_exit_code(result),
             },
             Self::Rejection(_) => 1,
         }
@@ -115,9 +115,28 @@ fn execute_with(
         Ok(bytes) => bytes,
         Err(error) => return reject(&mut output, "", error),
     };
-    let request = match serde_json::from_slice::<RequestEnvelope>(&bytes) {
-        Ok(request) => request,
+    let value = match serde_json::from_slice::<serde_json::Value>(&bytes) {
+        Ok(value) => value,
         Err(error) => return reject(&mut output, "", RequestError::Invalid(error.to_string())),
+    };
+    let request = match serde_json::from_value::<RequestEnvelope>(value.clone()) {
+        Ok(request) => request,
+        Err(error) => {
+            if let Some((request_id, response)) = typed_outcome_decode_rejection(&value, &error) {
+                let result = RpcResult::Outcome(response);
+                let exit_code = result.exit_code();
+                write_response(
+                    &mut output,
+                    &OneShotResponse {
+                        contract_version: CanonContractVersion::V1,
+                        request_id,
+                        result,
+                    },
+                )?;
+                return Ok(exit_code);
+            }
+            return reject(&mut output, "", RequestError::Invalid(error.to_string()));
+        }
     };
     let request_id = request.request_id.clone();
     match dispatch(service, request) {
@@ -130,6 +149,78 @@ fn execute_with(
             Ok(exit_code)
         }
         Err(error) => reject(&mut output, &request_id, error),
+    }
+}
+
+fn typed_outcome_decode_rejection(
+    value: &serde_json::Value,
+    error: &serde_json::Error,
+) -> Option<(String, RecordOutcomeResponse)> {
+    if value.get("operation")?.as_str()? != "record_outcome" {
+        return None;
+    }
+    let request_id = value.get("request_id")?.as_str()?.to_string();
+    let outcome = value.get("payload")?.get("outcome")?;
+    let event_id = outcome.get("event_id")?.as_str()?;
+    let event_digest = outcome.get("event_digest")?.as_str()?;
+    let reason = if request_id != event_id {
+        RecordOutcomeRejectionReason::IdentityDigestConflict
+    } else if value.get("contract_version")?.as_str()? != "1.0" {
+        RecordOutcomeRejectionReason::UnsupportedContractLine
+    } else {
+        decode_rejection_reason(&error.to_string())?
+    };
+    let response = RecordOutcomeResponse {
+        event_id: OutcomeEventId::new(event_id),
+        event_digest: OutcomeEventDigest::new(event_digest),
+        disposition: RecordOutcomeDisposition::Rejected,
+        decision_memory_revision: None,
+        decision_memory_digest: None,
+        reason_code: Some(reason),
+        next_actions: rejection_next_actions(reason),
+    };
+    Some((request_id, response))
+}
+
+fn decode_rejection_reason(message: &str) -> Option<RecordOutcomeRejectionReason> {
+    [
+        RecordOutcomeRejectionReason::InvalidOutcome,
+        RecordOutcomeRejectionReason::NonterminalOutcome,
+        RecordOutcomeRejectionReason::AuthorityBindingInvalid,
+        RecordOutcomeRejectionReason::ApprovalBindingInvalid,
+        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
+        RecordOutcomeRejectionReason::LineageInvalid,
+    ]
+    .into_iter()
+    .find(|reason| message.contains(reason.as_str()))
+}
+
+fn rejection_next_actions(reason: RecordOutcomeRejectionReason) -> Vec<OutcomeNextAction> {
+    match reason {
+        RecordOutcomeRejectionReason::IdentityDigestConflict => {
+            vec![OutcomeNextAction::ResolveIdentityConflict]
+        }
+        RecordOutcomeRejectionReason::UnsupportedContractLine => {
+            vec![OutcomeNextAction::UpgradeContract]
+        }
+        RecordOutcomeRejectionReason::AuthorityBindingInvalid
+        | RecordOutcomeRejectionReason::ApprovalBindingInvalid => {
+            vec![OutcomeNextAction::ObtainAuthority]
+        }
+        RecordOutcomeRejectionReason::EvidenceBindingInvalid
+        | RecordOutcomeRejectionReason::LineageInvalid => {
+            vec![OutcomeNextAction::RepairEvidence]
+        }
+        RecordOutcomeRejectionReason::NonterminalOutcome => {
+            vec![OutcomeNextAction::ReverifyOutcome]
+        }
+        RecordOutcomeRejectionReason::InvalidOutcome
+        | RecordOutcomeRejectionReason::StaleOutcome
+        | RecordOutcomeRejectionReason::DecisionMemoryConflict
+        | RecordOutcomeRejectionReason::PersistenceFailed
+        | RecordOutcomeRejectionReason::UnsupportedOperation => {
+            vec![OutcomeNextAction::InspectDecisionMemory]
+        }
     }
 }
 
@@ -155,7 +246,16 @@ fn dispatch(service: &EngineService, request: RequestEnvelope) -> Result<RpcResu
             let outcome = request.payload.outcome.ok_or_else(|| {
                 RequestError::Invalid("record_outcome payload requires `outcome`".to_string())
             })?;
-            Ok(RpcResult::Outcome(unavailable_outcome(&request.request_id, outcome)))
+            let store = DecisionMemoryStore::new(service.canon_runtime_dir());
+            let response = match record_outcome(&store, &request.request_id, outcome.clone()) {
+                Ok(response) => response,
+                Err(_) => rejected_outcome(
+                    outcome,
+                    RecordOutcomeRejectionReason::PersistenceFailed,
+                    vec![OutcomeNextAction::RestorePersistence, OutcomeNextAction::Retry],
+                ),
+            };
+            Ok(RpcResult::Outcome(response))
         }
         "capabilities" | "refresh" | "inspect" | "publish" | "record_outcome" => {
             Err(RequestError::Invalid("operation payload must be an empty object".to_string()))
@@ -206,11 +306,9 @@ fn capabilities() -> CapabilitiesResult {
 
 const fn operation_capability(operation: OneShotOperation) -> OperationCapability {
     match operation {
-        OneShotOperation::RecordOutcome => OperationCapability {
-            operation,
-            available: false,
-            reason_code: Some(RecordOutcomeRejectionReason::UnsupportedOperation),
-        },
+        OneShotOperation::RecordOutcome => {
+            OperationCapability { operation, available: true, reason_code: None }
+        }
         OneShotOperation::Capabilities
         | OneShotOperation::Start
         | OneShotOperation::Refresh
@@ -222,12 +320,11 @@ const fn operation_capability(operation: OneShotOperation) -> OperationCapabilit
     }
 }
 
-fn unavailable_outcome(request_id: &str, outcome: RecordOutcomeRequest) -> RecordOutcomeResponse {
-    let reason_code = if request_id == outcome.event_id.as_str() {
-        RecordOutcomeRejectionReason::UnsupportedOperation
-    } else {
-        RecordOutcomeRejectionReason::IdentityDigestConflict
-    };
+fn rejected_outcome(
+    outcome: RecordOutcomeRequest,
+    reason_code: RecordOutcomeRejectionReason,
+    next_actions: Vec<OutcomeNextAction>,
+) -> RecordOutcomeResponse {
     RecordOutcomeResponse {
         event_id: outcome.event_id,
         event_digest: outcome.event_digest,
@@ -235,7 +332,33 @@ fn unavailable_outcome(request_id: &str, outcome: RecordOutcomeRequest) -> Recor
         decision_memory_revision: None,
         decision_memory_digest: None,
         reason_code: Some(reason_code),
-        next_actions: vec![OutcomeNextAction::Retry],
+        next_actions,
+    }
+}
+
+const fn outcome_rejection_exit_code(response: &RecordOutcomeResponse) -> i32 {
+    match response.reason_code {
+        Some(RecordOutcomeRejectionReason::PersistenceFailed) => 6,
+        Some(RecordOutcomeRejectionReason::IdentityDigestConflict) => 7,
+        Some(
+            RecordOutcomeRejectionReason::UnsupportedContractLine
+            | RecordOutcomeRejectionReason::UnsupportedOperation,
+        ) => 8,
+        Some(
+            RecordOutcomeRejectionReason::AuthorityBindingInvalid
+            | RecordOutcomeRejectionReason::ApprovalBindingInvalid,
+        ) => 3,
+        Some(
+            RecordOutcomeRejectionReason::EvidenceBindingInvalid
+            | RecordOutcomeRejectionReason::LineageInvalid
+            | RecordOutcomeRejectionReason::StaleOutcome
+            | RecordOutcomeRejectionReason::DecisionMemoryConflict,
+        ) => 5,
+        Some(
+            RecordOutcomeRejectionReason::InvalidOutcome
+            | RecordOutcomeRejectionReason::NonterminalOutcome,
+        )
+        | None => 1,
     }
 }
 
@@ -292,10 +415,10 @@ fn write_response(output: &mut impl Write, response: &impl Serialize) -> CliResu
 #[cfg(test)]
 mod tests {
     use canon_contracts::{
-        BundleDigest, BundleId, ChallengeTier, Claim, EvidenceReference, FinalFingerprint,
-        OutcomeAuthorityBinding, OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId,
-        OutcomeLineage, OutcomeSessionId, OutcomeSourceProduct, RecordOutcomeRequest,
-        RepositoryIdentity, Revision, TerminalOutcomeStatus,
+        ChallengeTier, Claim, EvidenceReference, FinalFingerprint, OutcomeAuthorityBinding,
+        OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId, OutcomeLineage,
+        OutcomeSessionId, OutcomeSourceProduct, RecordOutcomeRequest, RepositoryIdentity, Revision,
+        TerminalOutcomeStatus,
     };
     use canon_engine::EngineService;
     use serde_json::Value;
@@ -466,7 +589,12 @@ mod tests {
     }
 
     #[test]
-    fn direct_dispatch_covers_pending_outcome_and_identity_conflict() -> TestResult {
+    fn direct_dispatch_records_outcome_and_rejects_identity_conflict() -> TestResult {
+        let workspace = tempfile::tempdir()?;
+        let service = EngineService::new(workspace.path());
+        let governance = draft("bundle-direct-rpc", 1);
+        super::stable_governance::mutate(&service, "bundle-direct-rpc", governance.clone())?;
+        let bound = canon_engine::decision_memory::build_governance_bundle(governance)?;
         let revision = Revision::new(7);
         let claim = Claim::new("claim:no-change");
         let evidence = EvidenceReference::new("proof:direct-rpc");
@@ -475,8 +603,8 @@ mod tests {
             event_digest: OutcomeEventDigest::placeholder(),
             source_product: OutcomeSourceProduct::Boundline,
             source_repository_identity: RepositoryIdentity::new("git-common-dir:direct-rpc"),
-            governance_bundle_id: BundleId::new("bundle-direct-rpc"),
-            governance_bundle_digest: BundleDigest::new("sha256:bundle-direct-rpc"),
+            governance_bundle_id: bound.contract.bundle_id,
+            governance_bundle_digest: bound.contract.bundle_digest,
             session_id: OutcomeSessionId::new("session-direct-rpc"),
             final_transaction_revision: revision,
             terminal_status: TerminalOutcomeStatus::NoChange,
@@ -510,21 +638,22 @@ mod tests {
         };
         outcome.recompute_event_digest()?;
 
-        for (request_id, expected_reason) in [
-            ("outcome-direct-rpc", "unsupported_operation"),
-            ("different-event", "identity_digest_conflict"),
-        ] {
+        for (request_id, expected_code, expected_disposition) in
+            [("outcome-direct-rpc", 0, "recorded"), ("different-event", 7, "rejected")]
+        {
             let request = serde_json::to_vec(&serde_json::json!({
                 "contract_version": "1.0",
                 "request_id": request_id,
                 "operation": "record_outcome",
                 "payload": {"outcome": &outcome}
             }))?;
-            let (code, response) = invoke(&request)?;
-            require(code == 8, "pending outcome did not use unsupported exit code")?;
+            let mut output = Vec::new();
+            let code = execute_with(&service, request.as_slice(), &mut output)?;
+            let response: serde_json::Value = serde_json::from_slice(&output)?;
+            require(code == expected_code, "outcome exit code drifted")?;
             require(
-                response["result"]["reason_code"] == expected_reason,
-                "pending outcome reason drifted",
+                response["result"]["disposition"] == expected_disposition,
+                "outcome disposition drifted",
             )?;
         }
 
