@@ -415,17 +415,22 @@ fn write_response(output: &mut impl Write, response: &impl Serialize) -> CliResu
 #[cfg(test)]
 mod tests {
     use canon_contracts::{
-        ChallengeTier, Claim, EvidenceReference, FinalFingerprint, OutcomeAuthorityBinding,
-        OutcomeChallengeBinding, OutcomeEventDigest, OutcomeEventId, OutcomeLineage,
-        OutcomeSessionId, OutcomeSourceProduct, RecordOutcomeRequest, RepositoryIdentity, Revision,
+        ApprovalDecision, ChallengeTier, Claim, EvidenceReference, FinalFingerprint,
+        OutcomeApprovalBinding, OutcomeAuthorityBinding, OutcomeChallengeBinding,
+        OutcomeEventDigest, OutcomeEventId, OutcomeLineage, OutcomeNextAction, OutcomeSessionId,
+        OutcomeSourceProduct, RecordOutcomeDisposition, RecordOutcomeRejectionReason,
+        RecordOutcomeRequest, RecordOutcomeResponse, RepositoryIdentity, Revision,
         TerminalOutcomeStatus,
     };
     use canon_engine::EngineService;
     use serde_json::Value;
 
-    use std::io::{Error, Read};
+    use std::io::{Error, Read, Write};
 
-    use super::{MAX_REQUEST_BYTES, execute_with};
+    use super::{
+        MAX_REQUEST_BYTES, execute_with, outcome_rejection_exit_code, rejected_outcome,
+        rejection_next_actions, typed_outcome_decode_rejection,
+    };
     use crate::commands::stable_governance::tests::draft;
 
     type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -442,11 +447,94 @@ mod tests {
         Ok((code, serde_json::from_slice(&output)?))
     }
 
+    fn admitted_outcome(
+        service: &EngineService,
+    ) -> Result<RecordOutcomeRequest, Box<dyn std::error::Error>> {
+        let governance = draft("bundle-direct-rpc", 1);
+        super::stable_governance::mutate(service, "bundle-direct-rpc", governance.clone())?;
+        let bound = canon_engine::decision_memory::build_governance_bundle(governance)?;
+        let revision = Revision::new(7);
+        let claim = Claim::new("claim:no-change");
+        let evidence = EvidenceReference::new("proof:direct-rpc");
+        let mut outcome = RecordOutcomeRequest {
+            event_id: OutcomeEventId::new("outcome-direct-rpc"),
+            event_digest: OutcomeEventDigest::placeholder(),
+            source_product: OutcomeSourceProduct::Boundline,
+            source_repository_identity: RepositoryIdentity::new("git-common-dir:direct-rpc"),
+            governance_bundle_id: bound.contract.bundle_id,
+            governance_bundle_digest: bound.contract.bundle_digest,
+            session_id: OutcomeSessionId::new("session-direct-rpc"),
+            final_transaction_revision: revision,
+            terminal_status: TerminalOutcomeStatus::NoChange,
+            published_commit: None,
+            final_fingerprint: Some(FinalFingerprint::new("sha256:direct-rpc")),
+            proof_references: vec![evidence.clone()],
+            deviations: Vec::new(),
+            terminal_claims: vec![claim.clone()],
+            authority_binding: OutcomeAuthorityBinding {
+                authority_identity: "release-owner".to_owned(),
+                final_transaction_revision: revision,
+                claims: vec![claim.clone()],
+            },
+            approval_binding: Some(OutcomeApprovalBinding {
+                approver_identity: "release-owner".to_owned(),
+                decision: ApprovalDecision::Approved,
+                final_transaction_revision: revision,
+                claims: vec![claim.clone()],
+            }),
+            challenge_binding: OutcomeChallengeBinding {
+                tier: ChallengeTier::Tier2,
+                challenger_identity: Some("independent-reviewer".to_owned()),
+                challenger_invocation_id: Some("review-invocation-direct-rpc".to_owned()),
+                independent_context_identity: Some("context:direct-rpc".to_owned()),
+                claims: vec![claim],
+                evidence_references: vec![evidence],
+                named_override: None,
+            },
+            lineage: OutcomeLineage {
+                producer_identity: "boundline".to_owned(),
+                producer_invocation_id: "invocation-direct-rpc".to_owned(),
+                verifier_identity: Some("independent-reviewer".to_owned()),
+                verifier_invocation_id: Some("review-invocation-direct-rpc".to_owned()),
+            },
+            occurred_at: None,
+        };
+        outcome.recompute_event_digest()?;
+        Ok(outcome)
+    }
+
+    fn replace_value_path(value: &mut Value, path: &str, replacement: Value) -> TestResult {
+        let mut current = value;
+        let mut segments = path.split('.').peekable();
+        while let Some(segment) = segments.next() {
+            if segments.peek().is_none() {
+                current[segment] = replacement;
+                return Ok(());
+            }
+            current = current
+                .get_mut(segment)
+                .ok_or_else(|| format!("missing outcome fixture path {path}"))?;
+        }
+        Err("outcome fixture path was empty".into())
+    }
+
     struct FailingReader;
 
     impl Read for FailingReader {
         fn read(&mut self, _buffer: &mut [u8]) -> std::io::Result<usize> {
             Err(Error::other("injected read failure"))
+        }
+    }
+
+    struct FailingWriter;
+
+    impl Write for FailingWriter {
+        fn write(&mut self, _buffer: &[u8]) -> std::io::Result<usize> {
+            Err(Error::other("injected write failure"))
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Err(Error::other("injected flush failure"))
         }
     }
 
@@ -592,51 +680,7 @@ mod tests {
     fn direct_dispatch_records_outcome_and_rejects_identity_conflict() -> TestResult {
         let workspace = tempfile::tempdir()?;
         let service = EngineService::new(workspace.path());
-        let governance = draft("bundle-direct-rpc", 1);
-        super::stable_governance::mutate(&service, "bundle-direct-rpc", governance.clone())?;
-        let bound = canon_engine::decision_memory::build_governance_bundle(governance)?;
-        let revision = Revision::new(7);
-        let claim = Claim::new("claim:no-change");
-        let evidence = EvidenceReference::new("proof:direct-rpc");
-        let mut outcome = RecordOutcomeRequest {
-            event_id: OutcomeEventId::new("outcome-direct-rpc"),
-            event_digest: OutcomeEventDigest::placeholder(),
-            source_product: OutcomeSourceProduct::Boundline,
-            source_repository_identity: RepositoryIdentity::new("git-common-dir:direct-rpc"),
-            governance_bundle_id: bound.contract.bundle_id,
-            governance_bundle_digest: bound.contract.bundle_digest,
-            session_id: OutcomeSessionId::new("session-direct-rpc"),
-            final_transaction_revision: revision,
-            terminal_status: TerminalOutcomeStatus::NoChange,
-            published_commit: None,
-            final_fingerprint: Some(FinalFingerprint::new("sha256:direct-rpc")),
-            proof_references: vec![evidence.clone()],
-            deviations: Vec::new(),
-            terminal_claims: vec![claim.clone()],
-            authority_binding: OutcomeAuthorityBinding {
-                authority_identity: "release-owner".to_owned(),
-                final_transaction_revision: revision,
-                claims: vec![claim.clone()],
-            },
-            approval_binding: None,
-            challenge_binding: OutcomeChallengeBinding {
-                tier: ChallengeTier::Tier0,
-                challenger_identity: None,
-                challenger_invocation_id: None,
-                independent_context_identity: None,
-                claims: vec![claim],
-                evidence_references: vec![evidence],
-                named_override: None,
-            },
-            lineage: OutcomeLineage {
-                producer_identity: "boundline".to_owned(),
-                producer_invocation_id: "invocation-direct-rpc".to_owned(),
-                verifier_identity: None,
-                verifier_invocation_id: None,
-            },
-            occurred_at: None,
-        };
-        outcome.recompute_event_digest()?;
+        let outcome = admitted_outcome(&service)?;
 
         for (request_id, expected_code, expected_disposition) in
             [("outcome-direct-rpc", 0, "recorded"), ("different-event", 7, "rejected")]
@@ -665,5 +709,257 @@ mod tests {
         }))?;
         let (code, _) = invoke(&invalid)?;
         require(code == 1, "record_outcome accepted a governance bundle")
+    }
+
+    #[test]
+    fn direct_outcome_decode_bridge_preserves_typed_rejection_semantics() -> TestResult {
+        let cases = [
+            ("terminal_status", serde_json::json!("blocked"), "nonterminal_outcome", 1),
+            ("final_fingerprint", Value::Null, "invalid_outcome", 1),
+            ("authority_binding.claims", serde_json::json!([]), "authority_binding_invalid", 3),
+            (
+                "challenge_binding.evidence_references",
+                serde_json::json!([]),
+                "evidence_binding_invalid",
+                5,
+            ),
+            (
+                "lineage",
+                serde_json::json!({
+                    "producer_identity": "same-reviewer",
+                    "producer_invocation_id": "same-invocation",
+                    "verifier_identity": "same-reviewer",
+                    "verifier_invocation_id": "same-invocation"
+                }),
+                "lineage_invalid",
+                5,
+            ),
+        ];
+        for (path, replacement, expected_reason, expected_code) in cases {
+            let workspace = tempfile::tempdir()?;
+            let service = EngineService::new(workspace.path());
+            let mut outcome = serde_json::to_value(admitted_outcome(&service)?)?;
+            replace_value_path(&mut outcome, path, replacement)?;
+            let input = serde_json::to_vec(&serde_json::json!({
+                "contract_version": "1.0",
+                "request_id": "outcome-direct-rpc",
+                "operation": "record_outcome",
+                "payload": {"outcome": outcome}
+            }))?;
+            let mut output = Vec::new();
+            let code = execute_with(&service, input.as_slice(), &mut output)?;
+            let response: Value = serde_json::from_slice(&output)?;
+            if code != expected_code {
+                return Err(format!(
+                    "{path} returned exit code {code}, expected {expected_code}: {response}"
+                )
+                .into());
+            }
+            require(
+                response["result"]["reason_code"] == expected_reason,
+                "typed rejection reason drifted",
+            )?;
+        }
+
+        let workspace = tempfile::tempdir()?;
+        let service = EngineService::new(workspace.path());
+        let mut outcome = serde_json::to_value(admitted_outcome(&service)?)?;
+        replace_value_path(&mut outcome, "terminal_status", serde_json::json!("blocked"))?;
+        for (contract_version, request_id, expected_reason, expected_code) in [
+            ("1.0", "different-event", "identity_digest_conflict", 7),
+            ("future", "outcome-direct-rpc", "unsupported_contract_line", 8),
+        ] {
+            let input = serde_json::to_vec(&serde_json::json!({
+                "contract_version": contract_version,
+                "request_id": request_id,
+                "operation": "record_outcome",
+                "payload": {"outcome": &outcome}
+            }))?;
+            let mut output = Vec::new();
+            let code = execute_with(&service, input.as_slice(), &mut output)?;
+            let response: Value = serde_json::from_slice(&output)?;
+            require(code == expected_code, "priority rejection exit code drifted")?;
+            require(
+                response["result"]["reason_code"] == expected_reason,
+                "priority rejection reason drifted",
+            )?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn outcome_rejection_matrix_binds_actions_and_exit_codes() -> TestResult {
+        let workspace = tempfile::tempdir()?;
+        let service = EngineService::new(workspace.path());
+        let outcome = admitted_outcome(&service)?;
+        let cases = [
+            (
+                RecordOutcomeRejectionReason::IdentityDigestConflict,
+                7,
+                OutcomeNextAction::ResolveIdentityConflict,
+            ),
+            (
+                RecordOutcomeRejectionReason::UnsupportedContractLine,
+                8,
+                OutcomeNextAction::UpgradeContract,
+            ),
+            (
+                RecordOutcomeRejectionReason::UnsupportedOperation,
+                8,
+                OutcomeNextAction::InspectDecisionMemory,
+            ),
+            (
+                RecordOutcomeRejectionReason::AuthorityBindingInvalid,
+                3,
+                OutcomeNextAction::ObtainAuthority,
+            ),
+            (
+                RecordOutcomeRejectionReason::ApprovalBindingInvalid,
+                3,
+                OutcomeNextAction::ObtainAuthority,
+            ),
+            (
+                RecordOutcomeRejectionReason::EvidenceBindingInvalid,
+                5,
+                OutcomeNextAction::RepairEvidence,
+            ),
+            (RecordOutcomeRejectionReason::LineageInvalid, 5, OutcomeNextAction::RepairEvidence),
+            (
+                RecordOutcomeRejectionReason::NonterminalOutcome,
+                1,
+                OutcomeNextAction::ReverifyOutcome,
+            ),
+            (
+                RecordOutcomeRejectionReason::InvalidOutcome,
+                1,
+                OutcomeNextAction::InspectDecisionMemory,
+            ),
+            (
+                RecordOutcomeRejectionReason::StaleOutcome,
+                5,
+                OutcomeNextAction::InspectDecisionMemory,
+            ),
+            (
+                RecordOutcomeRejectionReason::DecisionMemoryConflict,
+                5,
+                OutcomeNextAction::InspectDecisionMemory,
+            ),
+            (
+                RecordOutcomeRejectionReason::PersistenceFailed,
+                6,
+                OutcomeNextAction::InspectDecisionMemory,
+            ),
+        ];
+        for (reason, expected_code, expected_action) in cases {
+            let actions = rejection_next_actions(reason);
+            require(actions == vec![expected_action], "rejection action drifted")?;
+            let response = rejected_outcome(outcome.clone(), reason, actions);
+            require(
+                outcome_rejection_exit_code(&response) == expected_code,
+                "rejection exit code drifted",
+            )?;
+        }
+        let invalid = RecordOutcomeResponse {
+            event_id: outcome.event_id,
+            event_digest: outcome.event_digest,
+            disposition: RecordOutcomeDisposition::Rejected,
+            decision_memory_revision: None,
+            decision_memory_digest: None,
+            reason_code: None,
+            next_actions: Vec::new(),
+        };
+        require(outcome_rejection_exit_code(&invalid) == 1, "missing reason returned success")
+    }
+
+    #[test]
+    fn typed_outcome_decode_bridge_fails_closed_without_complete_identity() -> TestResult {
+        let error = serde_json::from_value::<RecordOutcomeRequest>(serde_json::json!({}))
+            .err()
+            .ok_or("incomplete request unexpectedly decoded")?;
+        for value in [
+            serde_json::json!({"operation": "inspect"}),
+            serde_json::json!({"operation": "record_outcome"}),
+            serde_json::json!({
+                "operation": "record_outcome",
+                "request_id": "event",
+                "payload": {"outcome": {}}
+            }),
+        ] {
+            require(
+                typed_outcome_decode_rejection(&value, &error).is_none(),
+                "incomplete identity produced a typed outcome",
+            )?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn outcome_dispatch_and_response_write_failures_remain_explicit() -> TestResult {
+        let workspace = tempfile::tempdir()?;
+        let service = EngineService::new(workspace.path());
+        let outcome = admitted_outcome(&service)?;
+
+        let missing_outcome = br#"{"contract_version":"1.0","request_id":"event","operation":"record_outcome","payload":{}}"#;
+        let mut missing_output = Vec::new();
+        require(
+            execute_with(&service, missing_outcome.as_slice(), &mut missing_output)? == 1,
+            "missing outcome payload was accepted",
+        )?;
+
+        let wrong_operation_payload = serde_json::to_vec(&serde_json::json!({
+            "contract_version": "1.0",
+            "request_id": "event",
+            "operation": "start",
+            "payload": {"outcome": &outcome}
+        }))?;
+        let mut wrong_output = Vec::new();
+        require(
+            execute_with(&service, wrong_operation_payload.as_slice(), &mut wrong_output)? == 1,
+            "outcome payload escaped into governance mutation",
+        )?;
+
+        std::fs::write(
+            service.canon_runtime_dir().join("decision-memory/state.json"),
+            b"corrupt snapshot",
+        )?;
+        let persistence_request = serde_json::to_vec(&serde_json::json!({
+            "contract_version": "1.0",
+            "request_id": outcome.event_id.as_str(),
+            "operation": "record_outcome",
+            "payload": {"outcome": &outcome}
+        }))?;
+        let mut persistence_output = Vec::new();
+        let persistence_code =
+            execute_with(&service, persistence_request.as_slice(), &mut persistence_output)?;
+        let persistence_response: Value = serde_json::from_slice(&persistence_output)?;
+        require(persistence_code == 6, "outcome persistence failure returned the wrong code")?;
+        require(
+            persistence_response["result"]["next_actions"]
+                == serde_json::json!(["restore_persistence", "retry"]),
+            "outcome persistence recovery actions drifted",
+        )?;
+
+        let capabilities = br#"{"contract_version":"1.0","request_id":"cap","operation":"capabilities","payload":{}}"#;
+        require(
+            execute_with(&service, capabilities.as_slice(), FailingWriter).is_err(),
+            "successful response write failure was hidden",
+        )?;
+        require(
+            execute_with(&service, b"invalid-json".as_slice(), FailingWriter).is_err(),
+            "rejection response write failure was hidden",
+        )?;
+
+        let mut invalid_outcome = serde_json::to_value(outcome)?;
+        invalid_outcome["terminal_status"] = serde_json::json!("blocked");
+        let typed_rejection = serde_json::to_vec(&serde_json::json!({
+            "contract_version": "1.0",
+            "request_id": "outcome-direct-rpc",
+            "operation": "record_outcome",
+            "payload": {"outcome": invalid_outcome}
+        }))?;
+        require(
+            execute_with(&service, typed_rejection.as_slice(), FailingWriter).is_err(),
+            "typed rejection write failure was hidden",
+        )
     }
 }

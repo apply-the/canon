@@ -8,10 +8,12 @@ use canon_contracts::{
     RecordOutcomeRequest, RepositoryIdentity, Revision, TerminalOutcomeStatus, VerificationKind,
 };
 use canon_engine::decision_memory::{
-    ApprovalContent, ArtifactContent, DecisionMemoryGraph, DecisionMemoryStore,
-    DecisionMemoryStoreSnapshot, EvidenceContent, GovernanceBundleDraft, GovernancePacketDraft,
-    NodeId, OutcomeFaultPoint, SubjectArtifactBinding, VerificationRequirementContent,
-    build_governance_bundle, record_outcome, record_outcome_with_fault, validate_governance_bundle,
+    ApprovalContent, ArtifactContent, DecisionContent, DecisionMemoryGraph, DecisionMemoryNode,
+    DecisionMemoryStore, DecisionMemoryStoreSnapshot, DependencyEdge, DependencyKind,
+    EvidenceContent, GovernanceBundleDraft, GovernanceDecision, GovernancePacketDraft,
+    NodeEnvelope, NodeId, OutcomeFaultPoint, SubjectArtifactBinding, ValidationCode,
+    VerificationRequirementContent, build_governance_bundle, record_outcome,
+    record_outcome_with_fault, validate_governance_bundle,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -92,22 +94,290 @@ fn identity_nonterminal_and_binding_failures_do_not_mutate() -> TestResult {
 }
 
 #[test]
+fn contract_and_bundle_rejections_preserve_exact_actions_without_mutation() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let store = admitted_store(root.path(), "bundle-outcome")?;
+    let before = std::fs::read(store.snapshot_path())?;
+    let original = outcome_request("event-outcome", TerminalOutcomeStatus::Published)?;
+
+    let mut invalid_digest = original.clone();
+    invalid_digest.event_digest = OutcomeEventDigest::new("sha256:invalid");
+    require_rejection(
+        &store,
+        invalid_digest,
+        RecordOutcomeRejectionReason::InvalidOutcome,
+        canon_contracts::OutcomeNextAction::InspectDecisionMemory,
+    )?;
+
+    let mut bundle_conflict = original.clone();
+    bundle_conflict.governance_bundle_digest =
+        canon_contracts::BundleDigest::new("sha256:different-bundle");
+    bundle_conflict.recompute_event_digest()?;
+    require_rejection(
+        &store,
+        bundle_conflict,
+        RecordOutcomeRejectionReason::DecisionMemoryConflict,
+        canon_contracts::OutcomeNextAction::InspectDecisionMemory,
+    )?;
+
+    let mut authority = original.clone();
+    authority.authority_binding.claims.clear();
+    authority.recompute_event_digest()?;
+    require_rejection(
+        &store,
+        authority,
+        RecordOutcomeRejectionReason::AuthorityBindingInvalid,
+        canon_contracts::OutcomeNextAction::ObtainAuthority,
+    )?;
+
+    let mut approval = original.clone();
+    approval.approval_binding = None;
+    approval.recompute_event_digest()?;
+    require_rejection(
+        &store,
+        approval,
+        RecordOutcomeRejectionReason::ApprovalBindingInvalid,
+        canon_contracts::OutcomeNextAction::ObtainAuthority,
+    )?;
+
+    let mut evidence = original.clone();
+    evidence.challenge_binding.evidence_references.clear();
+    evidence.recompute_event_digest()?;
+    require_rejection(
+        &store,
+        evidence,
+        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
+        canon_contracts::OutcomeNextAction::RepairEvidence,
+    )?;
+
+    let mut lineage = original;
+    lineage.lineage.verifier_identity = Some(lineage.lineage.producer_identity.clone());
+    lineage.lineage.verifier_invocation_id = Some(lineage.lineage.producer_invocation_id.clone());
+    lineage.recompute_event_digest()?;
+    require_rejection(
+        &store,
+        lineage,
+        RecordOutcomeRejectionReason::LineageInvalid,
+        canon_contracts::OutcomeNextAction::RepairEvidence,
+    )?;
+
+    require(
+        std::fs::read(store.snapshot_path())? == before,
+        "rejected outcomes mutated decision memory",
+    )
+}
+
+#[test]
+fn frozen_outcome_contract_rejects_partial_lineage_and_duplicate_bindings() -> TestResult {
+    let original = outcome_request("event-outcome", TerminalOutcomeStatus::Published)?;
+
+    let mut empty_time = original.clone();
+    empty_time.occurred_at = Some(AuthoritativeTimestamp::new(""));
+    require_contract_reason(&empty_time, RecordOutcomeRejectionReason::InvalidOutcome)?;
+
+    let mut authority_duplicate = original.clone();
+    authority_duplicate.authority_binding.claims.push(Claim::new("claim:outcome"));
+    require_contract_reason(
+        &authority_duplicate,
+        RecordOutcomeRejectionReason::AuthorityBindingInvalid,
+    )?;
+
+    let mut challenge_claim_duplicate = original.clone();
+    challenge_claim_duplicate.challenge_binding.claims.push(Claim::new("claim:outcome"));
+    require_contract_reason(
+        &challenge_claim_duplicate,
+        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
+    )?;
+
+    let mut challenge_evidence_duplicate = original.clone();
+    challenge_evidence_duplicate
+        .challenge_binding
+        .evidence_references
+        .push(EvidenceReference::new("proof:challenge"));
+    require_contract_reason(
+        &challenge_evidence_duplicate,
+        RecordOutcomeRejectionReason::EvidenceBindingInvalid,
+    )?;
+
+    let mut partial_verifier = original.clone();
+    partial_verifier.lineage.verifier_invocation_id = None;
+    require_contract_reason(&partial_verifier, RecordOutcomeRejectionReason::LineageInvalid)?;
+
+    let mut tier_zero = original.clone();
+    tier_zero.approval_binding = None;
+    tier_zero.challenge_binding.tier = ChallengeTier::Tier0;
+    tier_zero.challenge_binding.challenger_identity = None;
+    tier_zero.challenge_binding.challenger_invocation_id = None;
+    tier_zero.challenge_binding.independent_context_identity = None;
+    tier_zero.challenge_binding.evidence_references.clear();
+    tier_zero.lineage.verifier_identity = None;
+    tier_zero.lineage.verifier_invocation_id = None;
+    tier_zero.recompute_event_digest()?;
+    require(tier_zero.validate().is_ok(), "valid Tier 0 contract was rejected")?;
+
+    let mut missing_verifier = original.clone();
+    missing_verifier.challenge_binding.tier = ChallengeTier::Tier1;
+    missing_verifier.lineage.verifier_identity = None;
+    missing_verifier.lineage.verifier_invocation_id = None;
+    require_contract_reason(&missing_verifier, RecordOutcomeRejectionReason::LineageInvalid)?;
+
+    let mut tier_zero_with_reviewer = original.clone();
+    tier_zero_with_reviewer.challenge_binding.tier = ChallengeTier::Tier0;
+    require_contract_reason(
+        &tier_zero_with_reviewer,
+        RecordOutcomeRejectionReason::LineageInvalid,
+    )?;
+
+    let mut mismatched_reviewer = original.clone();
+    mismatched_reviewer.lineage.verifier_identity = Some("different-reviewer".to_string());
+    require_contract_reason(&mismatched_reviewer, RecordOutcomeRejectionReason::LineageInvalid)?;
+
+    for missing in ["identity", "invocation", "context"] {
+        let mut request = original.clone();
+        request.challenge_binding.tier = ChallengeTier::Tier1;
+        match missing {
+            "identity" => request.challenge_binding.challenger_identity = None,
+            "invocation" => request.challenge_binding.challenger_invocation_id = None,
+            "context" => request.challenge_binding.independent_context_identity = None,
+            _ => return Err("unknown challenge fixture".into()),
+        }
+        require_contract_reason(&request, RecordOutcomeRejectionReason::EvidenceBindingInvalid)?;
+    }
+    Ok(())
+}
+
+#[test]
+fn outcome_authorization_rejects_conflicting_or_unreconstructable_governance() -> TestResult {
+    let bundle = build_governance_bundle(governance_draft("bundle-outcome"))?;
+
+    let mut conflict_graph = DecisionMemoryGraph::from_bundle(&bundle)?;
+    let conflicting_decision = NodeEnvelope::new(
+        NodeId::new("decision-bundle-outcome-r1-accepted"),
+        "deterministic-governance",
+        DecisionContent {
+            bundle_id: "bundle-outcome".to_string(),
+            rationale: "conflicting terminal decision".to_string(),
+            alternatives: bundle.metadata.alternatives.clone(),
+            assumptions: bundle.metadata.assumptions.clone(),
+            triggers: bundle.metadata.triggers.clone(),
+            owners: bundle.metadata.owners.clone(),
+            decision: GovernanceDecision::Accepted,
+        },
+    )?;
+    conflict_graph.insert_or_replay(DecisionMemoryNode::Decision(conflicting_decision))?;
+    let conflict = validate_governance_bundle(&bundle, &mut conflict_graph);
+    require(conflict.decision == GovernanceDecision::Conflict, "decision conflict was accepted")?;
+    require(
+        conflict.findings.iter().any(|finding| finding.code == ValidationCode::Conflict),
+        "decision conflict lacked a deterministic finding",
+    )?;
+
+    let mut changed_draft = governance_draft("bundle-outcome");
+    changed_draft.subject_artifacts[0].content.content_digest = "b".repeat(64);
+    let changed_bundle = build_governance_bundle(changed_draft)?;
+    let mut original_graph = DecisionMemoryGraph::from_bundle(&bundle)?;
+    let mismatch = validate_governance_bundle(&changed_bundle, &mut original_graph);
+    require(
+        mismatch.findings.iter().any(|finding| {
+            finding.code == ValidationCode::Conflict
+                && finding.message == "graph node does not match the bound bundle"
+        }),
+        "bundle-to-graph content mismatch was not detected",
+    )?;
+
+    let mut unreconstructable = bundle.clone();
+    unreconstructable.metadata.subject_artifacts[0].packet_id = NodeId::new("missing-packet");
+    let mut admitted_graph = DecisionMemoryGraph::from_bundle(&bundle)?;
+    let rejected = validate_governance_bundle(&unreconstructable, &mut admitted_graph);
+    require(
+        rejected.findings.iter().any(|finding| {
+            finding.code == ValidationCode::Conflict
+                && finding.message == "bound graph could not be reconstructed"
+        }),
+        "unreconstructable governance did not fail closed",
+    )
+}
+
+#[test]
+fn outcome_authorization_rejects_stale_missing_and_extra_governance_state() -> TestResult {
+    let mut stale_draft = governance_draft("bundle-outcome");
+    stale_draft.provided_evidence[0].fresh = false;
+    let stale_bundle = build_governance_bundle(stale_draft)?;
+    let stale_graph = DecisionMemoryGraph::from_bundle(&stale_bundle)?;
+    let mut stale_value = serde_json::to_value(stale_graph)?;
+    stale_value["nodes"]["evidence-bundle-outcome"]["node"]["freshness"] =
+        serde_json::json!({"state": "fresh"});
+    let mut invalid_freshness = serde_json::from_value::<DecisionMemoryGraph>(stale_value)?;
+    let freshness_result = validate_governance_bundle(&stale_bundle, &mut invalid_freshness);
+    require(
+        freshness_result.findings.iter().any(|finding| {
+            finding.code == ValidationCode::Conflict
+                && finding.message == "declared stale content is represented as fresh"
+        }),
+        "invalid declared freshness was accepted",
+    )?;
+
+    let bundle = build_governance_bundle(governance_draft("bundle-outcome"))?;
+    let artifact_id = NodeId::new("artifact-bundle-outcome");
+    let mut missing_graph = DecisionMemoryGraph::from_bundle(&bundle)?;
+    missing_graph.remove_node(&artifact_id)?;
+    let missing_result = validate_governance_bundle(&bundle, &mut missing_graph);
+    require(
+        missing_result.findings.iter().any(|finding| {
+            finding.code == ValidationCode::DanglingReference
+                && finding.node_id.as_ref() == Some(&artifact_id)
+        }),
+        "missing active artifact was accepted",
+    )?;
+
+    let mut extra_edge_graph = DecisionMemoryGraph::from_bundle(&bundle)?;
+    extra_edge_graph.add_edge(DependencyEdge::new(
+        NodeId::new("claim-bundle-outcome-main"),
+        NodeId::new("evidence-bundle-outcome"),
+        DependencyKind::Binding,
+    ))?;
+    let extra_edge_result = validate_governance_bundle(&bundle, &mut extra_edge_graph);
+    require(
+        extra_edge_result.findings.iter().any(|finding| {
+            finding.code == ValidationCode::Conflict
+                && finding.message == "graph edges do not match the bound bundle"
+        }),
+        "extra governance edge was accepted",
+    )?;
+
+    let mut internal_review_draft = governance_draft("bundle-internal-review");
+    internal_review_draft.provided_evidence[0].external_semantic = false;
+    let internal_review_bundle = build_governance_bundle(internal_review_draft)?;
+    let mut internal_review_graph = DecisionMemoryGraph::from_bundle(&internal_review_bundle)?;
+    let internal_review =
+        validate_governance_bundle(&internal_review_bundle, &mut internal_review_graph);
+    require(
+        internal_review.decision == GovernanceDecision::RequiredMissing,
+        "internal semantic review satisfied external evidence policy",
+    )
+}
+
+#[test]
 fn fault_before_commit_is_retryable_and_fault_after_commit_replays() -> TestResult {
     let root = tempfile::tempdir()?;
     let store = admitted_store(root.path(), "bundle-outcome")?;
     let request = outcome_request("event-outcome", TerminalOutcomeStatus::Published)?;
     let before = std::fs::read(store.snapshot_path())?;
-    let rejected = record_outcome_with_fault(
-        &store,
-        "event-outcome",
-        request.clone(),
+    for fault in [
+        OutcomeFaultPoint::BeforeMutation,
+        OutcomeFaultPoint::AfterJournalBeforePersist,
         OutcomeFaultPoint::BeforePersist,
-    )?;
-    require(
-        rejected.reason_code == Some(RecordOutcomeRejectionReason::PersistenceFailed),
-        "pre-commit fault was not typed",
-    )?;
-    require(std::fs::read(store.snapshot_path())? == before, "pre-commit fault persisted event")?;
+    ] {
+        let rejected = record_outcome_with_fault(&store, "event-outcome", request.clone(), fault)?;
+        require(
+            rejected.reason_code == Some(RecordOutcomeRejectionReason::PersistenceFailed),
+            "pre-commit fault was not typed",
+        )?;
+        require(
+            std::fs::read(store.snapshot_path())? == before,
+            "pre-commit fault persisted event",
+        )?;
+    }
 
     let lost = record_outcome_with_fault(
         &store,
@@ -122,6 +392,63 @@ fn fault_before_commit_is_retryable_and_fault_after_commit_replays() -> TestResu
         store.load()?.graph.publication_outcomes().count() == 1,
         "post-commit retry added an event",
     )
+}
+
+#[test]
+fn persisted_outcome_audit_and_revision_tampering_fail_closed() -> TestResult {
+    let root = tempfile::tempdir()?;
+    let store = admitted_store(root.path(), "bundle-outcome")?;
+    let request = outcome_request("event-outcome", TerminalOutcomeStatus::Published)?;
+    record_outcome(&store, "event-outcome", request)?;
+    let snapshot = store.load()?;
+
+    let mut audit_value = serde_json::to_value(&snapshot)?;
+    let audit_outcome = outcome_event_value(&mut audit_value)?;
+    audit_outcome["execution_audit"]["process_invocations"] = serde_json::json!(1);
+    let mut audit_snapshot = serde_json::from_value::<DecisionMemoryStoreSnapshot>(audit_value)?;
+    audit_snapshot.terminal_result.graph_digest = audit_snapshot.graph.digest()?.sha256;
+    require(
+        store.persist(&audit_snapshot).is_err(),
+        "nonzero outcome execution audit was persisted",
+    )?;
+
+    let mut revision_value = serde_json::to_value(snapshot)?;
+    let revision_outcome = outcome_event_value(&mut revision_value)?;
+    let revision =
+        revision_outcome["decision_memory_revision"].as_u64().ok_or("outcome revision missing")?;
+    revision_outcome["decision_memory_revision"] = serde_json::json!(revision.saturating_add(1));
+    let mut revision_snapshot =
+        serde_json::from_value::<DecisionMemoryStoreSnapshot>(revision_value)?;
+    revision_snapshot.terminal_result.graph_digest = revision_snapshot.graph.digest()?.sha256;
+    require(store.persist(&revision_snapshot).is_err(), "divergent outcome revision was persisted")
+}
+
+fn outcome_event_value(value: &mut serde_json::Value) -> Result<&mut serde_json::Value, String> {
+    value["graph"]["events"]
+        .as_array_mut()
+        .and_then(|events| events.iter_mut().find(|event| event["event"] == "outcome_recorded"))
+        .and_then(|event| event.get_mut("outcome"))
+        .ok_or_else(|| "serialized outcome event missing".to_string())
+}
+
+fn require_rejection(
+    store: &DecisionMemoryStore,
+    request: RecordOutcomeRequest,
+    reason: RecordOutcomeRejectionReason,
+    action: canon_contracts::OutcomeNextAction,
+) -> TestResult {
+    let event_id = request.event_id.as_str().to_owned();
+    let response = record_outcome(store, &event_id, request)?;
+    require(response.reason_code == Some(reason), "outcome rejection reason drifted")?;
+    require(response.next_actions == vec![action], "outcome rejection action drifted")
+}
+
+fn require_contract_reason(
+    request: &RecordOutcomeRequest,
+    reason: RecordOutcomeRejectionReason,
+) -> TestResult {
+    let error = request.validate().err().ok_or("invalid contract fixture was accepted")?;
+    require(error.reason_code() == reason, "contract rejection reason drifted")
 }
 
 fn admitted_store(
