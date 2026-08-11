@@ -11,7 +11,7 @@ bump and the previous one.
 Canon follows Semantic Versioning. Before `1.0.0`, breaking changes may occur in
 minor releases.
 
-## [0.91.0] - Unreleased
+## [0.91.0] - 2026-08-10
 
 Contract amendment:
 
@@ -25,6 +25,12 @@ Contract amendment:
   creates no durable state.
 - Moved the workspace coherently to `0.91.0` because workspace version
   inheritance prevents an honest isolated package-version bump.
+- Published and independently retrieved `canon-contracts 0.91.0`, qualified
+  exact registry-only consumers on the current toolchain and Rust 1.96, and
+  pushed the signed source tag at the immutable release commit.
+- Closed the post-publication coverage gate with external integration tests
+  for existing requirements safety behavior; no production or published-crate
+  source changed.
 
 The repository history contains no release bumps for `0.10.0`, `0.13.0`,
 `0.16.0`, or `0.17.0`, so adjacent feature slices are rolled into the next
