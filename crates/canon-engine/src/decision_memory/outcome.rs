@@ -132,6 +132,9 @@ pub fn record_outcome_with_fault(
     request: RecordOutcomeRequest,
     fault: OutcomeFaultPoint,
 ) -> Result<RecordOutcomeResponse, OutcomeIngestionError> {
+    if request_id != request.event_id.as_str() {
+        return Ok(rejected(&request, RecordOutcomeRejectionReason::IdentityDigestConflict));
+    }
     let mut snapshot = store.load()?;
     if let Some(recorded) = snapshot
         .graph
@@ -139,9 +142,6 @@ pub fn record_outcome_with_fault(
         .find(|outcome| outcome.request.event_id == request.event_id)
     {
         return replay_or_conflict(recorded, &request).map_err(OutcomeIngestionError::from);
-    }
-    if request_id != request.event_id.as_str() {
-        return Ok(rejected(&request, RecordOutcomeRejectionReason::IdentityDigestConflict));
     }
     if let Err(error) = request.validate() {
         return Ok(rejected(&request, error.reason_code()));
